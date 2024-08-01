@@ -512,6 +512,14 @@ struct BufferCreateInfo
 
 	BufferUsageFlags usageFlags = 0;
 	u64 size;
+	const void* data = nullptr;
+
+	BufferCreateInfo WithoutData() const
+	{
+		auto info = *this;
+		info.data = nullptr;
+		return info;
+	}
 };
 
 struct SamplerCreateInfo
@@ -539,6 +547,14 @@ struct TextureCreateInfo
 	TextureDimension dimension = TextureDimension::D2;
 	TextureFormat format = TextureFormat::RGBA8_UNORM_SRGB;
 	TextureUsageFlags usageFlags = 0;
+	const void* data = nullptr;
+
+	TextureCreateInfo WithoutData() const
+	{
+		auto info = *this;
+		info.data = nullptr;
+		return info;
+	}
 };
 
 struct ImageDataLayout

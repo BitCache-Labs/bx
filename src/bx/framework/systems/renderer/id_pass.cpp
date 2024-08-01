@@ -1,6 +1,6 @@
 #include "bx/framework/systems/renderer/id_pass.hpp"
 
-#include "bx/engine/containers/lazy_init.hpp"
+#include "bx/framework/systems/renderer/lazy_init.hpp"
 
 #include "bx/framework/components/transform.hpp"
 #include "bx/framework/components/mesh_filter.hpp"
@@ -179,7 +179,8 @@ void IdPass::Dispatch(const Camera& camera)
                     meshUniformCreateInfo.name = "Mesh Uniform";
                     meshUniformCreateInfo.size = sizeof(VertexMeshUniform);
                     meshUniformCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
-                    BufferHandle meshUniformBuffer = Graphics::CreateBuffer(meshUniformCreateInfo, &meshUniform);
+                    meshUniformCreateInfo.data = &meshUniform;
+                    BufferHandle meshUniformBuffer = Graphics::CreateBuffer(meshUniformCreateInfo);
                 
                     BindGroupCreateInfo createInfo{};
                     createInfo.name = "Id Pass BindGroup";

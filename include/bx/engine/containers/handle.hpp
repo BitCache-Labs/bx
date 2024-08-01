@@ -1,6 +1,6 @@
 #pragma once
 
-#include "type.hpp"
+#include "bx/engine/core/type.hpp"
 
 template <typename T>
 struct Handle

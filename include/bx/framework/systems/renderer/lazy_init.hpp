@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "hash_map.hpp"
+#include "bx/engine/containers/hash_map.hpp"
 
 // Lazily initialize a const T on demand
 template <typename InitializerT, typename T>

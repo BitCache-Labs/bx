@@ -179,15 +179,10 @@ TextureViewHandle Graphics::GetSwapchainColorTargetView()
 
 TextureHandle Graphics::CreateTexture(const TextureCreateInfo& createInfo)
 {
-    return CreateTexture(createInfo, nullptr);
-}
-
-TextureHandle Graphics::CreateTexture(const TextureCreateInfo& createInfo, const void* data)
-{
     BX_ENSURE(ValidateTextureCreateInfo(createInfo));
 
     TextureHandle textureHandle = s->textureHandlePool.Create();
-    s_createInfoCache->textureCreateInfos.insert(std::make_pair(textureHandle, createInfo));
+    s_createInfoCache->textureCreateInfos.insert(std::make_pair(textureHandle, createInfo.WithoutData()));
 
     GLenum type = TextureDimensionToGl(createInfo.dimension, createInfo.size.depthOrArrayLayers);
 
@@ -215,7 +210,7 @@ TextureHandle Graphics::CreateTexture(const TextureCreateInfo& createInfo, const
                 0,
                 TextureFormatToGlFormat(createInfo.format),
                 TextureFormatToGlType(createInfo.format),
-                data
+                createInfo.data
             );
         }
         else
@@ -229,7 +224,7 @@ TextureHandle Graphics::CreateTexture(const TextureCreateInfo& createInfo, const
                 0,
                 TextureFormatToGlFormat(createInfo.format),
                 TextureFormatToGlType(createInfo.format),
-                data
+                createInfo.data
             );
         }
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // Required, default enables mips
@@ -246,7 +241,7 @@ TextureHandle Graphics::CreateTexture(const TextureCreateInfo& createInfo, const
             0,
             TextureFormatToGlFormat(createInfo.format),
             TextureFormatToGlType(createInfo.format),
-            data
+            createInfo.data
         );
     }
 
@@ -309,19 +304,14 @@ void Graphics::DestroySampler(SamplerHandle& sampler)
 
 BufferHandle Graphics::CreateBuffer(const BufferCreateInfo& createInfo)
 {
-    return CreateBuffer(createInfo, nullptr);
-}
-
-BufferHandle Graphics::CreateBuffer(const BufferCreateInfo& createInfo, const void* data)
-{
     BX_ENSURE(ValidateBufferCreateInfo(createInfo));
 
     BufferHandle bufferHandle = s->bufferHandlePool.Create();
-    s_createInfoCache->bufferCreateInfos.insert(std::make_pair(bufferHandle, createInfo));
+    s_createInfoCache->bufferCreateInfos.insert(std::make_pair(bufferHandle, createInfo.WithoutData()));
 
     GLuint buffer;
     glCreateBuffers(1, &buffer);
-    glNamedBufferData(buffer, createInfo.size, data, GL_DYNAMIC_DRAW);
+    glNamedBufferData(buffer, createInfo.size, createInfo.data, GL_DYNAMIC_DRAW);
 
     s->buffers.insert(std::make_pair(bufferHandle, buffer));
 

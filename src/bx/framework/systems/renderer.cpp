@@ -326,7 +326,8 @@ void Renderer::Render()
                     meshUniformCreateInfo.name = "Mesh Uniform Buffer";
                     meshUniformCreateInfo.size = sizeof(VertexMeshUniform);
                     meshUniformCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
-                    BufferHandle meshUniformBuffer = Graphics::CreateBuffer(meshUniformCreateInfo, &meshUniform);
+                    meshUniformCreateInfo.data = &meshUniform;
+                    BufferHandle meshUniformBuffer = Graphics::CreateBuffer(meshUniformCreateInfo);
 
                     // TODO: very lazy, shouldn't be created every frame probably
                     BindGroupCreateInfo createInfo{};

@@ -21,7 +21,6 @@ public:
 	// Resource creation and destruction
 	static const TextureCreateInfo& GetTextureCreateInfo(TextureHandle texture);
 	static TextureHandle CreateTexture(const TextureCreateInfo& createInfo);
-	static TextureHandle CreateTexture(const TextureCreateInfo& createInfo, const void* data);
 	static void DestroyTexture(TextureHandle& texture);
 
 	static TextureViewHandle CreateTextureView(TextureHandle texture);
@@ -33,7 +32,6 @@ public:
 
 	static const BufferCreateInfo& GetBufferCreateInfo(BufferHandle buffer);
 	static BufferHandle CreateBuffer(const BufferCreateInfo& createInfo);
-	static BufferHandle CreateBuffer(const BufferCreateInfo& createInfo, const void* data);
 	static void DestroyBuffer(BufferHandle& buffer);
 
 	static const ShaderCreateInfo& GetShaderCreateInfo(ShaderHandle shader);

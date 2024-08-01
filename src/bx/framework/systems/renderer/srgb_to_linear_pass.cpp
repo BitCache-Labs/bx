@@ -1,6 +1,6 @@
 #include "bx/framework/systems/renderer/srgb_to_linear_pass.hpp"
 
-#include "bx/engine/containers/lazy_init.hpp"
+#include "bx/framework/systems/renderer/lazy_init.hpp"
 
 const char* SRGB_TO_LINEAR_SHADER_SRC = R""""(
 
