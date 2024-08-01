@@ -311,7 +311,7 @@ void Renderer::Render()
                     const auto& materialData = material.GetData();
                     const auto& shader = materialData.GetShader();
 
-                    auto& graphicsPipelineIter = s->shaderPipelines.find(shader.GetHandle());
+                    auto graphicsPipelineIter = s->shaderPipelines.find(shader.GetHandle());
                     BX_ASSERT(graphicsPipelineIter != s->shaderPipelines.end(), "Missing graphics pipeline, this should not happen.");
                     GraphicsPipelineHandle graphicsPipeline = graphicsPipelineIter->second;
 
