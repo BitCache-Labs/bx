@@ -41,7 +41,7 @@ struct LazyInitMap : NoCopy
 
     static const T& Get(const InitArgsT& params)
     {
-        auto& cacheIter = cache.find(params);
+        auto cacheIter = cache.find(params);
         if (cacheIter == cache.end())
         {
             cache.try_emplace(params, new InitializerT(params));

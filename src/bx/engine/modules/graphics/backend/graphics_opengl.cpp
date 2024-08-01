@@ -1,5 +1,3 @@
-
-
 #include "bx/engine/modules/graphics/backend/graphics_opengl.hpp"
 
 #include "bx/engine/modules/graphics/type_validation.hpp"
@@ -22,6 +20,8 @@ using namespace Gl;
 #ifdef BX_WINDOW_GLFW_BACKEND
 #include "bx/engine/modules/window/backend/window_glfw.hpp"
 #endif
+
+#include <utility>
 
 struct TextureView
 {
@@ -354,7 +354,9 @@ ShaderHandle Graphics::CreateShader(const ShaderCreateInfo& createInfo)
     }
 
     GLenum type = ShaderTypeToGl(createInfo.shaderType);
-    s->shaders.try_emplace(shaderHandle, createInfo.name, type, meta + createInfo.src);
+    s->shaders.emplace(std::piecewise_construct,
+        std::forward_as_tuple(shaderHandle),
+        std::forward_as_tuple(createInfo.name, type, meta + createInfo.src));
 
     return shaderHandle;
 }
@@ -384,7 +386,9 @@ GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCr
     BX_ENSURE(fragShaderIter != s->shaders.end());
 
     ShaderProgram shaderProgram(createInfo.name, List<Shader*>{ &vertShaderIter->second, & fragShaderIter->second });
-    s->graphicsPipelines.try_emplace(graphicsPipelineHandle, std::move(shaderProgram), createInfo.vertexBuffers, createInfo.layout);
+    s->graphicsPipelines.emplace(std::piecewise_construct,
+        std::forward_as_tuple(graphicsPipelineHandle),
+        std::forward_as_tuple(std::move(shaderProgram), createInfo.vertexBuffers, createInfo.layout));
 
     return graphicsPipelineHandle;
 }
@@ -879,6 +883,7 @@ GLuint GraphicsOpenGL::GetRawTextureHandle(TextureHandle texture)
     BX_ENSURE(textureIter != s->textures.end());
 
     return textureIter->second;
+
 }
 
 // TODO: remove!
