@@ -50,6 +50,7 @@ struct SrgbToLinearPipeline : public LazyInit<SrgbToLinearPipeline, ComputePipel
     }
 };
 
+template<>
 std::unique_ptr<SrgbToLinearPipeline> LazyInit<SrgbToLinearPipeline, ComputePipelineHandle>::cache = nullptr;
 
 SrgbToLinearPass::SrgbToLinearPass(TextureHandle srgbTexture, TextureHandle linearTexture)

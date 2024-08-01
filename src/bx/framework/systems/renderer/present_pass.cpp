@@ -101,6 +101,7 @@ struct PresentPipeline : public LazyInit<PresentPipeline, GraphicsPipelineHandle
     }
 };
 
+template<>
 std::unique_ptr<PresentPipeline> LazyInit<PresentPipeline, GraphicsPipelineHandle>::cache = nullptr;
 
 PresentPass::PresentPass(TextureHandle texture)

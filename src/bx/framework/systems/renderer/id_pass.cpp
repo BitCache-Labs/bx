@@ -123,6 +123,7 @@ struct IdPipeline : public LazyInitMap<IdPipeline, GraphicsPipelineHandle, IdPip
     }
 };
 
+template<>
 HashMap<IdPipelineArgs, std::unique_ptr<IdPipeline>> LazyInitMap<IdPipeline, GraphicsPipelineHandle, IdPipelineArgs>::cache = {};
 
 IdPass::IdPass(TextureHandle colorTarget, TextureHandle depthTarget)
