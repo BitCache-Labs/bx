@@ -145,11 +145,13 @@ String File::ReadTextFile(const String& filename)
 	}
 
 	file.seekg(0, std::ios::end);
-	const size_t size = file.tellg();
+	const SizeType size = file.tellg();
 
 	String buffer(size, '\0');
 	file.seekg(0);
 	file.read(&buffer[0], size);
+
+	buffer.resize(file.gcount());
 
 	return buffer;
 }

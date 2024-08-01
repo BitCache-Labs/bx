@@ -125,6 +125,7 @@ set (BX_SRCS
 	"src/bx/engine/core/object.cpp"
 	"src/bx/engine/core/profiler.cpp"
 	"src/bx/engine/core/resource.cpp"
+	"src/bx/engine/core/stream.cpp"
 	"src/bx/engine/core/thread.cpp"
 	"src/bx/engine/core/time.cpp"
 	"src/bx/engine/core/uuid.cpp"
