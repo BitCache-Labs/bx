@@ -1,5 +1,7 @@
 #include "bx/engine/core/stream.hpp"
 
+#include <cstring>
+
 InputStringStream::InputStringStream(const String& source)
     : m_source(source), m_length(std::strlen(source.c_str())), m_currentPos(0)
 {}
