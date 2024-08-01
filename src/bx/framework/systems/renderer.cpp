@@ -7,6 +7,10 @@
 #include "bx/framework/components/animator.hpp"
 #include "bx/framework/components/light.hpp"
 
+#include "bx/framework/systems/renderer/id_pass.hpp"
+#include "bx/framework/systems/renderer/present_pass.hpp"
+#include "bx/framework/systems/renderer/srgb_to_linear_pass.hpp"
+
 #include <bx/engine/core/file.hpp>
 #include <bx/engine/core/data.hpp>
 #include <bx/engine/core/profiler.hpp>
@@ -15,26 +19,28 @@
 #include <bx/engine/modules/graphics.hpp>
 #include <bx/engine/modules/window.hpp>
 
-struct ViewData
+struct VertexConstantsUniform
 {
-    Mat4 viewMtx = Mat4::Identity();
-    Mat4 projMtx = Mat4::Identity();
-    Mat4 viewProjMtx = Mat4::Identity();
+    Mat4 view = Mat4::Identity();
+    Mat4 projection = Mat4::Identity();
+    Mat4 viewProjection = Mat4::Identity();
 };
 
-struct ConstantData
+struct VertexMeshUniform
 {
-    ViewData view;
+    Mat4 model = Mat4::Identity();
+    Mat4 boneToMesh = Mat4::Identity();
+    Vec4i lightIndices = Vec4i(-1, -1, -1, -1);
 };
 
-struct LightData
+struct LightSourceData
 {
     u32 type = 0;
     f32 intensity = 1.0f;
 
     i32 shadowMapIndex = -1;
     u32 cascadeCount = 0;
-    
+
     Vec3 position = Vec3(0, 0, 0);
     f32 constant = 1.0f;
 
@@ -45,206 +51,53 @@ struct LightData
     f32 quadratic_outerCutoff = 0.01f;
 };
 
-struct ModelData
+struct RendererState : NoCopy
 {
-    Mat4 worldMtx = Mat4::Identity();
-    Mat4 meshMtx = Mat4::Identity();
-    Vec4i lightIndices = Vec4i(-1, -1, -1, -1);
+    HashMap<ResourceHandle, GraphicsPipelineHandle> shaderPipelines{};
+
+    TextureHandle colorTarget = TextureHandle::null;
+    TextureHandle depthTarget = TextureHandle::null;
+
+    BufferHandle vertexConstantsBuffer = BufferHandle::null;
+    BufferHandle lightSourceBuffer = BufferHandle::null;
 };
+static std::unique_ptr<RendererState> s = nullptr;
 
-struct DrawCommandData
+void BuildShaderPipelines()
 {
-    ModelData model;
-
-    GraphicsHandle vbuffers = INVALID_GRAPHICS_HANDLE;
-    GraphicsHandle ibuffer = INVALID_GRAPHICS_HANDLE;
-    u32 numIndices = 0;
-
-    GraphicsHandle pipeline = INVALID_GRAPHICS_HANDLE;
-
-    GraphicsHandle matResources = INVALID_GRAPHICS_HANDLE;
-    GraphicsHandle animResources = INVALID_GRAPHICS_HANDLE;
-};
-
-class Renderer::Impl
-{
-public:
-    GraphicsHandle pipelineOverride = INVALID_GRAPHICS_HANDLE;
-
-    GraphicsHandle constantBuffer = INVALID_GRAPHICS_HANDLE;
-    GraphicsHandle modelBuffer = INVALID_GRAPHICS_HANDLE;
-    GraphicsHandle lightBuffer = INVALID_GRAPHICS_HANDLE;
-
-    GraphicsHandle resources = INVALID_GRAPHICS_HANDLE;
-
-    List<ViewData> views;
-    List<LightData> lights;
-    List<DrawCommandData> drawCmds;
-};
-
-void Renderer::Initialize()
-{
-    m_impl = new Renderer::Impl();
-
-    BufferInfo info;
-
-    info.type = BufferType::UNIFORM_BUFFER;
-    info.usage = BufferUsage::DYNAMIC;
-    info.access = BufferAccess::WRITE;
-    m_impl->constantBuffer = Graphics::CreateBuffer(info);
-    
-    info.type = BufferType::UNIFORM_BUFFER;
-    info.usage = BufferUsage::DYNAMIC;
-    info.access = BufferAccess::WRITE;
-    m_impl->modelBuffer = Graphics::CreateBuffer(info);
-
-    info.type = BufferType::UNIFORM_BUFFER;
-    info.usage = BufferUsage::DYNAMIC;
-    info.access = BufferAccess::WRITE;
-    info.strideBytes = sizeof(LightData);
-    m_impl->lightBuffer = Graphics::CreateBuffer(info);
-
-    ResourceBindingElement resourceElems[] =
-    {
-        ResourceBindingElement { ShaderType::VERTEX, "ConstantBuffer", 1, ResourceBindingType::UNIFORM_BUFFER, ResourceBindingAccess::STATIC },
-        ResourceBindingElement { ShaderType::VERTEX, "ModelBuffer", 1, ResourceBindingType::UNIFORM_BUFFER, ResourceBindingAccess::STATIC },
-        ResourceBindingElement { ShaderType::PIXEL, "LightBuffer", 1, ResourceBindingType::UNIFORM_BUFFER, ResourceBindingAccess::STATIC }
+    VertexBufferLayout vertexBufferLayout{};
+    vertexBufferLayout.stride = sizeof(Mesh::Vertex);
+    vertexBufferLayout.attributes = {
+        VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, position), 0),
+        VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, color),    1),
+        VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, normal),   2),
+        VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, tangent),  3),
+        VertexAttribute(VertexFormat::FLOAT_32X2, offsetof(Mesh::Vertex, uv),       4),
+        VertexAttribute(VertexFormat::SINT_32X4,  offsetof(Mesh::Vertex, bones),    5),
+        VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, weights),  6)
     };
 
-    ResourceBindingInfo resourceBindingInfo;
-    resourceBindingInfo.resources = resourceElems;
-    resourceBindingInfo.numResources = 3;
+    PipelineLayoutDescriptor pipelineLayoutDescriptor{};
+    pipelineLayoutDescriptor.bindGroupLayouts = {
+        BindGroupLayoutDescriptor(0, {
+            BindGroupLayoutEntry(0, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),      // layout (binding = 0, std140) uniform Constants
+            BindGroupLayoutEntry(1, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),      // layout (binding = 1, std140) uniform Model
+            BindGroupLayoutEntry(2, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),      // layout (binding = 2, std140) uniform Animation
+            BindGroupLayoutEntry(4, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::UniformBuffer())     // layout (binding = 4, std140) uniform LightBuffer
+        }),
+        Material::GetBindGroupLayout()
+    };
 
-    m_impl->resources = Graphics::CreateResourceBinding(resourceBindingInfo);
+    ColorTargetState colorTargetState{};
+    colorTargetState.format = Graphics::GetTextureCreateInfo(Graphics::GetSwapchainColorTarget()).format;
 
-    Graphics::BindResource(m_impl->resources, "ConstantBuffer", m_impl->constantBuffer);
-    Graphics::BindResource(m_impl->resources, "ModelBuffer", m_impl->modelBuffer);
-    Graphics::BindResource(m_impl->resources, "LightBuffer", m_impl->lightBuffer);
-}
-
-void Renderer::Shutdown()
-{
-    Graphics::DestroyBuffer(m_impl->constantBuffer);
-    Graphics::DestroyBuffer(m_impl->modelBuffer);
-    Graphics::DestroyBuffer(m_impl->lightBuffer);
-
-    Graphics::DestroyResourceBinding(m_impl->resources);
-
-    delete m_impl;
-    m_impl = nullptr;
-}
-
-void Renderer::SetPipelineOverride(const GraphicsHandle pipeline)
-{
-    m_impl->pipelineOverride = pipeline;
-}
-
-Vec4i Renderer::GetLightIndices(const Vec3& pos)
-{
-    Vec4i res = Vec4i(-1, -1, -1, -1);
-    for (SizeType i = 0; i < m_impl->lights.size(); ++i)
-    {
-        if (i >= 4) break;
-        res[i] = static_cast<i32>(i);
-    }
-    return res;
-}
-
-void Renderer::UpdateAnimators()
-{
-    EntityManager::ForEach<Animator>(
-        [&](Entity entity, Animator& anim)
-        {
-            anim.Update();
-        });
-}
-
-void Renderer::UpdateCameras()
-{
-    m_impl->views.clear();
-
-    EntityManager::ForEach<Transform, Camera>(
-        [&](Entity entity, const Transform& trx, Camera& cam)
-        {
-            i32 width, height;
-            Window::GetSize(&width, &height);
-            cam.SetAspect((f32)width / (height == 0 ? 1.0f : (f32)height));
-
-            Vec3 fwd = trx.GetRotation() * Vec3::Forward();
-            cam.SetView(Mat4::LookAt(trx.GetPosition(), trx.GetPosition() + fwd, Vec3(0, 1, 0)));
-            cam.Update();
-
-            ViewData view;
-            view.viewMtx = cam.GetView();
-            view.projMtx = cam.GetProjection();
-            view.viewProjMtx = cam.GetViewProjection();
-            m_impl->views.emplace_back(view);
-        });
-}
-
-void Renderer::UpdateLights()
-{
-    m_impl->lights.clear();
-
-    EntityManager::ForEach<Transform, Light>(
-        [&](Entity entity, const Transform& trx, const Light& l)
-        {
-            LightData light;
-            light.position = trx.GetPosition();
-            light.intensity = l.GetIntensity();
-            light.constant = l.GetConstant();
-            light.linear_cutoff = l.GetLinear();
-            light.quadratic_outerCutoff = l.GetQuadratic();
-            light.color = l.GetColor();
-            m_impl->lights.emplace_back(light);
-        });
-
-    BufferData bufferData;
-    bufferData.dataSize = sizeof(LightData) * m_impl->lights.size();
-    bufferData.pData = m_impl->lights.data();
-    Graphics::UpdateBuffer(m_impl->lightBuffer, bufferData);
-}
-
-void Renderer::Update()
-{
-    UpdateAnimators();
-    UpdateCameras();
-    UpdateLights();
-}
-
-void Renderer::CollectDrawCommands()
-{
-    m_impl->drawCmds.clear();
+    TextureFormat depthFormat = Graphics::GetTextureCreateInfo(s->depthTarget).format;
 
     EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
         [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr)
         {
-            GraphicsHandle animResources = INVALID_GRAPHICS_HANDLE;
-            if (entity.HasComponent<Animator>())
-            {
-                const auto& anim = entity.GetComponent<Animator>();
-                animResources = anim.GetResources();
-            }
-
             if (mr.GetMaterialCount() == 0)
                 return;
-
-            for (const auto& material : mr.GetMaterials())
-            {
-                if (!material)
-                    continue;
-
-                const auto& materialData = material.GetData();
-
-                GraphicsHandle resources = materialData.GetResources();
-                for (const auto& entry : materialData.GetTextures())
-                {
-                    if (!entry.second)
-                        Graphics::BindResource(resources, entry.first.c_str(), INVALID_GRAPHICS_HANDLE);
-                    else
-                        Graphics::BindResource(resources, entry.first.c_str(), entry.second->GetTexture());
-                }
-            }
 
             SizeType index = 0;
             for (const auto& mesh : mf.GetMeshes())
@@ -255,108 +108,265 @@ void Renderer::CollectDrawCommands()
                 if (!mesh || !material)
                     continue;
 
-                const auto& meshData = mesh.GetData();
-                const auto& materialData = material.GetData();
+                const Material& materialData = material.GetData();
+                const Resource<Shader>& shaderResource = materialData.GetShader();
+                const Shader& shader = shaderResource.GetData();
 
-                DrawCommandData cmd;
-                cmd.model.meshMtx = meshData.GetMatrix();
-                cmd.model.worldMtx = trx.GetMatrix();
-                cmd.model.lightIndices = GetLightIndices(trx.GetPosition());
+                if (s->shaderPipelines.find(shaderResource.GetHandle()) == s->shaderPipelines.end())
+                {
+                    GraphicsPipelineCreateInfo createInfo{};
+                    createInfo.name = "Shader Pipeline";
+                    createInfo.vertexShader = shader.GetVertexShader();
+                    createInfo.fragmentShader = shader.GetFragmentShader();
+                    createInfo.vertexBuffers = { vertexBufferLayout };
+                    createInfo.colorTarget = Optional<ColorTargetState>::Some(colorTargetState);
+                    createInfo.cullMode = Optional<Face>::Some(Face::BACK);
+                    createInfo.layout = pipelineLayoutDescriptor;
+                    createInfo.depthFormat = Optional<TextureFormat>::Some(depthFormat);
 
-                cmd.vbuffers = meshData.GetVertexBuffers();
-                cmd.ibuffer = meshData.GetIndexBuffer();
-                cmd.numIndices = static_cast<u32>(meshData.GetTriangles().size());
-                cmd.pipeline = materialData.GetPipeline();
-                cmd.matResources = materialData.GetResources();
-                cmd.animResources = animResources;
-
-                m_impl->drawCmds.emplace_back(cmd);
+                    GraphicsPipelineHandle graphicsPipeline = Graphics::CreateGraphicsPipeline(createInfo);
+                    s->shaderPipelines.insert(std::make_pair(shaderResource.GetHandle(), graphicsPipeline));
+                }
             }
         });
 }
 
-void Renderer::DrawCommand(const GraphicsHandle pipeline, u32 numResourceBindings, const GraphicsHandle* pResourcesBindings, u32 numBuffers, const GraphicsHandle* pBuffers, const u64* offset, const GraphicsHandle indexBuffer, u32 count)
+void UpdateAnimators()
 {
-    if (m_impl->pipelineOverride != INVALID_GRAPHICS_HANDLE)
-        Graphics::SetPipeline(m_impl->pipelineOverride);
-    else
-        Graphics::SetPipeline(pipeline);
-    
-    for (u32 i = 0; i < numResourceBindings; ++i)
-    {
-        auto resourceBinding = pResourcesBindings[i];
-        if (resourceBinding != INVALID_GRAPHICS_HANDLE)
-            Graphics::CommitResources(pipeline, resourceBinding);
-    }
-
-    Graphics::SetVertexBuffers(0, 1, pBuffers, offset);
-    Graphics::SetIndexBuffer(indexBuffer, 0);
-
-    DrawIndexedAttribs attribs;
-    attribs.indexType = GraphicsValueType::UINT32;
-    attribs.numIndices = count;
-    Graphics::DrawIndexed(attribs);
-}
-
-void Renderer::DrawCommands()
-{
-    for (const auto& cmd : m_impl->drawCmds)
-    {
-        BufferData bufferData;
-        bufferData.dataSize = sizeof(ModelData);
-        bufferData.pData = &cmd.model;
-        Graphics::UpdateBuffer(m_impl->modelBuffer, bufferData);
-
-        GraphicsHandle resourceBindings[]
+    EntityManager::ForEach<Animator>(
+        [&](Entity entity, Animator& anim)
         {
-            m_impl->resources,
-            cmd.matResources,
-            cmd.animResources
-        };
+            anim.Update();
+        });
+}
 
-        const u64 offset = 0;
-        GraphicsHandle pBuffs[] = { cmd.vbuffers };
+void UpdateLightSources()
+{
+    List<LightSourceData> lightSources{};
 
-        DrawCommand(cmd.pipeline, 3, resourceBindings, 1, pBuffs, &offset, cmd.ibuffer, cmd.numIndices);
+    EntityManager::ForEach<Transform, Light>(
+        [&](Entity entity, const Transform& trx, const Light& l)
+        {
+            LightSourceData lightSource;
+            lightSource.position = trx.GetPosition();
+            lightSource.intensity = l.GetIntensity();
+            lightSource.constant = l.GetConstant();
+            lightSource.linear_cutoff = l.GetLinear();
+            lightSource.quadratic_outerCutoff = l.GetQuadratic();
+            lightSource.color = l.GetColor();
+            lightSources.emplace_back(lightSource);
+        });
+
+    Graphics::WriteBuffer(s->lightSourceBuffer, 0, lightSources.data(), lightSources.size() * sizeof(LightSourceData));
+}
+
+void Renderer::UpdateCameras()
+{
+    List<VertexConstantsUniform> viewConstants{};
+
+    EntityManager::ForEach<Transform, Camera>(
+        [&](Entity entity, const Transform& trx, Camera& camera)
+        {
+            // TODO: this shit nasty, just call camera.update()?
+            i32 width, height;
+            Window::GetSize(&width, &height);
+            camera.SetAspect((f32)width / (height == 0 ? 1.0f : (f32)height));
+            Vec3 fwd = trx.GetRotation() * Vec3::Forward();
+            camera.SetView(Mat4::LookAt(trx.GetPosition(), trx.GetPosition() + fwd, Vec3::Up()));
+            camera.Update();
+
+            VertexConstantsUniform constants;
+            constants.view = camera.GetView();
+            constants.projection = camera.GetProjection();
+            constants.viewProjection = camera.GetViewProjection();
+            viewConstants.emplace_back(constants);
+        });
+
+    if (editorCamera.IsSome())
+    {
+        Camera& camera = editorCamera.Unwrap();
+
+        VertexConstantsUniform constants;
+        constants.view = camera.GetView();
+        constants.projection = camera.GetProjection();
+        constants.viewProjection = camera.GetViewProjection();
+        viewConstants.emplace_back(constants);
+    }
+
+    // TODO: for now just uploading last camera, maybe splitscreen support?
+    if (viewConstants.size() > 0)
+    {
+        Graphics::WriteBuffer(s->vertexConstantsBuffer, 0, &viewConstants.back(), Math::Min(viewConstants.size(), static_cast<SizeType>(1)) * sizeof(VertexConstantsUniform));
     }
 }
 
-void Renderer::BindConstants(const Mat4& viewMtx, const Mat4& projMtx, const Mat4& viewProjMtx)
+void RecreateRenderTargets()
 {
-    ConstantData constants;
-    constants.view.viewMtx = viewMtx;
-    constants.view.projMtx = projMtx;
-    constants.view.viewProjMtx = viewProjMtx;
+    if (Window::WasResized())
+    {
+        i32 w, h;
+        Window::GetSize(&w, &h);
 
-    BufferData bufferData;
-    bufferData.dataSize = sizeof(ConstantData);
-    bufferData.pData = &constants;
-    Graphics::UpdateBuffer(m_impl->constantBuffer, bufferData);
+        TextureCreateInfo colorTargetCreateInfo{};
+        colorTargetCreateInfo.name = "Color Target";
+        colorTargetCreateInfo.size = Extend3D(w, h, 1);
+        colorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
+        colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        if (s->colorTarget) Graphics::DestroyTexture(s->colorTarget);
+        s->colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
+
+        TextureCreateInfo depthTargetCreateInfo{};
+        depthTargetCreateInfo.name = "Depth Target";
+        depthTargetCreateInfo.size = Extend3D(w, h, 1);
+        depthTargetCreateInfo.format = TextureFormat::DEPTH24_PLUS_STENCIL8;
+        depthTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        if (s->depthTarget) Graphics::DestroyTexture(s->depthTarget);
+        s->depthTarget = Graphics::CreateTexture(depthTargetCreateInfo);
+
+        // TODO: temporary safety, this line is unnecessary as long as the color target format doesn't change (except for the first time)
+        s->shaderPipelines.clear();
+    }
+}
+
+void Renderer::Initialize()
+{
+    s = std::unique_ptr<RendererState>(new RendererState());
+
+    BufferCreateInfo vertexConstantsCreateInfo{};
+    vertexConstantsCreateInfo.name = "Vertex Constants";
+    vertexConstantsCreateInfo.size = sizeof(VertexConstantsUniform);
+    vertexConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::COPY_DST;
+    s->vertexConstantsBuffer = Graphics::CreateBuffer(vertexConstantsCreateInfo);
+
+    BufferCreateInfo lightSourceCreateInfo{};
+    lightSourceCreateInfo.name = "Light Sources";
+    lightSourceCreateInfo.size = sizeof(LightSourceData) * 10;
+    lightSourceCreateInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::COPY_DST;
+    s->lightSourceBuffer = Graphics::CreateBuffer(lightSourceCreateInfo);
+    
+    RecreateRenderTargets();
+}
+
+void Renderer::Shutdown()
+{
+    IdPass::ClearPipelineCache();
+    PresentPass::ClearPipelineCache();
+    SrgbToLinearPass::ClearPipelineCache();
+
+    s.reset();
+}
+
+void Renderer::Update()
+{
+    RecreateRenderTargets();
 }
 
 void Renderer::Render()
 {
-    CollectDrawCommands();
+    // TODO: this is a better fit for the update method, however, Graphics::Update is called BEFORE all the world does its updating, leaving its state 1 frame behind
+    UpdateAnimators();
+    UpdateLightSources();
+    UpdateCameras();
+    BuildShaderPipelines();
+
     Graphics::UpdateDebugLines();
 
-    i32 w, h;
-    Window::GetSize(&w, &h);
-    for (const auto& view : m_impl->views)
+    TextureViewHandle colorTargetView = Graphics::CreateTextureView(s->colorTarget);
+    TextureViewHandle depthTargetView = Graphics::CreateTextureView(s->depthTarget);
+
+    RenderPassDescriptor renderPassDescriptor{};
+    renderPassDescriptor.name = "Draw Meshes Pass";
+    renderPassDescriptor.colorAttachments = { RenderPassColorAttachment(colorTargetView) };
+    renderPassDescriptor.depthStencilAttachment = Optional<RenderPassDepthStencilAttachment>::Some(depthTargetView);
+
+    RenderPassHandle renderPass = Graphics::BeginRenderPass(renderPassDescriptor);
     {
-        GraphicsHandle renderTarget = Graphics::GetCurrentBackBufferRT();
-        GraphicsHandle depthStencil = Graphics::GetDepthBuffer();
-        Graphics::SetRenderTarget(renderTarget, depthStencil);
+        EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
+            [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr)
+            {
+                if (mr.GetMaterialCount() == 0)
+                    return;
 
-        const f32 viewport[] = { 0.0f, 0.0f, (f32)w, (f32)h };
-        Graphics::SetViewport(viewport);
+                BufferHandle animatorBonesBuffer;
+                if (entity.HasComponent<Animator>())
+                {
+                    const auto& anim = entity.GetComponent<Animator>();
+                    animatorBonesBuffer = anim.GetBoneBuffer();
+                }
+                else
+                {
+                    animatorBonesBuffer = Graphics::EmptyBuffer();
+                }
 
-        const f32 clearColor[] = { 0.1f, 0.1f, 0.1f, 1.0f };
-        Graphics::ClearRenderTarget(renderTarget, clearColor);
-        Graphics::ClearDepthStencil(depthStencil, GraphicsClearFlags::DEPTH, 1.0f, 0);
-        
-        BindConstants(view.viewMtx, view.projMtx, view.viewProjMtx);
-        DrawCommands();
+                SizeType index = 0;
+                for (const auto& mesh : mf.GetMeshes())
+                {
+                    const auto& material = mr.GetMaterial(index++);
+                    index %= mr.GetMaterialCount();
 
-        Graphics::DrawDebugLines(view.viewProjMtx);
+                    if (!mesh || !material)
+                        continue;
+
+                    const auto& meshData = mesh.GetData();
+                    const auto& materialData = material.GetData();
+                    const auto& shader = materialData.GetShader();
+
+                    auto graphicsPipelineIter = s->shaderPipelines.find(shader.GetHandle());
+                    BX_ASSERT(graphicsPipelineIter != s->shaderPipelines.end(), "Missing graphics pipeline, this should not happen.");
+                    GraphicsPipelineHandle graphicsPipeline = graphicsPipelineIter->second;
+
+                    VertexMeshUniform meshUniform{};
+                    meshUniform.boneToMesh = meshData.GetMatrix();
+                    meshUniform.model = trx.GetMatrix();
+                    meshUniform.lightIndices = Vec4i(0, 1, 2, 3);
+
+                    // TODO: should be push constants (need to be emulated on opengl)
+                    // TODO: use same patterns as the animator bones buffer
+                    BufferCreateInfo meshUniformCreateInfo{};
+                    meshUniformCreateInfo.name = "Mesh Uniform Buffer";
+                    meshUniformCreateInfo.size = sizeof(VertexMeshUniform);
+                    meshUniformCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
+                    meshUniformCreateInfo.data = &meshUniform;
+                    BufferHandle meshUniformBuffer = Graphics::CreateBuffer(meshUniformCreateInfo);
+
+                    // TODO: very lazy, shouldn't be created every frame probably
+                    BindGroupCreateInfo createInfo{};
+                    createInfo.name = "Renderer Core BindGroup";
+                    createInfo.layout = Graphics::GetBindGroupLayout(graphicsPipeline, 0);
+                    createInfo.entries = {
+                        BindGroupEntry(0, BindingResource::Buffer(BufferBinding(s->vertexConstantsBuffer))),
+                        BindGroupEntry(1, BindingResource::Buffer(BufferBinding(meshUniformBuffer))),
+                        BindGroupEntry(2, BindingResource::Buffer(BufferBinding(animatorBonesBuffer))),
+                        BindGroupEntry(4, BindingResource::Buffer(BufferBinding(s->lightSourceBuffer)))
+                    };
+                    BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
+
+                    BindGroupLayoutHandle bindGroupLayout = Graphics::GetBindGroupLayout(graphicsPipeline, Material::SHADER_BIND_GROUP);
+                    BindGroupHandle materialBindGroup = materialData.GetBindGroup(bindGroupLayout);
+
+                    Graphics::SetGraphicsPipeline(graphicsPipeline);
+                    Graphics::SetVertexBuffer(0, BufferSlice(meshData.GetVertexBuffer()));
+                    Graphics::SetIndexBuffer(BufferSlice(meshData.GetIndexBuffer()), IndexFormat::UINT32);
+                    Graphics::SetBindGroup(0, bindGroup);
+                    Graphics::SetBindGroup(Material::SHADER_BIND_GROUP, materialBindGroup);
+                    Graphics::DrawIndexed(meshData.GetIndices().size());
+
+                    Graphics::DestroyBindGroup(bindGroup);
+                    Graphics::DestroyBuffer(meshUniformBuffer);
+                }
+            });
     }
+    Graphics::EndRenderPass(renderPass);
+
+    PresentPass presentPass(s->colorTarget);
+    presentPass.Dispatch();
+}
+
+TextureHandle Renderer::GetEditorCameraColorTarget()
+{
+#ifdef BX_EDITOR_BUILD
+    return Graphics::GetSwapchainColorTarget();
+#else
+    return TextureHandle::null;
+#endif
 }

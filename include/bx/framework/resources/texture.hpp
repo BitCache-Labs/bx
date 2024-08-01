@@ -12,7 +12,7 @@ public:
 	i32 depth = 0;
 	List<u8> pixels;
 
-	inline GraphicsHandle GetTexture() const { return m_texture; }
+	inline TextureHandle GetTexture() const { return m_texture; }
 
 private:
 	template <typename T>
@@ -21,5 +21,5 @@ private:
 	template <typename T>
 	friend class Resource;
 
-	GraphicsHandle m_texture = INVALID_GRAPHICS_HANDLE;
+	TextureHandle m_texture = TextureHandle::null;
 };

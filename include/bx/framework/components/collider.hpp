@@ -72,7 +72,7 @@ public:
 		if (m_shape == ColliderShape::MESH && m_mesh.IsValid())
 		{
 			const auto& meshData = m_mesh.GetData();
-			ComputeColliderVertices(meshData.GetVertices(), meshData.GetTriangles(), info.vertices);
+			ComputeColliderVertices(meshData.GetVertices(), meshData.GetIndices(), info.vertices);
 		}
 		m_collider = Physics::CreateCollider(info);
 	}

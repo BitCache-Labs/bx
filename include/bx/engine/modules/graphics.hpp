@@ -1,202 +1,82 @@
 #pragma once
 
-#include "bx/engine/core/math.hpp"
-#include "bx/engine/core/type.hpp"
-#include "bx/engine/core/macros.hpp"
-
-using GraphicsHandle = u64;
-constexpr GraphicsHandle INVALID_GRAPHICS_HANDLE = -1;
-
-ENUM(GraphicsClearFlags, NONE, DEPTH, STENCIL);
-ENUM(GraphicsValueType, UNDEFINED, INT8, INT16, INT32, UINT8, UINT16, UINT32, FLOAT16, FLOAT32);
-
-ENUM(ShaderType, UNKNOWN, VERTEX, PIXEL, GEOMETRY, COMPUTE);
-
-ENUM(BufferType, VERTEX_BUFFER, INDEX_BUFFER, UNIFORM_BUFFER, STORAGE_BUFFER);
-ENUM(BufferUsage, IMMUTABLE, DEFAULT, DYNAMIC);
-ENUM(BufferAccess, NONE, READ, WRITE);
-
-ENUM(TextureFormat, UNKNOWN, RGB8_UNORM, RGBA8_UNORM, RG32_UINT, D24_UNORM_S8_UINT);
-ENUM(TextureFlags, NONE = BX_BIT(0), SHADER_RESOURCE = BX_BIT(1), RENDER_TARGET = BX_BIT(2), DEPTH_STENCIL = BX_BIT(3));
-
-ENUM(ResourceBindingType, UNKNOWN, TEXTURE, UNIFORM_BUFFER, STORAGE_BUFFER);
-ENUM(ResourceBindingAccess, STATIC, MUTABLE, DYNAMIC);
-
-ENUM(PipelineTopology, UNDEFINED, POINTS, LINES, TRIANGLES);
-ENUM(PipelineFaceCull, NONE, CW, CCW);
-
-struct ShaderInfo
-{
-	ShaderType shaderType = ShaderType::UNKNOWN;
-	const char* source = nullptr;
-};
-
-struct BufferInfo
-{
-	u32 strideBytes = 0;
-	BufferType type = BufferType::UNIFORM_BUFFER;
-	BufferUsage usage = BufferUsage::DYNAMIC;
-	BufferAccess access = BufferAccess::WRITE;
-};
-
-struct TextureInfo
-{
-	TextureFormat format = TextureFormat::UNKNOWN;
-	u32 width = 0;
-	u32 height = 0;
-	TextureFlags flags = TextureFlags::SHADER_RESOURCE;
-};
-
-struct BufferData
-{
-	BufferData() {}
-	BufferData(const void* pData, u32 dataSize)
-		: pData(pData)
-		, dataSize(dataSize) {}
-
-	const void* pData = nullptr;
-	u32 dataSize = 0;
-};
-
-struct ResourceBindingElement
-{
-	ResourceBindingElement() {}
-	ResourceBindingElement(ShaderType shaderType, const char* name, u32 count, ResourceBindingType type, ResourceBindingAccess access)
-		: shaderType(shaderType)
-		, name(name)
-		, count(count)
-		, type(type)
-		, access(access) {}
-
-	ShaderType shaderType = ShaderType::UNKNOWN;
-	const char* name = nullptr;
-	u32 count = 0;
-	ResourceBindingType type = ResourceBindingType::UNKNOWN;
-	ResourceBindingAccess access = ResourceBindingAccess::STATIC;
-};
-
-struct ResourceBindingInfo
-{
-	const ResourceBindingElement* resources = nullptr;
-	u32 numResources = 0;
-};
-
-struct LayoutElement
-{
-	LayoutElement() {}
-	LayoutElement(u32 inputIndex, u32 bufferSlot, u32 numComponents, GraphicsValueType valueType, bool isNormalized, u32 relativeOffset, u32 instanceDataStepRate)
-		: inputIndex(inputIndex)
-		, bufferSlot(bufferSlot)
-		, numComponents(numComponents)
-		, valueType(valueType)
-		, isNormalized(isNormalized)
-		, relativeOffset(relativeOffset)
-		, instanceDataStepRate(instanceDataStepRate) {}
-
-	u32 inputIndex = 0;
-	u32 bufferSlot = 0;
-	u32 numComponents = 0;
-	GraphicsValueType valueType = GraphicsValueType::FLOAT32;
-	bool isNormalized = false;
-	u32 relativeOffset = 0;
-	u32 instanceDataStepRate = 0;
-};
-
-struct PipelineInfo
-{
-	u32 numRenderTargets = 0;
-	TextureFormat renderTargetFormats[8] = { TextureFormat::UNKNOWN };
-	TextureFormat depthStencilFormat = TextureFormat::UNKNOWN;
-
-	PipelineTopology topology = PipelineTopology::UNDEFINED;
-	PipelineFaceCull faceCull = PipelineFaceCull::NONE;
-
-	bool depthEnable = true;
-	bool blendEnable = false;
-
-	GraphicsHandle vertShader = INVALID_GRAPHICS_HANDLE;
-	GraphicsHandle pixelShader = INVALID_GRAPHICS_HANDLE;
-	
-	const LayoutElement* layoutElements = nullptr;
-	u32 numElements = 0;
-};
-
-struct DrawAttribs
-{
-	DrawAttribs() {}
-	DrawAttribs(u32 numVertices)
-		: numVertices(numVertices) {}
-
-	u32 numVertices = 0;
-};
-
-struct DrawIndexedAttribs
-{
-	DrawIndexedAttribs() {}
-	DrawIndexedAttribs(GraphicsValueType indexType, u32 numIndices)
-		: indexType(indexType), numIndices(numIndices) {}
-
-	GraphicsValueType indexType = GraphicsValueType::UINT32;
-	u32 numIndices = 0;
-};
-
-struct DebugVertex
-{
-	DebugVertex() {}
-	DebugVertex(const Vec3& vert, u32 col)
-		: vert(vert), col(col) {}
-
-	Vec3 vert{ 0, 0, 0 };
-	u32 col{ 0 };
-};
-
-struct DebugDrawAttribs
-{
-};
+#include "bx/engine/core/guard.hpp"
+#include "bx/engine/modules/graphics/type.hpp"
 
 class Graphics
 {
 public:
-	static TextureFormat GetColorBufferFormat();
-	static TextureFormat GetDepthBufferFormat();
+	// TODO: capabilities()
 
-	static GraphicsHandle GetCurrentBackBufferRT();
-	static GraphicsHandle GetDepthBuffer();
+	// Buffer with 1 byte set to zero, can only be used for read-only purposes (BufferUsageFlags::COPY_SRC | BufferUsageFlags::INDEX | BufferUsageFlags::VERTEX | BufferUsageFlags::UNIFORM | BufferUsageFlags::STORAGE)
+	static const BufferHandle& EmptyBuffer();
+	// 2D texture with 1 pixel set to zero, can only be used for read-only purposes (TextureUsageFlags::COPY_SRC | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING)
+	static const TextureHandle& EmptyTexture();
 
-	static void SetRenderTarget(const GraphicsHandle renderTarget, const GraphicsHandle depthStencil);
-	static void ReadPixels(u32 x, u32 y, u32 w, u32 h, void* pixelData, const GraphicsHandle renderTarget);
+	// Swapchain
+	// TODO: rework api a bit so it matches the old func calls better
+	static TextureHandle GetSwapchainColorTarget();
+	static TextureViewHandle GetSwapchainColorTargetView();
 
-	static void SetViewport(const f32 viewport[4]);
+	// Resource creation and destruction
+	static const TextureCreateInfo& GetTextureCreateInfo(TextureHandle texture);
+	static TextureHandle CreateTexture(const TextureCreateInfo& createInfo);
+	static void DestroyTexture(TextureHandle& texture);
 
-	static void ClearRenderTarget(const GraphicsHandle renderTarget, const f32 clearColor[4]);
-	static void ClearDepthStencil(const GraphicsHandle depthStencil, GraphicsClearFlags flags, f32 depth, i32 stencil);
+	static TextureViewHandle CreateTextureView(TextureHandle texture);
+	static void DestroyTextureView(TextureViewHandle& textureView);
 
-	static GraphicsHandle CreateShader(const ShaderInfo& info);
-	static void DestroyShader(const GraphicsHandle shader);
+	static const SamplerCreateInfo& GetSamplerCreateInfo(SamplerHandle sampler);
+	static SamplerHandle CreateSampler(const SamplerCreateInfo& create);
+	static void DestroySampler(SamplerHandle& sampler);
 
-	static GraphicsHandle CreateTexture(const TextureInfo& info);
-	static GraphicsHandle CreateTexture(const TextureInfo& info, const BufferData& data);
-	static void DestroyTexture(const GraphicsHandle texture);
+	static const BufferCreateInfo& GetBufferCreateInfo(BufferHandle buffer);
+	static BufferHandle CreateBuffer(const BufferCreateInfo& createInfo);
+	static void DestroyBuffer(BufferHandle& buffer);
 
-	static GraphicsHandle CreateResourceBinding(const ResourceBindingInfo& info);
-	static void DestroyResourceBinding(const GraphicsHandle resources);
-	static void BindResource(const GraphicsHandle resources, const char* name, GraphicsHandle resource);
+	static const ShaderCreateInfo& GetShaderCreateInfo(ShaderHandle shader);
+	static ShaderHandle CreateShader(const ShaderCreateInfo& createInfo);
+	static void DestroyShader(ShaderHandle& shader);
+	
+	static const GraphicsPipelineCreateInfo& GetGraphicsPipelineCreateInfo(GraphicsPipelineHandle graphicsPipeline);
+	static GraphicsPipelineHandle CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo);
+	static void DestroyGraphicsPipeline(GraphicsPipelineHandle& graphicsPipeline);
+	static const ComputePipelineCreateInfo& GetComputePipelineCreateInfo(ComputePipelineHandle computePipeline);
+	static ComputePipelineHandle CreateComputePipeline(const ComputePipelineCreateInfo& createInfo);
+	static void DestroyComputePipeline(ComputePipelineHandle& computePipeline);
 
-	static GraphicsHandle CreatePipeline(const PipelineInfo& info);
-	static void DestroyPipeline(const GraphicsHandle pipeline);
-	static void SetPipeline(const GraphicsHandle pipeline);
-	static void CommitResources(const GraphicsHandle pipeline, const GraphicsHandle resources);
+	static BindGroupLayoutHandle GetBindGroupLayout(GraphicsPipelineHandle graphicsPipeline, u32 bindGroup);
+	static BindGroupLayoutHandle GetBindGroupLayout(ComputePipelineHandle computePipeline, u32 bindGroup);
+	static u32 GetBindGroupLayoutBindGroup(BindGroupLayoutHandle bindGroupLayout);
+	static b8 IsBindGroupLayoutGraphics(BindGroupLayoutHandle bindGroupLayout);
+	static u64 GetBindGroupLayoutPipeline(BindGroupLayoutHandle bindGroupLayout);
 
-	static GraphicsHandle CreateBuffer(const BufferInfo& info);
-	static GraphicsHandle CreateBuffer(const BufferInfo& info, const BufferData& data);
-	static void DestroyBuffer(const GraphicsHandle buffer);
-	static void UpdateBuffer(const GraphicsHandle buffer, const BufferData& data);
+	static const BindGroupCreateInfo& GetBindGroupCreateInfo(BindGroupHandle bindGroup);
+	static BindGroupHandle CreateBindGroup(const BindGroupCreateInfo& createInfo);
+	static void DestroyBindGroup(BindGroupHandle& bindGroup);
 
-	static void SetVertexBuffers(i32 i, i32 count, const GraphicsHandle* pBuffers, const u64* offset);
-	static void SetIndexBuffer(const GraphicsHandle buffer, i32 i);
+	// Cmds
+	static const RenderPassDescriptor& GetRenderPassDescriptor(RenderPassHandle renderPass);
+	static RenderPassHandle BeginRenderPass(const RenderPassDescriptor& descriptor);
+	// Set a graphics pipeline, will unbind any vertex and index buffers previously bound
+	static void SetGraphicsPipeline(GraphicsPipelineHandle graphicsPipeline);
+	static void SetVertexBuffer(u32 slot, const BufferSlice& bufferSlice);
+	static void SetIndexBuffer(const BufferSlice& bufferSlice, IndexFormat format);
+	static void SetBindGroup(u32 index, BindGroupHandle bindGroup);
+	static void Draw(u32 vertexCount, u32 firstVertex = 0, u32 instanceCount = 1);
+	static void DrawIndexed(u32 indexCount, u32 instanceCount = 1);
+	static void EndRenderPass(RenderPassHandle& renderPass);
 
-	static void Draw(const DrawAttribs& attribs);
-	static void DrawIndexed(const DrawIndexedAttribs& attribs);
+	static ComputePassHandle BeginComputePass(const ComputePassDescriptor& descriptor);
+	static void SetComputePipeline(ComputePipelineHandle computePipeline);
+	static void DispatchWorkgroups(u32 x, u32 y, u32 z);
+	static void EndComputePass(ComputePassHandle& computePass);
+
+	static void WriteBuffer(BufferHandle buffer, u64 offset, const void* data);
+	static void WriteBuffer(BufferHandle buffer, u64 offset, const void* data, SizeType size);
+
+	static void WriteTexture(TextureHandle texture, const void* data, const Extend3D& offset, const Extend3D& size);
+	static void ReadTexture(TextureHandle texture, void* data,  const Extend3D& offset, const Extend3D& size);
 
 	// Debug draw utilities
 	static void DebugLine(const Vec3& a, const Vec3& b, u32 color = 0xFFFFFFFF, f32 lifespan = 0.0f);
@@ -211,7 +91,23 @@ private:
 	friend class Runtime;
 	friend class Module;
 
-	static bool Initialize();
+	// Internal use only, query `Capabilities` for accurate limits.
+	static constexpr size_t MAX_BIND_GROUPS = 64;
+
+	struct CreateInfoCache : NoCopy
+	{
+		HashMap<BufferHandle, BufferCreateInfo> bufferCreateInfos;
+		HashMap<SamplerHandle, SamplerCreateInfo> samplerCreateInfos;
+		HashMap<TextureHandle, TextureCreateInfo> textureCreateInfos;
+		HashMap<ShaderHandle, ShaderCreateInfo> shaderCreateInfos;
+		HashMap<GraphicsPipelineHandle, GraphicsPipelineCreateInfo> graphicsPipelineCreateInfos;
+		HashMap<ComputePipelineHandle, ComputePipelineCreateInfo> computePipelineCreateInfos;
+		HashMap<BindGroupHandle, BindGroupCreateInfo> bindGroupCreateInfos;
+		HashMap<RenderPassHandle, RenderPassDescriptor> renderPassCreateInfos;
+	};
+	static std::unique_ptr<CreateInfoCache> s_createInfoCache;
+
+	static b8 Initialize();
 	static void Reload();
 	static void Shutdown();
 

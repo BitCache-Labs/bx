@@ -19,6 +19,9 @@ class Window
 {
 public:
 	static void GetSize(int* width, int* height);
+	static b8 WasResized();
+	static b8 IsActive();
+
 	static void SetCursorMode(CursorMode mode);
 
 private:

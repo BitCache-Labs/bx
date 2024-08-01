@@ -7,7 +7,16 @@
 
 Animator::Animator()
 {
-	// Dummy so compiler doesn't optimize away this source file
+    BufferCreateInfo createInfo{};
+    createInfo.name = "Animator Bones Buffer";
+    createInfo.size = sizeof(Mat4) * 100;
+    createInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::STORAGE;
+    m_boneBuffer = Graphics::CreateBuffer(createInfo);
+}
+
+void Animator::OnRemoved()
+{
+    Graphics::DestroyBuffer(m_boneBuffer);
 }
 
 static SizeType GetPositionIndex(const Animation::Keyframes& keys, f32 time)
@@ -182,36 +191,5 @@ void Animator::Update()
             return worldMatrix;
         });
 
-    // Update graphics buffers
-    if (m_resources == INVALID_GRAPHICS_HANDLE)
-    {
-        ResourceBindingElement resourceElems[] =
-        {
-            ResourceBindingElement { ShaderType::VERTEX, "Animation", 1, ResourceBindingType::UNIFORM_BUFFER, ResourceBindingAccess::STATIC }
-        };
-
-        ResourceBindingInfo resourceBindingInfo;
-        resourceBindingInfo.resources = resourceElems;
-        resourceBindingInfo.numResources = 1;
-        
-        m_resources = Graphics::CreateResourceBinding(resourceBindingInfo);
-    }
-
-    if (m_buffer == INVALID_GRAPHICS_HANDLE)
-    {
-        BufferInfo info;
-        info.strideBytes = sizeof(Mat4);
-        info.type = BufferType::UNIFORM_BUFFER;
-        info.usage = BufferUsage::DYNAMIC;
-        info.access = BufferAccess::WRITE;
-
-        m_buffer = Graphics::CreateBuffer(info);
-
-        Graphics::BindResource(m_resources, "Animation", m_buffer);
-    }
-    
-    BufferData data;
-    data.dataSize = static_cast<u32>(m_boneMatrices.size() * sizeof(Mat4));
-    data.pData = m_boneMatrices.data();
-    Graphics::UpdateBuffer(m_buffer, data);
+    Graphics::WriteBuffer(m_boneBuffer, 0, GetBoneMatrices().data(), GetBoneMatrices().size() * sizeof(Mat4));
 }

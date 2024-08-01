@@ -39,6 +39,6 @@ bool Resource<Skeleton>::Load(const String& filename, Skeleton& data)
 }
 
 template<>
-void Resource<Skeleton>::Unload(const Skeleton& data)
+void Resource<Skeleton>::Unload(Skeleton& data)
 {
 }

@@ -87,7 +87,6 @@ endif ()
 message ("CMake build type: ${CMAKE_BUILD_TYPE}")
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_compile_definitions (BX_DEBUG_BUILD)
-
 else ()
     add_compile_definitions (BX_RELEASE_BUILD)
 endif ()
@@ -137,6 +136,9 @@ set (BX_SRCS
 	"src/bx/engine/modules/script.cpp"
 	"src/bx/engine/modules/window.cpp"
 	"src/bx/engine/modules/imgui.cpp"
+
+	"src/bx/engine/modules/graphics/type.cpp"
+	"src/bx/engine/modules/graphics/type_validation.cpp"
 	
 	"src/bx/framework/components/animator.cpp"
 	"src/bx/framework/components/attributes.cpp"
@@ -157,6 +159,9 @@ set (BX_SRCS
 	"src/bx/framework/resources/shader.cpp"
 	"src/bx/framework/resources/skeleton.cpp"
 	"src/bx/framework/resources/texture.cpp"
+	"src/bx/framework/systems/renderer/id_pass.cpp"
+	"src/bx/framework/systems/renderer/present_pass.cpp"
+	"src/bx/framework/systems/renderer/srgb_to_linear_pass.cpp"
 	"src/bx/framework/systems/renderer.cpp"
 	"src/bx/framework/systems/dynamics.cpp"
 	"src/bx/framework/systems/acoustics.cpp"
@@ -177,6 +182,12 @@ endif()
 # Setup graphics backend
 if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
 	set (BX_SRCS ${BX_SRCS}
+		"src/bx/engine/modules/graphics/backend/opengl/conversion.cpp"
+		"src/bx/engine/modules/graphics/backend/opengl/graphics_pipeline.cpp"
+		"src/bx/engine/modules/graphics/backend/opengl/opengl_api.cpp"
+		"src/bx/engine/modules/graphics/backend/opengl/shader.cpp"
+		"src/bx/engine/modules/graphics/backend/opengl/validation.cpp"
+
 		"src/bx/engine/modules/graphics/backend/graphics_opengl.cpp"
 	)
 
@@ -187,7 +198,7 @@ elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
 		"src/bx/engine/modules/graphics/backend/graphics_vulkan.cpp"
 	)
 
-    set (BX_LIBS ${BX_LIBS} vulkan glslang SPIRV)
+    set (BX_LIBS ${BX_LIBS} vulkan glslang SPIRV imgui_vulkan)
 endif ()
 
 # Setup physics backend

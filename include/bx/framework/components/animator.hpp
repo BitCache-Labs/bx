@@ -15,21 +15,11 @@ public:
 
 	inline void OnPostCopy() override
 	{
-		m_resources = INVALID_GRAPHICS_HANDLE;
-		m_buffer = INVALID_GRAPHICS_HANDLE;
-
 		RefreshBones();
 		RefreshCurrent();
 	}
 
-	void OnRemoved() override
-	{
-		if (m_resources != INVALID_GRAPHICS_HANDLE)
-			Graphics::DestroyResourceBinding(m_resources);
-
-		if (m_buffer != INVALID_GRAPHICS_HANDLE)
-			Graphics::DestroyBuffer(m_buffer);
-	}
+	void OnRemoved() override;
 	
 	inline const Resource<Skeleton>& GetSkeleton() const { return m_skeleton; }
 	inline void SetSkeleton(const Resource<Skeleton>& skeleton)
@@ -93,7 +83,7 @@ public:
 	inline bool GetLooping() const { return m_looping; }
 	inline void SetLooping(bool looping) { m_looping = looping; }
 
-	inline Mat4 GetBoneMatrix(const String& name)
+	inline Mat4 GetBoneMatrix(const String& name) const
 	{
 		const auto& skelData = m_skeleton.GetData();
 		auto it = skelData.GetBoneMap().find(name);
@@ -104,7 +94,15 @@ public:
 		return m_boneMatrices2[it->second];
 	}
 
-	inline GraphicsHandle GetResources() const { return m_resources; }
+	inline const List<Mat4>& GetBoneMatrices() const
+	{
+		return m_boneMatrices;
+	}
+
+	inline BufferHandle GetBoneBuffer() const
+	{
+		return m_boneBuffer;
+	}
 
 	void Update();
 
@@ -154,6 +152,5 @@ private:
 	List<Mat4> m_boneMatrices;
 	List<Mat4> m_boneMatrices2;
 
-	GraphicsHandle m_resources = INVALID_GRAPHICS_HANDLE;
-	GraphicsHandle m_buffer = INVALID_GRAPHICS_HANDLE;
+	BufferHandle m_boneBuffer;
 };

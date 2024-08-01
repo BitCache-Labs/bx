@@ -7,6 +7,8 @@
 #include <stdlib.h>
 
 static GLFWwindow* pWindow = nullptr;
+static b8 wasResized = true;
+static b8 isActive = true;
 
 GLFWwindow* WindowGLFW::GetWindowPtr()
 {
@@ -21,6 +23,16 @@ bool Window::IsOpen()
 void Window::GetSize(int* width, int* height)
 {
 	glfwGetFramebufferSize(pWindow, width, height);
+}
+
+b8 Window::WasResized()
+{
+	return wasResized;
+}
+
+b8 Window::IsActive()
+{
+	return isActive;
 }
 
 void Window::SetCursorMode(CursorMode mode)
@@ -51,6 +63,9 @@ static void glfw_error_callback(int i, const char* c)
 
 static void glfw_window_size_callback(GLFWwindow* window, int width, int height)
 {
+	wasResized = true;
+	isActive = width > 2 && height > 2;
+
 	Screen::SetWidth(width);
 	Screen::SetHeight(height);
 }
@@ -138,9 +153,10 @@ bool Window::Initialize()
 	glfwSwapInterval(1);
 
 #elif defined BX_GRAPHICS_VULKAN_BACKEND
+	// TODO: is this check relevant? Vulkan functions are not loaded through glfw.
 	if (!glfwVulkanSupported())
 	{
-		ENGINE_LOGE("GLFW: Vulkan Not Supported!");
+		BX_LOGE("GLFW: Vulkan Not Supported!");
 		return false;
 	}
 #endif
@@ -161,6 +177,7 @@ void Window::Shutdown()
 void Window::PollEvents()
 {
 	PROFILE_FUNCTION();
+	
 	glfwPollEvents();
 
 	if (glfwGetKey(pWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -170,6 +187,8 @@ void Window::PollEvents()
 void Window::Display()
 {
 	PROFILE_FUNCTION();
+
+	wasResized = false;
 
 #ifdef BX_GRAPHICS_OPENGL_BACKEND
 	glfwSwapBuffers(pWindow);

@@ -3,6 +3,7 @@
 #include "bx/engine/core/guard.hpp"
 #include "bx/engine/core/macros.hpp"
 #include "bx/engine/core/type.hpp"
+#include "bx/engine/core/uuid.hpp"
 #include "bx/engine/containers/string.hpp"
 #include "bx/engine/containers/list.hpp"
 #include "bx/engine/containers/hash_map.hpp"
@@ -81,7 +82,7 @@ class ResourceDatabase : public IResourceDatabase
 public:
 	using LoadFn = bool(*)(const String&, TData&);
 	using SaveFn = bool(*)(const String&, const TData&);
-	using UnloadFn = void(*)(const TData&);
+	using UnloadFn = void(*)(TData&);
 
 	inline void Shutdown() override
 	{
@@ -257,16 +258,17 @@ public:
 	}
 
 	Resource(const Resource& other)
-		: m_handle(other.m_handle)
+		: m_handle(other.m_handle), m_uuid(other.m_uuid)
 	{
 		if (IsValid())
 			IncreaseRefCount();
 	}
 
 	Resource(Resource&& other) noexcept
-		: m_handle(other.m_handle)
+		: m_handle(other.m_handle), m_uuid(other.m_uuid)
 	{
 		other.m_handle = RESOURCE_HANDLE_INVALID;
+		other.m_uuid = 0;
 	}
 
 	Resource& operator=(const Resource& other)
@@ -286,7 +288,7 @@ public:
 
 	Resource& operator=(Resource&& other) noexcept
 	{
-		if (this != &other)
+	if (this != &other)
 		{
 			if (IsValid())
 				DecreaseRefCount();
@@ -367,7 +369,7 @@ public:
 
 	static bool Save(const String& filename, const TData& data);
 	static bool Load(const String& filename, TData& data);
-	static void Unload(const TData& data);
+	static void Unload(TData& data);
 
 private:
 	template <typename T>
@@ -381,4 +383,5 @@ private:
 
 private:
 	ResourceHandle m_handle = RESOURCE_HANDLE_INVALID;
+	UUID m_uuid;
 };

@@ -41,6 +41,7 @@ bool Resource<Mesh>::Load(const String& filename, Mesh& data)
     List<Mesh::Vertex> vertices;
     vertices.resize(data.m_vertices.size());
 
+    // TODO: can we avoid doing this, can get very slow with a lot of assets
     for (SizeType i = 0; i < vertices.size(); i++)
     {
         auto& v = vertices[i];
@@ -53,35 +54,26 @@ bool Resource<Mesh>::Load(const String& filename, Mesh& data)
         v.weights = data.m_weights[i];
     }
 
-    BufferInfo vbInfo;
-    vbInfo.strideBytes = sizeof(Mesh::Vertex);
-    vbInfo.type = BufferType::VERTEX_BUFFER;
-    vbInfo.usage = BufferUsage::IMMUTABLE;
-    vbInfo.access = BufferAccess::READ;
+    BufferCreateInfo vertexCreateInfo{};
+    vertexCreateInfo.name = Log::Format("{} Vertex Buffer", filename);
+    vertexCreateInfo.size = vertices.size() * sizeof(Mesh::Vertex);
+    vertexCreateInfo.usageFlags = BufferUsageFlags::VERTEX | BufferUsageFlags::COPY_SRC;
+    vertexCreateInfo.data = static_cast<const void*>(vertices.data());
+    data.m_vertexBuffer = Graphics::CreateBuffer(vertexCreateInfo);
 
-    BufferData vbData;
-    vbData.pData = vertices.data();
-    vbData.dataSize = static_cast<u32>(vertices.size() * sizeof(Mesh::Vertex));
-
-    data.m_vbuffers = Graphics::CreateBuffer(vbInfo, vbData);
-
-    BufferInfo ibInfo;
-    ibInfo.type = BufferType::INDEX_BUFFER;
-    ibInfo.usage = BufferUsage::IMMUTABLE;
-    ibInfo.access = BufferAccess::READ;
-
-    BufferData ibData;
-    ibData.pData = data.m_triangles.data();
-    ibData.dataSize = static_cast<u32>(data.m_triangles.size() * sizeof(i32));
-
-    data.m_ibuffer = Graphics::CreateBuffer(ibInfo, ibData);
+    BufferCreateInfo indexCreateInfo{};
+    indexCreateInfo.name = Log::Format("{} Index Buffer", filename);
+    indexCreateInfo.size = data.m_indices.size() * sizeof(u32);
+    indexCreateInfo.usageFlags = BufferUsageFlags::INDEX | BufferUsageFlags::COPY_SRC;
+    indexCreateInfo.data = static_cast<const void*>(data.m_indices.data());
+    data.m_indexBuffer = Graphics::CreateBuffer(indexCreateInfo);
 
     return true;
 }
 
 template<>
-void Resource<Mesh>::Unload(const Mesh& data)
+void Resource<Mesh>::Unload(Mesh& data)
 {
-    Graphics::DestroyBuffer(data.m_vbuffers);
-    Graphics::DestroyBuffer(data.m_ibuffer);
+    Graphics::DestroyBuffer(data.m_vertexBuffer);
+    Graphics::DestroyBuffer(data.m_indexBuffer);
 }

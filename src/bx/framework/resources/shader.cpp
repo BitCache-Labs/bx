@@ -72,31 +72,32 @@ template<>
 bool Resource<Shader>::Load(const String& filename, Shader& data)
 {
     std::ifstream stream(File::GetPath(filename));
-    if (stream.fail())
+    if (stream.fail() || !stream.good())
         return false;
-
     std::stringstream ss;
     ss << stream.rdbuf();
 
     String source = PreprocessShader(ss.str());
     data.SetSource(source);
 
-    ShaderInfo shaderInfo;
+    ShaderCreateInfo vertexCreateInfo{};
+    vertexCreateInfo.name = Log::Format("{} Vertex Shader", filename);
+    vertexCreateInfo.shaderType = ShaderType::VERTEX;
+    vertexCreateInfo.src = "#define VERTEX\n" + data.m_source; // TODO: remove this cardinal sin
+    data.m_vertexShader = Graphics::CreateShader(vertexCreateInfo);
 
-    shaderInfo.shaderType = ShaderType::VERTEX;
-    shaderInfo.source = data.m_source.c_str();
-    data.m_vertex = Graphics::CreateShader(shaderInfo);
-
-    shaderInfo.shaderType = ShaderType::PIXEL;
-    shaderInfo.source = data.m_source.c_str();
-    data.m_pixel = Graphics::CreateShader(shaderInfo);
+    ShaderCreateInfo fragmentCreateInfo{};
+    fragmentCreateInfo.name = Log::Format("{} Fragment Shader", filename);
+    fragmentCreateInfo.shaderType = ShaderType::FRAGMENT;
+    fragmentCreateInfo.src = "#define PIXEL\n" + data.m_source;
+    data.m_fragmentShader = Graphics::CreateShader(fragmentCreateInfo);
 
     return true;
 }
 
 template<>
-void Resource<Shader>::Unload(const Shader& data)
+void Resource<Shader>::Unload(Shader& data)
 {
-    Graphics::DestroyShader(data.m_vertex);
-    Graphics::DestroyShader(data.m_pixel);
+    Graphics::DestroyShader(data.m_vertexShader);
+    Graphics::DestroyShader(data.m_fragmentShader);
 }

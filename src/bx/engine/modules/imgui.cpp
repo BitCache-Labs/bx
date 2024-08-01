@@ -15,13 +15,20 @@
 
 //#define IMGUI_IMPL_OPENGL_ES3
 
+#ifdef BX_WINDOW_GLFW_BACKEND
 #include <GLFW/glfw3.h>
 #include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_opengl3.h>
-
-#ifdef BX_WINDOW_GLFW_BACKEND
 #include "bx/engine/modules/window/backend/window_glfw.hpp"
 #endif
+
+#ifdef BX_GRAPHICS_VULKAN_BACKEND
+#include "bx/engine/modules/graphics/backend/graphics_vulkan.hpp"
+
+#include <backends/imgui_impl_vulkan.h>
+#elif defined BX_GRAPHICS_OPENGL_BACKEND
+#include <backends/imgui_impl_opengl3.h>
+#endif
+
 
 bool ImGuiImpl::Initialize()
 {
@@ -60,6 +67,8 @@ bool ImGuiImpl::Initialize()
     if (!ImGui_ImplOpenGL3_Init("#version 460 core\n"))
 #elif defined BX_GRAPHICS_OPENGLES_BACKEND
     if (!ImGui_ImplOpenGL3_Init("#version 300 es\n"))
+#elif defined BX_GRAPHICS_VULKAN_BACKEND
+    if (!ImGui_ImplVulkan_Init(&GraphicsVulkan::ImGuiInitInfo()))
 #endif
     {
         BX_LOGE("Failed to initialize ImGui OpenGL backend!");
@@ -120,7 +129,13 @@ void ImGuiImpl::Reload()
 
 void ImGuiImpl::Shutdown()
 {
+#if defined BX_GRAPHICS_OPENGL_BACKEND
     ImGui_ImplOpenGL3_Shutdown();
+#elif defined BX_GRAPHICS_VULKAN_BACKEND
+    GraphicsVulkan::WaitIdle();
+    ImGui_ImplVulkan_Shutdown();
+#endif
+
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
@@ -128,18 +143,26 @@ void ImGuiImpl::Shutdown()
 void ImGuiImpl::NewFrame()
 {
     ImGui_ImplGlfw_NewFrame();
+#if defined BX_GRAPHICS_OPENGL_BACKEND
     ImGui_ImplOpenGL3_NewFrame();
+#elif defined BX_GRAPHICS_VULKAN_BACKEND
+    ImGui_ImplVulkan_NewFrame();
+#endif
     ImGui::NewFrame();
 }
 
 void ImGuiImpl::EndFrame()
 {
-    GraphicsHandle renderTarget = Graphics::GetCurrentBackBufferRT();
+    /*GraphicsHandle renderTarget = Graphics::GetCurrentBackBufferRT();
     GraphicsHandle depthStencil = Graphics::GetDepthBuffer();
-    Graphics::SetRenderTarget(renderTarget, depthStencil);
+    Graphics::SetRenderTarget(renderTarget, depthStencil);*/
 
     ImGui::Render();
+#if defined BX_GRAPHICS_OPENGL_BACKEND
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#elif defined BX_GRAPHICS_VULKAN_BACKEND
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), GraphicsVulkan::RawCommandBuffer());
+#endif
 
     // Update and Render additional Platform Windows
     // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.

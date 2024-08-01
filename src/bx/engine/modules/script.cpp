@@ -872,7 +872,7 @@ static void BindApi()
 
 	Script::BeginModule("graphics");
 	{
-		Script::BeginClass<TextureFormat, i32>("TextureFormat");
+		/*Script::BeginClass<TextureFormat, i32>("TextureFormat");
 		{
 			Script::BindEnumVal<TextureFormat, i32, TextureFormat::UNKNOWN>("unknown");
 			Script::BindEnumVal<TextureFormat, i32, TextureFormat::RGBA8_UNORM>("rgba8_unorm");
@@ -950,12 +950,12 @@ static void BindApi()
 			Script::BindEnumVal<BufferAccess, i32, BufferAccess::READ>("read");
 			Script::BindEnumVal<BufferAccess, i32, BufferAccess::WRITE>("write");
 		}
-		Script::EndClass();
+		Script::EndClass();*/
 
 		Script::BeginClass("Graphics");
 		{
-			Script::BindFunction<decltype(&Graphics::GetColorBufferFormat), &Graphics::GetColorBufferFormat>(true, "getColorBufferFormat()");
-			Script::BindFunction<decltype(&Graphics::GetDepthBufferFormat), &Graphics::GetDepthBufferFormat>(true, "getDepthBufferFormat()");
+			/*Script::BindFunction<decltype(&Graphics::GetColorBufferFormat), &Graphics::GetColorBufferFormat>(true, "getColorBufferFormat()");
+			Script::BindFunction<decltype(&Graphics::GetDepthBufferFormat), &Graphics::GetDepthBufferFormat>(true, "getDepthBufferFormat()");*/
 
 			//Script::BindFunction<decltype(&Graphics::CreateCubemap), &Graphics::CreateCubemap>(true, "createCubemap(_)");
 			//Script::BindFunction<decltype(&Graphics::CreateMesh), &Graphics::CreateMesh>(true, "createMesh(_)");

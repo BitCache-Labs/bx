@@ -1,88 +1,88 @@
-foreign class TextureFormat {
-    construct new(i) {}
+// foreign class TextureFormat {
+//     construct new(i) {}
     
-    foreign static unknown
-    foreign static rgba8_unorm
-}
+//     foreign static unknown
+//     foreign static rgba8_unorm
+// }
 
-foreign class GeomTopology {
-    construct new(i) {}
+// foreign class GeomTopology {
+//     construct new(i) {}
     
-    foreign static undefined
-    foreign static points
-    foreign static lines
-    foreign static triangles
-}
+//     foreign static undefined
+//     foreign static points
+//     foreign static lines
+//     foreign static triangles
+// }
 
-foreign class FaceCull {
-    construct new(i) {}
+// foreign class FaceCull {
+//     construct new(i) {}
     
-    foreign static none
-    foreign static cw
-    foreign static ccw
-}
+//     foreign static none
+//     foreign static cw
+//     foreign static ccw
+// }
 
-foreign class ShaderType {
-    construct new(i) {}
+// foreign class ShaderType {
+//     construct new(i) {}
     
-    foreign static none
-    foreign static vertex
-    foreign static pixel
-    foreign static geometry
-    foreign static compute
-}
+//     foreign static none
+//     foreign static vertex
+//     foreign static pixel
+//     foreign static geometry
+//     foreign static compute
+// }
 
-foreign class ClearFlags {
-    construct new(i) {}
+// foreign class ClearFlags {
+//     construct new(i) {}
     
-    foreign static none
-    foreign static depth
-    foreign static stencil
-}
+//     foreign static none
+//     foreign static depth
+//     foreign static stencil
+// }
 
-foreign class ValueType {
-    construct new(i) {}
+// foreign class ValueType {
+//     construct new(i) {}
     
-    foreign static undefined
-    foreign static int8
-    foreign static int16
-    foreign static int32
-    foreign static uint8
-    foreign static uint16
-    foreign static uint32
-    foreign static float16
-    foreign static float32
-}
+//     foreign static undefined
+//     foreign static int8
+//     foreign static int16
+//     foreign static int32
+//     foreign static uint8
+//     foreign static uint16
+//     foreign static uint32
+//     foreign static float16
+//     foreign static float32
+// }
 
-foreign class UsageFlags {
-    construct new(i) {}
+// foreign class UsageFlags {
+//     construct new(i) {}
     
-    foreign static immutable
-    foreign static default
-    foreign static dynamic
-}
+//     foreign static immutable
+//     foreign static default
+//     foreign static dynamic
+// }
 
-foreign class BindFlags {
-    construct new(i) {}
+// foreign class BindFlags {
+//     construct new(i) {}
     
-    foreign static vertex
-    foreign static index
-    foreign static uniform
-}
+//     foreign static vertex
+//     foreign static index
+//     foreign static uniform
+// }
 
-foreign class CpuAccessFlags {
-    construct new(i) {}
+// foreign class CpuAccessFlags {
+//     construct new(i) {}
     
-    foreign static none
-    foreign static read
-    foreign static write
-}
+//     foreign static none
+//     foreign static read
+//     foreign static write
+// }
 
 class Graphics {
-    foreign static getColorBufferFormat()
+    /*foreign static getColorBufferFormat()
     foreign static getDepthBufferFormat()
     
-    /*foreign static createCubemap(cubemap)
+    foreign static createCubemap(cubemap)
     foreign static createMesh(mesh)
 
     foreign static batchBegin()

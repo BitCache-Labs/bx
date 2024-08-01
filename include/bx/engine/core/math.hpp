@@ -90,6 +90,11 @@ namespace Math
 	{
 		return Pow4(x) * x;
 	}
+
+	static u32 DivCeil(u32 x, u32 y)
+	{
+		return (x + y - 1) / y;
+	}
 }
 
 struct Vec2

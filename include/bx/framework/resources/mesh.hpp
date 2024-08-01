@@ -29,7 +29,7 @@ public:
 		const List<Vec2>& uvs,
 		const List<Vec4i>& bones,
 		const List<Vec4>& weights,
-		const List<u32>& triangles)
+		const List<u32>& indices)
 		: m_transform(transform)
 		, m_vertices(vertices)
 		, m_colors(colors)
@@ -38,7 +38,7 @@ public:
 		, m_uvs(uvs)
 		, m_bones(bones)
 		, m_weights(weights)
-		, m_triangles(triangles)
+		, m_indices(indices)
 	{}
 
 	inline const Mat4& GetMatrix() const { return m_transform; }
@@ -65,11 +65,11 @@ public:
 	inline const List<Vec4>& GetWeights() const { return m_weights; }
 	inline void SetWeights(const List<Vec4>& weights) { m_weights = weights; }
 
-	inline const List<u32>& GetTriangles() const { return m_triangles; }
-	inline void SetTriangles(const List<u32>& triangles) { m_triangles = triangles; }
+	inline const List<u32>& GetIndices() const { return m_indices; }
+	inline void SetIndices(const List<u32>& indices) { m_indices = indices; }
 
-	inline GraphicsHandle GetVertexBuffers() const { return m_vbuffers; }
-	inline GraphicsHandle GetIndexBuffer() const { return m_ibuffer; }
+	inline BufferHandle GetVertexBuffer() const { return m_vertexBuffer; }
+	inline BufferHandle GetIndexBuffer() const { return m_indexBuffer; }
 
 private:
 	template <typename T>
@@ -86,8 +86,8 @@ private:
 	List<Vec2> m_uvs;
 	List<Vec4i> m_bones;
 	List<Vec4> m_weights;
-	List<u32> m_triangles;
+	List<u32> m_indices;
 
-	GraphicsHandle m_vbuffers = INVALID_GRAPHICS_HANDLE;
-	GraphicsHandle m_ibuffer = INVALID_GRAPHICS_HANDLE;
+	BufferHandle m_vertexBuffer = BufferHandle::null;
+	BufferHandle m_indexBuffer = BufferHandle::null;
 };

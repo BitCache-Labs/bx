@@ -40,6 +40,6 @@ bool Resource<Animation>::Load(const String& filename, Animation& data)
 }
 
 template<>
-void Resource<Animation>::Unload(const Animation& data)
+void Resource<Animation>::Unload(Animation& data)
 {
 }

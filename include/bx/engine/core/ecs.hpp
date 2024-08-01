@@ -231,6 +231,7 @@ private:
 class ComponentBase
 {
 public:
+    ComponentBase() {}
     virtual ~ComponentBase() = 0;
 
     virtual void Copy(const ComponentBase& cmp) = 0;

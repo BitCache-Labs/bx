@@ -61,3 +61,6 @@
 [submodule "extern/free-fonts"]
 	path = extern/free-fonts
 	url = https://github.com/jenskutilek/free-fonts.git
+[submodule "extern/VulkanMemoryAllocator"]
+	path = extern/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git

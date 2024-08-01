@@ -25,7 +25,7 @@ public:
 		ar(cereal::make_nvp("uvs", data.m_uvs));
 		ar(cereal::make_nvp("bones", data.m_bones));
 		ar(cereal::make_nvp("weights", data.m_weights));
-		ar(cereal::make_nvp("triangles", data.m_triangles));
+		ar(cereal::make_nvp("indices", data.m_indices));
 	}
 
 	template<class Archive>
@@ -39,7 +39,7 @@ public:
 		ar(cereal::make_nvp("uvs", data.m_uvs));
 		ar(cereal::make_nvp("bones", data.m_bones));
 		ar(cereal::make_nvp("weights", data.m_weights));
-		ar(cereal::make_nvp("triangles", data.m_triangles));
+		ar(cereal::make_nvp("indices", data.m_indices));
 	}
 };
 REGISTER_SERIAL(Mesh);

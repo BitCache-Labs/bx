@@ -16,6 +16,7 @@
 #ifdef BX_GRAPHICS_OPENGL_BACKEND
 #include <bx/engine/modules/graphics/backend/graphics_opengl.hpp>
 #endif
+#include <bx/framework/systems/renderer/id_pass.hpp>
 
 #include <bx/framework/components/transform.hpp>
 #include <bx/framework/components/camera.hpp>
@@ -51,39 +52,8 @@ static ImVec2 g_sceneSize;
 
 static bool g_physicsDebugDraw = false;
 
-static GraphicsHandle g_vertShader = INVALID_GRAPHICS_HANDLE;
-static GraphicsHandle g_pixelShader = INVALID_GRAPHICS_HANDLE;
-static GraphicsHandle g_pipeline = INVALID_GRAPHICS_HANDLE;
-
-static GraphicsHandle g_constantBuffer = INVALID_GRAPHICS_HANDLE;
-static GraphicsHandle g_modelBuffer = INVALID_GRAPHICS_HANDLE;
-
-static GraphicsHandle g_resources = INVALID_GRAPHICS_HANDLE;
-static GraphicsHandle g_renderTarget = INVALID_GRAPHICS_HANDLE;
-static GraphicsHandle g_renderTargetIDs = INVALID_GRAPHICS_HANDLE;
-static GraphicsHandle g_depthStencil = INVALID_GRAPHICS_HANDLE;
-
-struct SceneConstantData
-{
-    Mat4 viewProjMtx = Mat4::Identity();
-};
-
-struct SceneModelData
-{
-    Mat4 worldMeshMtx = Mat4::Identity();
-    EntityId entityId = INVALID_ENTITY_ID;
-};
-
-struct SceneDrawCommandData
-{
-    SceneModelData model;
-    
-    GraphicsHandle vbuffers = INVALID_GRAPHICS_HANDLE;
-    GraphicsHandle ibuffer = INVALID_GRAPHICS_HANDLE;
-    u32 numIndices = 0;
-};
-
-static List<SceneDrawCommandData> g_drawCmds;
+TextureHandle g_idColorTarget = TextureHandle::null;
+TextureHandle g_idDepthTarget = TextureHandle::null;
 
 void SceneView::Initialize()
 {
@@ -97,103 +67,6 @@ void SceneView::Initialize()
 
     g_sceneTrx.SetPosition(Vec3(cpx, cpy, cpz));
     g_sceneTrx.SetRotation(Quat::Euler(g_eulerAngles.x, g_eulerAngles.y, g_eulerAngles.z));
-
-    // Create shaders
-    {
-        static const char* vsrc =
-            "layout (location = 0) in vec3 Position;\n"
-            "layout (std140) uniform ConstantBuffer\n"
-            "{\n"
-            "   mat4 ViewProjMtx;\n"
-            "};\n"
-            "layout (std140) uniform ModelBuffer\n"
-            "{\n"
-            "   mat4 WorldMeshMtx;\n"
-            "   uvec2 EntityID; \n"
-            "};\n"
-            "flat out uvec2 Frag_EntityID;\n"
-            "void main()\n"
-            "{\n"
-            "   gl_Position = ViewProjMtx * WorldMeshMtx * vec4(Position, 1.0);\n"
-            "   Frag_EntityID = EntityID;\n"
-            "};";
-
-        static const char* psrc =
-            "layout (location = 0) out uvec2 Out_Color;\n"
-            "flat in uvec2 Frag_EntityID;\n"
-            "void main()\n"
-            "{\n"
-            "   Out_Color = Frag_EntityID;\n"
-            "};";
-
-        ShaderInfo info;
-
-        info.shaderType = ShaderType::VERTEX;
-        info.source = vsrc;
-        g_vertShader = Graphics::CreateShader(info);
-
-        info.shaderType = ShaderType::PIXEL;
-        info.source = psrc;
-        g_pixelShader = Graphics::CreateShader(info);
-    }
-
-    // Create pipeline
-    {
-        PipelineInfo info;
-
-        info.numRenderTargets = 1;
-        info.renderTargetFormats[0] = Graphics::GetColorBufferFormat();
-        info.depthStencilFormat = Graphics::GetDepthBufferFormat();
-
-        info.topology = PipelineTopology::TRIANGLES;
-        info.faceCull = PipelineFaceCull::CCW;
-        info.depthEnable = true;
-
-        LayoutElement layoutElems[] =
-        {
-            LayoutElement { 0, 0, 3, GraphicsValueType::FLOAT32, false, 0, 0 }
-        };
-
-        info.layoutElements = layoutElems;
-        info.numElements = 1;
-
-        info.vertShader = g_vertShader;
-        info.pixelShader = g_pixelShader;
-
-        g_pipeline = Graphics::CreatePipeline(info);
-    }
-
-    // Create buffers
-    {
-        BufferInfo info;
-
-        info.type = BufferType::UNIFORM_BUFFER;
-        info.usage = BufferUsage::DYNAMIC;
-        info.access = BufferAccess::WRITE;
-        g_constantBuffer = Graphics::CreateBuffer(info);
-
-        info.type = BufferType::UNIFORM_BUFFER;
-        info.usage = BufferUsage::DYNAMIC;
-        info.access = BufferAccess::WRITE;
-        g_modelBuffer = Graphics::CreateBuffer(info);
-    }
-
-    // Create resources
-    {
-        ResourceBindingElement resourceElems[] =
-        {
-            ResourceBindingElement { ShaderType::VERTEX, "ConstantBuffer", 1, ResourceBindingType::UNIFORM_BUFFER, ResourceBindingAccess::STATIC },
-            ResourceBindingElement { ShaderType::VERTEX, "ModelBuffer", 1, ResourceBindingType::UNIFORM_BUFFER, ResourceBindingAccess::STATIC }
-        };
-
-        ResourceBindingInfo resourceBindingInfo;
-        resourceBindingInfo.resources = resourceElems;
-        resourceBindingInfo.numResources = 2;
-
-        g_resources = Graphics::CreateResourceBinding(resourceBindingInfo);
-        Graphics::BindResource(g_resources, "ConstantBuffer", g_constantBuffer);
-        Graphics::BindResource(g_resources, "ModelBuffer", g_modelBuffer);
-    }
 }
 
 void SceneView::Shutdown()
@@ -254,7 +127,7 @@ static void Update(const ImVec2& size)
     g_sceneCam.SetView(Mat4::LookAt(g_sceneTrx.GetPosition(), g_sceneTrx.GetPosition() + (g_sceneTrx.GetRotation() * Vec3::Forward()), Vec3::Up()));
 }
 
-static void Render(const ImVec2& size)
+void SceneView::Render(const ImVec2& size)
 {
     if (g_sceneSize.x != size.x || g_sceneSize.y != size.y)
     {
@@ -267,34 +140,21 @@ static void Render(const ImVec2& size)
         g_sceneCam.SetZNear(0.1f);
         g_sceneCam.SetZFar(1000.0f);
 
-        // Check if there are old render targets
-        if (g_renderTargetIDs != INVALID_GRAPHICS_HANDLE)
-            Graphics::DestroyTexture(g_renderTargetIDs);
+        TextureCreateInfo idColorTargetCreateInfo{};
+        idColorTargetCreateInfo.name = "Id Pass Color Target";
+        idColorTargetCreateInfo.size = Extend3D(g_sceneSize.x, g_sceneSize.y, 1);
+        idColorTargetCreateInfo.format = TextureFormat::RG32_UINT;
+        idColorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        if (g_idColorTarget) Graphics::DestroyTexture(g_idColorTarget);
+        g_idColorTarget = Graphics::CreateTexture(idColorTargetCreateInfo);
 
-        if (g_renderTarget != INVALID_GRAPHICS_HANDLE)
-            Graphics::DestroyTexture(g_renderTarget);
-
-        if (g_depthStencil != INVALID_GRAPHICS_HANDLE)
-            Graphics::DestroyTexture(g_depthStencil);
-
-        // Create render targets
-        {
-            TextureInfo info;
-            info.width = (u32)g_sceneSize.x;
-            info.height = (u32)g_sceneSize.y;
-
-            info.format = TextureFormat::RG32_UINT;
-            info.flags = TextureFlags::SHADER_RESOURCE | TextureFlags::RENDER_TARGET;
-            g_renderTargetIDs = Graphics::CreateTexture(info);
-
-            info.format = TextureFormat::RGBA8_UNORM;
-            info.flags = TextureFlags::SHADER_RESOURCE | TextureFlags::RENDER_TARGET;
-            g_renderTarget = Graphics::CreateTexture(info);
-
-            info.format = TextureFormat::D24_UNORM_S8_UINT;
-            info.flags = TextureFlags::DEPTH_STENCIL;
-            g_depthStencil = Graphics::CreateTexture(info);
-        }
+        TextureCreateInfo idDepthTargetCreateInfo{};
+        idDepthTargetCreateInfo.name = "Id Pass Depth Target";
+        idDepthTargetCreateInfo.size = Extend3D(g_sceneSize.x, g_sceneSize.y, 1);
+        idDepthTargetCreateInfo.format = TextureFormat::DEPTH24_PLUS_STENCIL8;
+        idDepthTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        if (g_idDepthTarget) Graphics::DestroyTexture(g_idDepthTarget);
+        g_idDepthTarget = Graphics::CreateTexture(idDepthTargetCreateInfo);
     }
 
     g_sceneCam.Update();
@@ -333,74 +193,13 @@ static void Render(const ImVec2& size)
             Physics::SetCharacterControllerMatrix(cc.GetCharacterController(), trx.GetMatrix());
         });
 
-    auto& renderer = SystemManager::GetSystem<Renderer>();
-    renderer.UpdateAnimators();
-    renderer.UpdateCameras();
-    renderer.UpdateLights();
-    renderer.CollectDrawCommands();
+    Renderer& renderer = SystemManager::GetSystem<Renderer>();
+    renderer.editorCamera = OptionalView<Camera>::Some(&g_sceneCam);
+    renderer.Render();
+    renderer.editorCamera = OptionalView<Camera>::None();
 
-    g_drawCmds.clear();
-
-    EntityManager::ForEach<Transform, MeshFilter>(
-        [&](Entity entity, const Transform& trx, const MeshFilter& mf)
-        {
-            for (const auto& mesh : mf.GetMeshes())
-            {
-                if (!mesh) continue;
-                const auto& meshData = mesh.GetData();
-
-                SceneDrawCommandData cmd;
-                cmd.model.worldMeshMtx = trx.GetMatrix() * meshData.GetMatrix();
-                cmd.model.entityId = entity.GetId();
-                cmd.vbuffers = meshData.GetVertexBuffers();
-                cmd.ibuffer = meshData.GetIndexBuffer();
-                cmd.numIndices = static_cast<u32>(meshData.GetTriangles().size());
-
-                g_drawCmds.emplace_back(cmd);
-            }
-        });
-
-    const f32 viewport[] = { 0.0f, 0.0f, g_sceneSize.x, g_sceneSize.y };
-    Graphics::SetViewport(viewport);
-
-    // Render to the normal color render target
-    Graphics::SetRenderTarget(g_renderTarget, g_depthStencil);
-
-    const f32 clearColor[] = { 0, 0, 0, 1 };
-    Graphics::ClearRenderTarget(g_renderTarget, clearColor);
-    Graphics::ClearDepthStencil(g_depthStencil, GraphicsClearFlags::DEPTH, 1.0f, 0);
-
-    renderer.BindConstants(g_sceneCam.GetView(), g_sceneCam.GetProjection(), g_sceneCam.GetViewProjection());
-    renderer.DrawCommands();
-
-    Physics::DebugDraw();
-
-    Graphics::UpdateDebugLines();
-    Graphics::DrawDebugLines(g_sceneCam.GetViewProjection());
-
-    // Render to the ID render target
-    Graphics::SetRenderTarget(g_renderTargetIDs, g_depthStencil);
-
-    Graphics::SetPipeline(g_pipeline);
-    Graphics::ClearRenderTarget(g_renderTargetIDs, clearColor);
-    Graphics::ClearDepthStencil(g_depthStencil, GraphicsClearFlags::DEPTH, 1.0f, 0);
-
-    BufferData bufferData;
-    SceneConstantData constants;
-    constants.viewProjMtx = g_sceneCam.GetViewProjection();
-    bufferData.dataSize = sizeof(SceneConstantData);
-    bufferData.pData = &constants;
-    Graphics::UpdateBuffer(g_constantBuffer, bufferData);
-
-    for (auto& cmd : g_drawCmds)
-    {
-        bufferData.dataSize = sizeof(SceneModelData);
-        bufferData.pData = &cmd.model;
-        Graphics::UpdateBuffer(g_modelBuffer, bufferData);
-        
-        const u64 offset = 0;
-        renderer.DrawCommand(g_pipeline, 1, &g_resources, 1, &cmd.vbuffers, &offset, cmd.ibuffer, cmd.numIndices);
-    }
+    IdPass idPass(g_idColorTarget, g_idDepthTarget);
+    idPass.Dispatch(g_sceneCam);
 }
 
 static void CopySceneClipboard()
@@ -485,7 +284,17 @@ void SceneView::Present(bool& show)
     ImVec2 gizmoPos = ImVec2(windowPos.x + cursorPos.x, windowPos.y + cursorPos.y);
 
     Render(contentRegionAvail);
-    ImGui::Image((void*)(intptr_t)GraphicsOpenGL::GetTextureHandle(g_renderTarget), contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
+#ifdef BX_GRAPHICS_VULKAN_BACKEND
+    // TODO: ???
+    //ImGui::Image((void*)(intptr_t)GraphicsOpenGL::GetTextureHandle(g_renderTarget), contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
+#elif defined BX_GRAPHICS_OPENGL_BACKEND
+    TextureHandle editorCameraColorTarget = Renderer::GetEditorCameraColorTarget();
+    if (editorCameraColorTarget)
+    {
+        GLuint rawEditorCameraColorTarget = GraphicsOpenGL::GetRawTextureHandle(editorCameraColorTarget);
+        ImGui::Image((void*)(intptr_t)rawEditorCameraColorTarget, contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
+    }
+#endif
     ImGui::SetCursorScreenPos(gizmoPos);
 
     const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
@@ -524,7 +333,7 @@ void SceneView::Present(bool& show)
         ImVec2 relMousePos = ImVec2(mousePos.x - windowPos.x, windowPos.y + windowSize.y - mousePos.y);
         
         u64 pixelData = 0;
-        Graphics::ReadPixels((u32)relMousePos.x, (u32)relMousePos.y, 1, 1, &pixelData, g_renderTargetIDs);
+        Graphics::ReadTexture(g_idColorTarget, &pixelData, Extend3D((u32)relMousePos.x, (u32)relMousePos.y, 0), Extend3D(1, 1, 1));
         if (pixelData != 0)
         {
             Selection::SetSelected(Object<Entity>(pixelData));
