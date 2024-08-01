@@ -1,4 +1,4 @@
-#include "bx/engine/modules/graphics/toolkit/srgb_to_linear_pass.hpp"
+#include "bx/framework/systems/renderer/srgb_to_linear_pass.hpp"
 
 #include "bx/engine/containers/lazy_init.hpp"
 

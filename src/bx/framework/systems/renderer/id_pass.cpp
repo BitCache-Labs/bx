@@ -1,4 +1,4 @@
-#include "bx/engine/modules/graphics/toolkit/id_pass.hpp"
+#include "bx/framework/systems/renderer/id_pass.hpp"
 
 #include "bx/engine/containers/lazy_init.hpp"
 

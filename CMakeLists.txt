@@ -136,9 +136,6 @@ set (BX_SRCS
 	"src/bx/engine/modules/window.cpp"
 	"src/bx/engine/modules/imgui.cpp"
 
-	"src/bx/engine/modules/graphics/toolkit/id_pass.cpp"
-	"src/bx/engine/modules/graphics/toolkit/present_pass.cpp"
-	"src/bx/engine/modules/graphics/toolkit/srgb_to_linear_pass.cpp"
 	"src/bx/engine/modules/graphics/type.cpp"
 	"src/bx/engine/modules/graphics/type_validation.cpp"
 	
@@ -161,6 +158,9 @@ set (BX_SRCS
 	"src/bx/framework/resources/shader.cpp"
 	"src/bx/framework/resources/skeleton.cpp"
 	"src/bx/framework/resources/texture.cpp"
+	"src/bx/framework/systems/renderer/id_pass.cpp"
+	"src/bx/framework/systems/renderer/present_pass.cpp"
+	"src/bx/framework/systems/renderer/srgb_to_linear_pass.cpp"
 	"src/bx/framework/systems/renderer.cpp"
 	"src/bx/framework/systems/dynamics.cpp"
 	"src/bx/framework/systems/acoustics.cpp"

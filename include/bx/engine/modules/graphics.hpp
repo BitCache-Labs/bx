@@ -112,7 +112,6 @@ private:
 	static b8 Initialize();
 	static void Reload();
 	static void Shutdown();
-	static void ClearPipelineCaches();
 
 	static void NewFrame();
 	static void EndFrame();

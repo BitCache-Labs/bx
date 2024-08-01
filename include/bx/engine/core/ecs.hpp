@@ -231,14 +231,13 @@ private:
 class ComponentBase
 {
 public:
-    ComponentBase() : m_uuid(GenUUID::MakeUUID()) {}
+    ComponentBase() {}
     virtual ~ComponentBase() = 0;
 
     virtual void Copy(const ComponentBase& cmp) = 0;
     virtual void OnPostCopy() = 0;
     virtual void OnRemoved() = 0;
     virtual TypeId GetTypeId() = 0;
-    inline UUID GetUUID() const { return m_uuid; }
 
     inline bool GetEnabled() const { return m_enabled; }
     inline void SetEnabled(bool enabled) { m_enabled = enabled; }
@@ -257,7 +256,6 @@ private:
     bool m_enabled = true;
 
     Entity m_entity = Entity::Invalid();
-    UUID m_uuid;
 };
 
 template <typename TCmp>

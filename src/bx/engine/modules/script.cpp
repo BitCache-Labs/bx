@@ -336,10 +336,6 @@ static void Configure()
 
 		//wrenCall(s_vm, s_configMethod);
 	}
-	else if (s_error)
-	{
-		BX_FAIL("Failed to configure script due to previous error");
-	}
 }
 
 void Script::RegisterApi(BindApiFn bindApi)

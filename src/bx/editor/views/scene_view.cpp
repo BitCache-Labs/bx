@@ -16,7 +16,7 @@
 #ifdef BX_GRAPHICS_OPENGL_BACKEND
 #include <bx/engine/modules/graphics/backend/graphics_opengl.hpp>
 #endif
-#include <bx/engine/modules/graphics/toolkit/id_pass.hpp>
+#include <bx/framework/systems/renderer/id_pass.hpp>
 
 #include <bx/framework/components/transform.hpp>
 #include <bx/framework/components/camera.hpp>
@@ -141,7 +141,7 @@ void SceneView::Render(const ImVec2& size)
         g_sceneCam.SetZFar(1000.0f);
 
         TextureCreateInfo idColorTargetCreateInfo{};
-        idColorTargetCreateInfo.name = Optional<String>::Some("Id Pass Color Target");
+        idColorTargetCreateInfo.name = "Id Pass Color Target";
         idColorTargetCreateInfo.size = Extend3D(g_sceneSize.x, g_sceneSize.y, 1);
         idColorTargetCreateInfo.format = TextureFormat::RG32_UINT;
         idColorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
@@ -149,7 +149,7 @@ void SceneView::Render(const ImVec2& size)
         g_idColorTarget = Graphics::CreateTexture(idColorTargetCreateInfo);
 
         TextureCreateInfo idDepthTargetCreateInfo{};
-        idDepthTargetCreateInfo.name = Optional<String>::Some("Id Pass Depth Target");
+        idDepthTargetCreateInfo.name = "Id Pass Depth Target";
         idDepthTargetCreateInfo.size = Extend3D(g_sceneSize.x, g_sceneSize.y, 1);
         idDepthTargetCreateInfo.format = TextureFormat::DEPTH24_PLUS_STENCIL8;
         idDepthTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;

@@ -196,7 +196,7 @@ public:
 		BX_ENSURE(it != m_database.end());
 
 		it->second.refCount++;
-		//BX_LOGD("Resource ({}) increment ref count {}", handle, it->second.refCount);
+		BX_LOGD("Resource ({}) increment ref count {}", handle, it->second.refCount);
 	}
 
 	inline void DecreaseRefCount(ResourceHandle handle, UnloadFn unloadFn)
@@ -208,7 +208,7 @@ public:
 
 		BX_ENSURE(it->second.refCount > 0);
 		it->second.refCount--;
-		//BX_LOGD("Resource ({}) decrement ref count {}", handle, it->second.refCount);
+		BX_LOGD("Resource ({}) decrement ref count {}", handle, it->second.refCount);
 
 		if (it->second.refCount == 0)
 		{
@@ -224,11 +224,10 @@ template <typename TData>
 class Resource
 {
 public:
-	Resource()
-		: m_uuid(GenUUID::MakeUUID()) {}
+	Resource() {}
 
 	Resource(const String& filename)
-		: m_handle(MakeHandle(filename)), m_uuid(GenUUID::MakeUUID())
+		: m_handle(MakeHandle(filename))
 	{
 		if (IsValid())
 		{
@@ -243,7 +242,7 @@ public:
 	}
 
 	Resource(ResourceHandle handle, const TData& data)
-		: m_handle(handle), m_uuid(GenUUID::MakeUUID())
+		: m_handle(handle)
 	{
 		if (IsValid())
 		{
@@ -289,7 +288,7 @@ public:
 
 	Resource& operator=(Resource&& other) noexcept
 	{
-		if (this != &other)
+	if (this != &other)
 		{
 			if (IsValid())
 				DecreaseRefCount();
@@ -300,7 +299,6 @@ public:
 		return *this;
 	}
 
-	inline UUID GetUUID() const { return m_uuid; }
 	inline ResourceHandle GetHandle() const { return m_handle; }
 	inline bool IsValid() const { return m_handle != RESOURCE_HANDLE_INVALID; }
 

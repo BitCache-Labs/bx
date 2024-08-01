@@ -7,7 +7,9 @@
 #include "bx/framework/components/animator.hpp"
 #include "bx/framework/components/light.hpp"
 
-#include "bx/engine/modules/graphics/toolkit/present_pass.hpp"
+#include "bx/framework/systems/renderer/id_pass.hpp"
+#include "bx/framework/systems/renderer/present_pass.hpp"
+#include "bx/framework/systems/renderer/srgb_to_linear_pass.hpp"
 
 #include <bx/engine/core/file.hpp>
 #include <bx/engine/core/data.hpp>
@@ -51,8 +53,7 @@ struct LightSourceData
 
 struct RendererState : NoCopy
 {
-    HashMap<UUID, GraphicsPipelineHandle> shaderPipelines{};
-    HashMap<UUID, BufferHandle> animatorBoneBuffers{};
+    HashMap<ResourceHandle, GraphicsPipelineHandle> shaderPipelines{};
 
     TextureHandle colorTarget = TextureHandle::null;
     TextureHandle depthTarget = TextureHandle::null;
@@ -111,7 +112,7 @@ void BuildShaderPipelines()
                 const Resource<Shader>& shaderResource = materialData.GetShader();
                 const Shader& shader = shaderResource.GetData();
 
-                if (s->shaderPipelines.find(shaderResource.GetUUID()) == s->shaderPipelines.end())
+                if (s->shaderPipelines.find(shaderResource.GetHandle()) == s->shaderPipelines.end())
                 {
                     GraphicsPipelineCreateInfo createInfo{};
                     createInfo.name = "Shader Pipeline";
@@ -124,7 +125,7 @@ void BuildShaderPipelines()
                     createInfo.depthFormat = Optional<TextureFormat>::Some(depthFormat);
 
                     GraphicsPipelineHandle graphicsPipeline = Graphics::CreateGraphicsPipeline(createInfo);
-                    s->shaderPipelines.insert(std::make_pair(shaderResource.GetUUID(), graphicsPipeline));
+                    s->shaderPipelines.insert(std::make_pair(shaderResource.GetHandle(), graphicsPipeline));
                 }
             }
         });
@@ -136,25 +137,6 @@ void UpdateAnimators()
         [&](Entity entity, Animator& anim)
         {
             anim.Update();
-
-            BufferHandle boneBuffer;
-            auto& boneBufferIter = s->animatorBoneBuffers.find(anim.GetUUID());
-            if (boneBufferIter == s->animatorBoneBuffers.end())
-            {
-                BufferCreateInfo createInfo{};
-                createInfo.name = "Animator Bones Buffer";
-                createInfo.size = sizeof(Mat4) * 100;
-                createInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::STORAGE;
-
-                boneBuffer = Graphics::CreateBuffer(createInfo);
-                s->animatorBoneBuffers.insert(std::make_pair(anim.GetUUID(), boneBuffer));
-            }
-            else
-            {
-                boneBuffer = boneBufferIter->second;
-            }
-            
-            Graphics::WriteBuffer(boneBuffer, 0, anim.GetBoneMatrices().data(), anim.GetBoneMatrices().size() * sizeof(Mat4));
         });
 }
 
@@ -267,6 +249,10 @@ void Renderer::Initialize()
 
 void Renderer::Shutdown()
 {
+    IdPass::ClearPipelineCache();
+    PresentPass::ClearPipelineCache();
+    SrgbToLinearPass::ClearPipelineCache();
+
     s.reset();
 }
 
@@ -305,7 +291,7 @@ void Renderer::Render()
                 if (entity.HasComponent<Animator>())
                 {
                     const auto& anim = entity.GetComponent<Animator>();
-                    animatorBonesBuffer = s->animatorBoneBuffers.find(anim.GetUUID())->second;
+                    animatorBonesBuffer = anim.GetBoneBuffer();
                 }
                 else
                 {
@@ -325,7 +311,7 @@ void Renderer::Render()
                     const auto& materialData = material.GetData();
                     const auto& shader = materialData.GetShader();
 
-                    auto& graphicsPipelineIter = s->shaderPipelines.find(shader.GetUUID());
+                    auto& graphicsPipelineIter = s->shaderPipelines.find(shader.GetHandle());
                     BX_ASSERT(graphicsPipelineIter != s->shaderPipelines.end(), "Missing graphics pipeline, this should not happen.");
                     GraphicsPipelineHandle graphicsPipeline = graphicsPipelineIter->second;
 

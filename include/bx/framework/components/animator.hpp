@@ -19,9 +19,7 @@ public:
 		RefreshCurrent();
 	}
 
-	void OnRemoved() override
-	{
-	}
+	void OnRemoved() override;
 	
 	inline const Resource<Skeleton>& GetSkeleton() const { return m_skeleton; }
 	inline void SetSkeleton(const Resource<Skeleton>& skeleton)
@@ -85,7 +83,7 @@ public:
 	inline bool GetLooping() const { return m_looping; }
 	inline void SetLooping(bool looping) { m_looping = looping; }
 
-	inline Mat4 GetBoneMatrix(const String& name)
+	inline Mat4 GetBoneMatrix(const String& name) const
 	{
 		const auto& skelData = m_skeleton.GetData();
 		auto it = skelData.GetBoneMap().find(name);
@@ -96,9 +94,14 @@ public:
 		return m_boneMatrices2[it->second];
 	}
 
-	inline const List<Mat4>& GetBoneMatrices()
+	inline const List<Mat4>& GetBoneMatrices() const
 	{
 		return m_boneMatrices;
+	}
+
+	inline BufferHandle GetBoneBuffer() const
+	{
+		return m_boneBuffer;
 	}
 
 	void Update();
@@ -148,4 +151,6 @@ private:
 
 	List<Mat4> m_boneMatrices;
 	List<Mat4> m_boneMatrices2;
+
+	BufferHandle m_boneBuffer;
 };
