@@ -230,7 +230,7 @@ void RecreateRenderTargets()
 
 void Renderer::Initialize()
 {
-    s = std::make_unique<RendererState>();
+    s = std::unique_ptr<RendererState>(new RendererState());
 
     BufferCreateInfo vertexConstantsCreateInfo{};
     vertexConstantsCreateInfo.name = "Vertex Constants";

@@ -67,8 +67,8 @@ static std::unique_ptr<GraphicsBackendState> s;
 
 b8 Graphics::Initialize()
 {
-    s_createInfoCache = std::make_unique<CreateInfoCache>();
-    s = std::make_unique<GraphicsBackendState>();
+    s_createInfoCache = std::unique_ptr<CreateInfoCache>(new CreateInfoCache());
+    s = std::unique_ptr<GraphicsBackendState>(new GraphicsBackendState());
 
     Gl::Init(false);
 
