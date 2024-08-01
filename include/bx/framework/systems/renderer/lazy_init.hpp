@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 
 #include "bx/engine/containers/hash_map.hpp"
 
@@ -44,7 +45,9 @@ struct LazyInitMap : NoCopy
         auto cacheIter = cache.find(params);
         if (cacheIter == cache.end())
         {
-            cache.try_emplace(params, new InitializerT(params));
+            cache.emplace(std::piecewise_construct,
+                std::forward_as_tuple(params),
+                std::forward_as_tuple(new InitializerT(params)));
         }
 
         return cache.find(params)->second->data;
