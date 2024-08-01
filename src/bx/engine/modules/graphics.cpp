@@ -1,3 +1,4 @@
+
 #include "bx/engine/modules/graphics.hpp"
 
 #include "bx/engine/modules/graphics/type_validation.hpp"
@@ -14,7 +15,7 @@ const TextureCreateInfo& Graphics::GetTextureCreateInfo(TextureHandle texture)
 {
     BX_ENSURE(texture);
 
-    auto& createInfoIter = s_createInfoCache->textureCreateInfos.find(texture);
+    auto createInfoIter = s_createInfoCache->textureCreateInfos.find(texture);
     BX_ENSURE(createInfoIter != s_createInfoCache->textureCreateInfos.end());
     return createInfoIter->second;
 }
@@ -23,7 +24,7 @@ const SamplerCreateInfo& Graphics::GetSamplerCreateInfo(SamplerHandle sampler)
 {
     BX_ENSURE(sampler);
 
-    auto& createInfoIter = s_createInfoCache->samplerCreateInfos.find(sampler);
+    auto createInfoIter = s_createInfoCache->samplerCreateInfos.find(sampler);
     BX_ENSURE(createInfoIter != s_createInfoCache->samplerCreateInfos.end());
     return createInfoIter->second;
 }
@@ -32,7 +33,7 @@ const BufferCreateInfo& Graphics::GetBufferCreateInfo(BufferHandle buffer)
 {
     BX_ENSURE(buffer);
 
-    auto& createInfoIter = s_createInfoCache->bufferCreateInfos.find(buffer);
+    auto createInfoIter = s_createInfoCache->bufferCreateInfos.find(buffer);
     BX_ENSURE(createInfoIter != s_createInfoCache->bufferCreateInfos.end());
     return createInfoIter->second;
 }
@@ -41,7 +42,7 @@ const ShaderCreateInfo& Graphics::GetShaderCreateInfo(ShaderHandle shader)
 {
     BX_ENSURE(shader);
 
-    auto& createInfoIter = s_createInfoCache->shaderCreateInfos.find(shader);
+    auto createInfoIter = s_createInfoCache->shaderCreateInfos.find(shader);
     BX_ENSURE(createInfoIter != s_createInfoCache->shaderCreateInfos.end());
     return createInfoIter->second;
 }
@@ -50,7 +51,7 @@ const GraphicsPipelineCreateInfo& Graphics::GetGraphicsPipelineCreateInfo(Graphi
 {
     BX_ENSURE(graphicsPipeline);
 
-    auto& createInfoIter = s_createInfoCache->graphicsPipelineCreateInfos.find(graphicsPipeline);
+    auto createInfoIter = s_createInfoCache->graphicsPipelineCreateInfos.find(graphicsPipeline);
     BX_ENSURE(createInfoIter != s_createInfoCache->graphicsPipelineCreateInfos.end());
     return createInfoIter->second;
 }
@@ -59,7 +60,7 @@ const ComputePipelineCreateInfo& Graphics::GetComputePipelineCreateInfo(ComputeP
 {
     BX_ENSURE(computePipeline);
 
-    auto& createInfoIter = s_createInfoCache->computePipelineCreateInfos.find(computePipeline);
+    auto createInfoIter = s_createInfoCache->computePipelineCreateInfos.find(computePipeline);
     BX_ENSURE(createInfoIter != s_createInfoCache->computePipelineCreateInfos.end());
     return createInfoIter->second;
 }
@@ -68,7 +69,7 @@ const BindGroupCreateInfo& Graphics::GetBindGroupCreateInfo(BindGroupHandle bind
 {
     BX_ENSURE(bindGroup);
 
-    auto& createInfoIter = s_createInfoCache->bindGroupCreateInfos.find(bindGroup);
+    auto createInfoIter = s_createInfoCache->bindGroupCreateInfos.find(bindGroup);
     BX_ENSURE(createInfoIter != s_createInfoCache->bindGroupCreateInfos.end());
     return createInfoIter->second;
 }
@@ -77,7 +78,7 @@ const RenderPassDescriptor& Graphics::GetRenderPassDescriptor(RenderPassHandle r
 {
     BX_ENSURE(renderPass);
 
-    auto& createInfoIter = s_createInfoCache->renderPassCreateInfos.find(renderPass);
+    auto createInfoIter = s_createInfoCache->renderPassCreateInfos.find(renderPass);
     BX_ENSURE(createInfoIter != s_createInfoCache->renderPassCreateInfos.end());
     return createInfoIter->second;
 }
@@ -134,136 +135,3 @@ void Graphics::ClearDebugLines()
 {
     g_debugLines.clear();
 }
-
-// TODO: Should the backend be implemented like this?
-/*bool Graphics::Initialize(void* device)
-{
-    auto& backend = GetBackend();
-    return backend.Initialize_Impl(device);
-}
-
-void Graphics::Shutdown()
-{
-    auto& backend = GetBackend();
-    backend.Shutdown_Impl();
-}
-
-void Graphics::Reload()
-{
-    auto& backend = GetBackend();
-    backend.Reload_Impl();
-}
-
-void Graphics::SwapBuffers()
-{
-    auto& backend = GetBackend();
-    backend.SwapBuffers_Impl();
-}
-
-void Graphics::Render()
-{
-    auto& backend = GetBackend();
-    backend.Render_Impl();
-}
-
-TextureFormat Graphics::GetColorBufferFormat()
-{
-    auto& backend = GetBackend();
-    return backend.GetColorBufferFormat_Impl();
-}
-
-TextureFormat Graphics::GetDepthBufferFormat()
-{
-    auto& backend = GetBackend();
-    return backend.GetDepthBufferFormat_Impl();
-}
-
-GraphicsHandle Graphics::GetCurrentBackBufferRT()
-{
-    auto& backend = GetBackend();
-    return backend.GetCurrentBackBufferRT_Impl();
-}
-
-GraphicsHandle Graphics::GetDepthBuffer()
-{
-    auto& backend = GetBackend();
-    return backend.GetDepthBuffer_Impl();
-}
-
-GraphicsHandle Graphics::CreateShader(const ShaderInfo& info)
-{
-    auto& backend = GetBackend();
-    return GetBackend().CreateShader_Impl(info);
-}
-
-GraphicsHandle Graphics::CreatePipeline(const PipelineInfo& info)
-{
-    auto& backend = GetBackend();
-    return backend.CreatePipeline_Impl(info);
-}
-
-void Graphics::ClearRenderTarget(const GraphicsHandle rt, const f32 clearColor[4])
-{
-    auto& backend = GetBackend();
-    backend.ClearRenderTarget_Impl(rt, clearColor);
-}
-
-void Graphics::ClearDepthStencil(const GraphicsHandle dt, ClearFlags flags, f32 depth, i32 stencil)
-{
-    auto& backend = GetBackend();
-    backend.ClearDepthStencil_Impl(dt, flags, depth, stencil);
-}
-
-GraphicsHandle Graphics::CreateBuffer(const BufferInfo& info)
-{
-    auto& backend = GetBackend();
-    return backend.CreateBuffer_Impl(info);
-}
-
-GraphicsHandle Graphics::CreateBuffer(const BufferInfo& info, const BufferData& data)
-{
-    auto& backend = GetBackend();
-    return backend.CreateBuffer_Impl(info, data);
-}
-
-void Graphics::UpdateBuffer(const GraphicsHandle buffer, const BufferData& data)
-{
-    auto& backend = GetBackend();
-    backend.UpdateBuffer_Impl(buffer, data);
-}
-
-void Graphics::SetStaticVariable(const GraphicsHandle pipeline, ShaderType shaderType, const char* name, const GraphicsHandle buffer)
-{
-    auto& backend = GetBackend();
-    backend.SetStaticVariable_Impl(pipeline, shaderType, name, buffer);
-}
-
-void Graphics::SetPipeline(const GraphicsHandle pipeline)
-{
-    auto& backend = GetBackend();
-    backend.SetPipeline_Impl(pipeline);
-}
-
-void Graphics::SetVertexBuffers(i32 i, i32 count, const GraphicsHandle* pBuffers, const u64* offset)
-{
-    auto& backend = GetBackend();
-    backend.SetVertexBuffers_Impl(i, count, pBuffers, offset);
-}
-
-void Graphics::SetIndexBuffer(const GraphicsHandle buffer, i32 i)
-{
-    auto& backend = GetBackend();
-    backend.SetIndexBuffer_Impl(buffer, i);
-}
-
-void Graphics::Draw(const DrawAttribs& attribs)
-{
-    auto& backend = GetBackend();
-    backend.Draw_Impl(attribs);
-}
-
-void Graphics::DrawIndexed(const DrawIndexedAttribs& attribs)
-{
-    auto& backend = GetBackend();
-    backend.DrawIndexed_Impl(attribs);
-}*/

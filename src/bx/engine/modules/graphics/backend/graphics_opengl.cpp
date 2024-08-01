@@ -256,7 +256,7 @@ void Graphics::DestroyTexture(TextureHandle& texture)
 {
     BX_ENSURE(texture);
 
-    auto& textureIter = s->textures.find(texture);
+    auto textureIter = s->textures.find(texture);
     BX_ENSURE(textureIter != s->textures.end());
     glDeleteTextures(1, &textureIter->second);
 
@@ -271,7 +271,7 @@ TextureViewHandle Graphics::CreateTextureView(TextureHandle texture)
 
     TextureViewHandle textureViewHandle = s->textureViewHandlePool.Create();
     
-    auto& textureIter = s->textures.find(texture);
+    auto textureIter = s->textures.find(texture);
     BX_ENSURE(textureIter != s->textures.end());
 
     TextureView textureView;
@@ -322,7 +322,7 @@ void Graphics::DestroyBuffer(BufferHandle& buffer)
 {
     BX_ENSURE(buffer);
 
-    auto& bufferIter = s->buffers.find(buffer);
+    auto bufferIter = s->buffers.find(buffer);
     BX_ENSURE(bufferIter != s->buffers.end());
     glDeleteBuffers(1, &bufferIter->second);
 
@@ -363,7 +363,7 @@ void Graphics::DestroyShader(ShaderHandle& shader)
 {
     BX_ENSURE(shader);
 
-    auto& shaderIter = s->shaders.find(shader);
+    auto shaderIter = s->shaders.find(shader);
     BX_ENSURE(shaderIter != s->shaders.end());
 
     s->shaders.erase(shader);
@@ -378,9 +378,9 @@ GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCr
     GraphicsPipelineHandle graphicsPipelineHandle = s->graphicsPipelineHandlePool.Create();
     s_createInfoCache->graphicsPipelineCreateInfos.insert(std::make_pair(graphicsPipelineHandle, createInfo));
 
-    auto& vertShaderIter = s->shaders.find(createInfo.vertexShader);
+    auto vertShaderIter = s->shaders.find(createInfo.vertexShader);
     BX_ENSURE(vertShaderIter != s->shaders.end());
-    auto& fragShaderIter = s->shaders.find(createInfo.fragmentShader);
+    auto fragShaderIter = s->shaders.find(createInfo.fragmentShader);
     BX_ENSURE(fragShaderIter != s->shaders.end());
 
     ShaderProgram shaderProgram(createInfo.name, List<Shader*>{ &vertShaderIter->second, & fragShaderIter->second });
@@ -405,7 +405,7 @@ ComputePipelineHandle Graphics::CreateComputePipeline(const ComputePipelineCreat
     ComputePipelineHandle computePipelineHandle = s->computePipelineHandlePool.Create();
     s_createInfoCache->computePipelineCreateInfos.insert(std::make_pair(computePipelineHandle, createInfo));
 
-    auto& shaderIter = s->shaders.find(createInfo.shader);
+    auto shaderIter = s->shaders.find(createInfo.shader);
     BX_ENSURE(shaderIter != s->shaders.end());
 
     s->computePipelines.emplace(std::make_pair(computePipelineHandle, std::move(ShaderProgram(createInfo.name, List<Shader*>{ &shaderIter->second }))));
@@ -478,7 +478,7 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
     {
         const RenderPassColorAttachment& attachment = descriptor.colorAttachments[i];
 
-        auto& textureViewIter = s->textureViews.find(attachment.view);
+        auto textureViewIter = s->textureViews.find(attachment.view);
         BX_ENSURE(textureViewIter != s->textureViews.end());
 
         glNamedFramebufferTexture(s->framebuffer, GL_COLOR_ATTACHMENT0 + i, textureViewIter->second.texture, 0);
@@ -495,7 +495,7 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
     {
         const RenderPassDepthStencilAttachment& attachment = descriptor.depthStencilAttachment.Unwrap();
 
-        auto& textureViewIter = s->textureViews.find(attachment.view);
+        auto textureViewIter = s->textureViews.find(attachment.view);
         BX_ENSURE(textureViewIter != s->textureViews.end());
 
         glNamedFramebufferTexture(s->framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, textureViewIter->second.texture, 0);
@@ -531,7 +531,7 @@ void Graphics::SetGraphicsPipeline(GraphicsPipelineHandle graphicsPipeline)
 
     s->boundGraphicsPipeline = graphicsPipeline;
 
-    auto& pipelineIter = s->graphicsPipelines.find(graphicsPipeline);
+    auto pipelineIter = s->graphicsPipelines.find(graphicsPipeline);
     BX_ENSURE(pipelineIter != s->graphicsPipelines.end());
     auto& pipeline = pipelineIter->second;
 
@@ -556,7 +556,7 @@ void Graphics::SetVertexBuffer(u32 slot, const BufferSlice& bufferSlice)
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
     BX_ENSURE(bufferSlice.buffer);
 
-    auto& bufferIter = s->buffers.find(bufferSlice.buffer);
+    auto bufferIter = s->buffers.find(bufferSlice.buffer);
     BX_ENSURE(bufferIter != s->buffers.end());
 
     auto& pipelineCreateInfo = GetGraphicsPipelineCreateInfo(s->boundGraphicsPipeline);
@@ -571,7 +571,7 @@ void Graphics::SetIndexBuffer(const BufferSlice& bufferSlice, IndexFormat format
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
     BX_ENSURE(bufferSlice.buffer);
 
-    auto& bufferIter = s->buffers.find(bufferSlice.buffer);
+    auto bufferIter = s->buffers.find(bufferSlice.buffer);
     BX_ENSURE(bufferIter != s->buffers.end());
 
     s->boundIndexFormat = Optional<IndexFormat>::Some(format);
@@ -584,7 +584,7 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
     BX_ASSERT(s->activeRenderPass || s->activeComputePass, "No render pass or compute pass active.");
     BX_ENSURE(bindGroup);
 
-    auto& bindGroupCreateInfoIter = s_createInfoCache->bindGroupCreateInfos.find(bindGroup);
+    auto bindGroupCreateInfoIter = s_createInfoCache->bindGroupCreateInfos.find(bindGroup);
     BX_ENSURE(bindGroupCreateInfoIter != s_createInfoCache->bindGroupCreateInfos.end());
     BindGroupCreateInfo& createInfo = bindGroupCreateInfoIter->second;
 
@@ -594,13 +594,13 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
     PipelineLayoutDescriptor layout;
     if (IsBindGroupLayoutGraphics(createInfo.layout))
     {
-        auto& createInfoIter = s_createInfoCache->graphicsPipelineCreateInfos.find(GraphicsPipelineHandle{rawPipeline});
+        auto createInfoIter = s_createInfoCache->graphicsPipelineCreateInfos.find(GraphicsPipelineHandle{rawPipeline});
         BX_ENSURE(createInfoIter != s_createInfoCache->graphicsPipelineCreateInfos.end());
         layout = createInfoIter->second.layout;
     }
     else
     {
-        auto& createInfoIter = s_createInfoCache->computePipelineCreateInfos.find(ComputePipelineHandle{ rawPipeline });
+        auto createInfoIter = s_createInfoCache->computePipelineCreateInfos.find(ComputePipelineHandle{ rawPipeline });
         BX_ENSURE(createInfoIter != s_createInfoCache->computePipelineCreateInfos.end());
         layout = createInfoIter->second.layout;
     }
@@ -641,7 +641,7 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
         {
             if (groupLayoutEntry.Unwrap().type.type == BindingType::UNIFORM_BUFFER)
             {
-                auto& bufferIter = s->buffers.find(resource.buffer.buffer);
+                auto bufferIter = s->buffers.find(resource.buffer.buffer);
                 BX_ENSURE(bufferIter != s->buffers.end());
 
                 glBindBufferBase(GL_UNIFORM_BUFFER, entry.binding, bufferIter->second);
@@ -663,7 +663,7 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
         }
         case BindingResourceType::TEXTURE_VIEW:
         {
-            auto& textureViewIter = s->textureViews.find(resource.textureView);
+            auto textureViewIter = s->textureViews.find(resource.textureView);
             BX_ENSURE(textureViewIter != s->textureViews.end());
 
             if (groupLayoutEntry.Unwrap().type.type == BindingType::TEXTURE)
@@ -763,7 +763,7 @@ void Graphics::SetComputePipeline(ComputePipelineHandle computePipeline)
 
     s->boundComputePipeline = computePipeline;
 
-    auto& pipelineIter = s->computePipelines.find(computePipeline);
+    auto pipelineIter = s->computePipelines.find(computePipeline);
     BX_ENSURE(pipelineIter != s->computePipelines.end());
     auto& pipeline = pipelineIter->second;
 
@@ -794,7 +794,7 @@ void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data)
     BX_ENSURE(buffer && data);
     BX_ASSERT(offset == 0, "Offset must be 0 for now.");
 
-    auto& bufferIter = s->buffers.find(buffer);
+    auto bufferIter = s->buffers.find(buffer);
     BX_ENSURE(bufferIter != s->buffers.end());
 
     glNamedBufferData(bufferIter->second, GetBufferCreateInfo(buffer).size, data, GL_DYNAMIC_DRAW);
@@ -805,7 +805,7 @@ void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data, Si
     BX_ENSURE(buffer && data);
     BX_ASSERT(offset == 0, "Offset must be 0 for now.");
 
-    auto& bufferIter = s->buffers.find(buffer);
+    auto bufferIter = s->buffers.find(buffer);
     BX_ENSURE(bufferIter != s->buffers.end());
 
     glNamedBufferData(bufferIter->second, size, data, GL_DYNAMIC_DRAW);
@@ -815,7 +815,7 @@ void Graphics::WriteTexture(TextureHandle texture, const void* data, const Exten
 {
     BX_ENSURE(texture && data);
 
-    auto& textureIter = s->textures.find(texture);
+    auto textureIter = s->textures.find(texture);
     BX_ENSURE(textureIter != s->textures.end());
 
     auto createInfo = GetTextureCreateInfo(texture);
@@ -844,7 +844,7 @@ void Graphics::ReadTexture(TextureHandle texture, void* data, const Extend3D& of
 {
     BX_ENSURE(texture);
 
-    auto& textureIter = s->textures.find(texture);
+    auto textureIter = s->textures.find(texture);
     BX_ENSURE(textureIter != s->textures.end());
 
     auto createInfo = GetTextureCreateInfo(texture);
@@ -865,7 +865,7 @@ GLuint GraphicsOpenGL::GetRawBufferHandle(BufferHandle buffer)
 {
     BX_ENSURE(buffer);
 
-    auto& bufferIter = s->buffers.find(buffer);
+    auto bufferIter = s->buffers.find(buffer);
     BX_ENSURE(bufferIter != s->buffers.end());
 
     return bufferIter->second;
@@ -875,7 +875,7 @@ GLuint GraphicsOpenGL::GetRawTextureHandle(TextureHandle texture)
 {
     BX_ENSURE(texture);
 
-    auto& textureIter = s->textures.find(texture);
+    auto textureIter = s->textures.find(texture);
     BX_ENSURE(textureIter != s->textures.end());
 
     return textureIter->second;
