@@ -4,9 +4,9 @@ name: CMake on multiple platforms
 
 on:
   push:
-    branches: [ "dev", "feature/*", "graphics-api-rework" ]
+    branches: [ "dev", "feature/*" ]
   pull_request:
-    branches: [ "dev", "feature/*", "graphics-api-rework" ]
+    branches: [ "dev", "feature/*" ]
 
 jobs:
   build:
