@@ -16,7 +16,7 @@ struct LazyInit : NoCopy
     {
         if (!cache)
         {
-            cache = std::make_unique<InitializerT>(std::forward<Params>(params)...);
+            cache = std::unique_ptr<InitializerT>(new InitializerT(std::forward<Params>(params)...));
         }
 
         return cache->data;
