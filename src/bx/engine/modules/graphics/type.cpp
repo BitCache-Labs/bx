@@ -2,14 +2,23 @@
 
 #include "bx/engine/modules/graphics/type_validation.hpp"
 
+template<>
 const BufferHandle BufferHandle::null = { 0 };
+template<>
 const TextureHandle TextureHandle::null = { 0 };
+template<>
 const TextureViewHandle TextureViewHandle::null = { 0 };
+template<>
 const ShaderHandle ShaderHandle::null = { 0 };
+template<>
 const GraphicsPipelineHandle GraphicsPipelineHandle::null = { 0 };
+template<>
 const ComputePipelineHandle ComputePipelineHandle::null = { 0 };
+template<>
 const RenderPassHandle RenderPassHandle::null = { 0 };
+template<>
 const BindGroupLayoutHandle BindGroupLayoutHandle::null = { 0 };
+template<>
 const BindGroupHandle BindGroupHandle::null = { 0 };
 
 BlendComponent BlendComponent::Replace()
