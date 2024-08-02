@@ -195,6 +195,30 @@ if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
 
 elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
 	set (BX_SRCS ${BX_SRCS}
+		"src/bx/engine/modules/graphics/backend/vulkan/buffer.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/cmd_list.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/cmd_queue.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/descriptor_pool.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/descriptor_set.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/descriptor_set_layout.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/device.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/extensions.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/fence.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/framebuffer.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/graphics_pipeline.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/image.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/instance.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/pfn.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/physical_device.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/render_pass.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/resource_state_tracker.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/sampler.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/semaphore.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/shader.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/spirv_compiler.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/swapchain.cpp"
+		"src/bx/engine/modules/graphics/backend/vulkan/validation.cpp"
+
 		"src/bx/engine/modules/graphics/backend/graphics_vulkan.cpp"
 	)
 
