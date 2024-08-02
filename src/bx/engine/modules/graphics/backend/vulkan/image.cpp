@@ -45,7 +45,8 @@ namespace Vk
         depth(depth),
         mips(mips),
         arrayLayers(arrayLayers),
-        format(format) {
+        format(format)
+    {
         VkImageCreateInfo createInfo{};
         createInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         createInfo.imageType = dims;

@@ -11,6 +11,8 @@
 #include "bx/engine/modules/window.hpp"
 #include "bx/engine/modules/imgui.hpp"
 
+#include "bx/engine/modules/graphics/backend/vulkan/conversion.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/buffer.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/instance.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/physical_device.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/device.hpp"
@@ -88,6 +90,9 @@ struct State : NoCopy
     HandlePool<RenderPassApi> renderPassHandlePool;
     HandlePool<ComputePassApi> computePassHandlePool;
     HandlePool<BindGroupApi> bindGroupHandlePool;
+
+    HashMap<BufferHandle, std::shared_ptr<Buffer>> buffers;
+    HashMap<TextureHandle, std::shared_ptr<Image>> textures;
 
     RenderPassHandle activeRenderPass = RenderPassHandle::null;
     ComputePassHandle activeComputePass = ComputePassHandle::null;
@@ -337,7 +342,23 @@ TextureHandle Graphics::CreateTexture(const TextureCreateInfo& createInfo)
     TextureHandle textureHandle = s->textureHandlePool.Create();
     s_createInfoCache->textureCreateInfos.insert(std::make_pair(textureHandle, createInfo.WithoutData()));
 
-    BX_FAIL("TODO");
+    b8 isDepth = IsTextureFormatDepth(createInfo.format);
+    VkImageUsageFlags usage = TextureUsageFlagsToVk(createInfo.usageFlags, isDepth);
+    VkFormat format = TextureFormatToVk(createInfo.format);
+    VkImageType type = TextureDimensionToVk(createInfo.dimension);
+    
+    u32 depth = (createInfo.dimension == TextureDimension::D3) ? createInfo.size.depthOrArrayLayers : 1;
+    u32 arrayLayers = (createInfo.dimension != TextureDimension::D3) ? createInfo.size.depthOrArrayLayers : 1;
+
+    std::shared_ptr<Image> image(new Image(createInfo.name, s->device, *s->physicalDevice,
+        createInfo.size.width, createInfo.size.height, createInfo.mipLevelCount, usage, format, arrayLayers, type, depth));
+    s->textures.emplace(textureHandle, image);
+
+    if (createInfo.data)
+    {
+        // TODO!
+        // WriteTexture(textureHandle, 0, createInfo.data);
+    }
 
     return textureHandle;
 }
@@ -346,13 +367,12 @@ void Graphics::DestroyTexture(TextureHandle& texture)
 {
     BX_ENSURE(texture);
 
-   /* auto textureIter = s->textures.find(texture);
-    BX_ENSURE(textureIter != s->textures.end());*/
-    BX_FAIL("TODO");
+    auto textureIter = s->textures.find(texture);
+    BX_ENSURE(textureIter != s->textures.end());
 
-    /*s->textures.erase(texture);
+    s->textures.erase(texture);
     s_createInfoCache->textureCreateInfos.erase(texture);
-    s->textureHandlePool.Destroy(texture);*/
+    s->textureHandlePool.Destroy(texture);
 }
 
 TextureViewHandle Graphics::CreateTextureView(TextureHandle texture)
@@ -395,7 +415,18 @@ BufferHandle Graphics::CreateBuffer(const BufferCreateInfo& createInfo)
     BufferHandle bufferHandle = s->bufferHandlePool.Create();
     s_createInfoCache->bufferCreateInfos.insert(std::make_pair(bufferHandle, createInfo.WithoutData()));
 
-    BX_FAIL("TODO");
+    VkBufferUsageFlags usage = BufferUsageFlagsToVk(createInfo.usageFlags);
+    BufferLocation location = IsBufferUsageMappable(createInfo.usageFlags) ? BufferLocation::CPU_TO_GPU : BufferLocation::GPU_ONLY;
+
+    std::shared_ptr<Buffer> buffer(new Buffer(createInfo.name, s->device, *s->physicalDevice, usage, createInfo.size, location));
+    s->buffers.emplace(bufferHandle, buffer);
+
+    // TODO: host visible (mappable) memory doesn't really benefit from using staging buffers, they should directly write to the mappable memory
+    if (createInfo.data)
+    {
+        // TODO!
+        // WriteBuffer(bufferHandle, 0, createInfo.data);
+    }
 
     return bufferHandle;
 }
@@ -404,13 +435,12 @@ void Graphics::DestroyBuffer(BufferHandle& buffer)
 {
     BX_ENSURE(buffer);
 
-    /*auto bufferIter = s->buffers.find(buffer);
-    BX_ENSURE(bufferIter != s->buffers.end());*/
-    BX_FAIL("TODO");
+    auto bufferIter = s->buffers.find(buffer);
+    BX_ENSURE(bufferIter != s->buffers.end());
 
-    /*s->buffers.erase(buffer);
+    s->buffers.erase(buffer);
     s_createInfoCache->bufferCreateInfos.erase(buffer);
-    s->bufferHandlePool.Destroy(buffer);*/
+    s->bufferHandlePool.Destroy(buffer);
 }
 
 ShaderHandle Graphics::CreateShader(const ShaderCreateInfo& createInfo)
@@ -697,8 +727,8 @@ void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data)
     BX_ENSURE(buffer && data);
     BX_ASSERT(offset == 0, "Offset must be 0 for now.");
 
-    /*auto bufferIter = s->buffers.find(buffer);
-    BX_ENSURE(bufferIter != s->buffers.end());*/
+    auto bufferIter = s->buffers.find(buffer);
+    BX_ENSURE(bufferIter != s->buffers.end());
 
     BX_FAIL("TODO");
 }
