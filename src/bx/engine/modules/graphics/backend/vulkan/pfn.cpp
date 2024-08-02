@@ -2,6 +2,8 @@
 
 #include "bx/engine/core/macros.hpp"
 
+#include "bx/engine/modules/graphics/backend/vulkan/validation.hpp"
+
 namespace Vk
 {
     PFN_vkGetBufferDeviceAddress Pfn::vkGetBufferDeviceAddress = VK_NULL_HANDLE;
@@ -20,7 +22,7 @@ namespace Vk
     void Pfn::Load(VkInstance instance) {
         Pfn::vkGetBufferDeviceAddress = (PFN_vkGetBufferDeviceAddress)vkGetInstanceProcAddr(
             instance, "vkGetBufferDeviceAddress");
-        BX_ENSURE(Pfn::vkGetBufferDeviceAddress);
+        VK_ENSURE(Pfn::vkGetBufferDeviceAddress);
 
         Pfn::vkSetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(
             instance, "vkSetDebugUtilsObjectNameEXT");
@@ -30,9 +32,9 @@ namespace Vk
         Pfn::vkDestroyDebugReportCallbackEXT =
             (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
                 instance, "vkDestroyDebugReportCallbackEXT");
-        BX_ENSURE(Pfn::vkSetDebugUtilsObjectNameEXT);
-        BX_ENSURE(Pfn::vkCreateDebugReportCallbackEXT);
-        BX_ENSURE(Pfn::vkDestroyDebugReportCallbackEXT);
+        VK_ENSURE(Pfn::vkSetDebugUtilsObjectNameEXT);
+        VK_ENSURE(Pfn::vkCreateDebugReportCallbackEXT);
+        VK_ENSURE(Pfn::vkDestroyDebugReportCallbackEXT);
 
         Pfn::vkCreateAccelerationStructureKHR =
             (PFN_vkCreateAccelerationStructureKHR)vkGetInstanceProcAddr(
@@ -46,9 +48,9 @@ namespace Vk
         Pfn::vkCmdBuildAccelerationStructuresKHR =
             (PFN_vkCmdBuildAccelerationStructuresKHR)vkGetInstanceProcAddr(
                 instance, "vkCmdBuildAccelerationStructuresKHR");
-        BX_ENSURE(Pfn::vkCreateAccelerationStructureKHR);
-        BX_ENSURE(Pfn::vkDestroyAccelerationStructureKHR);
-        BX_ENSURE(Pfn::vkGetAccelerationStructureBuildSizesKHR);
-        BX_ENSURE(Pfn::vkCmdBuildAccelerationStructuresKHR);
+        VK_ENSURE(Pfn::vkCreateAccelerationStructureKHR);
+        VK_ENSURE(Pfn::vkDestroyAccelerationStructureKHR);
+        VK_ENSURE(Pfn::vkGetAccelerationStructureBuildSizesKHR);
+        VK_ENSURE(Pfn::vkCmdBuildAccelerationStructuresKHR);
     }
 }

@@ -45,7 +45,7 @@ namespace Vk
         }
 
         VkInstance instance;
-        BX_ASSERT(!vkCreateInstance(&createInfo, nullptr, &instance), "Failed to create instance.");
+        VK_ASSERT(!vkCreateInstance(&createInfo, nullptr, &instance), "Failed to create instance.");
         return instance;
     }
 
@@ -88,7 +88,7 @@ namespace Vk
         createInfo.hinstance = GetModuleHandle(nullptr);
 
         VkSurfaceKHR surface;
-        BX_ASSERT(!vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface),
+        VK_ASSERT(!vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface),
             "Failed to create surface.");
         return surface;
     }

@@ -28,7 +28,7 @@ namespace Vk
         }
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-        BX_ASSERT(!vmaCreateBuffer(device->GetAllocator(), &createInfo, &allocCreateInfo,
+        VK_ASSERT(!vmaCreateBuffer(device->GetAllocator(), &createInfo, &allocCreateInfo,
             &this->buffer, &this->allocation, nullptr),
             "Failed to create buffer.");
         DebugNames::Set(*device, VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(this->buffer),

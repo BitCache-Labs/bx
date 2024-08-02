@@ -2,8 +2,20 @@
 
 #include "bx/engine/containers/list.hpp"
 #include "bx/engine/containers/string.hpp"
+#include "bx/engine/core/macros.hpp"
 
 #include "vulkan_api.hpp"
+
+#define VK_ASSERT(condition, ...) \
+    do { \
+        if (!(condition)) \
+        { \
+			BX_LOGE("Vulkan failed: {}", Log::Format(__VA_ARGS__)); \
+            std::abort(); \
+        } \
+    } while (false)
+
+#define VK_ENSURE(condition) VK_ASSERT(condition, #condition)
 
 namespace Vk
 {

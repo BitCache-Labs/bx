@@ -13,18 +13,19 @@
 #include "bx/engine/modules/graphics/backend/vulkan/cmd_queue.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/rect2d.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/resource_state_tracker.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/validation.hpp"
 
 namespace Vk
 {
     VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const Instance& instance,
         const PhysicalDevice& physicalDevice) {
         uint32_t formatCount;
-        BX_ENSURE(!vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice.GetPhysicalDevice(),
+        VK_ENSURE(!vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice.GetPhysicalDevice(),
             instance.GetSurface(), &formatCount, nullptr));
-        BX_ASSERT(formatCount > 0, "No swapchain formats found.");
+        VK_ASSERT(formatCount > 0, "No swapchain formats found.");
 
         std::vector<VkSurfaceFormatKHR> formats(formatCount);
-        BX_ENSURE(!vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice.GetPhysicalDevice(),
+        VK_ENSURE(!vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice.GetPhysicalDevice(),
             instance.GetSurface(), &formatCount,
             formats.data()));
 
@@ -41,12 +42,12 @@ namespace Vk
     VkPresentModeKHR ChooseSwapPresentMode(const Instance& instance,
         const PhysicalDevice& physicalDevice) {
         uint32_t presentModeCount;
-        BX_ENSURE(!vkGetPhysicalDeviceSurfacePresentModesKHR(
+        VK_ENSURE(!vkGetPhysicalDeviceSurfacePresentModesKHR(
             physicalDevice.GetPhysicalDevice(), instance.GetSurface(), &presentModeCount, nullptr));
-        BX_ASSERT(presentModeCount > 0, "No present modes found.");
+        VK_ASSERT(presentModeCount > 0, "No present modes found.");
 
         std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-        BX_ENSURE(!vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice.GetPhysicalDevice(),
+        VK_ENSURE(!vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice.GetPhysicalDevice(),
             instance.GetSurface(), &presentModeCount,
             presentModes.data()));
 
@@ -62,7 +63,7 @@ namespace Vk
     VkExtent2D ChooseSwapExtent(uint32_t width, uint32_t height, const Instance& instance,
         const PhysicalDevice& physicalDevice) {
         VkSurfaceCapabilitiesKHR capabilities;
-        BX_ENSURE(!vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.GetPhysicalDevice(),
+        VK_ENSURE(!vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.GetPhysicalDevice(),
             instance.GetSurface(), &capabilities));
 
         VkExtent2D extent;
@@ -87,7 +88,7 @@ namespace Vk
     uint32_t ChooseImageCount(const Instance& instance,
         const PhysicalDevice& physicalDevice) {
         VkSurfaceCapabilitiesKHR capabilities;
-        BX_ENSURE(!vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.GetPhysicalDevice(),
+        VK_ENSURE(!vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.GetPhysicalDevice(),
             instance.GetSurface(), &capabilities));
 
         uint32_t imageCount = capabilities.minImageCount + 1;
@@ -107,7 +108,7 @@ namespace Vk
         this->imageCount = ChooseImageCount(instance, physicalDevice);
 
         VkSurfaceCapabilitiesKHR capabilities;
-        BX_ENSURE(!vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.GetPhysicalDevice(),
+        VK_ENSURE(!vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.GetPhysicalDevice(),
             instance.GetSurface(), &capabilities));
 
         VkSwapchainCreateInfoKHR createInfo{};
@@ -140,7 +141,7 @@ namespace Vk
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         }
 
-        BX_ASSERT(!vkCreateSwapchainKHR(device->GetDevice(), &createInfo, nullptr, &this->swapchain),
+        VK_ASSERT(!vkCreateSwapchainKHR(device->GetDevice(), &createInfo, nullptr, &this->swapchain),
             "Failed to create swapchain.");
 
         vkGetSwapchainImagesKHR(device->GetDevice(), this->swapchain, &this->imageCount, nullptr);
@@ -165,7 +166,7 @@ namespace Vk
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            BX_ASSERT(!vkCreateImageView(device->GetDevice(), &createInfo, nullptr,
+            VK_ASSERT(!vkCreateImageView(device->GetDevice(), &createInfo, nullptr,
                 &swapChainImageViews[i]),
                 "Failed to create image view.");
         }
@@ -206,7 +207,7 @@ namespace Vk
     }
 
     const Framebuffer& Swapchain::GetCurrentFramebuffer() const {
-        BX_ASSERT(!this->framebuffers.empty(), "Rebuild framebuffers first!");
+        VK_ASSERT(!this->framebuffers.empty(), "Rebuild framebuffers first!");
         return this->framebuffers[static_cast<size_t>(this->currentImage)];
     }
 

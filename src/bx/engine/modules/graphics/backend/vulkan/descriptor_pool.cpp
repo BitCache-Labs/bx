@@ -3,6 +3,7 @@
 #include "bx/engine/core/macros.hpp"
 
 #include "bx/engine/modules/graphics/backend/vulkan/device.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/validation.hpp"
 
 namespace Vk
 {
@@ -19,7 +20,7 @@ namespace Vk
         createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         createInfo.pPoolSizes = poolSizes.data();
 
-        BX_ASSERT(
+        VK_ASSERT(
             !vkCreateDescriptorPool(device->GetDevice(), &createInfo, nullptr, &this->pool),
             "Failed to create descriptor pool.");
     }

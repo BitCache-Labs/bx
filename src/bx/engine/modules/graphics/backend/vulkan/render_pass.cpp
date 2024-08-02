@@ -77,7 +77,7 @@ namespace Vk
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        BX_ASSERT(
+        VK_ASSERT(
             !vkCreateRenderPass(device->GetDevice(), &renderPassInfo, nullptr, &this->renderPass),
             "Failed to create render pass.");
         

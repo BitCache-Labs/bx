@@ -60,7 +60,7 @@ namespace Vk
             createInfo.enabledLayerCount = 0;
         }
 
-        BX_ASSERT(!vkCreateDevice(physicalDevice.GetPhysicalDevice(), &createInfo, nullptr,
+        VK_ASSERT(!vkCreateDevice(physicalDevice.GetPhysicalDevice(), &createInfo, nullptr,
             &this->device),
             "Failed to create logical device.");
         VmaAllocatorCreateInfo vmaCreateInfo{};
@@ -74,7 +74,7 @@ namespace Vk
             vmaCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
         }
 
-        BX_ASSERT(!vmaCreateAllocator(&vmaCreateInfo, &this->allocator),
+        VK_ASSERT(!vmaCreateAllocator(&vmaCreateInfo, &this->allocator),
             "Failed to create allocator.");
     }
 

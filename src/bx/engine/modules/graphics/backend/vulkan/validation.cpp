@@ -24,7 +24,7 @@ namespace Vk
                 }
             }
 
-            BX_ASSERT(layerFound, "Validation layer '{}' is not supported.", layerName);
+            VK_ASSERT(layerFound, "Validation layer '{}' is not supported.", layerName);
         }
     }
 

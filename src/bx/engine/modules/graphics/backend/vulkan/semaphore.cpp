@@ -12,7 +12,7 @@ namespace Vk
         VkSemaphoreCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-        BX_ASSERT(!vkCreateSemaphore(device->GetDevice(), &createInfo, nullptr, &this->semaphore),
+        VK_ASSERT(!vkCreateSemaphore(device->GetDevice(), &createInfo, nullptr, &this->semaphore),
             "Failed to create semaphore.");
         DebugNames::Set(*device, VkObjectType::VK_OBJECT_TYPE_SEMAPHORE,
             reinterpret_cast<uint64_t>(this->semaphore), name);

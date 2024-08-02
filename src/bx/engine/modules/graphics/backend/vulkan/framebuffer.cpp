@@ -13,7 +13,7 @@ namespace Vk
         List<std::shared_ptr<Image>> images,
         std::shared_ptr<RenderPass> renderPass)
         : renderPass(renderPass), images(images), device(device) {
-        BX_ASSERT(images.size() > 0, "Framebuffer requires at least 1 image.");
+        VK_ASSERT(images.size() > 0, "Framebuffer requires at least 1 image.");
 
         std::vector<VkImageView> attachments;
         for (auto image : images) {
@@ -29,7 +29,7 @@ namespace Vk
         framebufferInfo.height = images[0]->Height();
         framebufferInfo.layers = 1;
 
-        BX_ASSERT(!vkCreateFramebuffer(this->device->GetDevice(), &framebufferInfo, nullptr,
+        VK_ASSERT(!vkCreateFramebuffer(this->device->GetDevice(), &framebufferInfo, nullptr,
             &this->framebuffer),
             "Failed to create frame buffer.");
 

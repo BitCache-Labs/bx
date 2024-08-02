@@ -27,7 +27,7 @@ namespace Vk
         else
             poolInfo.queueFamilyIndex = physicalDevice.PresentFamily();
 
-        BX_ASSERT(!vkCreateCommandPool(device->GetDevice(), &poolInfo, nullptr, &this->cmdPool),
+        VK_ASSERT(!vkCreateCommandPool(device->GetDevice(), &poolInfo, nullptr, &this->cmdPool),
             "Failed to create command pool.");
     }
 

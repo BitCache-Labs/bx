@@ -12,7 +12,7 @@ namespace Vk
         createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         createInfo.flags = signaled ? VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT : 0;
 
-        BX_ASSERT(!vkCreateFence(device->GetDevice(), &createInfo, nullptr, &this->fence),
+        VK_ASSERT(!vkCreateFence(device->GetDevice(), &createInfo, nullptr, &this->fence),
             "Failed to create fence.");
         DebugNames::Set(*device, VkObjectType::VK_OBJECT_TYPE_FENCE,
             reinterpret_cast<uint64_t>(this->fence), name);

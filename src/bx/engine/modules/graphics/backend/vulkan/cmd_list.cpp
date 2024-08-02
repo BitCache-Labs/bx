@@ -24,7 +24,7 @@ namespace Vk
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = 1;
 
-        BX_ASSERT(!vkAllocateCommandBuffers(device->GetDevice(), &allocInfo, &this->cmdBuffer),
+        VK_ASSERT(!vkAllocateCommandBuffers(device->GetDevice(), &allocInfo, &this->cmdBuffer),
             "Failed to allocate command buffer.");
     }
 
@@ -42,12 +42,12 @@ namespace Vk
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        BX_ASSERT(!vkBeginCommandBuffer(this->cmdBuffer, &beginInfo),
+        VK_ASSERT(!vkBeginCommandBuffer(this->cmdBuffer, &beginInfo),
             "Failed to begin command buffer.");
     }
 
     void CmdList::End() {
-        BX_ASSERT(!vkEndCommandBuffer(this->cmdBuffer), "Failed to end command buffer.");
+        VK_ASSERT(!vkEndCommandBuffer(this->cmdBuffer), "Failed to end command buffer.");
     }
 
     void CmdList::Reset() {
@@ -62,7 +62,7 @@ namespace Vk
     }
 
     void CmdList::CopyBuffers(std::shared_ptr<Buffer> src, std::shared_ptr<Buffer> dst) {
-        BX_ASSERT(src->Size() == dst->Size(), "Copy buffers src and dst must have the same size.");
+        VK_ASSERT(src->Size() == dst->Size(), "Copy buffers src and dst must have the same size.");
 
         VkBufferCopy copyRegion{};
         copyRegion.size = src->Size();

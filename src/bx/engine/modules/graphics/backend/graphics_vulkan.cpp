@@ -39,7 +39,7 @@ constexpr bool ENABLE_VALIDATION =
 #ifdef _DEBUG
 true;
 #else
-true;
+false;
 #endif
 
 static String PRESENT_VERT_SRC = R"""(

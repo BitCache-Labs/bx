@@ -15,7 +15,7 @@ namespace Vk
         createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
         createInfo.pBindings = bindings.data();
 
-        BX_ASSERT(
+        VK_ASSERT(
             !vkCreateDescriptorSetLayout(device->GetDevice(), &createInfo, nullptr, &this->layout),
             "Failed to create descriptor set layout.");
         DebugNames::Set(*device, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<uint64_t>(this->layout),

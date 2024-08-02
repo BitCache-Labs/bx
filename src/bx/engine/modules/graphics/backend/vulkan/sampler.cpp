@@ -32,7 +32,7 @@ namespace Vk
         createInfo.minLod = 0.0f;
         createInfo.maxLod = 16.0f;
 
-        BX_ASSERT(!vkCreateSampler(device->GetDevice(), &createInfo, nullptr, &this->sampler),
+        VK_ASSERT(!vkCreateSampler(device->GetDevice(), &createInfo, nullptr, &this->sampler),
             "Failed to create sampler.");
         DebugNames::Set(*device, VK_OBJECT_TYPE_SAMPLER,
             reinterpret_cast<uint64_t>(this->sampler), name);

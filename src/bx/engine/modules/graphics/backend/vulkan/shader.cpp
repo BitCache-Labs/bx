@@ -34,7 +34,7 @@ namespace Vk
         createInfo.codeSize = code.size() * 4;
         createInfo.pCode = reinterpret_cast<const u32*>(code.data());
 
-        BX_ASSERT(!vkCreateShaderModule(device->GetDevice(), &createInfo, nullptr, &this->shader),
+        VK_ASSERT(!vkCreateShaderModule(device->GetDevice(), &createInfo, nullptr, &this->shader),
             "Failed to create shader.");
         DebugNames::Set(*device, VkObjectType::VK_OBJECT_TYPE_SHADER_MODULE,
             reinterpret_cast<uint64_t>(this->shader), name);

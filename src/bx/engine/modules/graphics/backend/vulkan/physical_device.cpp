@@ -4,6 +4,7 @@
 
 #include "bx/engine/modules/graphics/backend/vulkan/extensions.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/instance.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/validation.hpp"
 
 namespace Vk
 {
@@ -25,7 +26,7 @@ namespace Vk
 
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-        BX_ASSERT(deviceCount > 0, "No vulkan compatible device found.");
+        VK_ASSERT(deviceCount > 0, "No vulkan compatible device found.");
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
@@ -48,7 +49,7 @@ namespace Vk
             physicalDevice = fallbackPhysicalDevice;
         }
 
-        BX_ASSERT(physicalDevice != VK_NULL_HANDLE, "No vulkan compatible device found.");
+        VK_ASSERT(physicalDevice != VK_NULL_HANDLE, "No vulkan compatible device found.");
 
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);

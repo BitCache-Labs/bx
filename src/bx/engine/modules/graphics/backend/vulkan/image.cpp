@@ -65,7 +65,7 @@ namespace Vk
         VmaAllocationCreateInfo allocCreateInfo{};
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-        BX_ASSERT(!vmaCreateImage(device->GetAllocator(), &createInfo, &allocCreateInfo,
+        VK_ASSERT(!vmaCreateImage(device->GetAllocator(), &createInfo, &allocCreateInfo,
             &this->image, &this->allocation, nullptr),
             "Failed to create image.");
         DebugNames::Set(*device, VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(this->image),
@@ -92,7 +92,7 @@ namespace Vk
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = arrayLayers;
 
-        BX_ASSERT(!vkCreateImageView(device->GetDevice(), &viewInfo, nullptr, &this->imageView),
+        VK_ASSERT(!vkCreateImageView(device->GetDevice(), &viewInfo, nullptr, &this->imageView),
             "Failed to create image view");
     }
 

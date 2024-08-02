@@ -24,7 +24,7 @@ namespace Vk
         allocateInfo.descriptorSetCount = 1;
         allocateInfo.pSetLayouts = vkLayouts;
 
-        BX_ASSERT(!vkAllocateDescriptorSets(device->GetDevice(), &allocateInfo, &this->descriptorSet),
+        VK_ASSERT(!vkAllocateDescriptorSets(device->GetDevice(), &allocateInfo, &this->descriptorSet),
             "Failed to allocate descriptor set.");
         DebugNames::Set(*device, VkObjectType::VK_OBJECT_TYPE_DESCRIPTOR_SET,
             reinterpret_cast<uint64_t>(this->descriptorSet), name);

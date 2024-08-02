@@ -112,7 +112,7 @@ namespace Vk
             static_cast<uint32_t>(vkPushConstantRanges.size());
         pipelineLayoutInfo.pPushConstantRanges = vkPushConstantRanges.data();
 
-        BX_ASSERT(!vkCreatePipelineLayout(device->GetDevice(), &pipelineLayoutInfo, nullptr,
+        VK_ASSERT(!vkCreatePipelineLayout(device->GetDevice(), &pipelineLayoutInfo, nullptr,
             &this->pipelineLayout),
             "Failed to create pipeline layout.");
 
@@ -159,7 +159,7 @@ namespace Vk
         pipelineInfo.renderPass = renderPass->GetRenderPass();
         pipelineInfo.subpass = 0;
 
-        BX_ASSERT(!vkCreateGraphicsPipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo,
+        VK_ASSERT(!vkCreateGraphicsPipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo,
             nullptr, &this->pipeline),
             "Failed to create graphics pipeline.");
     }
