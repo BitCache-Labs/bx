@@ -12,4 +12,5 @@ namespace Vk
 	VkImageUsageFlags TextureUsageFlagsToVk(TextureUsageFlags usage, b8 depthFormat);
 	VkFormat TextureFormatToVk(TextureFormat format);
 	VkImageType TextureDimensionToVk(TextureDimension dimension);
+	VkShaderStageFlagBits ShaderTypeToVk(ShaderType type);
 }

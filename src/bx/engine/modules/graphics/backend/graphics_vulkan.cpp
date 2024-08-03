@@ -93,6 +93,7 @@ struct State : NoCopy
 
     HashMap<BufferHandle, std::shared_ptr<Buffer>> buffers;
     HashMap<TextureHandle, std::shared_ptr<Image>> textures;
+    HashMap<ShaderHandle, std::shared_ptr<Shader>> shaders;
 
     RenderPassHandle activeRenderPass = RenderPassHandle::null;
     ComputePassHandle activeComputePass = ComputePassHandle::null;
@@ -465,7 +466,10 @@ ShaderHandle Graphics::CreateShader(const ShaderCreateInfo& createInfo)
     }
     }
 
-    BX_FAIL("TODO");
+    VkShaderStageFlagBits stage = ShaderTypeToVk(createInfo.shaderType);
+
+    std::shared_ptr<Shader> shader(new Shader(createInfo.name, s->device, stage, meta + createInfo.src));
+    s->shaders.emplace(shaderHandle, shader);
 
     return shaderHandle;
 }

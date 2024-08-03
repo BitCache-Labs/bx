@@ -197,4 +197,22 @@ namespace Vk
 			return VK_IMAGE_TYPE_MAX_ENUM;
 		}
 	}
+
+	VkShaderStageFlagBits ShaderTypeToVk(ShaderType type)
+	{
+		switch (type)
+		{
+		case ShaderType::VERTEX:
+			return VK_SHADER_STAGE_VERTEX_BIT;
+		case ShaderType::FRAGMENT:
+			return VK_SHADER_STAGE_FRAGMENT_BIT;
+		case ShaderType::GEOMETRY:
+			return VK_SHADER_STAGE_GEOMETRY_BIT;
+		case ShaderType::COMPUTE:
+			return VK_SHADER_STAGE_COMPUTE_BIT;
+		default:
+			BX_FAIL("Shader type not supported");
+			return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+		}
+	}
 }
