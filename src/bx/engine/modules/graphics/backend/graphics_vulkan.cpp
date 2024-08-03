@@ -104,8 +104,8 @@ struct State : NoCopy
     BufferHandle emptyBuffer = BufferHandle::null;
     TextureHandle emptyTexture = TextureHandle::null;
 
-    TextureHandle swapchainColorTarget = TextureHandle::null;
-    TextureViewHandle swapchainColorTargetView = TextureViewHandle::null;
+    Array<TextureHandle, Swapchain::MAX_FRAMES_IN_FLIGHT> swapchainColorTargets = {};
+    Array<TextureViewHandle, Swapchain::MAX_FRAMES_IN_FLIGHT> swapchainColorTargetViews = {};
 
     std::shared_ptr<Instance> instance;
     std::unique_ptr<PhysicalDevice> physicalDevice;
@@ -205,16 +205,13 @@ bool Graphics::Initialize()
 #ifdef BX_WINDOW_GLFW_BACKEND
     GLFWwindow* glfwWindow = WindowGLFW::GetWindowPtr();
 
-    uint32_t extensionsCount = 0;
-    const char** extensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
-
+    s->instance = std::make_shared<Instance>((void*)glfwWindow, ENABLE_VALIDATION);
 #else
 
     BX_LOGE("Window backend not supported!");
     return false;
 #endif
-
-    s->instance = std::make_shared<Instance>((void*)glfwWindow, ENABLE_VALIDATION);
+    
     s->physicalDevice = std::make_unique<PhysicalDevice>(*s->instance);
     s->device = std::make_shared<Device>(s->instance, *s->physicalDevice, ENABLE_VALIDATION);
     s->cmdQueue = std::make_unique<CmdQueue>(s->device, *s->physicalDevice, QueueType::GRAPHICS);
@@ -223,6 +220,18 @@ bool Graphics::Initialize()
         SamplerInfo{});
 
     BuildSwapchain();
+    for (u32 i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        TextureHandle textureHandle = s->textureHandlePool.Create();
+        s_createInfoCache->textureCreateInfos.insert(std::make_pair(textureHandle, s->swapchain->GetImageCreateInfo()));
+
+        std::shared_ptr<Image> image = s->swapchain->GetImage(i);
+        s->textures.emplace(textureHandle, image);
+        s->swapchainColorTargets[i] = textureHandle;
+        s->swapchainColorTargetViews[i] = TextureViewHandle{ textureHandle.id };
+    }
+    
+
     BuildRenderTargets();
     BuildDescriptors();
     BuildPipelines();
@@ -249,6 +258,15 @@ void Graphics::NewFrame()
         if (Window::WasResized())
         {
             BuildSwapchain();
+            for (u32 i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++)
+            {
+                TextureHandle textureHandle = s->textureHandlePool.Create();
+                s_createInfoCache->textureCreateInfos.insert(std::make_pair(textureHandle, s->swapchain->GetImageCreateInfo()));
+
+                std::shared_ptr<Image> image = s->swapchain->GetImage(i);
+                s->textures.emplace(textureHandle, image);
+            }
+
             BuildRenderTargets();
             BuildPipelines();
         }
@@ -328,12 +346,12 @@ const TextureHandle& Graphics::EmptyTexture()
 
 TextureHandle Graphics::GetSwapchainColorTarget()
 {
-    return s->swapchainColorTarget;
+    return s->swapchainColorTargets[s->swapchain->GetCurrentFrameIdx()];
 }
 
 TextureViewHandle Graphics::GetSwapchainColorTargetView()
 {
-    return s->swapchainColorTargetView;
+    return s->swapchainColorTargetViews[s->swapchain->GetCurrentFrameIdx()];
 }
 
 TextureHandle Graphics::CreateTexture(const TextureCreateInfo& createInfo)

@@ -1,7 +1,10 @@
 #pragma once
 
+#include "bx/engine/core/type.hpp"
 #include "bx/engine/core/guard.hpp"
 #include "bx/engine/containers/list.hpp"
+
+#include "bx/engine/modules/graphics/type.hpp"
 
 #include "vulkan_api.hpp"
 
@@ -23,6 +26,10 @@ namespace Vk
         Swapchain(uint32_t width, uint32_t height, const Instance& instance,
             std::shared_ptr<Device> device, const PhysicalDevice& physicalDevice);
         ~Swapchain();
+
+        TextureCreateInfo GetImageCreateInfo() const;
+
+        std::shared_ptr<Image> GetImage(u32 idx) const;
 
         const Framebuffer& GetCurrentFramebuffer() const;
         const Image& GetCurrentImage() const;
@@ -46,6 +53,7 @@ namespace Vk
         VkSurfaceFormatKHR format;
         VkPresentModeKHR presentMode;
         VkExtent2D extent;
+        TextureCreateInfo imageCreateInfo;
 
         uint32_t imageCount;
         List<std::shared_ptr<Image>> images;

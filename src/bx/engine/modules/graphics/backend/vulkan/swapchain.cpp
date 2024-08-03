@@ -36,6 +36,7 @@ namespace Vk
             }
         }
 
+        BX_FAIL("TODO: update create info to support this.");
         return formats[0];
     }
 
@@ -106,6 +107,13 @@ namespace Vk
         this->presentMode = ChooseSwapPresentMode(instance, physicalDevice);
         this->extent = ChooseSwapExtent(width, height, instance, physicalDevice);
         this->imageCount = ChooseImageCount(instance, physicalDevice);
+
+        TextureCreateInfo imageCreateInfo{};
+        imageCreateInfo.name = "Swapchain Color Target";
+        imageCreateInfo.format = TextureFormat::BGRA8_UNORM_SRGB; // TODO: see ChooseSwapSurfaceFormat()
+        imageCreateInfo.size = Extend3D(extent.width, extent.height, 1);
+        imageCreateInfo.usageFlags = TextureUsageFlags::COPY_DST | TextureUsageFlags::RENDER_ATTACHMENT;
+        this->imageCreateInfo = imageCreateInfo;
 
         VkSurfaceCapabilitiesKHR capabilities;
         VK_ENSURE(!vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.GetPhysicalDevice(),
@@ -204,6 +212,16 @@ namespace Vk
 
     Swapchain::~Swapchain() {
         vkDestroySwapchainKHR(this->device->GetDevice(), this->swapchain, nullptr);
+    }
+
+    TextureCreateInfo Swapchain::GetImageCreateInfo() const
+    {
+        return imageCreateInfo;
+    }
+
+    std::shared_ptr<Image> Swapchain::GetImage(u32 idx) const
+    {
+        return this->images[idx];
     }
 
     const Framebuffer& Swapchain::GetCurrentFramebuffer() const {
