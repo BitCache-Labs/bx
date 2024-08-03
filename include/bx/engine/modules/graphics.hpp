@@ -72,6 +72,7 @@ public:
 	static void DispatchWorkgroups(u32 x, u32 y, u32 z);
 	static void EndComputePass(ComputePassHandle& computePass);
 
+	// TODO: merge these two, make SizeType optional??
 	static void WriteBuffer(BufferHandle buffer, u64 offset, const void* data);
 	static void WriteBuffer(BufferHandle buffer, u64 offset, const void* data, SizeType size);
 

@@ -726,6 +726,21 @@ void Graphics::EndComputePass(ComputePassHandle& computePass)
     s->boundComputePipeline = ComputePipelineHandle::null;
 }
 
+void WriteBuffer(const std::shared_ptr<Buffer>& buffer, const void* data, const BufferCreateInfo& createInfo, Optional<SizeType> size)
+{
+    BX_ASSERT(createInfo.usageFlags & BufferUsageFlags::COPY_DST, "Buffer must be created with BufferUsageFlags::COPY_DST when writing to.");
+
+    std::shared_ptr<Buffer> stagingBuffer(new Buffer(Log::Format("Write {} Staging Buffer", createInfo.name), s->device,
+        *s->physicalDevice, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        static_cast<uint64_t>(createInfo.size), BufferLocation::CPU_TO_GPU));
+
+    void* bufferData = stagingBuffer->Map();
+    memcpy(bufferData, data, size.IsSome() ? size.Unwrap() : createInfo.size);
+    stagingBuffer->Unmap();
+
+    s->cmdList->CopyBuffers(stagingBuffer, buffer);
+}
+
 void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data)
 {
     BX_ENSURE(buffer && data);
@@ -733,8 +748,9 @@ void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data)
 
     auto bufferIter = s->buffers.find(buffer);
     BX_ENSURE(bufferIter != s->buffers.end());
+    auto& createInfo = GetBufferCreateInfo(buffer);
 
-    BX_FAIL("TODO");
+    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::None());
 }
 
 void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data, SizeType size)
@@ -742,10 +758,11 @@ void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data, Si
     BX_ENSURE(buffer && data);
     BX_ASSERT(offset == 0, "Offset must be 0 for now.");
 
-    /*auto bufferIter = s->buffers.find(buffer);
-    BX_ENSURE(bufferIter != s->buffers.end());*/
+    auto bufferIter = s->buffers.find(buffer);
+    BX_ENSURE(bufferIter != s->buffers.end());
+    auto& createInfo = GetBufferCreateInfo(buffer);
 
-    BX_FAIL("TODO");
+    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::Some(size));
 }
 
 void Graphics::WriteTexture(TextureHandle texture, const void* data, const Extend3D& offset, const Extend3D& size)
