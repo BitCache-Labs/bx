@@ -41,6 +41,12 @@ namespace Vk
             bufferDeviceAddressFeatures.pNext = &accelerationStructureFeatures;
         }
 
+        List<const char*> extensions = deviceExtensions;
+        if (physicalDevice.RayTracingSuitable())
+        {
+            extensions.insert(extensions.end(), deviceRaytracingExtensions.begin(), deviceRaytracingExtensions.end());
+        }
+
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         if (physicalDevice.RayTracingSuitable()) {
@@ -49,8 +55,8 @@ namespace Vk
         createInfo.pQueueCreateInfos = &queueCreateInfo;
         createInfo.queueCreateInfoCount = 1;
         createInfo.pEnabledFeatures = &deviceFeatures;
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-        createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+        createInfo.ppEnabledExtensionNames = extensions.data();
 
         if (debug) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
