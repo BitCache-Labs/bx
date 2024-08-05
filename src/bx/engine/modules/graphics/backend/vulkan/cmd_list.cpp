@@ -299,9 +299,8 @@ namespace Vk
         this->trackedBuffers.push_back(vertexBuffer);
     }
 
-    void CmdList::BindIndexBuffer(std::shared_ptr<Buffer> indexBuffer) {
-        vkCmdBindIndexBuffer(this->cmdBuffer, indexBuffer->GetBuffer(), 0,
-            VkIndexType::VK_INDEX_TYPE_UINT32);
+    void CmdList::BindIndexBuffer(std::shared_ptr<Buffer> indexBuffer, VkIndexType type) {
+        vkCmdBindIndexBuffer(this->cmdBuffer, indexBuffer->GetBuffer(), 0, type);
 
         this->trackedBuffers.push_back(indexBuffer);
     }

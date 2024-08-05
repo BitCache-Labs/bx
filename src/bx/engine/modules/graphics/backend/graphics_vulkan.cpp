@@ -654,15 +654,13 @@ void Graphics::SetVertexBuffer(u32 slot, const BufferSlice& bufferSlice)
 {
     BX_ASSERT(s->activeRenderPass, "No render pass active.");
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
+    BX_ASSERT(slot == 0, "TODO");
     BX_ENSURE(bufferSlice.buffer);
 
-    /*auto bufferIter = s->buffers.find(bufferSlice.buffer);
-    BX_ENSURE(bufferIter != s->buffers.end());*/
+    auto bufferIter = s->buffers.find(bufferSlice.buffer);
+    BX_ENSURE(bufferIter != s->buffers.end());
 
-    auto& pipelineCreateInfo = GetGraphicsPipelineCreateInfo(s->boundGraphicsPipeline);
-    u32 stride = pipelineCreateInfo.vertexBuffers[slot].stride;
-
-    BX_FAIL("TODO");
+    s->cmdList->BindVertexBuffer(bufferIter->second);
 }
 
 void Graphics::SetIndexBuffer(const BufferSlice& bufferSlice, IndexFormat format)
@@ -671,12 +669,12 @@ void Graphics::SetIndexBuffer(const BufferSlice& bufferSlice, IndexFormat format
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
     BX_ENSURE(bufferSlice.buffer);
 
-    /*auto bufferIter = s->buffers.find(bufferSlice.buffer);
-    BX_ENSURE(bufferIter != s->buffers.end());*/
+    auto bufferIter = s->buffers.find(bufferSlice.buffer);
+    BX_ENSURE(bufferIter != s->buffers.end());
 
     s->boundIndexFormat = Optional<IndexFormat>::Some(format);
 
-    BX_FAIL("TODO");
+    s->cmdList->BindIndexBuffer(bufferIter->second, format == IndexFormat::UINT16 ? VkIndexType::VK_INDEX_TYPE_UINT16 : VkIndexType::VK_INDEX_TYPE_UINT32);
 }
 
 void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
@@ -697,8 +695,7 @@ void Graphics::Draw(u32 vertexCount, u32 firstVertex, u32 instanceCount)
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
     BX_ASSERT(instanceCount > 0, "Instance count must be larger than 0.");
 
-    auto& info = GetGraphicsPipelineCreateInfo(s->boundGraphicsPipeline);
-    BX_FAIL("TODO");
+    s->cmdList->Draw(vertexCount, instanceCount, firstVertex);
 }
 
 void Graphics::DrawIndexed(u32 indexCount, u32 instanceCount)
@@ -708,8 +705,7 @@ void Graphics::DrawIndexed(u32 indexCount, u32 instanceCount)
     BX_ASSERT(s->boundIndexFormat.IsSome(), "No index buffer bound.");
     BX_ASSERT(instanceCount > 0, "Instance count must be larger than 0.");
 
-    auto& info = GetGraphicsPipelineCreateInfo(s->boundGraphicsPipeline);
-    BX_FAIL("TODO");
+    s->cmdList->DrawElements(indexCount, instanceCount);
 }
 
 void Graphics::EndRenderPass(RenderPassHandle& renderPass)

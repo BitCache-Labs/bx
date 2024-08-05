@@ -38,7 +38,7 @@ namespace Vk
         void SetViewport(const Rect2D& rect2D, bool normalize = true);
 
         void BindVertexBuffer(std::shared_ptr<Buffer> vertexBuffer);
-        void BindIndexBuffer(std::shared_ptr<Buffer> indexBuffer);
+        void BindIndexBuffer(std::shared_ptr<Buffer> indexBuffer, VkIndexType type);
 
         /*void BuildBLAS(VkAccelerationStructureGeometryKHR geometry,
             std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer,
