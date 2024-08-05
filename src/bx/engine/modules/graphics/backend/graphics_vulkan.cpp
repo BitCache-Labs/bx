@@ -2,6 +2,8 @@
 
 #include "bx/engine/modules/graphics/type_validation.hpp"
 
+#include "bx/framework/systems/renderer/lazy_init.hpp"
+
 #include "bx/engine/core/file.hpp"
 #include "bx/engine/core/profiler.hpp"
 #include "bx/engine/core/memory.hpp"
@@ -73,6 +75,12 @@ void main() {
 }
 )""";
 
+struct TextureView
+{
+    TextureHandle handle;
+    std::shared_ptr<Image> texture;
+};
+
 struct State : NoCopy
 {
     ~State()
@@ -93,7 +101,10 @@ struct State : NoCopy
 
     HashMap<BufferHandle, std::shared_ptr<Buffer>> buffers;
     HashMap<TextureHandle, std::shared_ptr<Image>> textures;
+    HashMap<TextureViewHandle, TextureView> textureViews;
     HashMap<ShaderHandle, std::shared_ptr<Shader>> shaders;
+    HashMap<GraphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>> graphicsPipelines;
+    HashMap<RenderPassInfo, std::shared_ptr<RenderPass>> renderPasses;
 
     RenderPassHandle activeRenderPass = RenderPassHandle::null;
     ComputePassHandle activeComputePass = ComputePassHandle::null;
@@ -129,6 +140,17 @@ struct State : NoCopy
 };
 static std::unique_ptr<State> s;
 
+struct RenderPassCache : public LazyInitMap<RenderPassCache, std::shared_ptr<RenderPass>, RenderPassInfo>
+{
+    RenderPassCache(const RenderPassInfo& args)
+    {
+        data = std::shared_ptr<RenderPass>(new RenderPass("render pass", s->device, args));
+    }
+};
+
+template<>
+HashMap<RenderPassInfo, std::unique_ptr<RenderPassCache>> LazyInitMap<RenderPassCache, std::shared_ptr<RenderPass>, RenderPassInfo>::cache = {};
+
 void BuildSwapchain()
 {
     i32 width, height;
@@ -153,9 +175,11 @@ void BuildRenderTargets()
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_FORMAT_D24_UNORM_S8_UINT);
 
+    RenderPassInfo renderPassInfo{};
+    renderPassInfo.colorFormats = { s->colorImage->Format() };
+    renderPassInfo.depthFormat = Optional<VkFormat>::Some(s->depthImage->Format());
     s->renderPass = std::make_shared<RenderPass>("Main Render Pass",
-        s->device, List<VkFormat>{ s->colorImage->Format() },
-        Optional<VkFormat>::Some(s->depthImage->Format()));
+        s->device, renderPassInfo);
     List<std::shared_ptr<Image>> images{ s->colorImage, s->depthImage };
     s->framebuffer = std::make_unique<Framebuffer>("Main Framebuffer", s->device, images, s->renderPass);
 }
@@ -400,10 +424,14 @@ TextureViewHandle Graphics::CreateTextureView(TextureHandle texture)
 
     TextureViewHandle textureViewHandle = s->textureViewHandlePool.Create();
 
-    /*auto textureIter = s->textures.find(texture);
-    BX_ENSURE(textureIter != s->textures.end());*/
+    auto textureIter = s->textures.find(texture);
+    BX_ENSURE(textureIter != s->textures.end());
 
-    BX_FAIL("TODO");
+    TextureView textureView;
+    textureView.handle = texture;
+    textureView.texture = textureIter->second;
+
+    s->textureViews.insert(std::make_pair(textureViewHandle, textureView));
 
     return textureViewHandle;
 }
@@ -412,8 +440,8 @@ void Graphics::DestroyTextureView(TextureViewHandle& textureView)
 {
     BX_ENSURE(textureView);
 
-    /*s->textureViews.erase(textureView);
-    s->textureViewHandlePool.Destroy(textureView);*/
+    s->textureViews.erase(textureView);
+    s->textureViewHandlePool.Destroy(textureView);
 }
 
 SamplerHandle Graphics::CreateSampler(const SamplerCreateInfo& create)
@@ -496,12 +524,12 @@ void Graphics::DestroyShader(ShaderHandle& shader)
 {
     BX_ENSURE(shader);
 
-    /*auto shaderIter = s->shaders.find(shader);
-    BX_ENSURE(shaderIter != s->shaders.end());*/
+    auto shaderIter = s->shaders.find(shader);
+    BX_ENSURE(shaderIter != s->shaders.end());
 
-    /*s->shaders.erase(shader);
+    s->shaders.erase(shader);
     s_createInfoCache->shaderCreateInfos.erase(shader);
-    s->shaderHandlePool.Destroy(shader);*/
+    s->shaderHandlePool.Destroy(shader);
 }
 
 GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
@@ -511,7 +539,7 @@ GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCr
     GraphicsPipelineHandle graphicsPipelineHandle = s->graphicsPipelineHandlePool.Create();
     s_createInfoCache->graphicsPipelineCreateInfos.insert(std::make_pair(graphicsPipelineHandle, createInfo));
 
-    BX_FAIL("TODO");
+    s->graphicsPipelines.insert(std::make_pair(graphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>{}));
 
     return graphicsPipelineHandle;
 }
@@ -520,9 +548,9 @@ void Graphics::DestroyGraphicsPipeline(GraphicsPipelineHandle& graphicsPipeline)
 {
     BX_ENSURE(graphicsPipeline);
 
-    /*s->graphicsPipelines.erase(graphicsPipeline);
+    s->graphicsPipelines.erase(graphicsPipeline);
     s_createInfoCache->graphicsPipelineCreateInfos.erase(graphicsPipeline);
-    s->graphicsPipelineHandlePool.Destroy(graphicsPipeline);*/
+    s->graphicsPipelineHandlePool.Destroy(graphicsPipeline);
 }
 
 ComputePipelineHandle Graphics::CreateComputePipeline(const ComputePipelineCreateInfo& createInfo)

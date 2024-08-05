@@ -8,15 +8,14 @@
 namespace Vk
 {
     RenderPass::RenderPass(const String& name, std::shared_ptr<Device> device,
-        const List<VkFormat>& colorFormats,
-        const Optional<VkFormat>& depthFormat)
+        const RenderPassInfo& info)
         : device(device) {
         List<VkAttachmentDescription> attachements;
 
         List<VkAttachmentReference> colorAttachmentRefs;
-        for (size_t i = 0; i < colorFormats.size(); i++) {
+        for (size_t i = 0; i < info.colorFormats.size(); i++) {
             VkAttachmentDescription colorAttachment{};
-            colorAttachment.format = colorFormats[i];
+            colorAttachment.format = info.colorFormats[i];
             colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
             colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -37,9 +36,9 @@ namespace Vk
         depthAttachmentRef.attachment = static_cast<uint32_t>(colorAttachmentRefs.size());
         depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        if (depthFormat.IsSome()) {
+        if (info.depthFormat.IsSome()) {
             VkAttachmentDescription depthAttachment{};
-            depthAttachment.format = depthFormat.Unwrap();
+            depthAttachment.format = info.depthFormat.Unwrap();
             depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
             depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -54,7 +53,7 @@ namespace Vk
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRefs.size());
         subpass.pColorAttachments = colorAttachmentRefs.data();
-        subpass.pDepthStencilAttachment = depthFormat.IsSome() ? &depthAttachmentRef : nullptr;
+        subpass.pDepthStencilAttachment = info.depthFormat.IsSome() ? &depthAttachmentRef : nullptr;
 
         VkSubpassDependency dependency{};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;

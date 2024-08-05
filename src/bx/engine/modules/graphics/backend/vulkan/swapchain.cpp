@@ -200,9 +200,11 @@ namespace Vk
                 Semaphore(Log::Format("Render Finished {}", i), device));
             inFlightFences.emplace_back(std::make_shared<Fence>(Log::Format("Swapchain In Flight Fence {}", i), device, true));
         }
-
+        
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.colorFormats = { this->Format() };
         this->renderPass = std::make_shared<RenderPass>("Swapchain Render Pass",
-            this->device, std::vector<VkFormat>{this->Format()}, Optional<VkFormat>::None());
+            this->device, renderPassInfo);
         for (auto& image : this->images) {
             std::vector<std::shared_ptr<Image>> images{ image };
             this->framebuffers.emplace_back(
