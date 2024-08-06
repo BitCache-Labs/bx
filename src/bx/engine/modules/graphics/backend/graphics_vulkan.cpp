@@ -108,6 +108,7 @@ struct State : NoCopy
     HashMap<ShaderHandle, std::shared_ptr<Shader>> shaders;
     HashMap<GraphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>> graphicsPipelines;
     HashMap<GraphicsPipelineHandle, const List<std::shared_ptr<DescriptorSetLayout>>> graphicsPipelineLayouts;
+    HashMap<BindGroupHandle, std::shared_ptr<DescriptorSet>> bindGroups;
 
     std::shared_ptr<Framebuffer> renderPassFramebuffer = nullptr;
     std::shared_ptr<RenderPass> activeRenderPass = nullptr;
@@ -266,7 +267,6 @@ bool Graphics::Initialize()
         s->swapchainColorTargetViews[i] = TextureViewHandle{ textureHandle.id };
     }
     
-
     BuildRenderTargets();
     BuildDescriptors();
     BuildPipelines();
@@ -644,6 +644,51 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
     BindGroupHandle bindGroupHandle = s->bindGroupHandlePool.Create();
     s_createInfoCache->bindGroupCreateInfos.insert(std::make_pair(bindGroupHandle, createInfo));
 
+    u32 layoutIndex = GetBindGroupLayoutBindGroup(createInfo.layout);
+    u64 rawPipeline = GetBindGroupLayoutPipeline(createInfo.layout);
+    std::shared_ptr<DescriptorSetLayout> layout;
+    if (IsBindGroupLayoutGraphics(createInfo.layout))
+    {
+        auto layoutIter = s->graphicsPipelineLayouts.find(GraphicsPipelineHandle{ rawPipeline });
+        BX_ENSURE(layoutIter != s->graphicsPipelineLayouts.end());
+        layout = layoutIter->second[layoutIndex];
+    }
+    else
+    {
+        BX_FAIL("TODO");
+    }
+
+    std::shared_ptr<DescriptorSet> descriptorSet(new DescriptorSet(createInfo.name, s->device, s->descriptorPool, layout));
+
+    for (auto& entry : createInfo.entries)
+    {
+        switch (entry.resource.type)
+        {
+        case BindingResourceType::BUFFER:
+        {
+            auto bufferIter = s->buffers.find(entry.resource.buffer.buffer);
+            BX_ENSURE(bufferIter != s->buffers.end());
+
+            // TODO: read std::shared_ptr<DescriptorSetLayout> layout and cache some stuff to figure out what the buffer type is
+            descriptorSet->SetBuffer(entry.binding, VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, bufferIter->second);
+            break;
+        }
+        case BindingResourceType::TEXTURE_VIEW:
+        {
+            auto textureViewIter = s->textureViews.find(entry.resource.textureView);
+            BX_ENSURE(textureViewIter != s->textureViews.end());
+
+            // TODO: read std::shared_ptr<DescriptorSetLayout> layout and cache some stuff to figure out what the buffer type is
+            descriptorSet->SetImage(entry.binding, VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, textureViewIter->second.texture, s->sampler);
+            break;
+        }
+        default:
+            BX_FAIL("TODO");
+        }
+    }
+
+    s->bindGroups.insert(std::make_pair(bindGroupHandle, descriptorSet));
+
     return bindGroupHandle;
 }
 
@@ -659,11 +704,14 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
 {
     BX_ASSERT(!s->activeRenderPassHandle, "Render pass already active.");
 
+    u32 width = 0;
+    u32 height = 0;
+
     RenderPassInfo renderPassInfo{};
     FramebufferInfo framebufferInfo{};
     for (auto& colorAttachment : descriptor.colorAttachments)
     {
-        auto& textureViewIter = s->textureViews.find(colorAttachment.view);
+        auto textureViewIter = s->textureViews.find(colorAttachment.view);
         BX_ENSURE(textureViewIter != s->textureViews.end());
         auto& textureCreateInfo = GetTextureCreateInfo(textureViewIter->second.handle);
 
@@ -671,12 +719,19 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
 
         VkFormat format = TextureFormatToVk(textureCreateInfo.format);
         renderPassInfo.colorFormats.push_back(format);
+
+        if (width == 0 && height == 0)
+        {
+            auto createInfo = GetTextureCreateInfo(textureViewIter->second.handle);
+            width = createInfo.size.width;
+            height = createInfo.size.height;
+        }
     }
     if (descriptor.depthStencilAttachment.IsSome())
     {
         auto& depthAttachment = descriptor.depthStencilAttachment.Unwrap();
 
-        auto& textureViewIter = s->textureViews.find(depthAttachment.view);
+        auto textureViewIter = s->textureViews.find(depthAttachment.view);
         BX_ENSURE(textureViewIter != s->textureViews.end());
         auto& textureCreateInfo = GetTextureCreateInfo(textureViewIter->second.handle);
 
@@ -684,11 +739,20 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
 
         VkFormat format = TextureFormatToVk(textureCreateInfo.format);
         renderPassInfo.depthFormat = Optional<VkFormat>::Some(format);
+
+        if (width == 0 && height == 0)
+        {
+            auto createInfo = GetTextureCreateInfo(textureViewIter->second.handle);
+            width = createInfo.size.width;
+            height = createInfo.size.height;
+        }
     }
     framebufferInfo.renderPass = RenderPassCache::Get(renderPassInfo);
     
     std::shared_ptr<Framebuffer> framebuffer(new Framebuffer("framebuffer", s->device, framebufferInfo));
     s->cmdList->BeginRenderPass(framebufferInfo.renderPass, *framebuffer, Color::Magenta());
+    s->cmdList->SetViewport(Rect2D(width, height));
+    s->cmdList->SetScissor(Rect2D(width, height));
 
     RenderPassHandle renderPassHandle = s->renderPassHandlePool.Create();
     s_createInfoCache->renderPassCreateInfos.insert(std::make_pair(renderPassHandle, descriptor));
@@ -807,11 +871,11 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
     BX_ASSERT(s->activeRenderPassHandle || s->activeComputePass, "No render pass or compute pass active.");
     BX_ENSURE(bindGroup);
 
-    auto bindGroupCreateInfoIter = s_createInfoCache->bindGroupCreateInfos.find(bindGroup);
-    BX_ENSURE(bindGroupCreateInfoIter != s_createInfoCache->bindGroupCreateInfos.end());
-    BindGroupCreateInfo& createInfo = bindGroupCreateInfoIter->second;
+    auto bindGroupIter = s->bindGroups.find(bindGroup);
+    BX_ENSURE(bindGroupIter != s->bindGroups.end());
 
-    BX_FAIL("TODO");
+    // TODO: compute
+    s->cmdList->BindDescriptorSet(bindGroupIter->second, index, VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
 void Graphics::Draw(u32 vertexCount, u32 firstVertex, u32 instanceCount)
