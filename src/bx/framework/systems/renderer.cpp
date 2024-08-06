@@ -83,7 +83,7 @@ void BuildShaderPipelines()
             BindGroupLayoutEntry(0, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 0, std140) uniform Constants
             BindGroupLayoutEntry(1, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 1, std140) uniform Model
             BindGroupLayoutEntry(2, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 2, std140) uniform Animation
-            BindGroupLayoutEntry(3, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),  // layout (binding = 3) uniform sampler2D Albedo
+            //BindGroupLayoutEntry(3, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),  // layout (binding = 3) uniform sampler2D Albedo
             BindGroupLayoutEntry(4, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::UniformBuffer())                     // layout (binding = 4, std140) uniform LightBuffer
         }),
         Material::GetBindGroupLayout()

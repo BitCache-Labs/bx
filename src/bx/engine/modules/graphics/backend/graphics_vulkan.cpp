@@ -255,6 +255,17 @@ bool Graphics::Initialize()
     s->sampler = std::make_shared<Sampler>("Sampler", s->device, *s->physicalDevice,
         SamplerInfo{});
 
+    BufferCreateInfo bufferCreateInfo{};
+    bufferCreateInfo.name = "Empty Buffer";
+    bufferCreateInfo.size = 1;
+    bufferCreateInfo.usageFlags = BufferUsageFlags::COPY_SRC | BufferUsageFlags::INDEX | BufferUsageFlags::VERTEX | BufferUsageFlags::UNIFORM | BufferUsageFlags::STORAGE;
+    s->emptyBuffer = Graphics::CreateBuffer(bufferCreateInfo);
+
+    TextureCreateInfo textureCreateInfo{};
+    textureCreateInfo.name = "Empty Texture";
+    textureCreateInfo.size = Extend3D(1, 1, 1);
+    textureCreateInfo.usageFlags = TextureUsageFlags::COPY_SRC | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
+
     BuildSwapchain();
     for (u32 i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -874,8 +885,8 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
     auto bindGroupIter = s->bindGroups.find(bindGroup);
     BX_ENSURE(bindGroupIter != s->bindGroups.end());
 
-    // TODO: compute
-    s->cmdList->BindDescriptorSet(bindGroupIter->second, index, VK_PIPELINE_BIND_POINT_GRAPHICS);
+    VkPipelineBindPoint bindPoint = s->activeRenderPassHandle ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
+    s->cmdList->BindDescriptorSet(bindGroupIter->second, index, bindPoint);
 }
 
 void Graphics::Draw(u32 vertexCount, u32 firstVertex, u32 instanceCount)

@@ -37,6 +37,8 @@ namespace Vk
 
     void DescriptorSet::SetBuffer(uint32_t binding, VkDescriptorType type,
         std::shared_ptr<Buffer> buffer) {
+        trackedBuffers[binding] = buffer;
+
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = buffer->GetBuffer();
         bufferInfo.offset = 0;
@@ -55,6 +57,9 @@ namespace Vk
 
     void DescriptorSet::SetImage(uint32_t binding, VkDescriptorType type,
         std::shared_ptr<Image> image, std::shared_ptr<Sampler> sampler) {
+        trackedImages[binding] = image;
+        trackedSamplers[binding] = sampler;
+
         VkDescriptorImageInfo imageInfo{};
         if (type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
             // TODO: this assumption may break, storage images are allowed to be read in a fragment shader, query resource state tracker for accurate states

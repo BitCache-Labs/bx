@@ -2,6 +2,7 @@
 
 #include "bx/engine/core/guard.hpp"
 #include "bx/engine/containers/string.hpp"
+#include "bx/engine/containers/array.hpp"
 
 #include "vulkan_api.hpp"
 
@@ -29,6 +30,10 @@ namespace Vk
 
     private:
         VkDescriptorSet descriptorSet;
+
+        Array<std::shared_ptr<Buffer>, 128> trackedBuffers;
+        Array<std::shared_ptr<Image>, 128> trackedImages;
+        Array<std::shared_ptr<Sampler>, 128> trackedSamplers;
 
         const std::shared_ptr<Device> device;
         const std::shared_ptr<DescriptorPool> pool;
