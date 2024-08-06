@@ -15,6 +15,8 @@ namespace Vk
         DescriptorSetLayout(const String& name, const std::shared_ptr<Device> device,
             const List<VkDescriptorSetLayoutBinding>& bindings);
         ~DescriptorSetLayout();
+        DescriptorSetLayout(DescriptorSetLayout&& other) noexcept;
+        DescriptorSetLayout& operator=(DescriptorSetLayout&& other) noexcept;
 
         VkDescriptorSetLayout GetLayout() const;
 

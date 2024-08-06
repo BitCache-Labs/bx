@@ -49,6 +49,12 @@ public:
 		delete data;
 	}
 
+	void Reset()
+	{
+		delete data;
+		data = nullptr;
+	}
+		
 	template <typename ...Params>
 	static Optional<T> Some(Params&&... params)
 	{

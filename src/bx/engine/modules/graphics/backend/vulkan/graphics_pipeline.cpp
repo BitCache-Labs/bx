@@ -1,3 +1,4 @@
+
 #include "bx/engine/modules/graphics/backend/vulkan/graphics_pipeline.hpp"
 
 #include "bx/engine/core/macros.hpp"
@@ -13,7 +14,7 @@ namespace Vk
     GraphicsPipeline::GraphicsPipeline(
         std::shared_ptr<Device> device, const std::vector<const Shader*>& shaders,
         std::shared_ptr<RenderPass> renderPass,
-        std::vector<std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts,
+        const std::vector<std::shared_ptr<DescriptorSetLayout>>& descriptorSetLayouts,
         std::vector<PushConstantRange> pushConstants, GraphicsPipelineInfo info)
         : info(info),
         device(device),

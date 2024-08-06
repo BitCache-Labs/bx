@@ -9,6 +9,7 @@
 #include "bx/engine/core/memory.hpp"
 #include "bx/engine/core/macros.hpp"
 #include "bx/engine/containers/array.hpp"
+#include "bx/engine/containers/list.hpp"
 
 #include "bx/engine/modules/window.hpp"
 #include "bx/engine/modules/imgui.hpp"
@@ -38,6 +39,8 @@ using namespace Vk;
 #ifdef BX_WINDOW_GLFW_BACKEND
 #include "bx/engine/modules/window/backend/window_glfw.hpp"
 #endif
+
+#include <utility>
 
 constexpr bool ENABLE_VALIDATION =
 #ifdef _DEBUG
@@ -104,10 +107,14 @@ struct State : NoCopy
     HashMap<TextureViewHandle, TextureView> textureViews;
     HashMap<ShaderHandle, std::shared_ptr<Shader>> shaders;
     HashMap<GraphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>> graphicsPipelines;
-    //HashMap<RenderPassInfo, std::shared_ptr<RenderPass>> renderPasses;
+    HashMap<GraphicsPipelineHandle, const List<std::shared_ptr<DescriptorSetLayout>>> graphicsPipelineLayouts;
 
     std::shared_ptr<Framebuffer> renderPassFramebuffer = nullptr;
-    RenderPassHandle activeRenderPass = RenderPassHandle::null;
+    std::shared_ptr<RenderPass> activeRenderPass = nullptr;
+    Optional<RenderPassInfo> activeRenderPassInfo = Optional<RenderPassInfo>::None();
+
+
+    RenderPassHandle activeRenderPassHandle = RenderPassHandle::null;
     ComputePassHandle activeComputePass = ComputePassHandle::null;
     GraphicsPipelineHandle boundGraphicsPipeline = GraphicsPipelineHandle::null;
     ComputePipelineHandle boundComputePipeline = ComputePipelineHandle::null;
@@ -545,6 +552,28 @@ GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCr
 
     s->graphicsPipelines.insert(std::make_pair(graphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>{}));
 
+    List<std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts{};
+    for (auto& layout : createInfo.layout.bindGroupLayouts)
+    {
+        List<VkDescriptorSetLayoutBinding> bindings{};
+        for (auto& entry : layout.entries)
+        {
+            VkDescriptorSetLayoutBinding binding{};
+            binding.binding = entry.binding;
+            binding.descriptorCount = entry.count.IsSome() ? entry.count.Unwrap() : 1;
+            binding.descriptorType = BindingTypeToVk(entry.type.type);
+            binding.stageFlags = ShaderStageFlagsToVk(entry.visibility);
+            bindings.push_back(binding);
+        }
+
+        std::shared_ptr<DescriptorSetLayout> descriptorSetLayout(new DescriptorSetLayout(Log::Format("{} layout", createInfo.name.c_str()), s->device, bindings));
+        descriptorSetLayouts.push_back(descriptorSetLayout);
+    }
+
+    s->graphicsPipelineLayouts.emplace(std::piecewise_construct,
+        std::forward_as_tuple(graphicsPipelineHandle),
+        std::forward_as_tuple(std::move(descriptorSetLayouts)));
+
     return graphicsPipelineHandle;
 }
 
@@ -628,7 +657,7 @@ void Graphics::DestroyBindGroup(BindGroupHandle& bindGroup)
 
 RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descriptor)
 {
-    BX_ASSERT(!s->activeRenderPass, "Render pass already active.");
+    BX_ASSERT(!s->activeRenderPassHandle, "Render pass already active.");
 
     RenderPassInfo renderPassInfo{};
     FramebufferInfo framebufferInfo{};
@@ -664,29 +693,64 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
     RenderPassHandle renderPassHandle = s->renderPassHandlePool.Create();
     s_createInfoCache->renderPassCreateInfos.insert(std::make_pair(renderPassHandle, descriptor));
 
+    s->activeRenderPassInfo = Optional<RenderPassInfo>::Some(renderPassInfo);
     s->renderPassFramebuffer = framebuffer;
-    s->activeRenderPass = renderPassHandle;
+    s->activeRenderPass = framebufferInfo.renderPass;
+    s->activeRenderPassHandle = renderPassHandle;
 
     return renderPassHandle;
 }
 
-void Graphics::SetGraphicsPipeline(GraphicsPipelineHandle graphicsPipeline)
+void Graphics::SetGraphicsPipeline(GraphicsPipelineHandle graphicsPipelineHandle)
 {
-    BX_ASSERT(s->activeRenderPass, "No render pass active.");
-    BX_ENSURE(graphicsPipeline);
+    BX_ASSERT(s->activeRenderPassHandle, "No render pass active.");
+    BX_ENSURE(graphicsPipelineHandle);
 
-    s->boundGraphicsPipeline = graphicsPipeline;
+    s->boundGraphicsPipeline = graphicsPipelineHandle;
 
-    /*auto pipelineIter = s->graphicsPipelines.find(graphicsPipeline);
-    BX_ENSURE(pipelineIter != s->graphicsPipelines.end());
-    auto& pipeline = pipelineIter->second;*/
+    auto& graphicsPipelineIter = s->graphicsPipelines.find(graphicsPipelineHandle);
+    BX_ENSURE(graphicsPipelineIter != s->graphicsPipelines.end());
+    auto& graphicsPipelineMap = graphicsPipelineIter->second;
 
-    BX_FAIL("TODO");
+    std::shared_ptr<GraphicsPipeline> graphicsPipeline;
+    auto& graphicsPipelineMapIter = graphicsPipelineMap.find(s->activeRenderPassInfo.Unwrap());
+    if (graphicsPipelineMapIter == graphicsPipelineMap.end())
+    {
+        auto& createInfo = GetGraphicsPipelineCreateInfo(graphicsPipelineHandle);
+
+        auto& vertexShaderIter = s->shaders.find(createInfo.vertexShader);
+        BX_ENSURE(vertexShaderIter != s->shaders.end());
+        auto& fragmentShaderIter = s->shaders.find(createInfo.fragmentShader);
+        BX_ENSURE(fragmentShaderIter != s->shaders.end());
+        std::shared_ptr<Shader> vertexShader = vertexShaderIter->second;
+        std::shared_ptr<Shader> fragmentShader = fragmentShaderIter->second;
+
+        List<const Shader*> shaders = { vertexShader.get(), fragmentShader.get() };
+        GraphicsPipelineInfo info{};
+        List<PushConstantRange> pc{};
+        
+        auto& layoutIter = s->graphicsPipelineLayouts.find(graphicsPipelineHandle);
+        BX_ENSURE(layoutIter != s->graphicsPipelineLayouts.end());
+
+        graphicsPipeline = std::shared_ptr<GraphicsPipeline>(new GraphicsPipeline(
+            s->device,
+            shaders,
+            s->activeRenderPass,
+            layoutIter->second,
+            pc, info));
+        graphicsPipelineMap.insert(std::make_pair(s->activeRenderPassInfo.Unwrap(), graphicsPipeline));
+    }
+    else
+    {
+        graphicsPipeline = graphicsPipelineMapIter->second;
+    }
+
+    s->cmdList->BindGraphicsPipeline(graphicsPipeline);
 }
 
 void Graphics::SetVertexBuffer(u32 slot, const BufferSlice& bufferSlice)
 {
-    BX_ASSERT(s->activeRenderPass, "No render pass active.");
+    BX_ASSERT(s->activeRenderPassHandle, "No render pass active.");
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
     BX_ASSERT(slot == 0, "TODO");
     BX_ENSURE(bufferSlice.buffer);
@@ -699,7 +763,7 @@ void Graphics::SetVertexBuffer(u32 slot, const BufferSlice& bufferSlice)
 
 void Graphics::SetIndexBuffer(const BufferSlice& bufferSlice, IndexFormat format)
 {
-    BX_ASSERT(s->activeRenderPass, "No render pass active.");
+    BX_ASSERT(s->activeRenderPassHandle, "No render pass active.");
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
     BX_ENSURE(bufferSlice.buffer);
 
@@ -713,7 +777,7 @@ void Graphics::SetIndexBuffer(const BufferSlice& bufferSlice, IndexFormat format
 
 void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
 {
-    BX_ASSERT(s->activeRenderPass || s->activeComputePass, "No render pass or compute pass active.");
+    BX_ASSERT(s->activeRenderPassHandle || s->activeComputePass, "No render pass or compute pass active.");
     BX_ENSURE(bindGroup);
 
     auto bindGroupCreateInfoIter = s_createInfoCache->bindGroupCreateInfos.find(bindGroup);
@@ -725,7 +789,7 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
 
 void Graphics::Draw(u32 vertexCount, u32 firstVertex, u32 instanceCount)
 {
-    BX_ASSERT(s->activeRenderPass, "No render pass active.");
+    BX_ASSERT(s->activeRenderPassHandle, "No render pass active.");
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
     BX_ASSERT(instanceCount > 0, "Instance count must be larger than 0.");
 
@@ -734,7 +798,7 @@ void Graphics::Draw(u32 vertexCount, u32 firstVertex, u32 instanceCount)
 
 void Graphics::DrawIndexed(u32 indexCount, u32 instanceCount)
 {
-    BX_ASSERT(s->activeRenderPass, "No render pass active.");
+    BX_ASSERT(s->activeRenderPassHandle, "No render pass active.");
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
     BX_ASSERT(s->boundIndexFormat.IsSome(), "No index buffer bound.");
     BX_ASSERT(instanceCount > 0, "Instance count must be larger than 0.");
@@ -744,14 +808,15 @@ void Graphics::DrawIndexed(u32 indexCount, u32 instanceCount)
 
 void Graphics::EndRenderPass(RenderPassHandle& renderPass)
 {
-    BX_ASSERT(s->activeRenderPass, "No render pass active.");
+    BX_ASSERT(s->activeRenderPassHandle, "No render pass active.");
     BX_ENSURE(renderPass);
 
     const RenderPassDescriptor& descriptor = Graphics::GetRenderPassDescriptor(renderPass);
     s->cmdList->EndRenderPass();
 
+    s->activeRenderPassInfo.Reset();
     s->renderPassFramebuffer.reset();
-    s->activeRenderPass = RenderPassHandle::null;
+    s->activeRenderPassHandle = RenderPassHandle::null;
     s->renderPassHandlePool.Destroy(renderPass);
     s_createInfoCache->renderPassCreateInfos.erase(renderPass);
 

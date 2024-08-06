@@ -37,7 +37,7 @@ namespace Vk
         GraphicsPipeline(std::shared_ptr<Device> device,
             const List<const Shader*>& shaders,
             std::shared_ptr<RenderPass> renderPass,
-            List<std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts,
+            const List<std::shared_ptr<DescriptorSetLayout>>& descriptorSetLayouts,
             List<PushConstantRange> pushConstants, GraphicsPipelineInfo info);
         ~GraphicsPipeline();
 

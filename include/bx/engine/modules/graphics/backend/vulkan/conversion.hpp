@@ -13,4 +13,6 @@ namespace Vk
 	VkFormat TextureFormatToVk(TextureFormat format);
 	VkImageType TextureDimensionToVk(TextureDimension dimension);
 	VkShaderStageFlagBits ShaderTypeToVk(ShaderType type);
+	VkDescriptorType BindingTypeToVk(BindingType type);
+	VkShaderStageFlags ShaderStageFlagsToVk(ShaderStageFlags stageFlags);
 }

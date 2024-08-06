@@ -215,4 +215,38 @@ namespace Vk
 			return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 		}
 	}
+
+	VkDescriptorType BindingTypeToVk(BindingType type)
+	{
+		switch (type)
+		{
+		case BindingType::UNIFORM_BUFFER:
+			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		case BindingType::STORAGE_BUFFER:
+			return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		case BindingType::SAMPLER:
+			return VK_DESCRIPTOR_TYPE_SAMPLER;
+		case BindingType::TEXTURE:
+			return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		case BindingType::STORAGE_TEXTURE:
+			return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		case BindingType::ACCELERATION_STRUCTURE:
+			return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+		default:
+			BX_FAIL("Binding type not supported");
+			return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+		}
+	}
+
+	VkShaderStageFlags ShaderStageFlagsToVk(ShaderStageFlags stageFlags)
+	{
+		VkShaderStageFlags result{};
+		if (stageFlags & ShaderStageFlags::VERTEX)
+			result |= VK_SHADER_STAGE_VERTEX_BIT;
+		if (stageFlags & ShaderStageFlags::FRAGMENT)
+			result |= VK_SHADER_STAGE_FRAGMENT_BIT;
+		if (stageFlags & ShaderStageFlags::COMPUTE)
+			result |= VK_SHADER_STAGE_COMPUTE_BIT;
+		return result;
+	}
 }

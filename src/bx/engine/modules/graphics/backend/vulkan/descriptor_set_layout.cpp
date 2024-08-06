@@ -23,7 +23,21 @@ namespace Vk
     }
 
     DescriptorSetLayout::~DescriptorSetLayout() {
-        vkDestroyDescriptorSetLayout(this->device->GetDevice(), this->layout, nullptr);
+        if (this->layout != VK_NULL_HANDLE)
+            vkDestroyDescriptorSetLayout(this->device->GetDevice(), this->layout, nullptr);
+    }
+    
+    DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) noexcept
+        : layout(other.layout), device(other.device)
+    {
+        other.layout = VK_NULL_HANDLE;
+    }
+
+    DescriptorSetLayout& DescriptorSetLayout::operator=(DescriptorSetLayout&& other) noexcept
+    {
+        layout = other.layout;
+        other.layout = VK_NULL_HANDLE;
+        return *this;
     }
 
     VkDescriptorSetLayout DescriptorSetLayout::GetLayout() const {
