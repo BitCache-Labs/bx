@@ -104,8 +104,9 @@ struct State : NoCopy
     HashMap<TextureViewHandle, TextureView> textureViews;
     HashMap<ShaderHandle, std::shared_ptr<Shader>> shaders;
     HashMap<GraphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>> graphicsPipelines;
-    HashMap<RenderPassInfo, std::shared_ptr<RenderPass>> renderPasses;
+    //HashMap<RenderPassInfo, std::shared_ptr<RenderPass>> renderPasses;
 
+    std::shared_ptr<Framebuffer> renderPassFramebuffer = nullptr;
     RenderPassHandle activeRenderPass = RenderPassHandle::null;
     ComputePassHandle activeComputePass = ComputePassHandle::null;
     GraphicsPipelineHandle boundGraphicsPipeline = GraphicsPipelineHandle::null;
@@ -180,8 +181,11 @@ void BuildRenderTargets()
     renderPassInfo.depthFormat = Optional<VkFormat>::Some(s->depthImage->Format());
     s->renderPass = std::make_shared<RenderPass>("Main Render Pass",
         s->device, renderPassInfo);
-    List<std::shared_ptr<Image>> images{ s->colorImage, s->depthImage };
-    s->framebuffer = std::make_unique<Framebuffer>("Main Framebuffer", s->device, images, s->renderPass);
+
+    FramebufferInfo framebufferInfo{};
+    framebufferInfo.images = { s->colorImage, s->depthImage };
+    framebufferInfo.renderPass = s->renderPass;
+    s->framebuffer = std::make_unique<Framebuffer>("Main Framebuffer", s->device, framebufferInfo);
 }
 
 void BuildDescriptors()
@@ -626,11 +630,41 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
 {
     BX_ASSERT(!s->activeRenderPass, "Render pass already active.");
 
-    BX_FAIL("TODO");
+    RenderPassInfo renderPassInfo{};
+    FramebufferInfo framebufferInfo{};
+    for (auto& colorAttachment : descriptor.colorAttachments)
+    {
+        auto& textureViewIter = s->textureViews.find(colorAttachment.view);
+        BX_ENSURE(textureViewIter != s->textureViews.end());
+        auto& textureCreateInfo = GetTextureCreateInfo(textureViewIter->second.handle);
+
+        framebufferInfo.images.push_back(textureViewIter->second.texture);
+
+        VkFormat format = TextureFormatToVk(textureCreateInfo.format);
+        renderPassInfo.colorFormats.push_back(format);
+    }
+    if (descriptor.depthStencilAttachment.IsSome())
+    {
+        auto& depthAttachment = descriptor.depthStencilAttachment.Unwrap();
+
+        auto& textureViewIter = s->textureViews.find(depthAttachment.view);
+        BX_ENSURE(textureViewIter != s->textureViews.end());
+        auto& textureCreateInfo = GetTextureCreateInfo(textureViewIter->second.handle);
+
+        framebufferInfo.images.push_back(textureViewIter->second.texture);
+
+        VkFormat format = TextureFormatToVk(textureCreateInfo.format);
+        renderPassInfo.depthFormat = Optional<VkFormat>::Some(format);
+    }
+    framebufferInfo.renderPass = RenderPassCache::Get(renderPassInfo);
+    
+    std::shared_ptr<Framebuffer> framebuffer(new Framebuffer("framebuffer", s->device, framebufferInfo));
+    s->cmdList->BeginRenderPass(framebufferInfo.renderPass, *framebuffer, Color::Magenta());
 
     RenderPassHandle renderPassHandle = s->renderPassHandlePool.Create();
     s_createInfoCache->renderPassCreateInfos.insert(std::make_pair(renderPassHandle, descriptor));
 
+    s->renderPassFramebuffer = framebuffer;
     s->activeRenderPass = renderPassHandle;
 
     return renderPassHandle;
@@ -714,8 +748,9 @@ void Graphics::EndRenderPass(RenderPassHandle& renderPass)
     BX_ENSURE(renderPass);
 
     const RenderPassDescriptor& descriptor = Graphics::GetRenderPassDescriptor(renderPass);
-    BX_FAIL("TODO");
+    s->cmdList->EndRenderPass();
 
+    s->renderPassFramebuffer.reset();
     s->activeRenderPass = RenderPassHandle::null;
     s->renderPassHandlePool.Destroy(renderPass);
     s_createInfoCache->renderPassCreateInfos.erase(renderPass);

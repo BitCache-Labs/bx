@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bx/engine/core/guard.hpp"
+#include "bx/engine/core/hash.hpp"
 #include "bx/engine/containers/string.hpp"
 
 #include "vulkan_api.hpp"
@@ -45,3 +46,14 @@ namespace Vk
         VkFormat format;
     };
 }
+
+template <>
+struct std::hash<Vk::Image>
+{
+    std::size_t operator()(const Vk::Image& v) const
+    {
+        SizeType result = 0;
+        hashCombine(result, v.GetImage());
+        return result;
+    }
+};

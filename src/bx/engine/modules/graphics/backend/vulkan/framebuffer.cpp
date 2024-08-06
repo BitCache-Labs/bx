@@ -10,9 +10,8 @@
 namespace Vk
 {
     Framebuffer::Framebuffer(const String& name, std::shared_ptr<Device> device,
-        List<std::shared_ptr<Image>> images,
-        std::shared_ptr<RenderPass> renderPass)
-        : renderPass(renderPass), images(images), device(device) {
+        const FramebufferInfo& info)
+        : renderPass(info.renderPass), images(info.images), device(device) {
         VK_ASSERT(images.size() > 0, "Framebuffer requires at least 1 image.");
 
         std::vector<VkImageView> attachments;

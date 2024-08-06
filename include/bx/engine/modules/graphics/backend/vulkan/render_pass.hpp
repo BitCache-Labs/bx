@@ -18,6 +18,20 @@ namespace Vk
     {
         List<VkFormat> colorFormats;
         Optional<VkFormat> depthFormat = Optional<VkFormat>::None();
+
+        b8 operator==(const RenderPassInfo& other) const
+        {
+            if (colorFormats.size() != other.colorFormats.size())
+                return false;
+
+            for (u32 i = 0; i < colorFormats.size(); i++)
+            {
+                if (colorFormats[i] != other.colorFormats[i])
+                    return false;
+            }
+
+            return depthFormat == other.depthFormat;
+        }
     };
 
     class RenderPass : NoCopy {
@@ -48,4 +62,15 @@ struct std::hash<Vk::RenderPassInfo>
             hashCombine(result, v.depthFormat.Unwrap());
 		return result;
 	}
+};
+
+template <>
+struct std::hash<Vk::RenderPass>
+{
+    std::size_t operator()(const Vk::RenderPass& v) const
+    {
+        SizeType result = 0;
+        hashCombine(result, v.GetRenderPass());
+        return result;
+    }
 };

@@ -82,6 +82,19 @@ public:
 		return *data;
 	}
 
+	b8 operator==(const Optional<T>& other) const
+	{
+		if (IsNone())
+			return other.IsNone();
+
+		return *data == *other.data;
+	}
+
+	b8 operator!=(const Optional<T>& other) const
+	{
+		return !(*this == other);
+	}
+
 private:
 	template <typename ...Params>
 	Optional(Params&&... params)

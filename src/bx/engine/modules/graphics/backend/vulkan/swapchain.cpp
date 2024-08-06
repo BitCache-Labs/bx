@@ -206,9 +206,11 @@ namespace Vk
         this->renderPass = std::make_shared<RenderPass>("Swapchain Render Pass",
             this->device, renderPassInfo);
         for (auto& image : this->images) {
-            std::vector<std::shared_ptr<Image>> images{ image };
+            FramebufferInfo framebufferInfo{};
+            framebufferInfo.images = { image };
+            framebufferInfo.renderPass = this->renderPass;
             this->framebuffers.emplace_back(
-                Framebuffer("Swapchain Framebuffer", this->device, images, this->renderPass));
+                Framebuffer("Swapchain Framebuffer", this->device, framebufferInfo));
         }
     }
 
