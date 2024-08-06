@@ -40,18 +40,12 @@ namespace Vk
         dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
         dynamicState.pDynamicStates = dynamicStates.data();
 
-        // TODO: flexible vertex layouts
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-        /*auto vertexBindingDescription = VertexBindingDescription();
-        auto vertexAttributeDescriptions = VertexAttributeDescriptions();*/
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        /*if (info.inputVertices) {
-            vertexInputInfo.vertexBindingDescriptionCount = 1;
-            vertexInputInfo.pVertexBindingDescriptions = &vertexBindingDescription;
-            vertexInputInfo.vertexAttributeDescriptionCount =
-                static_cast<uint32_t>(vertexAttributeDescriptions.size());
-            vertexInputInfo.pVertexAttributeDescriptions = vertexAttributeDescriptions.data();
-        }*/
+        vertexInputInfo.vertexBindingDescriptionCount = info.vertexBindingDescriptions.size();
+        vertexInputInfo.pVertexBindingDescriptions = info.vertexBindingDescriptions.data();
+        vertexInputInfo.vertexAttributeDescriptionCount = info.vertexAttributeDescriptions.size();
+        vertexInputInfo.pVertexAttributeDescriptions = info.vertexAttributeDescriptions.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

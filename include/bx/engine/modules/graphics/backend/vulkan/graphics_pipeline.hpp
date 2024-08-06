@@ -30,6 +30,9 @@ namespace Vk
         bool inputVertices = true;
         VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
         bool culling = true;
+
+        List<VkVertexInputBindingDescription> vertexBindingDescriptions{};
+        List<VkVertexInputAttributeDescription> vertexAttributeDescriptions{};
     };
 
     class GraphicsPipeline : NoCopy {

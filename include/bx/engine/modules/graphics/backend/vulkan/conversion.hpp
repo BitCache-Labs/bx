@@ -15,4 +15,5 @@ namespace Vk
 	VkShaderStageFlagBits ShaderTypeToVk(ShaderType type);
 	VkDescriptorType BindingTypeToVk(BindingType type);
 	VkShaderStageFlags ShaderStageFlagsToVk(ShaderStageFlags stageFlags);
+	VkFormat VertexFormatToVk(const VertexFormat& format);
 }

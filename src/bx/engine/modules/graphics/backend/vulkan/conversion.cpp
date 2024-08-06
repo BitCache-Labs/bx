@@ -249,4 +249,76 @@ namespace Vk
 			result |= VK_SHADER_STAGE_COMPUTE_BIT;
 		return result;
 	}
+
+	VkFormat VertexFormatToVk(const VertexFormat& format)
+	{
+		switch (format)
+		{
+		case VertexFormat::UINT_8X2:
+			return VK_FORMAT_R8G8_UINT;
+		case VertexFormat::UINT_8X4:
+			return VK_FORMAT_R8G8B8A8_UINT;
+		case VertexFormat::SINT_8X2:
+			return VK_FORMAT_R8G8_SINT;
+		case VertexFormat::SINT_8X4:
+			return VK_FORMAT_R8G8B8A8_SINT;
+		case VertexFormat::UNORM_8X2:
+			return VK_FORMAT_R8G8_UNORM;
+		case VertexFormat::UNORM_8X4:
+			return VK_FORMAT_R8G8B8A8_UNORM;
+		case VertexFormat::SNORM_8X2:
+			return VK_FORMAT_R8G8_SNORM;
+		case VertexFormat::SNORM_8X4:
+			return VK_FORMAT_R8G8B8A8_SNORM;
+
+		case VertexFormat::UINT_16X2:
+			return VK_FORMAT_R16G16_UINT;
+		case VertexFormat::UINT_16X4:
+			return VK_FORMAT_R16G16B16A16_UINT;
+		case VertexFormat::SINT_16X2:
+			return VK_FORMAT_R16G16_SINT;
+		case VertexFormat::SINT_16X4:
+			return VK_FORMAT_R16G16B16A16_SINT;
+		case VertexFormat::UNORM_16X2:
+			return VK_FORMAT_R16G16_UNORM;
+		case VertexFormat::UNORM_16X4:
+			return VK_FORMAT_R16G16B16A16_UNORM;
+		case VertexFormat::SNORM_16X2:
+			return VK_FORMAT_R16G16_SNORM;
+		case VertexFormat::SNORM_16X4:
+			return VK_FORMAT_R16G16B16A16_SNORM;
+		case VertexFormat::FLOAT_16X2:
+			return VK_FORMAT_R16G16_SFLOAT;
+		case VertexFormat::FLOAT_16X4:
+			return VK_FORMAT_R16G16B16A16_SFLOAT;
+
+		case VertexFormat::FLOAT_32:
+			return VK_FORMAT_R32_SFLOAT;
+		case VertexFormat::FLOAT_32X2:
+			return VK_FORMAT_R32G32_SFLOAT;
+		case VertexFormat::FLOAT_32X3:
+			return VK_FORMAT_R32G32B32_SFLOAT;
+		case VertexFormat::FLOAT_32X4:
+			return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case VertexFormat::UINT_32:
+			return VK_FORMAT_R32_UINT;
+		case VertexFormat::UINT_32X2:
+			return VK_FORMAT_R32G32_UINT;
+		case VertexFormat::UINT_32X3:
+			return VK_FORMAT_R32G32B32_UINT;
+		case VertexFormat::UINT_32X4:
+			return VK_FORMAT_R32G32B32A32_UINT;
+		case VertexFormat::SINT_32:
+			return VK_FORMAT_R32_SINT;
+		case VertexFormat::SINT_32X2:
+			return VK_FORMAT_R32G32_SINT;
+		case VertexFormat::SINT_32X3:
+			return VK_FORMAT_R32G32B32_SINT;
+		case VertexFormat::SINT_32X4:
+			return VK_FORMAT_R32G32B32A32_SINT;
+		default:
+			BX_FAIL("Vertex format not supported.");
+			return VK_FORMAT_UNDEFINED;
+		}
+	}
 }

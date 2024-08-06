@@ -725,8 +725,35 @@ void Graphics::SetGraphicsPipeline(GraphicsPipelineHandle graphicsPipelineHandle
         std::shared_ptr<Shader> vertexShader = vertexShaderIter->second;
         std::shared_ptr<Shader> fragmentShader = fragmentShaderIter->second;
 
+        List<VkVertexInputBindingDescription> vertexBindingDescriptions{};
+        for (u32 i = 0; i < createInfo.vertexBuffers.size(); i++)
+        {
+            VkVertexInputBindingDescription bindingDescription{};
+            bindingDescription.binding = i;
+            bindingDescription.stride = createInfo.vertexBuffers[i].stride;
+            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            vertexBindingDescriptions.push_back(bindingDescription);
+        }
+
+        List<VkVertexInputAttributeDescription> vertexAttributeDescriptions{};
+        for (u32 i = 0; i < createInfo.vertexBuffers.size(); i++)
+        {
+            for (auto& attribute : createInfo.vertexBuffers[i].attributes)
+            {
+                VkVertexInputAttributeDescription attributeDescription;
+                attributeDescription.binding = i;
+                attributeDescription.location = attribute.location;
+                attributeDescription.format = VertexFormatToVk(attribute.format);
+                attributeDescription.offset = attribute.offset;
+                vertexAttributeDescriptions.push_back(attributeDescription);
+            }
+        }
+
         List<const Shader*> shaders = { vertexShader.get(), fragmentShader.get() };
-        GraphicsPipelineInfo info{};
+        GraphicsPipelineInfo info{}; // TODO!
+        info.vertexBindingDescriptions = vertexBindingDescriptions;
+        info.vertexAttributeDescriptions = vertexAttributeDescriptions;
+
         List<PushConstantRange> pc{};
         
         auto& layoutIter = s->graphicsPipelineLayouts.find(graphicsPipelineHandle);
