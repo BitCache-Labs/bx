@@ -8,9 +8,13 @@
 namespace Vk
 {
     DescriptorPool::DescriptorPool(const std::shared_ptr<Device> device) : device(device) {
-        // TODO: increase this stuff based on some device limits
         std::vector<VkDescriptorPoolSize> poolSizes = {
-            VkDescriptorPoolSize{VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64} };
+            VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 * 8 },
+            VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024 * 8 },
+            VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 * 8 },
+            VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024 * 8 },
+            VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1024 * 2 }
+        };
 
         VkDescriptorPoolCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
