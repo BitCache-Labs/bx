@@ -210,7 +210,7 @@ namespace Vk
             framebufferInfo.images = { image };
             framebufferInfo.renderPass = this->renderPass;
             this->framebuffers.emplace_back(
-                Framebuffer("Swapchain Framebuffer", this->device, framebufferInfo));
+                std::shared_ptr<Framebuffer>(new Framebuffer("Swapchain Framebuffer", this->device, framebufferInfo)));
         }
     }
 
@@ -228,7 +228,7 @@ namespace Vk
         return this->images[idx];
     }
 
-    const Framebuffer& Swapchain::GetCurrentFramebuffer() const {
+    std::shared_ptr<Framebuffer> Swapchain::GetCurrentFramebuffer() const {
         VK_ASSERT(!this->framebuffers.empty(), "Rebuild framebuffers first!");
         return this->framebuffers[static_cast<size_t>(this->currentImage)];
     }

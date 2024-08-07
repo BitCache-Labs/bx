@@ -112,6 +112,7 @@ struct State : NoCopy
 
     std::shared_ptr<Framebuffer> renderPassFramebuffer = nullptr;
     std::shared_ptr<RenderPass> activeRenderPass = nullptr;
+    b8 isRenderPassBound = false;
     Optional<RenderPassInfo> activeRenderPassInfo = Optional<RenderPassInfo>::None();
 
 
@@ -136,7 +137,7 @@ struct State : NoCopy
 
     std::shared_ptr<Image> colorImage;
     std::shared_ptr<Image> depthImage;
-    std::unique_ptr<Framebuffer> framebuffer;
+    std::shared_ptr<Framebuffer> framebuffer;
     std::shared_ptr<RenderPass> renderPass;
     std::shared_ptr<Sampler> sampler;
 
@@ -193,7 +194,7 @@ void BuildRenderTargets()
     FramebufferInfo framebufferInfo{};
     framebufferInfo.images = { s->colorImage, s->depthImage };
     framebufferInfo.renderPass = s->renderPass;
-    s->framebuffer = std::make_unique<Framebuffer>("Main Framebuffer", s->device, framebufferInfo);
+    s->framebuffer = std::make_shared<Framebuffer>("Main Framebuffer", s->device, framebufferInfo);
 }
 
 void BuildDescriptors()
@@ -336,7 +337,7 @@ void Graphics::EndFrame()
         size_t currentFrame = static_cast<size_t>(s->swapchain->GetCurrentFrameIdx());
 
         // Swapchain present pass
-        s->cmdList->BeginRenderPass(s->renderPass, *s->framebuffer,
+        s->cmdList->BeginRenderPass(s->renderPass, s->framebuffer,
             Color(0.6f, 0.8f, 1.0f, 1.0f));
         Rect2D imgExtent(static_cast<float>(s->colorImage->Width()),
             static_cast<float>(s->colorImage->Height()));
@@ -546,12 +547,13 @@ void Graphics::DestroyShader(ShaderHandle& shader)
 {
     BX_ENSURE(shader);
 
-    auto shaderIter = s->shaders.find(shader);
+    // Graphics pipelines are created on demand during SetGraphicsPipeline, immediately destroying shaders is therefore not valid
+    /*auto shaderIter = s->shaders.find(shader);
     BX_ENSURE(shaderIter != s->shaders.end());
 
     s->shaders.erase(shader);
     s_createInfoCache->shaderCreateInfos.erase(shader);
-    s->shaderHandlePool.Destroy(shader);
+    s->shaderHandlePool.Destroy(shader);*/
 }
 
 GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
@@ -761,7 +763,6 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
     framebufferInfo.renderPass = RenderPassCache::Get(renderPassInfo);
     
     std::shared_ptr<Framebuffer> framebuffer(new Framebuffer("framebuffer", s->device, framebufferInfo));
-    s->cmdList->BeginRenderPass(framebufferInfo.renderPass, *framebuffer, Color::Magenta());
     s->cmdList->SetViewport(Rect2D(width, height));
     s->cmdList->SetScissor(Rect2D(width, height));
 
@@ -882,8 +883,16 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
     BX_ASSERT(s->activeRenderPassHandle || s->activeComputePass, "No render pass or compute pass active.");
     BX_ENSURE(bindGroup);
 
+    if (s->isRenderPassBound)
+    {
+        s->cmdList->EndRenderPass();
+        s->isRenderPassBound = false;
+    }
+
     auto bindGroupIter = s->bindGroups.find(bindGroup);
     BX_ENSURE(bindGroupIter != s->bindGroups.end());
+
+    bindGroupIter->second->TransitionResourceStates(s->cmdList);
 
     VkPipelineBindPoint bindPoint = s->activeRenderPassHandle ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
     s->cmdList->BindDescriptorSet(bindGroupIter->second, index, bindPoint);
@@ -895,6 +904,12 @@ void Graphics::Draw(u32 vertexCount, u32 firstVertex, u32 instanceCount)
     BX_ASSERT(s->boundGraphicsPipeline, "No graphics pipeline bound.");
     BX_ASSERT(instanceCount > 0, "Instance count must be larger than 0.");
 
+    if (!s->isRenderPassBound)
+    {
+        s->cmdList->BeginRenderPass(s->activeRenderPass, s->renderPassFramebuffer, Color::Magenta());
+        s->isRenderPassBound = true;
+    }
+
     s->cmdList->Draw(vertexCount, instanceCount, firstVertex);
 }
 
@@ -905,6 +920,12 @@ void Graphics::DrawIndexed(u32 indexCount, u32 instanceCount)
     BX_ASSERT(s->boundIndexFormat.IsSome(), "No index buffer bound.");
     BX_ASSERT(instanceCount > 0, "Instance count must be larger than 0.");
 
+    if (!s->isRenderPassBound)
+    {
+        s->cmdList->BeginRenderPass(s->activeRenderPass, s->renderPassFramebuffer, Color::Magenta());
+        s->isRenderPassBound = true;
+    }
+
     s->cmdList->DrawElements(indexCount, instanceCount);
 }
 
@@ -914,7 +935,11 @@ void Graphics::EndRenderPass(RenderPassHandle& renderPass)
     BX_ENSURE(renderPass);
 
     const RenderPassDescriptor& descriptor = Graphics::GetRenderPassDescriptor(renderPass);
-    s->cmdList->EndRenderPass();
+    if (s->isRenderPassBound)
+    {
+        s->cmdList->EndRenderPass();
+        s->isRenderPassBound = false;
+    }
 
     s->activeRenderPassInfo.Reset();
     s->renderPassFramebuffer.reset();

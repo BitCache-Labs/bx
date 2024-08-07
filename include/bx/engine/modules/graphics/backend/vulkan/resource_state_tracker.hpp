@@ -13,6 +13,11 @@ namespace Vk
         VkImageLayout layout;
         VkAccessFlags accessFlags;
         VkPipelineStageFlags stageFlags;
+
+        b8 operator==(const ImageState& other) const
+        {
+            return layout == other.layout && accessFlags == other.accessFlags && stageFlags == other.stageFlags;
+        }
     };
 
     class ResourceStateTracker {

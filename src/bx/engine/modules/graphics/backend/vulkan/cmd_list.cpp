@@ -58,6 +58,7 @@ namespace Vk
         this->trackedRenderPasses.clear();
         this->trackedBuffers.clear();
         this->trackedImages.clear();
+        this->trackedFramebuffers.clear();
         this->trackedDescriptorSets.clear();
     }
 
@@ -331,13 +332,13 @@ namespace Vk
     }*/
 
     void CmdList::BeginRenderPass(std::shared_ptr<RenderPass> renderPass,
-        const Framebuffer& framebuffer, const Color& clearColor) {
+        std::shared_ptr<Framebuffer> framebuffer, const Color& clearColor) {
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass->GetRenderPass();
-        renderPassInfo.framebuffer = framebuffer.GetFramebuffer();
+        renderPassInfo.framebuffer = framebuffer->GetFramebuffer();
         renderPassInfo.renderArea.extent =
-            VkExtent2D{ framebuffer.Images()[0]->Width(), framebuffer.Images()[0]->Height() };
+            VkExtent2D{ framebuffer->Images()[0]->Width(), framebuffer->Images()[0]->Height() };
 
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = { {clearColor.r, clearColor.g, clearColor.b, clearColor.a} };
@@ -349,6 +350,7 @@ namespace Vk
         vkCmdBeginRenderPass(this->cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         this->trackedRenderPasses.push_back(renderPass);
+        this->trackedFramebuffers.push_back(framebuffer);
     }
 
     void CmdList::EndRenderPass() {

@@ -31,7 +31,7 @@ namespace Vk
 
         std::shared_ptr<Image> GetImage(u32 idx) const;
 
-        const Framebuffer& GetCurrentFramebuffer() const;
+        std::shared_ptr<Framebuffer> GetCurrentFramebuffer() const;
         const Image& GetCurrentImage() const;
         uint32_t GetCurrentFrameIdx() const;
         Semaphore& GetImageAvailableSemaphore();
@@ -57,7 +57,7 @@ namespace Vk
 
         uint32_t imageCount;
         List<std::shared_ptr<Image>> images;
-        List<Framebuffer> framebuffers;
+        List<std::shared_ptr<Framebuffer>> framebuffers;
 
         uint32_t currentFrame;
         uint32_t currentImage;

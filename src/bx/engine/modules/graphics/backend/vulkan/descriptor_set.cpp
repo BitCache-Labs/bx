@@ -9,6 +9,7 @@
 #include "bx/engine/modules/graphics/backend/vulkan/image.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/sampler.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/validation.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/cmd_list.hpp"
 
 namespace Vk
 {
@@ -81,6 +82,20 @@ namespace Vk
         writeInfo.pImageInfo = &imageInfo;
 
         vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
+    }
+
+    void DescriptorSet::TransitionResourceStates(std::shared_ptr<CmdList> cmdList) const
+    {
+        for (auto& image : trackedImages)
+        {
+            if (!image) continue;
+
+            VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            VkAccessFlags accessFlags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+            VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+            cmdList->TransitionImageLayout(image, layout, accessFlags, stageFlags);
+        }
     }
 
     VkDescriptorSet DescriptorSet::GetDescriptorSet() const {

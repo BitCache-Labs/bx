@@ -11,7 +11,10 @@ namespace Vk
 
     void ResourceStateTracker::TransitionImage(VkCommandBuffer cmdBuffer, const Image& image,
         ImageState newState) {
-        const ImageState& oldState = globalImageStates.find(image.GetImage())->second;
+        ImageState& oldState = globalImageStates.find(image.GetImage())->second;
+
+        if (oldState == newState)
+            return;
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -37,8 +40,7 @@ namespace Vk
         vkCmdPipelineBarrier(cmdBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1,
             &barrier);
 
-        // TODO: just copied this code from DLR, but it looks like it's broken?
-        // Shouldn't it write out the new state to the global states?
+        oldState = newState;
     }
 
     void ResourceStateTracker::AddGlobalImageState(VkImage image, ImageState state) {

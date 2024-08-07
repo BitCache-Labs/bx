@@ -32,7 +32,7 @@ namespace Vk
         void GenerateMips(std::shared_ptr<Image> image);
 
         void TransitionImageLayout(std::shared_ptr<Image> image, VkImageLayout layout,
-            VkAccessFlags access, VkShaderStageFlags pipelineStage);
+            VkAccessFlags access, VkPipelineStageFlags pipelineStage);
 
         void SetScissor(const Rect2D& rect2D);
         void SetViewport(const Rect2D& rect2D, bool normalize = true);
@@ -44,7 +44,7 @@ namespace Vk
             std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer,
             VkAccelerationStructureKHR blas, uint32_t indexCount);*/
 
-        void BeginRenderPass(std::shared_ptr<RenderPass> renderPass, const Framebuffer& framebuffer,
+        void BeginRenderPass(std::shared_ptr<RenderPass> renderPass, std::shared_ptr<Framebuffer> framebuffer,
             const Color& clearColor);
         void EndRenderPass();
 
@@ -87,6 +87,7 @@ namespace Vk
         std::vector<std::shared_ptr<RenderPass>> trackedRenderPasses;
         std::vector<std::shared_ptr<Buffer>> trackedBuffers;
         std::vector<std::shared_ptr<Image>> trackedImages;
+        std::vector<std::shared_ptr<Framebuffer>> trackedFramebuffers;
         std::vector<std::shared_ptr<DescriptorSet>> trackedDescriptorSets;
     };
 }

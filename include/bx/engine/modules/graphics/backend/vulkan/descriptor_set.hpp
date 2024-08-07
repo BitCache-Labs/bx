@@ -14,6 +14,7 @@ namespace Vk
     class Buffer;
     class Image;
     class Sampler;
+    class CmdList;
 
     class DescriptorSet : NoCopy {
     public:
@@ -25,6 +26,8 @@ namespace Vk
         void SetBuffer(uint32_t binding, VkDescriptorType type, std::shared_ptr<Buffer> buffer);
         void SetImage(uint32_t binding, VkDescriptorType type, std::shared_ptr<Image> image,
             std::shared_ptr<Sampler> sampler);
+
+        void TransitionResourceStates(std::shared_ptr<CmdList> cmdList) const;
 
         VkDescriptorSet GetDescriptorSet() const;
 

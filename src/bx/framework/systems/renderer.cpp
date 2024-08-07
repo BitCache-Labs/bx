@@ -212,7 +212,7 @@ void RecreateRenderTargets()
         colorTargetCreateInfo.name = "Color Target";
         colorTargetCreateInfo.size = Extend3D(w, h, 1);
         colorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
-        colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING;
         if (s->colorTarget) Graphics::DestroyTexture(s->colorTarget);
         s->colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
 
