@@ -379,3 +379,9 @@ b8 IsBufferUsageMappable(const BufferUsageFlags& usage)
 {
 	return usage & BufferUsageFlags::MAP_READ || usage & BufferUsageFlags::MAP_WRITE;
 }
+
+u32 SizeOfTexturePixels(const TextureCreateInfo& info)
+{
+	u32 pixels = info.size.width * info.size.height * info.size.depthOrArrayLayers;
+	return pixels * SizeOfTextureFormat(info.format);
+}

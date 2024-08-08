@@ -625,6 +625,7 @@ b8 IsTextureFormatSrgb(const TextureFormat& format);
 b8 IsTextureFormatDepth(const TextureFormat& format);
 u32 SizeOfTextureFormat(const TextureFormat& format);
 b8 IsBufferUsageMappable(const BufferUsageFlags& usage);
+u32 SizeOfTexturePixels(const TextureCreateInfo& info);
 
 // TODO: remove
 struct DebugVertex

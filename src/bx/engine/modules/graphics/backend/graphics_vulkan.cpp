@@ -332,8 +332,12 @@ TextureViewHandle Graphics::GetSwapchainColorTargetView()
     return s->swapchainColorTargetViews[s->swapchain->GetCurrentFrameIdx()];
 }
 
-TextureHandle Graphics::CreateTexture(const TextureCreateInfo& createInfo)
+TextureHandle Graphics::CreateTexture(const TextureCreateInfo& _createInfo)
 {
+    // TODO: HACKS HACKS HACKS
+    TextureCreateInfo createInfo = _createInfo;
+    createInfo.usageFlags = createInfo.usageFlags | TextureUsageFlags::COPY_DST;
+
     BX_ENSURE(ValidateTextureCreateInfo(createInfo));
 
     TextureHandle textureHandle = s->textureHandlePool.Create();
@@ -354,7 +358,7 @@ TextureHandle Graphics::CreateTexture(const TextureCreateInfo& createInfo)
     if (createInfo.data)
     {
         // TODO!
-        // WriteTexture(textureHandle, 0, createInfo.data);
+        WriteTexture(textureHandle, createInfo.data, Extend3D(0, 0, 0), createInfo.size);
     }
 
     return textureHandle;
@@ -992,12 +996,26 @@ void Graphics::WriteTexture(TextureHandle texture, const void* data, const Exten
 {
     BX_ENSURE(texture && data);
 
-    /*auto textureIter = s->textures.find(texture);
-    BX_ENSURE(textureIter != s->textures.end());*/
-
+    auto textureIter = s->textures.find(texture);
+    BX_ENSURE(textureIter != s->textures.end());
     auto createInfo = GetTextureCreateInfo(texture);
 
-    BX_FAIL("TODO");
+    BX_ASSERT(createInfo.usageFlags & TextureUsageFlags::COPY_DST, "Texture must be created with TextureUsageFlags::COPY_DST when writing to.");
+
+    u32 sizeInBytes = SizeOfTexturePixels(createInfo);
+
+    std::shared_ptr<Buffer> stagingBuffer(new Buffer(Log::Format("Write {} Staging Buffer", createInfo.name), s->device,
+        *s->physicalDevice, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        static_cast<uint64_t>(sizeInBytes), BufferLocation::CPU_TO_GPU));
+
+    void* bufferData = stagingBuffer->Map();
+    memcpy(bufferData, data, sizeInBytes);
+    stagingBuffer->Unmap();
+
+    if (!s->uploadCmdList)
+        s->uploadCmdList = s->cmdQueue->GetCmdList();
+    s->uploadCmdList->TransitionImageLayout(textureIter->second, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    s->uploadCmdList->CopyBuffers(stagingBuffer, textureIter->second);
 }
 
 void Graphics::ReadTexture(TextureHandle texture, void* data, const Extend3D& offset, const Extend3D& size)

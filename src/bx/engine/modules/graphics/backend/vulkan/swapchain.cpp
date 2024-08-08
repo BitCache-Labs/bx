@@ -30,7 +30,7 @@ namespace Vk
             formats.data()));
 
         for (const auto& availableFormat : formats) {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
                 availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
             }
@@ -112,7 +112,7 @@ namespace Vk
 
         TextureCreateInfo imageCreateInfo{};
         imageCreateInfo.name = "Swapchain Color Target";
-        imageCreateInfo.format = TextureFormat::BGRA8_UNORM_SRGB; // TODO: see ChooseSwapSurfaceFormat()
+        imageCreateInfo.format = TextureFormat::BGRA8_UNORM; // TODO: see ChooseSwapSurfaceFormat()
         imageCreateInfo.size = Extend3D(extent.width, extent.height, 1);
         imageCreateInfo.usageFlags = TextureUsageFlags::COPY_DST | TextureUsageFlags::RENDER_ATTACHMENT;
         this->imageCreateInfo = imageCreateInfo;
