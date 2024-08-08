@@ -9,9 +9,11 @@ namespace Vk
 {
     DescriptorPool::DescriptorPool(const std::shared_ptr<Device> device) : device(device) {
         std::vector<VkDescriptorPoolSize> poolSizes = {
-            VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 * 8 },
+            VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 * 64 },
             VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024 * 8 },
             VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 * 8 },
+            VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER, 1024 * 8 },
+            VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1024 * 8 },
             VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024 * 8 },
             VkDescriptorPoolSize { VkDescriptorType::VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1024 * 2 }
         };
@@ -20,7 +22,7 @@ namespace Vk
         createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         createInfo.flags =
             VkDescriptorPoolCreateFlagBits::VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        createInfo.maxSets = 512;
+        createInfo.maxSets = 1024 * 64;
         createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         createInfo.pPoolSizes = poolSizes.data();
 

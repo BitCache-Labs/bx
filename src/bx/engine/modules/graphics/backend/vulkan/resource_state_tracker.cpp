@@ -9,21 +9,46 @@ namespace Vk
 {
     HashMap<VkImage, ImageState> ResourceStateTracker::globalImageStates{};
 
-    void ResourceStateTracker::TransitionImage(VkCommandBuffer cmdBuffer, const Image& image,
-        ImageState newState) {
-        ImageState& oldState = globalImageStates.find(image.GetImage())->second;
+    VkAccessFlags LayoutToAccessFlags(VkImageLayout layout)
+    {
+        switch (layout)
+        {
+        case VK_IMAGE_LAYOUT_UNDEFINED:
+            return VK_ACCESS_NONE;
 
-        if (oldState == newState)
+        case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+            return VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+        case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+            return VK_ACCESS_SHADER_READ_BIT;
+        case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+            return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+            return VK_ACCESS_TRANSFER_READ_BIT;
+        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+            return VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        default:
+            BX_FAIL("Unsupported image layout");
+            return VK_ACCESS_NONE;
+        }
+    }
+
+    void ResourceStateTracker::TransitionImage(VkCommandBuffer cmdBuffer, const Image& image,
+        VkImageLayout newLayout, VkPipelineStageFlags newStage) {
+        ImageState& state = globalImageStates.find(image.GetImage())->second;
+
+        if (state.currentLayout == newLayout)
             return;
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = oldState.layout;
-        barrier.newLayout = newState.layout;
+        barrier.oldLayout = state.currentLayout;
+        barrier.newLayout = newLayout;
+        barrier.srcAccessMask = LayoutToAccessFlags(state.currentLayout);
+        barrier.dstAccessMask = LayoutToAccessFlags(newLayout);
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.srcAccessMask = oldState.accessFlags;
-        barrier.dstAccessMask = newState.accessFlags;
         barrier.image = image.GetImage();
         if (IsDepthFormat(image.Format()))
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -34,13 +59,14 @@ namespace Vk
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = image.ArrayLayers();
 
-        VkPipelineStageFlags sourceStage = oldState.stageFlags;
-        VkPipelineStageFlags destinationStage = newState.stageFlags;
+        VkPipelineStageFlags sourceStage = state.lastStageFlags;
+        VkPipelineStageFlags destinationStage = newStage;
 
         vkCmdPipelineBarrier(cmdBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1,
             &barrier);
 
-        oldState = newState;
+        state.currentLayout = newLayout;
+        state.lastStageFlags = newStage;
     }
 
     void ResourceStateTracker::AddGlobalImageState(VkImage image, ImageState state) {

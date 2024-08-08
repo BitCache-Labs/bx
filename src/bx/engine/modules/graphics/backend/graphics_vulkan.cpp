@@ -347,7 +347,7 @@ void Graphics::EndFrame()
         s->cmdList->EndRenderPass();
 
         s->cmdList->TransitionImageLayout(s->colorImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_ACCESS_SHADER_READ_BIT,
+        //    VK_ACCESS_SHADER_READ_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
         s->cmdList->BeginRenderPass(s->swapchain->GetRenderPass(),
             s->swapchain->GetCurrentFramebuffer(),
@@ -363,7 +363,7 @@ void Graphics::EndFrame()
         s->cmdList->EndRenderPass();
         s->cmdList->TransitionImageLayout(
             s->colorImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        //    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
         // Execute all rendering cmds when the image is available
@@ -709,6 +709,7 @@ void Graphics::DestroyBindGroup(BindGroupHandle& bindGroup)
 {
     BX_ENSURE(bindGroup);
 
+    s->bindGroups.erase(bindGroup);
     s_createInfoCache->bindGroupCreateInfos.erase(bindGroup);
     s->bindGroupHandlePool.Destroy(bindGroup);
 }

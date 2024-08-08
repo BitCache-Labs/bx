@@ -31,8 +31,7 @@ namespace Vk
             std::shared_ptr<Image> cubemap);
         void GenerateMips(std::shared_ptr<Image> image);
 
-        void TransitionImageLayout(std::shared_ptr<Image> image, VkImageLayout layout,
-            VkAccessFlags access, VkPipelineStageFlags pipelineStage);
+        void TransitionImageLayout(std::shared_ptr<Image> image, VkImageLayout layout, VkPipelineStageFlags pipelineStage);
 
         void SetScissor(const Rect2D& rect2D);
         void SetViewport(const Rect2D& rect2D, bool normalize = true);

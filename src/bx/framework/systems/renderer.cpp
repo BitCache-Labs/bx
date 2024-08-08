@@ -264,6 +264,7 @@ void Renderer::Update()
 
 void Renderer::Render()
 {
+    return;
     // TODO: this is a better fit for the update method, however, Graphics::Update is called BEFORE all the world does its updating, leaving its state 1 frame behind
     UpdateAnimators();
     UpdateLightSources();

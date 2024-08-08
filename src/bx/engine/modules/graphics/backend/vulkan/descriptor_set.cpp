@@ -27,6 +27,7 @@ namespace Vk
 
         VK_ASSERT(!vkAllocateDescriptorSets(device->GetDevice(), &allocateInfo, &this->descriptorSet),
             "Failed to allocate descriptor set.");
+
         DebugNames::Set(*device, VkObjectType::VK_OBJECT_TYPE_DESCRIPTOR_SET,
             reinterpret_cast<uint64_t>(this->descriptorSet), name);
     }
@@ -90,11 +91,11 @@ namespace Vk
         {
             if (!image) continue;
 
-            VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+           /* VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             VkAccessFlags accessFlags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
             VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
-            cmdList->TransitionImageLayout(image, layout, accessFlags, stageFlags);
+            cmdList->TransitionImageLayout(image, layout, accessFlags, stageFlags);*/
         }
     }
 

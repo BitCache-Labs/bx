@@ -73,9 +73,9 @@ namespace Vk
             name);
 
         ImageState imageState;
-        imageState.layout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-        imageState.stageFlags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        imageState.accessFlags = VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
+        imageState.currentLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+        imageState.lastStageFlags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        //imageState.accessFlags = VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
         ResourceStateTracker::AddGlobalImageState(this->image, imageState);
 
         VkImageViewCreateInfo viewInfo{};

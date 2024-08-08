@@ -10,20 +10,19 @@ namespace Vk
     class Image;
 
     struct ImageState {
-        VkImageLayout layout;
-        VkAccessFlags accessFlags;
-        VkPipelineStageFlags stageFlags;
+        VkImageLayout currentLayout;
+        VkPipelineStageFlags lastStageFlags;
 
         b8 operator==(const ImageState& other) const
         {
-            return layout == other.layout && accessFlags == other.accessFlags && stageFlags == other.stageFlags;
+            return currentLayout == other.currentLayout && lastStageFlags == other.lastStageFlags;
         }
     };
 
     class ResourceStateTracker {
     public:
         static void TransitionImage(VkCommandBuffer cmdBuffer, const Image& image,
-            ImageState newState);
+            VkImageLayout newLayout, VkPipelineStageFlags newStage);
 
         static void AddGlobalImageState(VkImage image, ImageState state);
         static void RemoveGlobalImageState(VkImage image);

@@ -186,10 +186,10 @@ namespace Vk
                     this->extent.width, this->extent.height));
 
             ImageState imageState;
-            imageState.layout = VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            imageState.stageFlags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            imageState.accessFlags =
-                VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;  // VkAccessFlagBits::VK_ACCESS_NONE;
+            imageState.currentLayout = VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            imageState.lastStageFlags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            //imageState.accessFlags =
+            //    VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;  // VkAccessFlagBits::VK_ACCESS_NONE;
             ResourceStateTracker::AddGlobalImageState(this->images[i]->GetImage(), imageState);
         }
 

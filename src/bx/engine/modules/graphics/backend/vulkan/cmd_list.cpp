@@ -95,10 +95,10 @@ namespace Vk
 
     void CmdList::CopyImages(std::shared_ptr<Image> src, std::shared_ptr<Image> dst) {
         this->TransitionImageLayout(src, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            VK_ACCESS_TRANSFER_READ_BIT,
+        //    VK_ACCESS_TRANSFER_READ_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT);
         this->TransitionImageLayout(dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
+        //    VK_ACCESS_TRANSFER_WRITE_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT);
 
         VkImageBlit blit{};
@@ -130,7 +130,7 @@ namespace Vk
     void CmdList::CopyImagesIntoCubemap(const std::array<std::shared_ptr<Image>, 6>& images,
         std::shared_ptr<Image> cubemap) {
         this->TransitionImageLayout(cubemap, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
+        //    VK_ACCESS_TRANSFER_WRITE_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT);
 
         VkImageCopy imageCopy{};
@@ -147,7 +147,7 @@ namespace Vk
 
         for (size_t i = 0; i < images.size(); i++) {
             this->TransitionImageLayout(images[i], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                VK_ACCESS_TRANSFER_READ_BIT,
+            //    VK_ACCESS_TRANSFER_READ_BIT,
                 VK_PIPELINE_STAGE_TRANSFER_BIT);
         }
 
@@ -172,7 +172,7 @@ namespace Vk
         }
 
         this->TransitionImageLayout(cubemap, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_ACCESS_SHADER_READ_BIT,
+        //    VK_ACCESS_SHADER_READ_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     }
 
@@ -252,14 +252,8 @@ namespace Vk
         this->trackedImages.push_back(image);
     }
 
-    void CmdList::TransitionImageLayout(std::shared_ptr<Image> image, VkImageLayout layout,
-        VkAccessFlags access, VkPipelineStageFlags pipelineStage) {
-        ImageState imageState;
-        imageState.layout = layout;
-        imageState.accessFlags = access;
-        imageState.stageFlags = pipelineStage;
-
-        ResourceStateTracker::TransitionImage(this->cmdBuffer, *image, imageState);
+    void CmdList::TransitionImageLayout(std::shared_ptr<Image> image, VkImageLayout layout, VkPipelineStageFlags pipelineStage) {
+        ResourceStateTracker::TransitionImage(this->cmdBuffer, *image, layout, pipelineStage);
         this->trackedImages.push_back(image);
     }
 
