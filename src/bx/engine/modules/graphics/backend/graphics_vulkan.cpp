@@ -148,6 +148,7 @@ struct State : NoCopy
 
     std::shared_ptr<Fence> presentFence;
     std::shared_ptr<CmdList> cmdList;
+    std::shared_ptr<CmdList> uploadCmdList;
 };
 static std::unique_ptr<State> s;
 
@@ -341,6 +342,8 @@ void Graphics::NewFrame()
 
 void Graphics::EndFrame()
 {
+    s->cmdQueue->SubmitCmdList(s->uploadCmdList, nullptr, {}, {}, {});
+
     if (Window::IsActive())
     {
         // TODO: all rendering can happen before the image is available if we create a seperate present blit pipeline
@@ -407,6 +410,7 @@ void Graphics::EndFrame()
     }
 
     s->cmdList.reset();
+    s->uploadCmdList.reset();
 }
 
 const BufferHandle& Graphics::EmptyBuffer()
@@ -506,8 +510,12 @@ void Graphics::DestroySampler(SamplerHandle& sampler)
     BX_FAIL("TODO");
 }
 
-BufferHandle Graphics::CreateBuffer(const BufferCreateInfo& createInfo)
+BufferHandle Graphics::CreateBuffer(const BufferCreateInfo& _createInfo)
 {
+    // TODO: HACKS HACKS HACKS
+    BufferCreateInfo createInfo = _createInfo;
+    createInfo.usageFlags = createInfo.usageFlags | BufferUsageFlags::COPY_DST;
+
     BX_ENSURE(ValidateBufferCreateInfo(createInfo));
 
     BufferHandle bufferHandle = s->bufferHandlePool.Create();
@@ -523,7 +531,7 @@ BufferHandle Graphics::CreateBuffer(const BufferCreateInfo& createInfo)
     if (createInfo.data)
     {
         // TODO!
-        // WriteBuffer(bufferHandle, 0, createInfo.data);
+        WriteBuffer(bufferHandle, 0, createInfo.data);
     }
 
     return bufferHandle;
@@ -1042,7 +1050,9 @@ void WriteBuffer(const std::shared_ptr<Buffer>& buffer, const void* data, const 
     memcpy(bufferData, data, size.IsSome() ? size.Unwrap() : createInfo.size);
     stagingBuffer->Unmap();
 
-    s->cmdList->CopyBuffers(stagingBuffer, buffer);
+    if (!s->uploadCmdList)
+        s->uploadCmdList = s->cmdQueue->GetCmdList();
+    s->uploadCmdList->CopyBuffers(stagingBuffer, buffer);
 }
 
 void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data)
