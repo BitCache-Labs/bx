@@ -64,10 +64,15 @@ namespace Vk
             Pfn::vkCreateDebugReportCallbackEXT(this->instance, &createInfo, nullptr,
                 &this->debugReportCallback);
         }
+        else
+        {
+            this->debugReportCallback = VK_NULL_HANDLE;
+        }
     }
 
     Instance::~Instance() {
-        Pfn::vkDestroyDebugReportCallbackEXT(this->instance, this->debugReportCallback, nullptr);
+        if (this->debugReportCallback)
+            Pfn::vkDestroyDebugReportCallbackEXT(this->instance, this->debugReportCallback, nullptr);
         vkDestroySurfaceKHR(this->instance, this->surface, nullptr);
         vkDestroyInstance(this->instance, nullptr);
     }

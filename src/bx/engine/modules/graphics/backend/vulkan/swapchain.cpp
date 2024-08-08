@@ -203,6 +203,7 @@ namespace Vk
         
         RenderPassInfo renderPassInfo{};
         renderPassInfo.colorFormats = { this->Format() };
+        renderPassInfo.clear = false;
         this->renderPass = std::make_shared<RenderPass>("Swapchain Render Pass",
             this->device, renderPassInfo);
         for (auto& image : this->images) {

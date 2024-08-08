@@ -116,7 +116,6 @@ struct State : NoCopy
     b8 isRenderPassBound = false;
     Optional<RenderPassInfo> activeRenderPassInfo = Optional<RenderPassInfo>::None();
 
-
     RenderPassHandle activeRenderPassHandle = RenderPassHandle::null;
     ComputePassHandle activeComputePass = ComputePassHandle::null;
     GraphicsPipelineHandle boundGraphicsPipeline = GraphicsPipelineHandle::null;
@@ -135,16 +134,7 @@ struct State : NoCopy
     std::unique_ptr<CmdQueue> cmdQueue;
     std::shared_ptr<DescriptorPool> descriptorPool;
     std::unique_ptr<Swapchain> swapchain;
-
-    std::shared_ptr<Image> colorImage;
-    std::shared_ptr<Image> depthImage;
-    std::shared_ptr<Framebuffer> framebuffer;
-    std::shared_ptr<RenderPass> renderPass;
     std::shared_ptr<Sampler> sampler;
-
-    std::shared_ptr<GraphicsPipeline> presentPipeline;
-    std::shared_ptr<DescriptorSetLayout> presentDescriptorSetLayout;
-    Array<std::shared_ptr<DescriptorSet>, Swapchain::MAX_FRAMES_IN_FLIGHT> presentDescriptorSets = { nullptr, nullptr };
 
     std::shared_ptr<Fence> presentFence;
     std::shared_ptr<CmdList> cmdList;
@@ -202,70 +192,6 @@ void BuildSwapchain(HashMap<TextureHandle, TextureCreateInfo>& textureCreateInfo
     }
 }
 
-void BuildRenderTargets()
-{
-    i32 width, height;
-    Window::GetSize(&width, &height);
-
-    s->colorImage = std::make_shared<Image>(
-        "Color Image", s->device, *s->physicalDevice, width, height, 1,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-        VK_IMAGE_USAGE_STORAGE_BIT,
-        VK_FORMAT_R16G16B16A16_SFLOAT);
-    s->depthImage = std::make_shared<Image>(
-        "Depth Image", s->device, *s->physicalDevice, width, height, 1,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_FORMAT_D24_UNORM_S8_UINT);
-
-    RenderPassInfo renderPassInfo{};
-    renderPassInfo.colorFormats = { s->colorImage->Format() };
-    renderPassInfo.depthFormat = Optional<VkFormat>::Some(s->depthImage->Format());
-    s->renderPass = std::make_shared<RenderPass>("Main Render Pass",
-        s->device, renderPassInfo);
-
-    FramebufferInfo framebufferInfo{};
-    framebufferInfo.images = { s->colorImage, s->depthImage };
-    framebufferInfo.renderPass = s->renderPass;
-    s->framebuffer = std::make_shared<Framebuffer>("Main Framebuffer", s->device, framebufferInfo);
-}
-
-void BuildDescriptors()
-{
-    VkDescriptorSetLayoutBinding presentBinding0{};
-    presentBinding0.binding = 0;
-    presentBinding0.descriptorCount = 1;
-    presentBinding0.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    presentBinding0.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    s->presentDescriptorSetLayout = std::make_shared<DescriptorSetLayout>(
-        "Present Descriptor Set Layout 0",
-        s->device, List<VkDescriptorSetLayoutBinding>{ presentBinding0 });
-
-    for (size_t i = 0; i < s->presentDescriptorSets.size(); i++) {
-        s->presentDescriptorSets[i] = std::make_shared<DescriptorSet>(
-            "Present Descriptor Set 0",
-            s->device, s->descriptorPool, s->presentDescriptorSetLayout);
-    }
-}
-
-void BuildPipelines()
-{
-    std::shared_ptr<Shader> presentVertexShader =
-        std::make_shared<Shader>("present vert", s->device, VK_SHADER_STAGE_VERTEX_BIT, PRESENT_VERT_SRC);
-    std::shared_ptr<Shader> presentFragmentShader =
-        std::make_shared<Shader>("present frag", s->device, VK_SHADER_STAGE_FRAGMENT_BIT, PRESENT_FRAG_SRC);
-
-    GraphicsPipelineInfo presentInfo{};
-    presentInfo.ignoreDepth = true;
-    presentInfo.inputVertices = false;
-    std::vector<const Shader*> presentShaders = { presentVertexShader.get(),
-                                                 presentFragmentShader.get() };
-    s->presentPipeline = std::make_shared<GraphicsPipeline>(
-        s->device, presentShaders, s->swapchain->GetRenderPass(),
-        std::vector<std::shared_ptr<DescriptorSetLayout>>{s->presentDescriptorSetLayout},
-        std::vector<PushConstantRange>{}, presentInfo);
-}
-
 bool Graphics::Initialize()
 {
     s_createInfoCache = std::unique_ptr<CreateInfoCache>(new CreateInfoCache());
@@ -300,9 +226,6 @@ bool Graphics::Initialize()
     textureCreateInfo.usageFlags = TextureUsageFlags::COPY_SRC | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
 
     BuildSwapchain(s_createInfoCache->textureCreateInfos);
-    BuildRenderTargets();
-    BuildDescriptors();
-    BuildPipelines();
 
     return true;
 }
@@ -328,8 +251,6 @@ void Graphics::NewFrame()
             s->device->WaitIdle();
 
             BuildSwapchain(s_createInfoCache->textureCreateInfos);
-            BuildRenderTargets();
-            BuildPipelines();
         }
 
         s->presentFence = s->swapchain->NextImage();
@@ -350,31 +271,11 @@ void Graphics::EndFrame()
 
     if (Window::IsActive())
     {
-        // TODO: all rendering can happen before the image is available if we create a seperate present blit pipeline
-        // This can also act as a hdr to sdr conversion and enable us to render in hdr
-
-        Rect2D swapchainExtent = s->swapchain->Extent();
         size_t currentFrame = static_cast<size_t>(s->swapchain->GetCurrentFrameIdx());
 
-        s->cmdList->TransitionImageLayout(s->colorImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-        s->cmdList->TransitionImageLayout(s->depthImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+#ifdef BX_EDITOR_BUILD
+        Rect2D swapchainExtent = s->swapchain->Extent();
 
-        // Swapchain present pass
-        s->cmdList->BeginRenderPass(s->renderPass, s->framebuffer,
-            Color(0.6f, 0.8f, 1.0f, 1.0f));
-        Rect2D imgExtent(static_cast<float>(s->colorImage->Width()),
-            static_cast<float>(s->colorImage->Height()));
-        s->cmdList->SetScissor(imgExtent);
-        s->cmdList->SetViewport(imgExtent);
-        // TODO: render da shit
-        s->cmdList->EndRenderPass();
-        ResourceStateTracker::ApplyImplicitImageTransition(*s->colorImage,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-        s->cmdList->TransitionImageLayout(s->colorImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
         s->cmdList->TransitionImageLayout(s->swapchain->GetImage(currentFrame),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
@@ -384,19 +285,11 @@ void Graphics::EndFrame()
             Color(0.1f, 0.1f, 0.1f, 1.0f));
         s->cmdList->SetScissor(swapchainExtent);
         s->cmdList->SetViewport(swapchainExtent);
-        s->cmdList->BindGraphicsPipeline(s->presentPipeline);
-        s->presentDescriptorSets[currentFrame]->SetImage(
-            0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, s->colorImage, s->sampler);
-        s->cmdList->BindDescriptorSet(s->presentDescriptorSets[currentFrame], 0);
-        s->cmdList->Draw(3);
         ImGuiImpl::EndFrame();
         s->cmdList->EndRenderPass();
         ResourceStateTracker::ApplyImplicitImageTransition(*s->swapchain->GetImage(currentFrame),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-        s->cmdList->TransitionImageLayout(
-            s->colorImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+#endif
 
         s->cmdList->TransitionImageLayout(s->swapchain->GetImage(currentFrame),
             VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
