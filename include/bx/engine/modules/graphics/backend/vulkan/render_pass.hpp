@@ -18,6 +18,7 @@ namespace Vk
     {
         List<VkFormat> colorFormats;
         Optional<VkFormat> depthFormat = Optional<VkFormat>::None();
+        b8 clear = true;
 
         b8 operator==(const RenderPassInfo& other) const
         {
@@ -30,7 +31,7 @@ namespace Vk
                     return false;
             }
 
-            return depthFormat == other.depthFormat;
+            return depthFormat == other.depthFormat && clear == other.clear;
         }
     };
 

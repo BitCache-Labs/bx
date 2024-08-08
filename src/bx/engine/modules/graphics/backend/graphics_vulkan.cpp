@@ -342,7 +342,11 @@ void Graphics::NewFrame()
 
 void Graphics::EndFrame()
 {
-    s->cmdQueue->SubmitCmdList(s->uploadCmdList, nullptr, {}, {}, {});
+    if (s->uploadCmdList)
+    {
+        s->cmdQueue->SubmitCmdList(s->uploadCmdList, nullptr, {}, {}, {});
+        s->uploadCmdList.reset();
+    }
 
     if (Window::IsActive())
     {
@@ -351,6 +355,11 @@ void Graphics::EndFrame()
 
         Rect2D swapchainExtent = s->swapchain->Extent();
         size_t currentFrame = static_cast<size_t>(s->swapchain->GetCurrentFrameIdx());
+
+        s->cmdList->TransitionImageLayout(s->colorImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        s->cmdList->TransitionImageLayout(s->depthImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
 
         // Swapchain present pass
         s->cmdList->BeginRenderPass(s->renderPass, s->framebuffer,
@@ -365,7 +374,6 @@ void Graphics::EndFrame()
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
         s->cmdList->TransitionImageLayout(s->colorImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        //    VK_ACCESS_SHADER_READ_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
         s->cmdList->TransitionImageLayout(s->swapchain->GetImage(currentFrame),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -388,12 +396,11 @@ void Graphics::EndFrame()
 
         s->cmdList->TransitionImageLayout(
             s->colorImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        //    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
         s->cmdList->TransitionImageLayout(s->swapchain->GetImage(currentFrame),
             VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);// VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
         // Execute all rendering cmds when the image is available
         List<Semaphore*> waitSemaphores{ &s->swapchain->GetImageAvailableSemaphore() };
@@ -410,7 +417,6 @@ void Graphics::EndFrame()
     }
 
     s->cmdList.reset();
-    s->uploadCmdList.reset();
 }
 
 const BufferHandle& Graphics::EmptyBuffer()
@@ -803,11 +809,21 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
             height = createInfo.size.height;
         }
     }
-    framebufferInfo.renderPass = RenderPassCache::Get(renderPassInfo);
+
+    std::shared_ptr<RenderPass> loadRenderPass = RenderPassCache::Get(renderPassInfo);
+
+    RenderPassInfo noClearRenderPassInfo = renderPassInfo; // TODO: check if duplicate is required
+    noClearRenderPassInfo.clear = false;
+    std::shared_ptr<RenderPass> renderPass = RenderPassCache::Get(noClearRenderPassInfo);
+
+    framebufferInfo.renderPass = renderPass;
     
     std::shared_ptr<Framebuffer> framebuffer(new Framebuffer("framebuffer", s->device, framebufferInfo));
     s->cmdList->SetViewport(Rect2D(width, height));
     s->cmdList->SetScissor(Rect2D(width, height));
+
+    s->cmdList->BeginRenderPass(loadRenderPass, framebuffer, Color::Black());
+    s->cmdList->EndRenderPass();
 
     RenderPassHandle renderPassHandle = s->renderPassHandlePool.Create();
     s_createInfoCache->renderPassCreateInfos.insert(std::make_pair(renderPassHandle, descriptor));
