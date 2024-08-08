@@ -38,7 +38,7 @@ namespace Vk
         const PhysicalDevice& physicalDevice, uint32_t width, uint32_t height,
         uint32_t mips, VkImageUsageFlags usage, VkFormat format, uint32_t arrayLayers,
         VkImageType dims, unsigned depth)
-        : device(device),
+        : name(name), device(device),
         imageView(VK_NULL_HANDLE),
         width(width),
         height(height),
@@ -99,7 +99,7 @@ namespace Vk
 
     Image::Image(const String& name, std::shared_ptr<Device> device, VkImage image, VkImageView imageView,
         uint32_t width, uint32_t height)
-        : device(device),
+        : name(name), device(device),
         image(image),
         imageView(imageView),
         allocation(VK_NULL_HANDLE),

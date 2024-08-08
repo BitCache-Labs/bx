@@ -106,7 +106,9 @@ namespace Vk
         this->format = ChooseSwapSurfaceFormat(instance, physicalDevice);
         this->presentMode = ChooseSwapPresentMode(instance, physicalDevice);
         this->extent = ChooseSwapExtent(width, height, instance, physicalDevice);
-        this->imageCount = ChooseImageCount(instance, physicalDevice);
+
+        // TODO: fix this absolute chaos
+        this->imageCount = MAX_FRAMES_IN_FLIGHT;// ChooseImageCount(instance, physicalDevice);
 
         TextureCreateInfo imageCreateInfo{};
         imageCreateInfo.name = "Swapchain Color Target";
@@ -186,10 +188,8 @@ namespace Vk
                     this->extent.width, this->extent.height));
 
             ImageState imageState;
-            imageState.currentLayout = VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            imageState.currentLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
             imageState.lastStageFlags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            //imageState.accessFlags =
-            //    VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;  // VkAccessFlagBits::VK_ACCESS_NONE;
             ResourceStateTracker::AddGlobalImageState(this->images[i]->GetImage(), imageState);
         }
 
@@ -260,6 +260,7 @@ namespace Vk
         vkAcquireNextImageKHR(
             this->device->GetDevice(), this->swapchain, std::numeric_limits<uint64_t>::max(),
             this->GetImageAvailableSemaphore().GetSemaphore(), VK_NULL_HANDLE, &this->currentImage);
+        BX_ENSURE(this->currentImage < MAX_FRAMES_IN_FLIGHT);
 
         return this->inFlightFences[this->currentFrame];
     }

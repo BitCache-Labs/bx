@@ -32,6 +32,7 @@ namespace Vk
         VkImageView GetImageView() const;
 
     private:
+        const String name;
         const std::shared_ptr<Device> device;
 
         VkImage image;

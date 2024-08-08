@@ -3,6 +3,7 @@
 #include "bx/engine/core/macros.hpp"
 
 #include "bx/engine/modules/graphics/backend/vulkan/device.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/resource_state_tracker.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/validation.hpp"
 
 namespace Vk
@@ -22,7 +23,7 @@ namespace Vk
             colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
             VkAttachmentReference colorAttachmentRef{};
             colorAttachmentRef.attachment = static_cast<uint32_t>(i);
@@ -34,7 +35,7 @@ namespace Vk
 
         VkAttachmentReference depthAttachmentRef{};
         depthAttachmentRef.attachment = static_cast<uint32_t>(colorAttachmentRefs.size());
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; // TODO: cover non-stencil formats
 
         if (info.depthFormat.IsSome()) {
             VkAttachmentDescription depthAttachment{};

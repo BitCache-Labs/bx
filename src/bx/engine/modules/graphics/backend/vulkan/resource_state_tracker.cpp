@@ -11,17 +11,22 @@ namespace Vk
 
     VkAccessFlags LayoutToAccessFlags(VkImageLayout layout)
     {
+        //return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
         switch (layout)
         {
         case VK_IMAGE_LAYOUT_UNDEFINED:
             return VK_ACCESS_NONE;
+        case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+            return VK_ACCESS_NONE;// VK_ACCESS_NONE;
 
         case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-            return VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+            return VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;// | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+            return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+            return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
         case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
             return VK_ACCESS_SHADER_READ_BIT;
-        case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-            return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
         case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
             return VK_ACCESS_TRANSFER_READ_BIT;
@@ -50,8 +55,14 @@ namespace Vk
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = image.GetImage();
-        if (IsDepthFormat(image.Format()))
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+
+        if (IsDepthFormat(image.Format()) || IsStencilFormat(image.Format()))
+        {
+            if (IsDepthFormat(image.Format()))
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            if (IsStencilFormat(image.Format()))
+                barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
         else
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseMipLevel = 0;
@@ -67,6 +78,18 @@ namespace Vk
 
         state.currentLayout = newLayout;
         state.lastStageFlags = newStage;
+    }
+
+    VkImageLayout ResourceStateTracker::GetCurrentImageLayout(const Image& image)
+    {
+        ImageState& state = globalImageStates.find(image.GetImage())->second;
+        return state.currentLayout;
+    }
+
+    void ResourceStateTracker::ApplyImplicitImageTransition(const Image& image, VkImageLayout newLayout)
+    {
+        ImageState& state = globalImageStates.find(image.GetImage())->second;
+        state.currentLayout = newLayout;
     }
 
     void ResourceStateTracker::AddGlobalImageState(VkImage image, ImageState state) {

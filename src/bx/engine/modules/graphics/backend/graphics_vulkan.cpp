@@ -14,6 +14,7 @@
 #include "bx/engine/modules/window.hpp"
 #include "bx/engine/modules/imgui.hpp"
 
+#include "bx/engine/modules/graphics/backend/vulkan/resource_state_tracker.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/conversion.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/buffer.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/instance.hpp"
@@ -161,13 +162,43 @@ struct RenderPassCache : public LazyInitMap<RenderPassCache, std::shared_ptr<Ren
 template<>
 HashMap<RenderPassInfo, std::unique_ptr<RenderPassCache>> LazyInitMap<RenderPassCache, std::shared_ptr<RenderPass>, RenderPassInfo>::cache = {};
 
-void BuildSwapchain()
+void BuildSwapchain(HashMap<TextureHandle, TextureCreateInfo>& textureCreateInfos)
 {
     i32 width, height;
     Window::GetSize(&width, &height);
 
     s->swapchain.reset();
     s->swapchain = std::make_unique<Swapchain>(static_cast<u32>(width), static_cast<u32>(height), *s->instance, s->device, *s->physicalDevice);
+
+    for (u32 i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        if (s->swapchainColorTargets[i])
+        {
+            Graphics::DestroyTexture(s->swapchainColorTargets[i]);
+        }
+
+        if (s->swapchainColorTargetViews[i])
+        {
+            Graphics::DestroyTextureView(s->swapchainColorTargetViews[i]);
+        }
+    }
+
+    for (u32 i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        TextureHandle textureHandle = s->textureHandlePool.Create();
+        TextureViewHandle textureViewHandle = s->textureViewHandlePool.Create();
+        textureCreateInfos.insert(std::make_pair(textureHandle, s->swapchain->GetImageCreateInfo()));
+
+        std::shared_ptr<Image> image = s->swapchain->GetImage(i);
+        TextureView textureView{};
+        textureView.handle = textureHandle;
+        textureView.texture = image;
+
+        s->textures.emplace(textureHandle, image);
+        s->textureViews.emplace(textureViewHandle, textureView);
+        s->swapchainColorTargets[i] = textureHandle;
+        s->swapchainColorTargetViews[i] = textureViewHandle;
+    }
 }
 
 void BuildRenderTargets()
@@ -267,18 +298,7 @@ bool Graphics::Initialize()
     textureCreateInfo.size = Extend3D(1, 1, 1);
     textureCreateInfo.usageFlags = TextureUsageFlags::COPY_SRC | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
 
-    BuildSwapchain();
-    for (u32 i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        TextureHandle textureHandle = s->textureHandlePool.Create();
-        s_createInfoCache->textureCreateInfos.insert(std::make_pair(textureHandle, s->swapchain->GetImageCreateInfo()));
-
-        std::shared_ptr<Image> image = s->swapchain->GetImage(i);
-        s->textures.emplace(textureHandle, image);
-        s->swapchainColorTargets[i] = textureHandle;
-        s->swapchainColorTargetViews[i] = TextureViewHandle{ textureHandle.id };
-    }
-    
+    BuildSwapchain(s_createInfoCache->textureCreateInfos);
     BuildRenderTargets();
     BuildDescriptors();
     BuildPipelines();
@@ -302,18 +322,11 @@ void Graphics::NewFrame()
 
     if (Window::IsActive())
     {
-        if (Window::WasResized())
+        if (Window::WasResized() && false)
         {
-            BuildSwapchain();
-            for (u32 i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++)
-            {
-                TextureHandle textureHandle = s->textureHandlePool.Create();
-                s_createInfoCache->textureCreateInfos.insert(std::make_pair(textureHandle, s->swapchain->GetImageCreateInfo()));
+            s->device->WaitIdle();
 
-                std::shared_ptr<Image> image = s->swapchain->GetImage(i);
-                s->textures.emplace(textureHandle, image);
-            }
-
+            BuildSwapchain(s_createInfoCache->textureCreateInfos);
             BuildRenderTargets();
             BuildPipelines();
         }
@@ -345,10 +358,16 @@ void Graphics::EndFrame()
         s->cmdList->SetViewport(imgExtent);
         // TODO: render da shit
         s->cmdList->EndRenderPass();
+        ResourceStateTracker::ApplyImplicitImageTransition(*s->colorImage,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
         s->cmdList->TransitionImageLayout(s->colorImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         //    VK_ACCESS_SHADER_READ_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        s->cmdList->TransitionImageLayout(s->swapchain->GetImage(currentFrame),
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
         s->cmdList->BeginRenderPass(s->swapchain->GetRenderPass(),
             s->swapchain->GetCurrentFramebuffer(),
             Color(0.1f, 0.1f, 0.1f, 1.0f));
@@ -361,10 +380,17 @@ void Graphics::EndFrame()
         s->cmdList->Draw(3);
         ImGuiImpl::EndFrame();
         s->cmdList->EndRenderPass();
+        ResourceStateTracker::ApplyImplicitImageTransition(*s->swapchain->GetImage(currentFrame),
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
         s->cmdList->TransitionImageLayout(
             s->colorImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         //    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+        s->cmdList->TransitionImageLayout(s->swapchain->GetImage(currentFrame),
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);// VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
         // Execute all rendering cmds when the image is available
         List<Semaphore*> waitSemaphores{ &s->swapchain->GetImageAvailableSemaphore() };
@@ -376,6 +402,8 @@ void Graphics::EndFrame()
 
         // Present when rendering is finished, indicated by the `presentSignalSemaphores`
         s->swapchain->Present(*s->cmdQueue, *s->presentFence, presentSignalSemaphores);
+        ResourceStateTracker::ApplyImplicitImageTransition(*s->swapchain->GetImage(currentFrame),
+            VK_IMAGE_LAYOUT_UNDEFINED);
     }
 
     s->cmdList.reset();
@@ -730,6 +758,9 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
         auto& textureCreateInfo = GetTextureCreateInfo(textureViewIter->second.handle);
 
         framebufferInfo.images.push_back(textureViewIter->second.texture);
+        s->cmdList->TransitionImageLayout(textureViewIter->second.texture,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
         VkFormat format = TextureFormatToVk(textureCreateInfo.format);
         renderPassInfo.colorFormats.push_back(format);
@@ -750,6 +781,9 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
         auto& textureCreateInfo = GetTextureCreateInfo(textureViewIter->second.handle);
 
         framebufferInfo.images.push_back(textureViewIter->second.texture);
+        s->cmdList->TransitionImageLayout(textureViewIter->second.texture,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // TODO: cover non-stencil variants
+            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
 
         VkFormat format = TextureFormatToVk(textureCreateInfo.format);
         renderPassInfo.depthFormat = Optional<VkFormat>::Some(format);

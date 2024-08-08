@@ -24,6 +24,9 @@ namespace Vk
         static void TransitionImage(VkCommandBuffer cmdBuffer, const Image& image,
             VkImageLayout newLayout, VkPipelineStageFlags newStage);
 
+        static VkImageLayout GetCurrentImageLayout(const Image& image);
+        static void ApplyImplicitImageTransition(const Image& image, VkImageLayout newLayout);
+
         static void AddGlobalImageState(VkImage image, ImageState state);
         static void RemoveGlobalImageState(VkImage image);
 
