@@ -2,6 +2,7 @@
 
 #include "bx/engine/core/guard.hpp"
 #include "bx/engine/containers/string.hpp"
+#include "bx/engine/containers/hash_map.hpp"
 #include "bx/engine/containers/list.hpp"
 
 #include "vulkan_api.hpp"
@@ -19,9 +20,12 @@ namespace Vk
         DescriptorSetLayout& operator=(DescriptorSetLayout&& other) noexcept;
 
         VkDescriptorSetLayout GetLayout() const;
+        VkDescriptorType GetDescriptorType(u32 binding) const;
 
     private:
         VkDescriptorSetLayout layout;
+
+        HashMap<u32, VkDescriptorType> descriptorTypes;
 
         const std::shared_ptr<Device> device;
     };

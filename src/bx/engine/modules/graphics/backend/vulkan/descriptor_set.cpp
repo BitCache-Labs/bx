@@ -58,17 +58,21 @@ namespace Vk
     }
 
     void DescriptorSet::SetImage(uint32_t binding, VkDescriptorType type,
-        std::shared_ptr<Image> image, std::shared_ptr<Sampler> sampler) {
-        trackedImages[binding] = image;
+        std::shared_ptr<Image> image, std::shared_ptr<Sampler> sampler)
+    {
         trackedSamplers[binding] = sampler;
 
         VkDescriptorImageInfo imageInfo{};
         if (type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
             // TODO: this assumption may break, storage images are allowed to be read in a fragment shader, query resource state tracker for accurate states
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+            trackedStorageImages[binding] = image;
         }
         else {
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            trackedSampledImages[binding] = image;
         }
         imageInfo.imageView = image->GetImageView();
         if (sampler)
@@ -85,15 +89,24 @@ namespace Vk
         vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
     }
 
-    void DescriptorSet::TransitionResourceStates(std::shared_ptr<CmdList> cmdList) const
+    void DescriptorSet::TransitionResourceStates(std::shared_ptr<CmdList> cmdList, b8 isGraphics) const
     {
-        for (auto& image : trackedImages)
+        for (auto& image : trackedSampledImages)
         {
             if (!image) continue;
 
             VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            //VkAccessFlags accessFlags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-            VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            VkPipelineStageFlags stageFlags = isGraphics ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+            cmdList->TransitionImageLayout(image, layout, stageFlags);
+        }
+
+        for (auto& image : trackedStorageImages)
+        {
+            if (!image) continue;
+
+            VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL;
+            VkPipelineStageFlags stageFlags = isGraphics ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
             cmdList->TransitionImageLayout(image, layout, stageFlags);
         }

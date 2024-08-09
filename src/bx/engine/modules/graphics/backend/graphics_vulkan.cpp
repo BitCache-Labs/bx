@@ -599,8 +599,8 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
             auto bufferIter = s->buffers.find(entry.resource.buffer.buffer);
             BX_ENSURE(bufferIter != s->buffers.end());
 
-            // TODO: read std::shared_ptr<DescriptorSetLayout> layout and cache some stuff to figure out what the buffer type is
-            descriptorSet->SetBuffer(entry.binding, VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, bufferIter->second);
+            VkDescriptorType type = layout->GetDescriptorType(entry.binding);
+            descriptorSet->SetBuffer(entry.binding, type, bufferIter->second);
             break;
         }
         case BindingResourceType::TEXTURE_VIEW:
@@ -608,8 +608,9 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
             auto textureViewIter = s->textureViews.find(entry.resource.textureView);
             BX_ENSURE(textureViewIter != s->textureViews.end());
 
-            // TODO: read std::shared_ptr<DescriptorSetLayout> layout and cache some stuff to figure out what the buffer type is
-            descriptorSet->SetImage(entry.binding, VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, textureViewIter->second.texture, s->sampler);
+            VkDescriptorType type = layout->GetDescriptorType(entry.binding);
+            std::shared_ptr<Sampler> sampler = type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? s->sampler : nullptr;
+            descriptorSet->SetImage(entry.binding, type, textureViewIter->second.texture, sampler);
             break;
         }
         default:
@@ -826,7 +827,8 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
     auto bindGroupIter = s->bindGroups.find(bindGroup);
     BX_ENSURE(bindGroupIter != s->bindGroups.end());
 
-    bindGroupIter->second->TransitionResourceStates(s->cmdList);
+    b8 isGraphics = s->activeRenderPassHandle;
+    bindGroupIter->second->TransitionResourceStates(s->cmdList, isGraphics);
 
     VkPipelineBindPoint bindPoint = s->activeRenderPassHandle ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
     s->cmdList->BindDescriptorSet(bindGroupIter->second, index, bindPoint);
