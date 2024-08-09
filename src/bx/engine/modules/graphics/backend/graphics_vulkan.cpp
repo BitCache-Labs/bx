@@ -159,7 +159,7 @@ void BuildSwapchain(HashMap<TextureHandle, TextureCreateInfo>& textureCreateInfo
     Window::GetSize(&width, &height);
 
     s->swapchain.reset();
-    s->swapchain = std::make_unique<Swapchain>(static_cast<u32>(width), static_cast<u32>(height), *s->instance, s->device, *s->physicalDevice);
+    s->swapchain = std::unique_ptr<Swapchain>(new Swapchain(static_cast<u32>(width), static_cast<u32>(height), *s->instance, s->device, *s->physicalDevice));
 
     for (u32 i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -195,24 +195,24 @@ void BuildSwapchain(HashMap<TextureHandle, TextureCreateInfo>& textureCreateInfo
 bool Graphics::Initialize()
 {
     s_createInfoCache = std::unique_ptr<CreateInfoCache>(new CreateInfoCache());
-    s = std::make_unique<State>();
+    s = std::unique_ptr<State>(new State());
 
 #ifdef BX_WINDOW_GLFW_BACKEND
     GLFWwindow* glfwWindow = WindowGLFW::GetWindowPtr();
 
-    s->instance = std::make_shared<Instance>((void*)glfwWindow, ENABLE_VALIDATION);
+    s->instance = std::shared_ptr<Instance>(new Instance((void*)glfwWindow, ENABLE_VALIDATION));
 #else
 
     BX_LOGE("Window backend not supported!");
     return false;
 #endif
     
-    s->physicalDevice = std::make_unique<PhysicalDevice>(*s->instance);
-    s->device = std::make_shared<Device>(s->instance, *s->physicalDevice, ENABLE_VALIDATION);
-    s->cmdQueue = std::make_unique<CmdQueue>(s->device, *s->physicalDevice, QueueType::GRAPHICS);
-    s->descriptorPool = std::make_shared<DescriptorPool>(s->device);
-    s->sampler = std::make_shared<Sampler>("Sampler", s->device, *s->physicalDevice,
-        SamplerInfo{});
+    s->physicalDevice = std::unique_ptr<PhysicalDevice>(new PhysicalDevice(*s->instance));
+    s->device = std::shared_ptr<Device>(new Device(s->instance, *s->physicalDevice, ENABLE_VALIDATION));
+    s->cmdQueue = std::unique_ptr<CmdQueue>(new CmdQueue(s->device, *s->physicalDevice, QueueType::GRAPHICS));
+    s->descriptorPool = std::shared_ptr<DescriptorPool>(new DescriptorPool(s->device));
+    s->sampler = std::shared_ptr<Sampler>(new Sampler("Sampler", s->device, *s->physicalDevice,
+        SamplerInfo{}));
 
     BufferCreateInfo bufferCreateInfo{};
     bufferCreateInfo.name = "Empty Buffer";

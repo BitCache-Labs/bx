@@ -184,8 +184,8 @@ namespace Vk
         this->images.reserve(swapChainImages.size());
         for (size_t i = 0; i < swapChainImages.size(); i++) {
             this->images.push_back(
-                std::make_shared<Image>(Log::Format("Swapchain Image {}", i), device, swapChainImages[i], swapChainImageViews[i],
-                    this->extent.width, this->extent.height));
+                std::shared_ptr<Image>(new Image(Log::Format("Swapchain Image {}", i), device, swapChainImages[i], swapChainImageViews[i],
+                    this->extent.width, this->extent.height)));
 
             ImageState imageState;
             imageState.currentLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
@@ -198,14 +198,14 @@ namespace Vk
                 Semaphore(Log::Format("Image Available {}", i), device));
             renderFinishedSemaphores.emplace_back(
                 Semaphore(Log::Format("Render Finished {}", i), device));
-            inFlightFences.emplace_back(std::make_shared<Fence>(Log::Format("Swapchain In Flight Fence {}", i), device, true));
+            inFlightFences.emplace_back(std::shared_ptr<Fence>(new Fence(Log::Format("Swapchain In Flight Fence {}", i), device, true)));
         }
         
         RenderPassInfo renderPassInfo{};
         renderPassInfo.colorFormats = { this->Format() };
         renderPassInfo.clear = false;
-        this->renderPass = std::make_shared<RenderPass>("Swapchain Render Pass",
-            this->device, renderPassInfo);
+        this->renderPass = std::shared_ptr<RenderPass>(new RenderPass("Swapchain Render Pass",
+            this->device, renderPassInfo));
         for (auto& image : this->images) {
             FramebufferInfo framebufferInfo{};
             framebufferInfo.images = { image };
