@@ -50,35 +50,6 @@ true;
 false;
 #endif
 
-static String PRESENT_VERT_SRC = R"""(
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
-
-layout(location = 0) out vec2 fragTexCoord;
-
-void main() {
-    fragTexCoord = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
-    gl_Position = vec4(fragTexCoord * 2.0f + -1.0f, 0.0f, 1.0f);
-    fragTexCoord.y = -fragTexCoord.y;
-}
-)""";
-
-static String PRESENT_FRAG_SRC = R"""(
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
-
-layout(location = 0) in vec2 fragTexCoord;
-
-layout(location = 0) out vec4 outColor;
-
-layout(binding = 0) uniform sampler2D colorImage;
-
-void main() {
-    vec3 color = texture(colorImage, fragTexCoord).rgb;
-    outColor = vec4(color, 1.0);
-}
-)""";
-
 struct TextureView
 {
     TextureHandle handle;
@@ -146,7 +117,7 @@ struct RenderPassCache : public LazyInitMap<RenderPassCache, std::shared_ptr<Ren
 {
     RenderPassCache(const RenderPassInfo& args)
     {
-        data = std::shared_ptr<RenderPass>(new RenderPass("render pass", s->device, args));
+        data = std::shared_ptr<RenderPass>(new RenderPass("Render Pass", s->device, args));
     }
 };
 
@@ -334,7 +305,6 @@ TextureViewHandle Graphics::GetSwapchainColorTargetView()
 
 TextureHandle Graphics::CreateTexture(const TextureCreateInfo& _createInfo)
 {
-    // TODO: HACKS HACKS HACKS
     TextureCreateInfo createInfo = _createInfo;
     createInfo.usageFlags = createInfo.usageFlags | TextureUsageFlags::COPY_DST;
 
@@ -357,7 +327,6 @@ TextureHandle Graphics::CreateTexture(const TextureCreateInfo& _createInfo)
 
     if (createInfo.data)
     {
-        // TODO!
         WriteTexture(textureHandle, createInfo.data, Extend3D(0, 0, 0), createInfo.size);
     }
 
@@ -415,9 +384,11 @@ void Graphics::DestroySampler(SamplerHandle& sampler)
 
 BufferHandle Graphics::CreateBuffer(const BufferCreateInfo& _createInfo)
 {
-    // TODO: HACKS HACKS HACKS
     BufferCreateInfo createInfo = _createInfo;
-    createInfo.usageFlags = createInfo.usageFlags | BufferUsageFlags::COPY_DST;
+
+    b8 isMappable = IsBufferUsageMappable(createInfo.usageFlags);
+    if (!isMappable)
+        createInfo.usageFlags = createInfo.usageFlags | BufferUsageFlags::COPY_DST;
 
     BX_ENSURE(ValidateBufferCreateInfo(createInfo));
 
@@ -425,16 +396,23 @@ BufferHandle Graphics::CreateBuffer(const BufferCreateInfo& _createInfo)
     s_createInfoCache->bufferCreateInfos.insert(std::make_pair(bufferHandle, createInfo.WithoutData()));
 
     VkBufferUsageFlags usage = BufferUsageFlagsToVk(createInfo.usageFlags);
-    BufferLocation location = IsBufferUsageMappable(createInfo.usageFlags) ? BufferLocation::CPU_TO_GPU : BufferLocation::GPU_ONLY;
+    BufferLocation location = isMappable ? BufferLocation::CPU_TO_GPU : BufferLocation::GPU_ONLY;
 
     std::shared_ptr<Buffer> buffer(new Buffer(createInfo.name, s->device, *s->physicalDevice, usage, createInfo.size, location));
     s->buffers.emplace(bufferHandle, buffer);
 
-    // TODO: host visible (mappable) memory doesn't really benefit from using staging buffers, they should directly write to the mappable memory
     if (createInfo.data)
     {
-        // TODO!
-        WriteBuffer(bufferHandle, 0, createInfo.data);
+        if (!isMappable)
+        {
+            WriteBuffer(bufferHandle, 0, createInfo.data);
+        }
+        else
+        {
+            void* bufferData = buffer->Map();
+            memcpy(bufferData, createInfo.data, createInfo.size);
+            buffer->Unmap();
+        }
     }
 
     return bufferHandle;
