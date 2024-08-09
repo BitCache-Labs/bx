@@ -5,6 +5,7 @@
 #ifndef MEMORY_CUSTOM_CONTAINERS
 
 #include <functional>
+#include <xhash>
 
 template <typename T>
 using Hash = std::hash<T>;
