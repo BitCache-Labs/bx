@@ -11,6 +11,7 @@ namespace Vk
 	VkBufferUsageFlags BufferUsageFlagsToVk(BufferUsageFlags usage);
 	VkImageUsageFlags TextureUsageFlagsToVk(TextureUsageFlags usage, b8 depthFormat);
 	VkFormat TextureFormatToVk(TextureFormat format);
+	VkImageLayout TextureFormatToVkImageLayout(TextureFormat format);
 	VkImageType TextureDimensionToVk(TextureDimension dimension);
 	VkShaderStageFlagBits ShaderTypeToVk(ShaderType type);
 	VkDescriptorType BindingTypeToVk(BindingType type);

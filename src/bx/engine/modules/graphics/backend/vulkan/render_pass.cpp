@@ -5,6 +5,7 @@
 #include "bx/engine/modules/graphics/backend/vulkan/device.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/resource_state_tracker.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/validation.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/image_format.hpp"
 
 namespace Vk
 {
@@ -35,9 +36,13 @@ namespace Vk
 
         VkAttachmentReference depthAttachmentRef{};
         depthAttachmentRef.attachment = static_cast<uint32_t>(colorAttachmentRefs.size());
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; // TODO: cover non-stencil formats
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         if (info.depthFormat.IsSome()) {
+            VkImageLayout depthStencilLayout = GetDepthStencilLayout(info.depthFormat.Unwrap());
+            
+            depthAttachmentRef.layout = depthStencilLayout;
+
             VkAttachmentDescription depthAttachment{};
             depthAttachment.format = info.depthFormat.Unwrap();
             depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -45,8 +50,8 @@ namespace Vk
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-            depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depthAttachment.initialLayout = depthStencilLayout;
+            depthAttachment.finalLayout = depthStencilLayout;
             attachements.push_back(depthAttachment);
         }
 

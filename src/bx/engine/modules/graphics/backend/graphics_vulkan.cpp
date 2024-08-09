@@ -671,7 +671,7 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
 
         framebufferInfo.images.push_back(textureViewIter->second.texture);
         s->cmdList->TransitionImageLayout(textureViewIter->second.texture,
-            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // TODO: cover non-stencil variants
+            TextureFormatToVkImageLayout(textureCreateInfo.format),
             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
 
         VkFormat format = TextureFormatToVk(textureCreateInfo.format);

@@ -182,6 +182,29 @@ namespace Vk
 		}
 	}
 
+	VkImageLayout TextureFormatToVkImageLayout(TextureFormat format)
+	{
+		b8 depth = IsTextureFormatDepth(format);
+		b8 stencil = IsTextureFormatStencil(format);
+
+		if (depth && stencil)
+		{
+			return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		}
+		else if (depth)
+		{
+			return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+		}
+		else if (stencil)
+		{
+			return VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+		}
+		else
+		{
+			return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		}
+	}
+
 	VkImageType TextureDimensionToVk(TextureDimension dimension)
 	{
 		switch (dimension)

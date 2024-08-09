@@ -215,7 +215,7 @@ b8 IsTextureFormatDepth(const TextureFormat& format)
 	switch (format)
 	{
 	case TextureFormat::STENCIL8:
-		return true;
+		return false;
 	case TextureFormat::DEPTH16_UNORM:
 		return true;
 	case TextureFormat::DEPTH24_PLUS:
@@ -224,6 +224,27 @@ b8 IsTextureFormatDepth(const TextureFormat& format)
 		return true;
 	case TextureFormat::DEPTH32_FLOAT:
 		return true;
+	case TextureFormat::DEPTH32_FLOAT_STENCIL8:
+		return true;
+	default:
+		return false;
+	}
+}
+
+b8 IsTextureFormatStencil(const TextureFormat& format)
+{
+	switch (format)
+	{
+	case TextureFormat::STENCIL8:
+		return true;
+	case TextureFormat::DEPTH16_UNORM:
+		return false;
+	case TextureFormat::DEPTH24_PLUS:
+		return false;
+	case TextureFormat::DEPTH24_PLUS_STENCIL8:
+		return true;
+	case TextureFormat::DEPTH32_FLOAT:
+		return false;
 	case TextureFormat::DEPTH32_FLOAT_STENCIL8:
 		return true;
 	default:
