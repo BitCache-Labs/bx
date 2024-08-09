@@ -338,7 +338,15 @@ ShaderHandle Graphics::CreateShader(const ShaderCreateInfo& createInfo)
     ShaderHandle shaderHandle = s->shaderHandlePool.Create();
     s_createInfoCache->shaderCreateInfos.insert(std::make_pair(shaderHandle, createInfo));
 
-    String meta = String("#version 450\n");
+    String meta = String(R""""(
+    #version 450
+    
+    #ifndef OPENGL
+    #define OPENGL
+    #extension GL_KHR_vulkan_glsl : enable
+    #endif // OPENGL
+    )"""");
+
     switch (createInfo.shaderType)
     {
     case ShaderType::VERTEX:

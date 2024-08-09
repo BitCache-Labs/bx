@@ -15,6 +15,7 @@
 #include <iostream>
 #include <stdexcept>
 
+
 static String ResolveIncludes(const String& source, HashSet<String>& includedFiles)
 {
     InputStringStream shaderStream(source);
@@ -49,7 +50,7 @@ static String ResolveIncludes(const String& source, HashSet<String>& includedFil
     return resolvedShader.GetString();
 }
 
-static String PreprocessShader(const String& source)
+String ResolveShaderIncludes(const String& source)
 {
     HashSet<String> includedFiles;
     return ResolveIncludes(source, includedFiles);
@@ -77,7 +78,7 @@ bool Resource<Shader>::Load(const String& filename, Shader& data)
     std::stringstream ss;
     ss << stream.rdbuf();
 
-    String source = PreprocessShader(ss.str());
+    String source = ResolveShaderIncludes(ss.str());
     data.SetSource(source);
 
     ShaderCreateInfo vertexCreateInfo{};

@@ -1,8 +1,10 @@
 #include "bx/framework/systems/renderer/present_pass.hpp"
 
 #include "bx/framework/systems/renderer/lazy_init.hpp"
+#include "bx/framework/resources/shader.hpp"
 
 const char* PRESENT_SHADER_SRC = R""""(
+#include "[assets]/Shaders/Language.shader"
 
 #ifdef VERTEX
 
@@ -10,9 +12,12 @@ layout (location = 0) out vec2 fragTexCoord;
 
 void main()
 {
-	vec2 vertices[3]=vec2[3](vec2(-1,-1), vec2(3,-1), vec2(-1, 3));
-	gl_Position = vec4(vertices[gl_VertexID],0,1);
-	fragTexCoord = 0.5 * gl_Position.xy + vec2(0.5);
+    fragTexCoord = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+    gl_Position = vec4(fragTexCoord * 2.0f + -1.0f, 0.0f, 1.0f);
+
+#ifdef VULKAN
+    fragTexCoord.y = -fragTexCoord.y;
+#endif
 }
 
 #endif // VERTEX
@@ -67,13 +72,13 @@ struct PresentPipeline : public LazyInit<PresentPipeline, GraphicsPipelineHandle
         ShaderCreateInfo vertexCreateInfo{};
         vertexCreateInfo.name = "Present Vertex Shader";
         vertexCreateInfo.shaderType = ShaderType::VERTEX;
-        vertexCreateInfo.src = PRESENT_SHADER_SRC;
+        vertexCreateInfo.src = ResolveShaderIncludes(PRESENT_SHADER_SRC);
         ShaderHandle vertexShader = Graphics::CreateShader(vertexCreateInfo);
 
         ShaderCreateInfo fragmentCreateInfo{};
         fragmentCreateInfo.name = "Present Fragment Shader";
         fragmentCreateInfo.shaderType = ShaderType::FRAGMENT;
-        fragmentCreateInfo.src = PRESENT_SHADER_SRC;
+        fragmentCreateInfo.src = ResolveShaderIncludes(PRESENT_SHADER_SRC);
         ShaderHandle fragmentShader = Graphics::CreateShader(fragmentCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};

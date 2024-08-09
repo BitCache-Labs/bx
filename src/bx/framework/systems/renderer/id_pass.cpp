@@ -12,7 +12,7 @@ const char* ID_PASS_SHADER_SRC = R""""(
 
 layout (location = 0) in vec3 Position;
 
-flat out uvec2 Frag_EntityID;
+layout (location = 0) flat out uvec2 Frag_EntityID;
 
 layout (binding = 0, std140) uniform ConstantBuffer
 {
@@ -35,7 +35,7 @@ void main()
 
 #ifdef FRAGMENT
 
-flat in uvec2 Frag_EntityID;
+layout (location = 0) flat in uvec2 Frag_EntityID;
 
 layout (location = 0) out uvec2 Out_Color;
 

@@ -45,7 +45,7 @@ bool Resource<Texture>::Load(const String& filename, Texture& data)
     createInfo.name = filename;
     createInfo.format = TextureFormat::RGBA8_UNORM_SRGB;
     createInfo.size = Extend3D(data.width, data.height, 1);
-    createInfo.usageFlags = TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::COPY_SRC;
+    createInfo.usageFlags = TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::COPY_SRC;
     createInfo.data = static_cast<const void*>(data.pixels.data());
     data.m_texture = Graphics::CreateTexture(createInfo);
 

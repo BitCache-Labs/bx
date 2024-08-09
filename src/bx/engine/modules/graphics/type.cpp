@@ -210,6 +210,48 @@ b8 IsTextureFormatSrgb(const TextureFormat& format)
 	}
 }
 
+b8 IsTextureFormatDepth(const TextureFormat& format)
+{
+	switch (format)
+	{
+	case TextureFormat::STENCIL8:
+		return false;
+	case TextureFormat::DEPTH16_UNORM:
+		return true;
+	case TextureFormat::DEPTH24_PLUS:
+		return true;
+	case TextureFormat::DEPTH24_PLUS_STENCIL8:
+		return true;
+	case TextureFormat::DEPTH32_FLOAT:
+		return true;
+	case TextureFormat::DEPTH32_FLOAT_STENCIL8:
+		return true;
+	default:
+		return false;
+	}
+}
+
+b8 IsTextureFormatStencil(const TextureFormat& format)
+{
+	switch (format)
+	{
+	case TextureFormat::STENCIL8:
+		return true;
+	case TextureFormat::DEPTH16_UNORM:
+		return false;
+	case TextureFormat::DEPTH24_PLUS:
+		return false;
+	case TextureFormat::DEPTH24_PLUS_STENCIL8:
+		return true;
+	case TextureFormat::DEPTH32_FLOAT:
+		return false;
+	case TextureFormat::DEPTH32_FLOAT_STENCIL8:
+		return true;
+	default:
+		return false;
+	}
+}
+
 u32 SizeOfTextureFormat(const TextureFormat& format)
 {
 	switch (format)
@@ -352,4 +394,15 @@ u32 SizeOfTextureFormat(const TextureFormat& format)
 		BX_FAIL("Texture format not supported.");
 		return 0;
 	}
+}
+
+b8 IsBufferUsageMappable(const BufferUsageFlags& usage)
+{
+	return usage & BufferUsageFlags::MAP_READ || usage & BufferUsageFlags::MAP_WRITE;
+}
+
+u32 SizeOfTexturePixels(const TextureCreateInfo& info)
+{
+	u32 pixels = info.size.width * info.size.height * info.size.depthOrArrayLayers;
+	return pixels * SizeOfTextureFormat(info.format);
 }

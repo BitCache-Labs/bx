@@ -383,5 +383,5 @@ private:
 
 private:
 	ResourceHandle m_handle = RESOURCE_HANDLE_INVALID;
-	UUID m_uuid;
+	Uuid m_uuid;
 };

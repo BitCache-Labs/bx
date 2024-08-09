@@ -80,10 +80,10 @@ void BuildShaderPipelines()
     PipelineLayoutDescriptor pipelineLayoutDescriptor{};
     pipelineLayoutDescriptor.bindGroupLayouts = {
         BindGroupLayoutDescriptor(0, {
-            BindGroupLayoutEntry(0, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),      // layout (binding = 0, std140) uniform Constants
-            BindGroupLayoutEntry(1, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),      // layout (binding = 1, std140) uniform Model
-            BindGroupLayoutEntry(2, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),      // layout (binding = 2, std140) uniform Animation
-            BindGroupLayoutEntry(4, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::UniformBuffer())     // layout (binding = 4, std140) uniform LightBuffer
+            BindGroupLayoutEntry(0, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 0, std140) uniform Constants
+            BindGroupLayoutEntry(1, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 1, std140) uniform Model
+            BindGroupLayoutEntry(2, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 2, std140) uniform Animation
+            BindGroupLayoutEntry(4, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::UniformBuffer())                     // layout (binding = 4, std140) uniform LightBuffer
         }),
         Material::GetBindGroupLayout()
     };
@@ -211,7 +211,7 @@ void RecreateRenderTargets()
         colorTargetCreateInfo.name = "Color Target";
         colorTargetCreateInfo.size = Extend3D(w, h, 1);
         colorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
-        colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING;
         if (s->colorTarget) Graphics::DestroyTexture(s->colorTarget);
         s->colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
 

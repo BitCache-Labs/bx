@@ -10,7 +10,7 @@ Animator::Animator()
     BufferCreateInfo createInfo{};
     createInfo.name = "Animator Bones Buffer";
     createInfo.size = sizeof(Mat4) * 100;
-    createInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::STORAGE;
+    createInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST;
     m_boneBuffer = Graphics::CreateBuffer(createInfo);
 }
 

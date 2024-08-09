@@ -2,10 +2,10 @@
 
 #include "bx/engine/core/byte_types.hpp"
 
-using UUID = u64;
+using Uuid = u64;
 
-class GenUUID
+class GenUuid
 {
 public:
-	static UUID MakeUUID();
+	static Uuid MakeUuid();
 };
