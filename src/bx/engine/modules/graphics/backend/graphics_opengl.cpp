@@ -343,6 +343,7 @@ ShaderHandle Graphics::CreateShader(const ShaderCreateInfo& createInfo)
     
     #ifndef OPENGL
     #define OPENGL
+    #extension GL_KHR_vulkan_glsl : enable
     #endif // OPENGL
     )"""");
 
