@@ -1009,12 +1009,31 @@ void Graphics::ReadTexture(TextureHandle texture, void* data, const Extend3D& of
 {
     BX_ENSURE(texture);
 
-    /*auto textureIter = s->textures.find(texture);
+    auto textureIter = s->textures.find(texture);
     BX_ENSURE(textureIter != s->textures.end());
+    auto createInfo = GetTextureCreateInfo(texture);
 
-    auto createInfo = GetTextureCreateInfo(texture);*/
+    BX_ASSERT(createInfo.usageFlags & TextureUsageFlags::COPY_SRC, "Texture must be created with TextureUsageFlags::COPY_SRC when reading from.");
 
-    BX_FAIL("TODO");
+    u32 pixelSizeInBytes = SizeOfTextureFormat(createInfo.format);
+    u32 sizeInBytes = size.width * size.height * size.depthOrArrayLayers * pixelSizeInBytes;
+
+    std::shared_ptr<Buffer> readbackBuffer(new Buffer(Log::Format("{} Readback Buffer", createInfo.name), s->device,
+        *s->physicalDevice, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        static_cast<uint64_t>(sizeInBytes), BufferLocation::CPU_TO_GPU));
+
+    u32 offsetHeight = createInfo.size.height - offset.height;
+
+    auto cmdList = s->cmdQueue->GetCmdList();
+    cmdList->TransitionImageLayout(textureIter->second, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    cmdList->CopyBuffers(textureIter->second, readbackBuffer, VkOffset3D{ (i32)offset.width, (i32)offsetHeight, (i32)offset.depthOrArrayLayers }, VkExtent3D{size.width, size.height, size.depthOrArrayLayers});
+    cmdList->TransitionImageLayout(textureIter->second, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+    s->cmdQueue->SubmitCmdList(cmdList, nullptr, {}, {}, {});
+    s->device->WaitIdle();
+
+    void* bufferData = readbackBuffer->Map();
+    memcpy(data, bufferData, sizeInBytes);
+    readbackBuffer->Unmap();
 }
 
 // TODO: obliterate this obomination
@@ -1057,9 +1076,14 @@ std::shared_ptr<DescriptorSet> GraphicsVulkan::TextureAsDescriptorSet(TextureHan
     BX_ENSURE(textureIter != s->textures.end());
     descriptorSet->SetImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, textureIter->second, s->sampler);
 
-    s->cmdList->TrackDescriptorSet(descriptorSet);
+    //s->cmdList->TrackDescriptorSet(descriptorSet);
 
     return descriptorSet;
+}
+
+u32 GraphicsVulkan::GetCurrentFrameIdx()
+{
+    return s->swapchain->GetCurrentFrameIdx();
 }
 
 VkCommandBuffer GraphicsVulkan::RawCommandBuffer()

@@ -14,6 +14,7 @@ class GraphicsVulkan
 public:
     static ImGui_ImplVulkan_InitInfo ImGuiInitInfo();
     static std::shared_ptr<Vk::DescriptorSet> TextureAsDescriptorSet(TextureHandle texture);
+    static u32 GetCurrentFrameIdx();
 
     static VkCommandBuffer RawCommandBuffer();
     static void WaitIdle();

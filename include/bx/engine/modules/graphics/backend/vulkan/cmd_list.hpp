@@ -26,6 +26,7 @@ namespace Vk
 
         void CopyBuffers(std::shared_ptr<Buffer> src, std::shared_ptr<Buffer> dst);
         void CopyBuffers(std::shared_ptr<Buffer> src, std::shared_ptr<Image> dst);
+        void CopyBuffers(std::shared_ptr<Image> src, std::shared_ptr<Buffer> dst, VkOffset3D offset, VkExtent3D size);
         void CopyImages(std::shared_ptr<Image> src, std::shared_ptr<Image> dst);
         void CopyImagesIntoCubemap(const std::array<std::shared_ptr<Image>, 6>& images,
             std::shared_ptr<Image> cubemap);

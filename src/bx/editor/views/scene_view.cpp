@@ -146,7 +146,7 @@ void SceneView::Render(const ImVec2& size)
         idColorTargetCreateInfo.name = "Id Pass Color Target";
         idColorTargetCreateInfo.size = Extend3D(g_sceneSize.x, g_sceneSize.y, 1);
         idColorTargetCreateInfo.format = TextureFormat::RG32_UINT;
-        idColorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        idColorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::COPY_SRC;
         if (g_idColorTarget) Graphics::DestroyTexture(g_idColorTarget);
         g_idColorTarget = Graphics::CreateTexture(idColorTargetCreateInfo);
 
@@ -290,8 +290,11 @@ void SceneView::Present(bool& show)
     TextureHandle editorCameraColorTarget = Renderer::GetEditorCameraColorTarget();
     if (editorCameraColorTarget)
     {
-        std::shared_ptr<Vk::DescriptorSet> descriptorSet = GraphicsVulkan::TextureAsDescriptorSet(editorCameraColorTarget);
-        ImGui::Image((void*)descriptorSet->GetDescriptorSet(), contentRegionAvail);
+        static std::shared_ptr<Vk::DescriptorSet> descriptorSets[3];
+
+        u32 frameIdx = GraphicsVulkan::GetCurrentFrameIdx();
+        descriptorSets[frameIdx] = GraphicsVulkan::TextureAsDescriptorSet(editorCameraColorTarget);
+        ImGui::Image((void*)descriptorSets[frameIdx]->GetDescriptorSet(), contentRegionAvail);
     }
 #elif defined BX_GRAPHICS_OPENGL_BACKEND
     TextureHandle editorCameraColorTarget = Renderer::GetEditorCameraColorTarget();
@@ -337,9 +340,10 @@ void SceneView::Present(bool& show)
         ImVec2 windowPos = ImGui::GetWindowPos();
         ImVec2 windowSize = ImGui::GetWindowSize();
         ImVec2 relMousePos = ImVec2(mousePos.x - windowPos.x, windowPos.y + windowSize.y - mousePos.y);
-        
+
         u64 pixelData = 0;
         Graphics::ReadTexture(g_idColorTarget, &pixelData, Extend3D((u32)relMousePos.x, (u32)relMousePos.y, 0), Extend3D(1, 1, 1));
+        BX_LOGI("SELECT: {}", pixelData);
         if (pixelData != 0)
         {
             Selection::SetSelected(Object<Entity>(pixelData));

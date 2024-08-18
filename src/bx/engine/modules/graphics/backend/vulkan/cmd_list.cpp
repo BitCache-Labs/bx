@@ -93,13 +93,27 @@ namespace Vk
         this->trackedImages.push_back(dst);
     }
 
+    void CmdList::CopyBuffers(std::shared_ptr<Image> src, std::shared_ptr<Buffer> dst, VkOffset3D offset, VkExtent3D size) {
+        VkBufferImageCopy copyRegion{};
+        copyRegion.bufferOffset = 0;
+        copyRegion.bufferRowLength = 0;
+        copyRegion.bufferImageHeight = 0;
+        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.mipLevel = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount = 1;
+        copyRegion.imageOffset = offset;
+        copyRegion.imageExtent = size;
+
+        vkCmdCopyImageToBuffer(this->cmdBuffer, src->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->GetBuffer(), 1, &copyRegion);
+
+        this->trackedBuffers.push_back(dst);
+        this->trackedImages.push_back(src);
+    }
+
     void CmdList::CopyImages(std::shared_ptr<Image> src, std::shared_ptr<Image> dst) {
-        this->TransitionImageLayout(src, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        //    VK_ACCESS_TRANSFER_READ_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT);
-        this->TransitionImageLayout(dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        //    VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT);
+        this->TransitionImageLayout(src, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        this->TransitionImageLayout(dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
         VkImageBlit blit{};
         blit.srcOffsets[0] = { 0, 0, 0 };
@@ -129,9 +143,7 @@ namespace Vk
 
     void CmdList::CopyImagesIntoCubemap(const std::array<std::shared_ptr<Image>, 6>& images,
         std::shared_ptr<Image> cubemap) {
-        this->TransitionImageLayout(cubemap, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        //    VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT);
+        this->TransitionImageLayout(cubemap, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
         VkImageCopy imageCopy{};
         imageCopy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -146,9 +158,7 @@ namespace Vk
         uint32_t mipHeight = cubemap->Height();
 
         for (size_t i = 0; i < images.size(); i++) {
-            this->TransitionImageLayout(images[i], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            //    VK_ACCESS_TRANSFER_READ_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT);
+            this->TransitionImageLayout(images[i], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT);
         }
 
         for (uint32_t mip = 0; mip < images[0]->Mips(); mip++) {
@@ -171,9 +181,7 @@ namespace Vk
                 mipHeight /= 2;
         }
 
-        this->TransitionImageLayout(cubemap, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        //    VK_ACCESS_SHADER_READ_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        this->TransitionImageLayout(cubemap, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     }
 
     void CmdList::GenerateMips(std::shared_ptr<Image> image) {

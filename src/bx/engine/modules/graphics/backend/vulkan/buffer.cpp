@@ -25,6 +25,7 @@ namespace Vk
         }
         if (location == BufferLocation::CPU_TO_GPU) {
             allocCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+            allocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;//??
         }
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
