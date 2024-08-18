@@ -65,6 +65,8 @@ namespace Vk
             this->PushConstant(name, static_cast<void*>(&constant), sizeof(T), stageFlags);
         }
 
+        void TrackDescriptorSet(std::shared_ptr<DescriptorSet> descriptorSet);
+
     private:
         friend class CmdQueue;
         CmdList(std::shared_ptr<Device> device, const CmdQueue& cmdQueue);

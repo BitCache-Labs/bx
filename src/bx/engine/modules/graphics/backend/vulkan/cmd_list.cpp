@@ -394,6 +394,11 @@ namespace Vk
         vkCmdDispatch(this->cmdBuffer, x, y, z);
     }
 
+    void CmdList::TrackDescriptorSet(std::shared_ptr<DescriptorSet> descriptorSet)
+    {
+        this->trackedDescriptorSets.push_back(descriptorSet);
+    }
+
     void CmdList::PushConstant(const std::string& name, void* constant, size_t size,
         VkShaderStageFlags stageFlags) {
         vkCmdPushConstants(this->cmdBuffer, this->boundGraphicsPipeline->GetLayout(),

@@ -365,7 +365,7 @@ void Renderer::Render()
 TextureHandle Renderer::GetEditorCameraColorTarget()
 {
 #ifdef BX_EDITOR_BUILD
-    return Graphics::GetSwapchainColorTarget();
+    return s->colorTarget;// Graphics::GetSwapchainColorTarget();
 #else
     return TextureHandle::null;
 #endif

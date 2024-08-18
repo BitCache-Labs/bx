@@ -1042,6 +1042,26 @@ ImGui_ImplVulkan_InitInfo GraphicsVulkan::ImGuiInitInfo()
     return info;
 }
 
+std::shared_ptr<DescriptorSet> GraphicsVulkan::TextureAsDescriptorSet(TextureHandle texture)
+{
+    VkDescriptorSetLayoutBinding binding{};
+    binding.binding = 0;
+    binding.descriptorCount = 1;
+    binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::shared_ptr<DescriptorSetLayout> layout(new DescriptorSetLayout("Texture As Descriptor Set Layout", s->device, { binding }));
+    std::shared_ptr<DescriptorSet> descriptorSet(new DescriptorSet("Texture As Descriptor Set", s->device, s->descriptorPool, layout));
+    
+    auto textureIter = s->textures.find(texture);
+    BX_ENSURE(textureIter != s->textures.end());
+    descriptorSet->SetImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, textureIter->second, s->sampler);
+
+    s->cmdList->TrackDescriptorSet(descriptorSet);
+
+    return descriptorSet;
+}
+
 VkCommandBuffer GraphicsVulkan::RawCommandBuffer()
 {
     return s->cmdList->GetCommandBuffer();

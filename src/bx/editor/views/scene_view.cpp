@@ -15,6 +15,8 @@
 
 #ifdef BX_GRAPHICS_OPENGL_BACKEND
 #include <bx/engine/modules/graphics/backend/graphics_opengl.hpp>
+#elif defined(BX_GRAPHICS_VULKAN_BACKEND)
+#include <bx/engine/modules/graphics/backend/graphics_vulkan.hpp>
 #endif
 #include <bx/framework/systems/renderer/id_pass.hpp>
 
@@ -285,8 +287,12 @@ void SceneView::Present(bool& show)
 
     Render(contentRegionAvail);
 #ifdef BX_GRAPHICS_VULKAN_BACKEND
-    // TODO: ???
-    //ImGui::Image((void*)(intptr_t)GraphicsOpenGL::GetTextureHandle(g_renderTarget), contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
+    TextureHandle editorCameraColorTarget = Renderer::GetEditorCameraColorTarget();
+    if (editorCameraColorTarget)
+    {
+        std::shared_ptr<Vk::DescriptorSet> descriptorSet = GraphicsVulkan::TextureAsDescriptorSet(editorCameraColorTarget);
+        ImGui::Image((void*)descriptorSet->GetDescriptorSet(), contentRegionAvail);
+    }
 #elif defined BX_GRAPHICS_OPENGL_BACKEND
     TextureHandle editorCameraColorTarget = Renderer::GetEditorCameraColorTarget();
     if (editorCameraColorTarget)
