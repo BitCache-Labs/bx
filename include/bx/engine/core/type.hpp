@@ -20,7 +20,7 @@ private:
 
 	static TypeId Id()
 	{
-		static Hash<String> hashFn;
+		static std::hash<String> hashFn;
 		static const TypeId id = hashFn(ClassName());
 		return id;
 	}
