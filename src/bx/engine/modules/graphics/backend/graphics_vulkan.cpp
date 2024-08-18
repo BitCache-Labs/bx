@@ -217,7 +217,7 @@ void Graphics::NewFrame()
 
     if (Window::IsActive())
     {
-        if (Window::WasResized() && false)
+        if (Window::WasResized())
         {
             s->device->WaitIdle();
 
@@ -225,11 +225,11 @@ void Graphics::NewFrame()
         }
 
         s->presentFence = s->swapchain->NextImage();
-
-        // All cmds of the entire frame will be recorded into a single cmd list
-        // This is because we designed the graphics module api to act like it's immediate
-        s->cmdList = s->cmdQueue->GetCmdList();
     }
+
+    // All cmds of the entire frame will be recorded into a single cmd list
+    // This is because we designed the graphics module api to act like it's immediate
+    s->cmdList = s->cmdQueue->GetCmdList();
 }
 
 void Graphics::EndFrame()
@@ -278,6 +278,10 @@ void Graphics::EndFrame()
         s->swapchain->Present(*s->cmdQueue, *s->presentFence, presentSignalSemaphores);
         ResourceStateTracker::ApplyImplicitImageTransition(*s->swapchain->GetImage(currentFrame),
             VK_IMAGE_LAYOUT_UNDEFINED);
+    }
+    else
+    {
+        ImGuiImpl::EndFrame();
     }
 
     s->cmdList.reset();
