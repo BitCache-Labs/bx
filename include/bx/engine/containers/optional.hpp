@@ -49,6 +49,12 @@ public:
 		delete data;
 	}
 
+	void Reset()
+	{
+		delete data;
+		data = nullptr;
+	}
+		
 	template <typename ...Params>
 	static Optional<T> Some(Params&&... params)
 	{
@@ -80,6 +86,19 @@ public:
 	{
 		BX_ASSERT(data, "Unwrap on a None value.");
 		return *data;
+	}
+
+	b8 operator==(const Optional<T>& other) const
+	{
+		if (IsNone())
+			return other.IsNone();
+
+		return *data == *other.data;
+	}
+
+	b8 operator!=(const Optional<T>& other) const
+	{
+		return !(*this == other);
 	}
 
 private:

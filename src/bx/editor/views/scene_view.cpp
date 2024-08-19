@@ -15,6 +15,8 @@
 
 #ifdef BX_GRAPHICS_OPENGL_BACKEND
 #include <bx/engine/modules/graphics/backend/graphics_opengl.hpp>
+#elif defined(BX_GRAPHICS_VULKAN_BACKEND)
+#include <bx/engine/modules/graphics/backend/graphics_vulkan.hpp>
 #endif
 #include <bx/framework/systems/renderer/id_pass.hpp>
 
@@ -144,7 +146,7 @@ void SceneView::Render(const ImVec2& size)
         idColorTargetCreateInfo.name = "Id Pass Color Target";
         idColorTargetCreateInfo.size = Extend3D(g_sceneSize.x, g_sceneSize.y, 1);
         idColorTargetCreateInfo.format = TextureFormat::RG32_UINT;
-        idColorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        idColorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::COPY_SRC;
         if (g_idColorTarget) Graphics::DestroyTexture(g_idColorTarget);
         g_idColorTarget = Graphics::CreateTexture(idColorTargetCreateInfo);
 
@@ -285,8 +287,15 @@ void SceneView::Present(bool& show)
 
     Render(contentRegionAvail);
 #ifdef BX_GRAPHICS_VULKAN_BACKEND
-    // TODO: ???
-    //ImGui::Image((void*)(intptr_t)GraphicsOpenGL::GetTextureHandle(g_renderTarget), contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
+    TextureHandle editorCameraColorTarget = Renderer::GetEditorCameraColorTarget();
+    if (editorCameraColorTarget)
+    {
+        static std::shared_ptr<Vk::DescriptorSet> descriptorSets[3];
+
+        u32 frameIdx = GraphicsVulkan::GetCurrentFrameIdx();
+        descriptorSets[frameIdx] = GraphicsVulkan::TextureAsDescriptorSet(editorCameraColorTarget);
+        ImGui::Image((void*)descriptorSets[frameIdx]->GetDescriptorSet(), contentRegionAvail);
+    }
 #elif defined BX_GRAPHICS_OPENGL_BACKEND
     TextureHandle editorCameraColorTarget = Renderer::GetEditorCameraColorTarget();
     if (editorCameraColorTarget)
@@ -331,7 +340,7 @@ void SceneView::Present(bool& show)
         ImVec2 windowPos = ImGui::GetWindowPos();
         ImVec2 windowSize = ImGui::GetWindowSize();
         ImVec2 relMousePos = ImVec2(mousePos.x - windowPos.x, windowPos.y + windowSize.y - mousePos.y);
-        
+
         u64 pixelData = 0;
         Graphics::ReadTexture(g_idColorTarget, &pixelData, Extend3D((u32)relMousePos.x, (u32)relMousePos.y, 0), Extend3D(1, 1, 1));
         if (pixelData != 0)

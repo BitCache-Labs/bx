@@ -2,8 +2,11 @@
 
 #include <bx/engine/core/math.hpp>
 #include <bx/engine/containers/string.hpp>
+#include <bx/engine/containers/hash_set.hpp>
 #include <bx/engine/containers/list.hpp>
 #include <bx/engine/modules/graphics.hpp>
+
+String ResolveShaderIncludes(const String& source);
 
 class Shader
 {
