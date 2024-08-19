@@ -383,5 +383,5 @@ private:
 
 private:
 	ResourceHandle m_handle = RESOURCE_HANDLE_INVALID;
-	Uuid m_uuid;
+	BX::UUID m_uuid;
 };
