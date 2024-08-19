@@ -48,16 +48,16 @@ namespace Vk
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssembly.topology = info.primitiveTopology;
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
         VkPipelineRasterizationStateCreateInfo rasterizer{};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer.polygonMode = info.polygonMode;
-        rasterizer.cullMode = info.culling ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_NONE;
-        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.cullMode = info.cullMode;
+        rasterizer.frontFace = info.frontFace;
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.lineWidth = 1.0;
 
@@ -131,8 +131,8 @@ namespace Vk
 
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = !info.ignoreDepth;
-        depthStencil.depthWriteEnable = !info.ignoreDepth;
+        depthStencil.depthTestEnable = info.depthTestEnable;
+        depthStencil.depthWriteEnable = info.depthTestEnable;
         depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;

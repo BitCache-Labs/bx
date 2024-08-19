@@ -64,6 +64,8 @@ struct State : NoCopy
         device->WaitIdle();
     }
 
+    GraphicsCapabilities graphicsCapabilities;
+
     HandlePool<BufferApi> bufferHandlePool;
     HandlePool<TextureApi> textureHandlePool;
     HandlePool<TextureViewApi> textureViewHandlePool;
@@ -201,6 +203,10 @@ bool Graphics::Initialize()
 
     BuildSwapchain(s_createInfoCache->textureCreateInfos);
 
+    GraphicsCapabilities capabilities{};
+    capabilities.raytracing = s->physicalDevice->RayTracingSuitable();
+    s->graphicsCapabilities = capabilities;
+
     return true;
 }
 
@@ -288,6 +294,11 @@ void Graphics::EndFrame()
     }
 
     s->cmdList.reset();
+}
+
+const GraphicsCapabilities Graphics::GetCapabilities()
+{
+    return s->graphicsCapabilities;
 }
 
 const BufferHandle& Graphics::EmptyBuffer()
@@ -806,7 +817,11 @@ void Graphics::SetGraphicsPipeline(GraphicsPipelineHandle graphicsPipelineHandle
         }
 
         List<const Shader*> shaders = { vertexShader.get(), fragmentShader.get() };
-        GraphicsPipelineInfo info{}; // TODO!
+        GraphicsPipelineInfo info{};
+        info.depthTestEnable = createInfo.depthFormat.IsSome();
+        info.cullMode = CullModeToVk(createInfo.cullMode);
+        info.frontFace = FrontFaceToVk(createInfo.frontFace);
+        info.primitiveTopology = PrimitiveTopologyToVk(createInfo.topology);
         info.vertexBindingDescriptions = vertexBindingDescriptions;
         info.vertexAttributeDescriptions = vertexAttributeDescriptions;
 

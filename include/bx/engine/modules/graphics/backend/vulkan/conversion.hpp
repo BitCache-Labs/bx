@@ -17,4 +17,7 @@ namespace Vk
 	VkDescriptorType BindingTypeToVk(BindingType type);
 	VkShaderStageFlags ShaderStageFlagsToVk(ShaderStageFlags stageFlags);
 	VkFormat VertexFormatToVk(const VertexFormat& format);
+	VkFrontFace FrontFaceToVk(const FrontFace& frontFace);
+	VkPrimitiveTopology PrimitiveTopologyToVk(const PrimitiveTopology& topology);
+	VkCullModeFlags CullModeToVk(const Optional<Face>& cullMode);
 }

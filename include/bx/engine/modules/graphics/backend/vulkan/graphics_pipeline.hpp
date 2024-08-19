@@ -25,11 +25,11 @@ namespace Vk
     };
 
     struct GraphicsPipelineInfo {
-        bool ignoreDepth = false;
+        b8 depthTestEnable = true;
         bool blending = false;
-        bool inputVertices = true;
-        VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
-        bool culling = true;
+        VkPrimitiveTopology primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        VkFrontFace frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        VkCullModeFlags cullMode = VK_CULL_MODE_NONE;
 
         List<VkVertexInputBindingDescription> vertexBindingDescriptions{};
         List<VkVertexInputAttributeDescription> vertexAttributeDescriptions{};

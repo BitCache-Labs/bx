@@ -344,4 +344,59 @@ namespace Vk
 			return VK_FORMAT_UNDEFINED;
 		}
 	}
+
+	VkFrontFace FrontFaceToVk(const FrontFace& frontFace)
+	{
+		switch (frontFace)
+		{
+		case FrontFace::CCW:
+			return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		case FrontFace::CW:
+			return VK_FRONT_FACE_CLOCKWISE;
+		default:
+			BX_FAIL("Front face not supported");
+			return VK_FRONT_FACE_MAX_ENUM;
+		}
+	}
+
+	VkPrimitiveTopology PrimitiveTopologyToVk(const PrimitiveTopology& topology)
+	{
+		switch (topology)
+		{
+		case PrimitiveTopology::POINT_LIST:
+			return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+		case PrimitiveTopology::LINE_LIST:
+			return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+		case PrimitiveTopology::LINE_STRIP:
+			return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+		case PrimitiveTopology::TRIANGLE_LIST:
+			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		case PrimitiveTopology::TRIANGLE_STRIP:
+			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		default:
+			BX_FAIL("Primitive topology not supported.");
+			return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+		}
+	}
+
+	VkCullModeFlags CullModeToVk(const Optional<Face>& cullMode)
+	{
+		if (cullMode.IsNone())
+		{
+			return VK_CULL_MODE_NONE;
+		}
+		else
+		{
+			switch (cullMode.Unwrap())
+			{
+			case Face::FRONT:
+				return VK_CULL_MODE_FRONT_BIT;
+			case Face::BACK:
+				return VK_CULL_MODE_BACK_BIT;
+			default:
+				BX_FAIL("Cull mode not supported.");
+				return VK_CULL_MODE_NONE;
+			}
+		}
+	}
 }

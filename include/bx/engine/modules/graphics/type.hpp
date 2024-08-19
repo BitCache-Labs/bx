@@ -620,6 +620,11 @@ struct ComputePassDescriptor
 	String name = "Compute Pass";
 };
 
+struct GraphicsCapabilities
+{
+	b8 raytracing = false;
+};
+
 b8 IsVertexFormatInt(const VertexFormat& format);
 b8 IsTextureFormatSrgb(const TextureFormat& format);
 b8 IsTextureFormatDepth(const TextureFormat& format);

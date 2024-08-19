@@ -157,6 +157,11 @@ void Graphics::EndFrame()
     ImGuiImpl::EndFrame();
 }
 
+const GraphicsCapabilities Graphics::GetCapabilities()
+{
+    return GraphicsCapabilities{};
+}
+
 const BufferHandle& Graphics::EmptyBuffer()
 {
     return s->emptyBuffer;
