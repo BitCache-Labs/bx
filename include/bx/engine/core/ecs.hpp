@@ -29,7 +29,7 @@
 #define ECS_MAX_COMPONENTS 64
 #endif
 
-using EntityId = BX::UUID;
+using EntityId = UUID;
 constexpr EntityId INVALID_ENTITY_ID = 0;
 
 class Entity;
@@ -423,7 +423,7 @@ public:
     /// <returns>New valid entity.</returns>
     static Entity CreateEntity()
     {
-        return CreateEntityWithId(BX::GenUuid::MakeUuid());
+        return CreateEntityWithId(GenUUID::MakeUUID());
     }
 
     /// <summary>

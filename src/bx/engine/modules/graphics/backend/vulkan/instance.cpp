@@ -6,6 +6,8 @@
 #include "bx/engine/modules/graphics/backend/vulkan/pfn.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/validation.hpp"
 
+#include "bx/engine/modules/graphics/backend/vulkan/vulkan_native_api.hpp"
+
 #ifdef BX_WINDOW_GLFW_BACKEND
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
