@@ -16,6 +16,7 @@
 
 #include "bx/engine/modules/graphics/backend/vulkan/resource_state_tracker.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/conversion.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/compute_pipeline.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/buffer.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/instance.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/physical_device.hpp"
@@ -80,6 +81,8 @@ struct State : NoCopy
     HashMap<ShaderHandle, std::shared_ptr<Shader>> shaders;
     HashMap<GraphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>> graphicsPipelines;
     HashMap<GraphicsPipelineHandle, const List<std::shared_ptr<DescriptorSetLayout>>> graphicsPipelineLayouts;
+    HashMap<ComputePipelineHandle, std::shared_ptr<ComputePipeline>> computePipelines;
+    HashMap<ComputePipelineHandle, const List<std::shared_ptr<DescriptorSetLayout>>> computePipelineLayouts;
     HashMap<BindGroupHandle, std::shared_ptr<DescriptorSet>> bindGroups;
 
     std::shared_ptr<Framebuffer> renderPassFramebuffer = nullptr;
@@ -523,6 +526,7 @@ void Graphics::DestroyGraphicsPipeline(GraphicsPipelineHandle& graphicsPipeline)
     BX_ENSURE(graphicsPipeline);
 
     s->graphicsPipelines.erase(graphicsPipeline);
+    s->graphicsPipelineLayouts.erase(graphicsPipeline);
     s_createInfoCache->graphicsPipelineCreateInfos.erase(graphicsPipeline);
     s->graphicsPipelineHandlePool.Destroy(graphicsPipeline);
 }
@@ -534,10 +538,36 @@ ComputePipelineHandle Graphics::CreateComputePipeline(const ComputePipelineCreat
     ComputePipelineHandle computePipelineHandle = s->computePipelineHandlePool.Create();
     s_createInfoCache->computePipelineCreateInfos.insert(std::make_pair(computePipelineHandle, createInfo));
 
-    /*auto shaderIter = s->shaders.find(createInfo.shader);
-    BX_ENSURE(shaderIter != s->shaders.end());*/
+    List<std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts{};
+    for (auto& layout : createInfo.layout.bindGroupLayouts)
+    {
+        List<VkDescriptorSetLayoutBinding> bindings{};
+        for (auto& entry : layout.entries)
+        {
+            VkDescriptorSetLayoutBinding binding{};
+            binding.binding = entry.binding;
+            binding.descriptorCount = entry.count.IsSome() ? entry.count.Unwrap() : 1;
+            binding.descriptorType = BindingTypeToVk(entry.type.type);
+            binding.stageFlags = ShaderStageFlagsToVk(entry.visibility);
+            bindings.push_back(binding);
+        }
 
-    BX_FAIL("TODO");
+        std::shared_ptr<DescriptorSetLayout> descriptorSetLayout(new DescriptorSetLayout(Log::Format("{} layout", createInfo.name.c_str()), s->device, bindings));
+        descriptorSetLayouts.push_back(descriptorSetLayout);
+    }
+
+    auto shaderIter = s->shaders.find(createInfo.shader);
+    BX_ENSURE(shaderIter != s->shaders.end());
+
+    std::shared_ptr<ComputePipeline> computePipeline(new ComputePipeline(
+        s->device,
+        shaderIter->second,
+        descriptorSetLayouts));
+    s->computePipelines.insert(std::make_pair(computePipelineHandle, computePipeline));
+
+    s->computePipelineLayouts.emplace(std::piecewise_construct,
+        std::forward_as_tuple(computePipelineHandle),
+        std::forward_as_tuple(std::move(descriptorSetLayouts)));
 
     return computePipelineHandle;
 }
@@ -546,9 +576,10 @@ void Graphics::DestroyComputePipeline(ComputePipelineHandle& computePipeline)
 {
     BX_ENSURE(computePipeline);
 
-   /* s->computePipelines.erase(computePipeline);
+    s->computePipelines.erase(computePipeline);
+    s->computePipelineLayouts.erase(computePipeline);
     s_createInfoCache->computePipelineCreateInfos.erase(computePipeline);
-    s->computePipelineHandlePool.Destroy(computePipeline);*/
+    s->computePipelineHandlePool.Destroy(computePipeline);
 }
 
 BindGroupLayoutHandle Graphics::GetBindGroupLayout(GraphicsPipelineHandle graphicsPipeline, u32 bindGroup)
@@ -596,7 +627,9 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
     }
     else
     {
-        BX_FAIL("TODO");
+        auto layoutIter = s->computePipelineLayouts.find(ComputePipelineHandle{ rawPipeline });
+        BX_ENSURE(layoutIter != s->computePipelineLayouts.end());
+        layout = layoutIter->second[layoutIndex];
     }
 
     std::shared_ptr<DescriptorSet> descriptorSet(new DescriptorSet(createInfo.name, s->device, s->descriptorPool, layout));
@@ -646,6 +679,7 @@ void Graphics::DestroyBindGroup(BindGroupHandle& bindGroup)
 RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descriptor)
 {
     BX_ASSERT(!s->activeRenderPassHandle, "Render pass already active.");
+    BX_ASSERT(!s->activeComputePass, "Compute pass already active.");
 
     u32 width = 0;
     u32 height = 0;
@@ -900,6 +934,7 @@ void Graphics::EndRenderPass(RenderPassHandle& renderPass)
 ComputePassHandle Graphics::BeginComputePass(const ComputePassDescriptor& descriptor)
 {
     BX_ASSERT(!s->activeComputePass, "Compute pass already active.");
+    BX_ASSERT(!s->activeRenderPassHandle, "Render pass already active.");
 
     ComputePassHandle computePassHandle = s->computePassHandlePool.Create();
     //s_createInfoCache->renderPass.insert(std::make_pair(renderPass, descriptor));
@@ -916,9 +951,10 @@ void Graphics::SetComputePipeline(ComputePipelineHandle computePipeline)
 
     s->boundComputePipeline = computePipeline;
 
-    /*auto pipelineIter = s->computePipelines.find(computePipeline);
+    auto pipelineIter = s->computePipelines.find(computePipeline);
     BX_ENSURE(pipelineIter != s->computePipelines.end());
-    auto& pipeline = pipelineIter->second;*/
+
+    s->cmdList->BindComputePipeline(pipelineIter->second);
 
     BX_FAIL("TODO");
 }
@@ -928,7 +964,7 @@ void Graphics::DispatchWorkgroups(u32 x, u32 y, u32 z)
     BX_ASSERT(s->activeComputePass, "No compute pass active.");
     BX_ASSERT(s->boundComputePipeline, "No compute pipeline bound.");
 
-    BX_FAIL("TODO");
+    s->cmdList->Dispatch(x, y, z);
 }
 
 void Graphics::EndComputePass(ComputePassHandle& computePass)
@@ -1079,8 +1115,6 @@ std::shared_ptr<DescriptorSet> GraphicsVulkan::TextureAsDescriptorSet(TextureHan
     auto textureIter = s->textures.find(texture);
     BX_ENSURE(textureIter != s->textures.end());
     descriptorSet->SetImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, textureIter->second, s->sampler);
-
-    //s->cmdList->TrackDescriptorSet(descriptorSet);
 
     return descriptorSet;
 }

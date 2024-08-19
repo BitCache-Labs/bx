@@ -343,7 +343,6 @@ void SceneView::Present(bool& show)
 
         u64 pixelData = 0;
         Graphics::ReadTexture(g_idColorTarget, &pixelData, Extend3D((u32)relMousePos.x, (u32)relMousePos.y, 0), Extend3D(1, 1, 1));
-        BX_LOGI("SELECT: {}", pixelData);
         if (pixelData != 0)
         {
             Selection::SetSelected(Object<Entity>(pixelData));

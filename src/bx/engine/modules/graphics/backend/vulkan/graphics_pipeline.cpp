@@ -1,4 +1,3 @@
-
 #include "bx/engine/modules/graphics/backend/vulkan/graphics_pipeline.hpp"
 
 #include "bx/engine/core/macros.hpp"

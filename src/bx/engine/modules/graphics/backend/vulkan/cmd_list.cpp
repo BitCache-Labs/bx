@@ -7,6 +7,7 @@
 #include "bx/engine/modules/graphics/backend/vulkan/buffer.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/image.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/graphics_pipeline.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/compute_pipeline.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/rect2d.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/render_pass.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/framebuffer.hpp"
@@ -54,7 +55,7 @@ namespace Vk
         vkResetCommandBuffer(this->cmdBuffer, 0);
 
         this->boundGraphicsPipeline.reset();
-        //this->boundComputePipeline.reset();
+        this->boundComputePipeline.reset();
         this->trackedRenderPasses.clear();
         this->trackedBuffers.clear();
         this->trackedImages.clear();
@@ -363,10 +364,9 @@ namespace Vk
         VkPipelineBindPoint pipelineType) {
         VkDescriptorSet descriptorSets[] = { descriptorSet->GetDescriptorSet() };
 
-        VkPipelineLayout layout = this->boundGraphicsPipeline->GetLayout();
-        /*VkPipelineLayout layout = (pipelineType == VK_PIPELINE_BIND_POINT_GRAPHICS)
+        VkPipelineLayout layout = (pipelineType == VK_PIPELINE_BIND_POINT_GRAPHICS)
             ? this->boundGraphicsPipeline->GetLayout()
-            : this->boundComputePipeline->GetLayout();*/
+            : this->boundComputePipeline->GetLayout();
         vkCmdBindDescriptorSets(this->cmdBuffer, pipelineType, layout, set, 1, descriptorSets, 0,
             nullptr);
 
@@ -380,12 +380,12 @@ namespace Vk
         this->boundGraphicsPipeline = graphicsPipeline;
     }
 
-    /*void CmdList::BindComputePipeline(std::shared_ptr<ComputePipeline> computePipeline) {
+    void CmdList::BindComputePipeline(std::shared_ptr<ComputePipeline> computePipeline) {
         vkCmdBindPipeline(this->cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
             computePipeline->GetPipeline());
 
         this->boundComputePipeline = computePipeline;
-    }*/
+    }
 
     void CmdList::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
         uint32_t firstInstance) {
@@ -400,11 +400,6 @@ namespace Vk
 
     void CmdList::Dispatch(uint32_t x, uint32_t y, uint32_t z) {
         vkCmdDispatch(this->cmdBuffer, x, y, z);
-    }
-
-    void CmdList::TrackDescriptorSet(std::shared_ptr<DescriptorSet> descriptorSet)
-    {
-        this->trackedDescriptorSets.push_back(descriptorSet);
     }
 
     void CmdList::PushConstant(const std::string& name, void* constant, size_t size,

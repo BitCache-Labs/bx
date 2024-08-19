@@ -13,6 +13,7 @@ namespace Vk
     class Buffer;
     class Image;
     class GraphicsPipeline;
+    class ComputePipeline;
     struct Rect2D;
     class Framebuffer;
     class RenderPass;
@@ -52,7 +53,7 @@ namespace Vk
             VkPipelineBindPoint pipelineType = VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         void BindGraphicsPipeline(std::shared_ptr<GraphicsPipeline> graphicsPipeline);
-        //void BindComputePipeline(std::shared_ptr<ComputePipeline> computePipeline);
+        void BindComputePipeline(std::shared_ptr<ComputePipeline> computePipeline);
 
         void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0,
             uint32_t firstInstance = 0);
@@ -65,8 +66,6 @@ namespace Vk
         void PushConstant(const std::string& name, T& constant, VkShaderStageFlags stageFlags) {
             this->PushConstant(name, static_cast<void*>(&constant), sizeof(T), stageFlags);
         }
-
-        void TrackDescriptorSet(std::shared_ptr<DescriptorSet> descriptorSet);
 
     private:
         friend class CmdQueue;
@@ -85,7 +84,7 @@ namespace Vk
             VkShaderStageFlags stageFlags);
 
         std::shared_ptr<GraphicsPipeline> boundGraphicsPipeline;
-        //std::shared_ptr<ComputePipeline> boundComputePipeline;
+        std::shared_ptr<ComputePipeline> boundComputePipeline;
         std::vector<std::shared_ptr<RenderPass>> trackedRenderPasses;
         std::vector<std::shared_ptr<Buffer>> trackedBuffers;
         std::vector<std::shared_ptr<Image>> trackedImages;
