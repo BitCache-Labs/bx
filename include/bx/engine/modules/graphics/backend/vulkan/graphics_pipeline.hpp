@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bx/engine/core/guard.hpp"
+#include "bx/engine/core/type.hpp"
 #include "bx/engine/containers/list.hpp"
 
 #include "vulkan_api.hpp"

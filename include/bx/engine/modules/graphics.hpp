@@ -92,7 +92,7 @@ private:
 	friend class Runtime;
 	friend class Module;
 
-	// Internal use only, query `Capabilities` for accurate limits.
+	// Internal use only, query `GraphicsCapabilities` for accurate limits.
 	static constexpr size_t MAX_BIND_GROUPS = 64;
 
 	struct CreateInfoCache : NoCopy

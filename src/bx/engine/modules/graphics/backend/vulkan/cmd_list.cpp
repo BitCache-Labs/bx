@@ -6,6 +6,7 @@
 #include "bx/engine/modules/graphics/backend/vulkan/cmd_queue.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/buffer.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/image.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/pfn.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/graphics_pipeline.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/compute_pipeline.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/rect2d.hpp"
@@ -309,7 +310,7 @@ namespace Vk
         this->trackedBuffers.push_back(indexBuffer);
     }
 
-    /*void CmdList::BuildBLAS(VkAccelerationStructureGeometryKHR geometry,
+    void CmdList::BuildBLAS(VkAccelerationStructureGeometryKHR geometry,
         std::shared_ptr<Buffer> scratchBuffer,
         std::shared_ptr<Buffer> resultBuffer, VkAccelerationStructureKHR blas,
         uint32_t indexCount) {
@@ -327,12 +328,12 @@ namespace Vk
         buildOffsetInfo.primitiveCount = indexCount / 3;
         const VkAccelerationStructureBuildRangeInfoKHR* pBuildOffsetInfo = &buildOffsetInfo;
 
-        PFN::vkCmdBuildAccelerationStructuresKHR(this->cmdBuffer, 1, &buildGeometryInfo,
+        Pfn::vkCmdBuildAccelerationStructuresKHR(this->cmdBuffer, 1, &buildGeometryInfo,
             &pBuildOffsetInfo);
 
         this->trackedBuffers.push_back(scratchBuffer);
         this->trackedBuffers.push_back(resultBuffer);
-    }*/
+    }
 
     void CmdList::BeginRenderPass(std::shared_ptr<RenderPass> renderPass,
         std::shared_ptr<Framebuffer> framebuffer, const Color& clearColor) {

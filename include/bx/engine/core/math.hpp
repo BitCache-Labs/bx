@@ -95,6 +95,16 @@ namespace Math
 	{
 		return (x + y - 1) / y;
 	}
+
+	static u32 AlignDown(u32 value, u32 alignment)
+	{
+        return value & ~(alignment - 1);
+    }
+
+	static u32 AlignUp(u32 value, u32 alignment)
+	{
+        return AlignDown(value + alignment - 1, alignment);
+    }
 }
 
 struct Vec2
