@@ -17,7 +17,8 @@ namespace Vk
         : device(device),
           rtProperties(physicalDevice.RayTracingProperties()),
           buildGeometryInfo{},
-          buildSizesInfo{} {
+          buildSizesInfo{}
+    {
     }
 
     AccelerationStructure::~AccelerationStructure() {
