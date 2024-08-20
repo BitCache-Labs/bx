@@ -49,13 +49,7 @@ namespace Vk
     {
         buffer = std::shared_ptr<Buffer>(new Buffer(name, device, physicalDevice, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, size, BufferLocation::GPU_ONLY));
 
-        /*VkAccelerationStructureCreateInfoKHR createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-        createInfo.type = type;
-        createInfo.buffer = buffer->GetBuffer();
-        createInfo.size = size;*/
-
-        VkAccelerationStructureCreateInfoKHR createInfo = {};
+        VkAccelerationStructureCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
         createInfo.pNext = nullptr;
         createInfo.type = type;
@@ -119,6 +113,62 @@ namespace Vk
     }
 
     void Blas::Update(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags)
+    {
+        std::shared_ptr<Buffer> scratchBuffer = ScratchBuffer::Get(device, physicalDevice);
+
+        VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
+        buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+        buildInfo.flags = flags;
+        buildInfo.geometryCount = 1;
+        buildInfo.pGeometries = &geometry;
+        buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
+        buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+
+        cmdList.UpdateAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, GetBuffer(), GetAccelerationStructure());
+    }
+
+    Tlas::Tlas(const String& name, std::shared_ptr<Device> device,
+        const PhysicalDevice& physicalDevice, u32 size)
+        : AccelerationStructure(name, device, physicalDevice, size, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)
+    {
+
+    }
+
+    void Tlas::Build(CmdList& cmdList, const List<VkAccelerationStructureInstanceKHR>& instances, VkBuildAccelerationStructureFlagsKHR flags)
+    {
+        std::shared_ptr<Buffer> scratchBuffer = ScratchBuffer::Get(device, physicalDevice);
+
+        u32 instancesSize = instances.size() * sizeof(VkAccelerationStructureInstanceKHR);
+        std::shared_ptr<Buffer> instancesBuffer(new Buffer("Tlas Instances Buffer", device, physicalDevice,
+            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, instancesSize, BufferLocation::GPU_ONLY));
+
+        std::shared_ptr<Buffer> stagingBuffer(new Buffer("Write Tlas Instances Staging Buffer", device,
+            physicalDevice, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            static_cast<uint64_t>(instancesSize), BufferLocation::CPU_TO_GPU));
+
+        void* bufferData = stagingBuffer->Map();
+        memcpy(bufferData, instances.data(), instancesSize);
+        stagingBuffer->Unmap();
+
+        VkMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+        vkCmdPipelineBarrier(cmdList.GetCommandBuffer(), VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
+
+        /*VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
+        buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+        buildInfo.flags = flags;
+        buildInfo.geometryCount = 1;
+        buildInfo.pGeometries = &geometry;
+        buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+        buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;*/
+
+        //cmdList.BuildAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, GetBuffer(), GetAccelerationStructure());
+    }
+
+    void Tlas::Update(CmdList& cmdList, const List<VkAccelerationStructureInstanceKHR>& instances, VkBuildAccelerationStructureFlagsKHR flags)
     {
 
     }

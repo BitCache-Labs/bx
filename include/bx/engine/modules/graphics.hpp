@@ -59,6 +59,10 @@ public:
 	static const BlasHandle CreateBlas(const BlasCreateInfo& createInfo);
 	static void DestroyBlas(BlasHandle& blas);
 
+	static const TlasCreateInfo& GetTlasCreateInfo(TlasHandle tlas);
+	static const TlasHandle CreateTlas(const TlasCreateInfo& createInfo);
+	static void DestroyTlas(TlasHandle& tlas);
+
 	// Cmds
 	static const RenderPassDescriptor& GetRenderPassDescriptor(RenderPassHandle renderPass);
 	static RenderPassHandle BeginRenderPass(const RenderPassDescriptor& descriptor);
@@ -110,6 +114,7 @@ private:
 		HashMap<BindGroupHandle, BindGroupCreateInfo> bindGroupCreateInfos;
 		HashMap<RenderPassHandle, RenderPassDescriptor> renderPassCreateInfos;
 		HashMap<BlasHandle, BlasCreateInfo> blasCreateInfos;
+		HashMap<TlasHandle, TlasCreateInfo> tlasCreateInfos;
 	};
 	static std::unique_ptr<CreateInfoCache> s_createInfoCache;
 

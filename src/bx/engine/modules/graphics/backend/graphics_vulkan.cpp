@@ -78,6 +78,7 @@ struct State : NoCopy
     HandlePool<ComputePassApi> computePassHandlePool;
     HandlePool<BindGroupApi> bindGroupHandlePool;
     HandlePool<BlasApi> blasHandlePool;
+    HandlePool<TlasApi> tlasHandlePool;
 
     HashMap<BufferHandle, std::shared_ptr<Buffer>> buffers;
     HashMap<TextureHandle, std::shared_ptr<Image>> textures;
@@ -89,6 +90,7 @@ struct State : NoCopy
     HashMap<ComputePipelineHandle, const List<std::shared_ptr<DescriptorSetLayout>>> computePipelineLayouts;
     HashMap<BindGroupHandle, std::shared_ptr<DescriptorSet>> bindGroups;
     HashMap<BlasHandle, std::shared_ptr<Blas>> blases;
+    HashMap<TlasHandle, std::shared_ptr<Tlas>> tlases;
 
     std::shared_ptr<Framebuffer> renderPassFramebuffer = nullptr;
     std::shared_ptr<RenderPass> activeRenderPass = nullptr;
@@ -749,6 +751,22 @@ void Graphics::DestroyBlas(BlasHandle& blas)
     s->blases.erase(blas);
     s_createInfoCache->blasCreateInfos.erase(blas);
     s->blasHandlePool.Destroy(blas);
+}
+
+const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
+{
+    BX_ASSERT(s->graphicsCapabilities.raytracing, "Raytracing is not supported, please check `GraphicsCapabilities` first.");
+
+
+}
+
+void Graphics::DestroyTlas(TlasHandle& tlas)
+{
+    BX_ASSERT(s->graphicsCapabilities.raytracing, "Raytracing is not supported, please check `GraphicsCapabilities` first.");
+
+    s->tlases.erase(tlas);
+    s_createInfoCache->tlasCreateInfos.erase(tlas);
+    s->tlasHandlePool.Destroy(tlas);
 }
 
 RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descriptor)

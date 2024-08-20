@@ -495,6 +495,17 @@ void Graphics::DestroyBlas(BlasHandle& blas)
     BX_FAIL("Raytracing is not supported, please check `GraphicsCapabilities` first.");
 }
 
+const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
+{
+    BX_FAIL("Raytracing is not supported, please check `GraphicsCapabilities` first.");
+    return TlasHandle::null;
+}
+
+void Graphics::DestroyTlas(TlasHandle& tlas)
+{
+    BX_FAIL("Raytracing is not supported, please check `GraphicsCapabilities` first.");
+}
+
 RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descriptor)
 {
     BX_ASSERT(!s->activeRenderPass, "Render pass already active.");

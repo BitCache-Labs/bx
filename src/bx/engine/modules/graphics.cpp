@@ -83,6 +83,15 @@ const BlasCreateInfo& Graphics::GetBlasCreateInfo(BlasHandle blas)
     return createInfoIter->second;
 }
 
+const TlasCreateInfo& Graphics::GetTlasCreateInfo(TlasHandle tlas)
+{
+    BX_ENSURE(tlas);
+
+    auto createInfoIter = s_createInfoCache->tlasCreateInfos.find(tlas);
+    BX_ENSURE(createInfoIter != s_createInfoCache->tlasCreateInfos.end());
+    return createInfoIter->second;
+}
+
 const RenderPassDescriptor& Graphics::GetRenderPassDescriptor(RenderPassHandle renderPass)
 {
     BX_ENSURE(renderPass);

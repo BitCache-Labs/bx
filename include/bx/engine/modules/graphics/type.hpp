@@ -33,6 +33,8 @@ struct BindGroupApi {};
 using BindGroupHandle = Handle<BindGroupApi>;
 struct BlasApi {};
 using BlasHandle = Handle<BlasApi>;
+struct TlasApi {};
+using TlasHandle = Handle<TlasApi>;
 
 ENUM(ShaderType,
 	VERTEX,
@@ -588,6 +590,11 @@ struct BlasCreateInfo
 	u32 vertexStride = 0;
 	BufferSlice indexBuffer{};
 	IndexFormat indexFormat = IndexFormat::UINT32;
+};
+
+struct TlasCreateInfo
+{
+	String name = "Tlas";
 };
 
 struct Operations
