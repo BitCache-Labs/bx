@@ -60,7 +60,11 @@ void File::Initialize()
 {
 #if defined(BX_PLATFORM_PC) || defined(BX_PLATFORM_LINUX)
 	AddWildcard("[assets]", BX_PROJECT_PATH"/game/assets");
+#if defined(BX_INSTALL)
+	AddWildcard("[assets]", BX_PROJECT_PATH"/framework/assets");
+#else
 	AddWildcard("[assets]", BX_PROJECT_PATH"/extern/bx/include/bx/framework/assets");
+#endif // BX_INSTALL
 	AddWildcard("[settings]", BX_PROJECT_PATH"/game/settings");
 
 	// All platforms
@@ -254,13 +258,13 @@ String File::GetExistingPath(const List<String> paths)
 
 		if (exists)
 		{
-			BX_ASSERT(!found, "Multiple existing paths found.");
+			BX_ASSERT(!found, "Multiple existing paths found, {} and {}.", path.c_str(), existingPath.c_str());
 			found = true;
 			existingPath = path;
 		}
 	}
 
-	BX_ASSERT(found, "No existing path found.");
+	BX_ASSERT(found, "No existing path found for {}.", paths[0].c_str());
 	return existingPath;
 }
 
