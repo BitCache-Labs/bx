@@ -10,7 +10,7 @@
 
 namespace Vk
 {
-	class CmdList;
+	/*class CmdList;
     class Buffer;
     class Device;
     class PhysicalDevice;
@@ -34,5 +34,5 @@ namespace Vk
 
     private:
         std::shared_ptr<Buffer> blas;
-    };
+    };*/
 }

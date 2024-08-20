@@ -1,5 +1,7 @@
 #include "bx/engine/modules/graphics/type_validation.hpp"
 
+#include "bx/engine/modules/graphics.hpp"
+
 #include "bx/engine/core/macros.hpp"
 
 #include "bx/engine/containers/list.hpp"
@@ -274,11 +276,23 @@ b8 ValidateBlasCreateInfo(const BlasCreateInfo& createInfo)
 		return false;
 	}
 
+	if (createInfo.vertexStride == 0)
+	{
+		BX_LOGE("Invalid blas creation info: vertex stride cannot be 0.");
+		return false;
+	}
+
+	auto& vertexBufferCreateInfo = Graphics::GetBufferCreateInfo(createInfo.vertexBuffer.buffer);
+	BX_ASSERT(vertexBufferCreateInfo.usageFlags & BufferUsageFlags::VERTEX, "Vertex buffer must be created with BufferUsageFlags::VERTEX.");
+
 	if (createInfo.indexBuffer.buffer == BufferHandle::null)
 	{
 		BX_LOGE("Invalid blas creation info: index buffer cannot be null.");
 		return false;
 	}
+
+	auto& indexBufferCreateInfo = Graphics::GetBufferCreateInfo(createInfo.indexBuffer.buffer);
+	BX_ASSERT(indexBufferCreateInfo.usageFlags & BufferUsageFlags::INDEX, "Index buffer must be created with BufferUsageFlags::INDEX.");
 
 	return true;
 }

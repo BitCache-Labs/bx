@@ -68,6 +68,15 @@ bool Resource<Mesh>::Load(const String& filename, Mesh& data)
     indexCreateInfo.data = static_cast<const void*>(data.m_indices.data());
     data.m_indexBuffer = Graphics::CreateBuffer(indexCreateInfo);
 
+    BlasCreateInfo blasCreateInfo{};
+    blasCreateInfo.name = Log::Format("{} Blas", filename);
+    blasCreateInfo.vertexBuffer = data.m_vertexBuffer;
+    blasCreateInfo.vertexFormat = VertexFormat::FLOAT_32X3;
+    blasCreateInfo.vertexStride = sizeof(Mesh::Vertex);
+    blasCreateInfo.indexBuffer = data.m_indexBuffer;
+    blasCreateInfo.indexFormat = IndexFormat::UINT32;
+    data.m_blas = Graphics::CreateBlas(blasCreateInfo);
+
     return true;
 }
 

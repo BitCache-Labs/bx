@@ -10,9 +10,9 @@ namespace Vk
 		if (usage & BufferUsageFlags::COPY_DST)
 			result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		if (usage & BufferUsageFlags::INDEX)
-			result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 		if (usage & BufferUsageFlags::VERTEX)
-			result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 		if (usage & BufferUsageFlags::UNIFORM)
 			result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		if (usage & BufferUsageFlags::STORAGE)

@@ -41,9 +41,10 @@ namespace Vk
         void BindVertexBuffer(std::shared_ptr<Buffer> vertexBuffer);
         void BindIndexBuffer(std::shared_ptr<Buffer> indexBuffer, VkIndexType type);
 
-        void BuildBLAS(VkAccelerationStructureGeometryKHR geometry,
-            std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer,
-            VkAccelerationStructureKHR blas, uint32_t indexCount);
+        void BuildAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR buildInfo, const VkAccelerationStructureBuildRangeInfoKHR& rangeInfo,
+            std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer, VkAccelerationStructureKHR accelerationStructure);
+        void UpdateAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR buildInfo, const VkAccelerationStructureBuildRangeInfoKHR& rangeInfo,
+            std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer, VkAccelerationStructureKHR accelerationStructure);
 
         void BeginRenderPass(std::shared_ptr<RenderPass> renderPass, std::shared_ptr<Framebuffer> framebuffer,
             const Color& clearColor);

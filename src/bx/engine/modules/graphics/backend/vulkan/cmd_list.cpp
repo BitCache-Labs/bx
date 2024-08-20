@@ -310,11 +310,11 @@ namespace Vk
         this->trackedBuffers.push_back(indexBuffer);
     }
 
-    void CmdList::BuildBLAS(VkAccelerationStructureGeometryKHR geometry,
-        std::shared_ptr<Buffer> scratchBuffer,
-        std::shared_ptr<Buffer> resultBuffer, VkAccelerationStructureKHR blas,
-        uint32_t indexCount) {
-        VkAccelerationStructureBuildGeometryInfoKHR buildGeometryInfo{};
+    void CmdList::BuildAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR buildInfo, const VkAccelerationStructureBuildRangeInfoKHR& rangeInfo,
+        std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer,
+        VkAccelerationStructureKHR accelerationStructure)
+    {
+        /*VkAccelerationStructureBuildGeometryInfoKHR buildGeometryInfo{};
         buildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
         buildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
         buildGeometryInfo.geometryCount = 1;
@@ -326,10 +326,46 @@ namespace Vk
 
         VkAccelerationStructureBuildRangeInfoKHR buildOffsetInfo{};
         buildOffsetInfo.primitiveCount = indexCount / 3;
-        const VkAccelerationStructureBuildRangeInfoKHR* pBuildOffsetInfo = &buildOffsetInfo;
+        const VkAccelerationStructureBuildRangeInfoKHR* pBuildOffsetInfo = &buildOffsetInfo;*/
 
-        Pfn::vkCmdBuildAccelerationStructuresKHR(this->cmdBuffer, 1, &buildGeometryInfo,
-            &pBuildOffsetInfo);
+        buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+        buildInfo.srcAccelerationStructure = VK_NULL_HANDLE;
+        buildInfo.dstAccelerationStructure = accelerationStructure;
+        buildInfo.scratchData.deviceAddress = scratchBuffer->GetDeviceAddress();
+
+        auto pRangeInfo = &rangeInfo;
+
+        Pfn::vkCmdBuildAccelerationStructuresKHR(this->cmdBuffer, 1, &buildInfo, &pRangeInfo);
+
+        VkMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+        barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+        vkCmdPipelineBarrier(this->cmdBuffer, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
+
+        this->trackedBuffers.push_back(scratchBuffer);
+        this->trackedBuffers.push_back(resultBuffer);
+    }
+
+    void CmdList::UpdateAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR buildInfo, const VkAccelerationStructureBuildRangeInfoKHR& rangeInfo,
+        std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer, VkAccelerationStructureKHR accelerationStructure)
+    {
+        buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
+        buildInfo.srcAccelerationStructure = accelerationStructure;
+        buildInfo.dstAccelerationStructure = accelerationStructure;
+        buildInfo.scratchData.deviceAddress = scratchBuffer->GetDeviceAddress();
+
+        auto pRangeInfo = &rangeInfo;
+
+        Pfn::vkCmdBuildAccelerationStructuresKHR(this->cmdBuffer, 1, &buildInfo, &pRangeInfo);
+
+        VkMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+        barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+        vkCmdPipelineBarrier(this->cmdBuffer, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+            VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
 
         this->trackedBuffers.push_back(scratchBuffer);
         this->trackedBuffers.push_back(resultBuffer);

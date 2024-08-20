@@ -396,6 +396,11 @@ u32 SizeOfTextureFormat(const TextureFormat& format)
 	}
 }
 
+u32 SizeOfIndexFormat(const IndexFormat& format)
+{
+	return format == IndexFormat::UINT32 ? 4 : 2;
+}
+
 b8 IsBufferUsageMappable(const BufferUsageFlags& usage)
 {
 	return usage & BufferUsageFlags::MAP_READ || usage & BufferUsageFlags::MAP_WRITE;

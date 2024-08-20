@@ -250,6 +250,7 @@ void Graphics::EndFrame()
     {
         s->cmdQueue->SubmitCmdList(s->uploadCmdList, nullptr, {}, {}, {});
         s->uploadCmdList.reset();
+        s->device->WaitIdle();
     }
 
     if (Window::IsActive())
@@ -280,12 +281,12 @@ void Graphics::EndFrame()
 
         // Execute all rendering cmds when the image is available
         List<Semaphore*> waitSemaphores{ &s->swapchain->GetImageAvailableSemaphore() };
-        List<VkPipelineStageFlags> presentWaitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        List<VkPipelineStageFlags> presentWaitStages{ VK_PIPELINE_STAGE_ALL_COMMANDS_BIT };
         List<Semaphore*> presentSignalSemaphores{
             &s->swapchain->GetRenderFinishedSemaphore() };
         s->cmdQueue->SubmitCmdList(s->cmdList, s->presentFence, waitSemaphores, presentWaitStages,
             presentSignalSemaphores);
-
+        s->device->WaitIdle();
         // Present when rendering is finished, indicated by the `presentSignalSemaphores`
         s->swapchain->Present(*s->cmdQueue, *s->presentFence, presentSignalSemaphores);
         ResourceStateTracker::ApplyImplicitImageTransition(*s->swapchain->GetImage(currentFrame),
@@ -702,15 +703,39 @@ const BlasHandle Graphics::CreateBlas(const BlasCreateInfo& createInfo)
     auto indexBufferIter = s->buffers.find(createInfo.indexBuffer.buffer);
     BX_ENSURE(vertexBufferIter != s->buffers.end());
     BX_ENSURE(indexBufferIter != s->buffers.end());
+    
+    u32 indexStride = SizeOfIndexFormat(createInfo.indexFormat);
+    u32 vertexCount = (createInfo.vertexBuffer.size.IsSome() ? createInfo.vertexBuffer.size.Unwrap() : vertexBufferIter->second->Size()) / createInfo.vertexStride;
+    u32 indexCount = (createInfo.indexBuffer.size.IsSome() ? createInfo.indexBuffer.size.Unwrap() : indexBufferIter->second->Size()) / indexStride;
 
-    BlasInfo blasInfo{};
-    blasInfo.vertexFormat = VertexFormatToVk(createInfo.vertexFormat);
-    blasInfo.vertexCount = createInfo.vertexBuffer.size.IsSome() ? createInfo.vertexBuffer.size.Unwrap() : vertexBufferIter->second->Size();
-    blasInfo.vertexOffset = createInfo.vertexBuffer.offset;
-    blasInfo.indexType = IndexFormatToVk(createInfo.indexFormat);
-    blasInfo.indexCount = createInfo.indexBuffer.size.IsSome() ? createInfo.indexBuffer.size.Unwrap() : indexBufferIter->second->Size();
-    blasInfo.indexOffset = createInfo.indexBuffer.offset;
-    std::shared_ptr<Blas> blas(new Blas(createInfo.name, s->device, *s->physicalDevice, *s->uploadCmdList, vertexBufferIter->second, indexBufferIter->second, blasInfo));
+    VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
+    triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+    triangles.vertexData.deviceAddress = vertexBufferIter->second->GetDeviceAddress();
+    triangles.vertexStride = createInfo.vertexStride;
+    triangles.maxVertex = vertexCount - 1;
+    triangles.vertexFormat = VertexFormatToVk(createInfo.vertexFormat);
+    triangles.indexData.deviceAddress = indexBufferIter->second->GetDeviceAddress();
+    triangles.indexType = IndexFormatToVk(createInfo.indexFormat);
+
+    VkAccelerationStructureGeometryKHR geometry{};
+    geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+    geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    geometry.geometry.triangles = triangles;
+
+    VkAccelerationStructureBuildRangeInfoKHR rangeInfo{};
+    rangeInfo.firstVertex = createInfo.vertexBuffer.offset / createInfo.vertexStride;
+    rangeInfo.primitiveCount = indexCount / 3;
+    rangeInfo.primitiveOffset = createInfo.indexBuffer.offset / indexStride;
+    rangeInfo.transformOffset = 0;
+
+    VkBuildAccelerationStructureFlagsKHR flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+
+    u32 blasSize = Blas::RequiredSize(s->device, *s->physicalDevice, geometry, indexCount / 3, flags);
+    std::shared_ptr<Blas> blas(new Blas(createInfo.name, s->device, *s->physicalDevice, blasSize));
+    if (!s->uploadCmdList)
+        s->uploadCmdList = s->cmdQueue->GetCmdList();
+    blas->Build(*s->uploadCmdList, geometry, rangeInfo, flags);
 
     s->blases.insert(std::make_pair(blasHandle, blas));
 

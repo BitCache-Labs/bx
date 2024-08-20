@@ -585,6 +585,7 @@ struct BlasCreateInfo
 
 	BufferSlice vertexBuffer{};
 	VertexFormat vertexFormat = VertexFormat::FLOAT_32X3;
+	u32 vertexStride = 0;
 	BufferSlice indexBuffer{};
 	IndexFormat indexFormat = IndexFormat::UINT32;
 };
@@ -643,6 +644,7 @@ b8 IsTextureFormatSrgb(const TextureFormat& format);
 b8 IsTextureFormatDepth(const TextureFormat& format);
 b8 IsTextureFormatStencil(const TextureFormat& format);
 u32 SizeOfTextureFormat(const TextureFormat& format);
+u32 SizeOfIndexFormat(const IndexFormat& format);
 b8 IsBufferUsageMappable(const BufferUsageFlags& usage);
 u32 SizeOfTexturePixels(const TextureCreateInfo& info);
 

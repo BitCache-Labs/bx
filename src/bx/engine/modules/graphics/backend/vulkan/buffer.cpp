@@ -83,7 +83,6 @@ namespace Vk
         VkBufferDeviceAddressInfo info{};
         info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
         info.buffer = this->buffer;
-        info.pNext = nullptr;
 
         VkDevice device = this->device->GetDevice();
         const VkBufferDeviceAddressInfo* pInfo = &info;

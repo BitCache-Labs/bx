@@ -90,4 +90,5 @@ private:
 
 	BufferHandle m_vertexBuffer = BufferHandle::null;
 	BufferHandle m_indexBuffer = BufferHandle::null;
+	BlasHandle m_blas = BlasHandle::null;
 };
