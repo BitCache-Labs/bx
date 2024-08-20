@@ -49,7 +49,7 @@ GameObjectData GameObjectData::Load(const String& filepath)
 {
 	GameObjectData gameObjData;
 
-	std::ifstream stream(File::GetPath(filepath));
+	std::ifstream stream(File::GetExistingPath(File::GetPath(filepath)));
 	cereal::JSONInputArchive ar(stream);
 	ar(cereal::make_nvp("gameobject", gameObjData));
 
@@ -58,7 +58,7 @@ GameObjectData GameObjectData::Load(const String& filepath)
 
 void GameObjectData::Save(const String& filepath, const GameObjectData& data)
 {
-	std::ofstream stream(File::GetPath(filepath));
+	std::ofstream stream(File::GetExistingOrFirstPath(File::GetPath(filepath)));
 	cereal::JSONOutputArchive ar(stream);
 	ar(cereal::make_nvp("gameobject", data));
 }
@@ -260,7 +260,7 @@ void Scene::Load(Scene& scene, const String& filename)
 
 	try
 	{
-		std::ifstream stream(File::GetPath(filename));
+		std::ifstream stream(File::GetExistingPath(File::GetPath(filename)));
 		cereal::JSONInputArchive ar(stream);
 		ar(cereal::make_nvp("scene", scene));
 	}
@@ -274,7 +274,7 @@ void Scene::Save(const Scene& scene, const String& filename)
 {
 	try
 	{
-		std::ofstream stream(File::GetPath(filename));
+		std::ofstream stream(File::GetExistingOrFirstPath(File::GetPath(filename)));
 		cereal::JSONOutputArchive ar(stream);
 		ar(cereal::make_nvp("scene", scene));
 	}

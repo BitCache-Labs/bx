@@ -521,7 +521,7 @@ void AssetsView::Present(bool& show)
 		if (ImGui::MenuItem("New Folder"))
 		{
 			const auto& node = AssetManager::GetAssetTree().GetNode(g_selectedFolder);
-			File::CreateDirectory(File::GetPath(node.data.path + "/NewFolder"));
+			File::CreateDirectory(File::GetExistingOrFirstPath(File::GetPath(node.data.path + "/NewFolder")));
 		}
 
 		if (ImGui::MenuItem("New Asset"))

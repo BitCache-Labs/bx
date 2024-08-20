@@ -4,7 +4,7 @@
 #include "bx/framework/resources/shader.hpp"
 
 const char* PRESENT_SHADER_SRC = R""""(
-#include "[assets]/Shaders/Language.shader"
+#include "[assets]/engine/shaders/Language.shader"
 
 #ifdef VERTEX
 

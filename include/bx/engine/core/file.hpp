@@ -30,7 +30,9 @@ public:
 
 	static bool Exists(const String& path);
 	static u64 LastWrite(const String& filename);
-	static String GetPath(const String& filename);
+	static List<String> GetPath(const String& filename);
+	static String GetExistingPath(const List<String> paths);
+	static String GetExistingOrFirstPath(const List<String> paths);
 
 	static String GetExt(const String& filename);
 	static String RemoveExt(const String& filename);

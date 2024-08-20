@@ -16,7 +16,7 @@ bool Resource<Mesh>::Save(const String& filename, const Mesh& data)
     // TODO: Use some sort of compression (research needs to be done)
 
     // Serialize data
-    std::ofstream stream(File::GetPath(filename), std::ios::binary);
+    std::ofstream stream(File::GetExistingOrFirstPath(File::GetPath(filename)), std::ios::binary);
     if (stream.fail())
         return false;
 
@@ -30,7 +30,7 @@ template<>
 bool Resource<Mesh>::Load(const String& filename, Mesh& data)
 {
     // Deserialize data
-    std::ifstream stream(File::GetPath(filename), std::ios::binary);
+    std::ifstream stream(File::GetExistingPath(File::GetPath(filename)), std::ios::binary);
     if (stream.fail())
         return false;
 

@@ -37,7 +37,7 @@ bool AssetImporter::ImportTexture(const String& filename)
     Texture texture;
 
     stbi_set_flip_vertically_on_load(true);
-    auto pData = stbi_load(File::GetPath(filename).c_str(), &texture.width, &texture.height, &texture.channels, 4);
+    auto pData = stbi_load(File::GetExistingPath(File::GetPath(filename)).c_str(), &texture.width, &texture.height, &texture.channels, 4);
     if (pData == nullptr)
         return false;
 
@@ -410,7 +410,7 @@ bool AssetImporter::ImportModel(const String& filename)
     // And have it read the given file with some example postprocessing
     // Usually - if speed is not the most important aspect for you - you'll
     // probably to request more postprocessing than we do in this example.
-    const aiScene* pScene = importer.ReadFile(File::GetPath(filename),
+    const aiScene* pScene = importer.ReadFile(File::GetExistingPath(File::GetPath(filename)),
         aiProcess_CalcTangentSpace |
         aiProcess_Triangulate |
         aiProcess_JoinIdenticalVertices |

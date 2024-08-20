@@ -36,7 +36,7 @@ void Data::Shutdown()
 
 void Data::Save(DataTarget target)
 {
-	auto filepath = File::GetPath(GetFilepath(target));
+	auto filepath = File::GetExistingOrFirstPath(File::GetPath(GetFilepath(target)));
 	std::ofstream ofs(filepath);
 	if (!ofs.is_open())
 		return;
@@ -51,7 +51,7 @@ void Data::Load(DataTarget target)
 	Data::Save(target);
 #endif
 
-	auto filepath = File::GetPath(GetFilepath(target));
+	auto filepath = File::GetExistingPath(File::GetPath(GetFilepath(target)));
 	std::ifstream ifs(filepath);
 	if (!ifs.is_open())
 		return;

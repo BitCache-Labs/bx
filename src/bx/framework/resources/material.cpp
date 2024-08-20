@@ -14,7 +14,7 @@ template<>
 bool Resource<Material>::Save(const String& filename, const Material& data)
 {
     // Serialize data
-    std::ofstream stream(File::GetPath(filename));
+    std::ofstream stream(File::GetExistingOrFirstPath(File::GetPath(filename)));
     if (stream.fail())
         return false;
 
@@ -28,7 +28,7 @@ template<>
 bool Resource<Material>::Load(const String& filename, Material& data)
 {
     // Deserialize data
-    std::ifstream stream(File::GetPath(filename));
+    std::ifstream stream(File::GetExistingPath(File::GetPath(filename)));
     if (stream.fail())
         return false;
 

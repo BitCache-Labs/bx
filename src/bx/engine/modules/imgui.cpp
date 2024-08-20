@@ -106,7 +106,7 @@ bool ImGuiImpl::Initialize()
     //io.Fonts->AddFontFromFileTTF(fontpath.c_str(), iconSize * UIScale, &config, icons_ranges);
 
 #ifdef BX_EDITOR_BUILD
-    const String iniPath = File::GetPath("[editor]/imgui.ini");
+    const String iniPath = File::GetExistingOrFirstPath(File::GetPath("[editor]/imgui.ini"));
     const char* constStr = iniPath.c_str();
     const SizeType pathSize = iniPath.size() + 1;
     char* str = new char[pathSize];

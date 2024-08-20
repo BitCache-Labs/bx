@@ -187,7 +187,7 @@ static void InspectTarget(const String& type_name, ImGuiTextFilter& filter, Data
 			ImGui::SameLine();
 
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-			ImGui::Text("%s", File::GetPath(Data::GetFilepath(target)).c_str());
+			ImGui::Text("%s", File::GetExistingPath(File::GetPath(Data::GetFilepath(target))).c_str());
 			ImGui::PopStyleColor();
 		}
 
