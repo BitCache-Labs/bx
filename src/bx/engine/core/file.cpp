@@ -30,7 +30,7 @@
 #include <fstream>
 #include <sstream>
 
-HashMap<String, List<String>> s_wildcards;
+HashMap<String, String> s_wildcards;
 
 static List<String> StringSplit(const String& source, const char* delimiter, bool keep_empty)
 {
@@ -61,9 +61,9 @@ void File::Initialize()
 #if defined(BX_PLATFORM_PC) || defined(BX_PLATFORM_LINUX)
 	AddWildcard("[assets]", BX_PROJECT_PATH"/game/assets");
 #if defined(BX_INSTALL)
-	AddWildcard("[assets]", BX_PROJECT_PATH"/framework/assets");
+	AddWildcard("[engine]", BX_PROJECT_PATH"/engine");
 #else
-	AddWildcard("[assets]", BX_PROJECT_PATH"/extern/bx/include/bx/framework/assets");
+	AddWildcard("[engine]", BX_PROJECT_PATH"/extern/bx/include/bx/framework/assets");
 #endif // BX_INSTALL
 	AddWildcard("[settings]", BX_PROJECT_PATH"/game/settings");
 
@@ -116,7 +116,7 @@ void File::Initialize()
 
 List<char> File::ReadBinaryFile(const String& filename)
 {
-	const auto path = GetExistingPath(GetPath(filename));
+	const auto path = GetPath(filename);
 	std::ifstream file(path, std::ios::binary | std::ios::ate);
 	if (!file.is_open())
 	{
@@ -137,7 +137,7 @@ List<char> File::ReadBinaryFile(const String& filename)
 
 String File::ReadTextFile(const String& filename)
 {
-	const auto path = GetExistingPath(GetPath(filename));
+	const auto path = GetPath(filename);
 
 	//std::ifstream file(path);
 	//return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -163,7 +163,7 @@ String File::ReadTextFile(const String& filename)
 
 bool File::WriteTextFile(const String& filename, const String& text)
 {
-	auto fullpath = GetExistingPath(GetPath(filename));
+	auto fullpath = GetPath(filename);
 	std::ofstream ofs;
 	ofs.open(fullpath);
 
@@ -186,16 +186,7 @@ void File::AddWildcard(const String& wildcard, const String& value)
 			BX_ASSERT(false, "Create directory failed!");
 		}
 	}
-
-	auto wildcardIter = s_wildcards.find(wildcard);
-	if (wildcardIter == s_wildcards.end())
-	{
-		s_wildcards.insert(std::make_pair(wildcard, List<String>{ value }));
-	}
-	else
-	{
-		wildcardIter->second.push_back(value);
-	}
+	s_wildcards[wildcard] = value;
 }
 
 static String StringReplace(
@@ -215,73 +206,17 @@ static String StringReplace(
 	return result;
 }
 
-List<String> File::GetPath(const String& filename)
+String File::GetPath(const String& filename)
 {
-	List<String> filepaths{ filename };
+	String filepath = filename;
 
-	for (const auto& wildcard : s_wildcards)
+	for (const auto& p : s_wildcards)
 	{
-		List<String> newFilePaths{};
-
-		for (u32 i = 0; i < filepaths.size(); i++)
-		{
-			if (filepaths[i].find(wildcard.first) != String::npos)
-			{
-				for (const auto& p : wildcard.second)
-				{
-					newFilePaths.push_back(StringReplace(filepaths[i], wildcard.first, p));
-				}
-			}
-			else
-			{
-				newFilePaths.push_back(filepaths[i]);
-			}
-		}
-
-		filepaths = newFilePaths;
+		if (filepath.find(p.first) != String::npos)
+			filepath = StringReplace(filepath, p.first, p.second);
 	}
 
-	return filepaths;
-}
-
-String File::GetExistingPath(const List<String> paths)
-{
-	BX_ASSERT(!paths.empty(), "Cannot get existing path from empty paths.");
-
-	b8 found = false;
-	String existingPath = "";
-
-	for (const auto& path : paths)
-	{
-		struct stat info;
-		b8 exists = (stat(path.c_str(), &info) == 0);
-
-		if (exists)
-		{
-			BX_ASSERT(!found, "Multiple existing paths found, {} and {}.", path.c_str(), existingPath.c_str());
-			found = true;
-			existingPath = path;
-		}
-	}
-
-	BX_ASSERT(found, "No existing path found for {}.", paths[0].c_str());
-	return existingPath;
-}
-
-String File::GetExistingOrFirstPath(const List<String> paths)
-{
-	for (const auto& path : paths)
-	{
-		struct stat info;
-		b8 exists = (stat(path.c_str(), &info) == 0);
-
-		if (exists)
-		{
-			return path;
-		}
-	}
-
-	return paths[0];
+	return filepath;
 }
 
 String File::GetExt(const String& filename)
@@ -296,13 +231,12 @@ String File::RemoveExt(const String& filename)
 
 bool File::Move(const String& oldPath, const String& newPath)
 {
-	String oldFullPath = GetExistingPath(File::GetPath(oldPath));
-	List<String> newFullPaths = File::GetPath(newPath);
-	BX_ASSERT(newFullPaths.size() == 1, "More than 1 possible new paths found to move to.");
+	String oldFullPath = File::GetPath(oldPath);
+	String newFullPath = File::GetPath(newPath);
 
 #if defined(BX_PLATFORM_PC)
 	LPCSTR oldFileName = oldFullPath.c_str();
-	LPCSTR newFileName = newFullPaths[0].c_str();
+	LPCSTR newFileName = newFullPath.c_str();
 
 	// Attempt to move the file with additional options
 	if (MoveFileEx(oldFileName, newFileName, MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
@@ -328,7 +262,7 @@ bool File::Move(const String& oldPath, const String& newPath)
 bool File::Delete(const String& filename)
 {
 #if defined(BX_PLATFORM_PC)
-	const String fullpath = GetExistingPath(GetPath(filename));
+	const String fullpath = GetPath(filename);
 	
 	DWORD attributes = GetFileAttributes(fullpath.c_str());
 	if (attributes == INVALID_FILE_ATTRIBUTES)
@@ -369,7 +303,7 @@ bool File::Delete(const String& filename)
 
 bool File::Exists(const String& path)
 {
-	const auto filepath = GetExistingPath(GetPath(path));
+	const auto filepath = GetPath(path);
 	struct stat info;
 	return (stat(filepath.c_str(), &info) == 0);
 }
@@ -422,7 +356,7 @@ bool File::ListFiles(const String& root, List<FileHandle>& files)
 {
 #if defined(BX_PLATFORM_PC)
 
-	String rootPath = GetExistingOrFirstPath(GetPath(root));
+	String rootPath = GetPath(root);
 
 	if (rootPath.size() > (MAX_PATH - 3))
 		return false;

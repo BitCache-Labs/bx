@@ -59,7 +59,7 @@ String ResolveShaderIncludes(const String& source)
 template<>
 bool Resource<Shader>::Save(const String& filename, const Shader& data)
 {
-    std::ofstream stream(File::GetExistingOrFirstPath(File::GetPath(filename)));
+    std::ofstream stream(File::GetPath(filename));
     if (stream.fail())
         return false;
 
@@ -72,7 +72,7 @@ bool Resource<Shader>::Save(const String& filename, const Shader& data)
 template<>
 bool Resource<Shader>::Load(const String& filename, Shader& data)
 {
-    std::ifstream stream(File::GetExistingPath(File::GetPath(filename)));
+    std::ifstream stream(File::GetPath(filename));
     if (stream.fail() || !stream.good())
         return false;
     std::stringstream ss;

@@ -18,7 +18,7 @@ bool Resource<Texture>::Save(const String& filename, const Texture& data)
     // @Conor, I propose we use bc encoding as it has a wider range of supported devices
     // On top of that, bc7 performs a bit better
 
-    std::ofstream stream(File::GetExistingOrFirstPath(File::GetPath(filename)), std::ios::binary);
+    std::ofstream stream(File::GetPath(filename), std::ios::binary);
     if (stream.fail())
         return false;
 
@@ -32,7 +32,7 @@ template<>
 bool Resource<Texture>::Load(const String& filename, Texture& data)
 {
     // Deserialize data
-    std::ifstream stream(File::GetExistingPath(File::GetPath(filename)), std::ios::binary);
+    std::ifstream stream(File::GetPath(filename), std::ios::binary);
     if (stream.fail())
         return false;
 

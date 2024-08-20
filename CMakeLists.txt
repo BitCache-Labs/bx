@@ -295,7 +295,7 @@ if (BX_INSTALL)
 
 	# Copy game contents to install dir
 	install(DIRECTORY ${CMAKE_SOURCE_DIR}/game DESTINATION bin)
-	install(DIRECTORY ${CMAKE_SOURCE_DIR}/extern/bx/include/bx/framework/assets DESTINATION bin/framework)
+	install(DIRECTORY ${CMAKE_SOURCE_DIR}/extern/bx/include/bx/framework/assets/shaders DESTINATION bin/engine)
 
 	# Package game in zip file of the installed files
 	#add_custom_target(install_and_package

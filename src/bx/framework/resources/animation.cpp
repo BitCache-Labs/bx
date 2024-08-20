@@ -15,7 +15,7 @@ template<>
 bool Resource<Animation>::Save(const String& filename, const Animation& data)
 {
     // Serialize data
-    std::ofstream stream(File::GetExistingOrFirstPath(File::GetPath(filename)), std::ios::binary);
+    std::ofstream stream(File::GetPath(filename), std::ios::binary);
     if (stream.fail())
         return false;
 
@@ -29,7 +29,7 @@ template<>
 bool Resource<Animation>::Load(const String& filename, Animation& data)
 {
     // Deserialize data
-    std::ifstream stream(File::GetExistingPath(File::GetPath(filename)), std::ios::binary);
+    std::ifstream stream(File::GetPath(filename), std::ios::binary);
     if (stream.fail())
         return false;
 

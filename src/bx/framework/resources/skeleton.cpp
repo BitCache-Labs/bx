@@ -14,7 +14,7 @@ template<>
 bool Resource<Skeleton>::Save(const String& filename, const Skeleton& data)
 {
     // Serialize data
-    std::ofstream stream(File::GetExistingOrFirstPath(File::GetPath(filename)), std::ios::binary);
+    std::ofstream stream(File::GetPath(filename), std::ios::binary);
     if (stream.fail())
         return false;
 
@@ -28,7 +28,7 @@ template<>
 bool Resource<Skeleton>::Load(const String& filename, Skeleton& data)
 {
     // Deserialize data
-    std::ifstream stream(File::GetExistingPath(File::GetPath(filename)), std::ios::binary);
+    std::ifstream stream(File::GetPath(filename), std::ios::binary);
     if (stream.fail())
         return false;
 
