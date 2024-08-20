@@ -399,7 +399,7 @@ bool File::ListFiles(const String& root, List<FileHandle>& files)
 
 #elif defined(BX_PLATFORM_LINUX)
 
-	String rootPath = GetExistingOrFirstPath(GetPath(root));
+	String rootPath = GetPath(root);
 
 	DIR* dir = opendir(rootPath.c_str());
 	if (dir == NULL)
