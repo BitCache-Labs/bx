@@ -484,6 +484,17 @@ void Graphics::DestroyBindGroup(BindGroupHandle& bindGroup)
     s->bindGroupHandlePool.Destroy(bindGroup);
 }
 
+const BlasHandle Graphics::CreateBlas(const BlasCreateInfo& createInfo)
+{
+    BX_FAIL("Raytracing is not supported, please check `GraphicsCapabilities` first.");
+    return BlasHandle::null;
+}
+
+void Graphics::DestroyBlas(BlasHandle& blas)
+{
+    BX_FAIL("Raytracing is not supported, please check `GraphicsCapabilities` first.");
+}
+
 RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descriptor)
 {
     BX_ASSERT(!s->activeRenderPass, "Render pass already active.");

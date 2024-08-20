@@ -74,6 +74,15 @@ const BindGroupCreateInfo& Graphics::GetBindGroupCreateInfo(BindGroupHandle bind
     return createInfoIter->second;
 }
 
+const BlasCreateInfo& Graphics::GetBlasCreateInfo(BlasHandle blas)
+{
+    BX_ENSURE(blas);
+
+    auto createInfoIter = s_createInfoCache->blasCreateInfos.find(blas);
+    BX_ENSURE(createInfoIter != s_createInfoCache->blasCreateInfos.end());
+    return createInfoIter->second;
+}
+
 const RenderPassDescriptor& Graphics::GetRenderPassDescriptor(RenderPassHandle renderPass)
 {
     BX_ENSURE(renderPass);

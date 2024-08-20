@@ -14,6 +14,7 @@
 #include "bx/engine/modules/window.hpp"
 #include "bx/engine/modules/imgui.hpp"
 
+#include "bx/engine/modules/graphics/backend/vulkan/blas.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/resource_state_tracker.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/conversion.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/compute_pipeline.hpp"
@@ -76,6 +77,7 @@ struct State : NoCopy
     HandlePool<RenderPassApi> renderPassHandlePool;
     HandlePool<ComputePassApi> computePassHandlePool;
     HandlePool<BindGroupApi> bindGroupHandlePool;
+    HandlePool<BlasApi> blasHandlePool;
 
     HashMap<BufferHandle, std::shared_ptr<Buffer>> buffers;
     HashMap<TextureHandle, std::shared_ptr<Image>> textures;
@@ -86,6 +88,7 @@ struct State : NoCopy
     HashMap<ComputePipelineHandle, std::shared_ptr<ComputePipeline>> computePipelines;
     HashMap<ComputePipelineHandle, const List<std::shared_ptr<DescriptorSetLayout>>> computePipelineLayouts;
     HashMap<BindGroupHandle, std::shared_ptr<DescriptorSet>> bindGroups;
+    HashMap<BlasHandle, std::shared_ptr<Blas>> blases;
 
     std::shared_ptr<Framebuffer> renderPassFramebuffer = nullptr;
     std::shared_ptr<RenderPass> activeRenderPass = nullptr;
@@ -685,6 +688,42 @@ void Graphics::DestroyBindGroup(BindGroupHandle& bindGroup)
     s->bindGroups.erase(bindGroup);
     s_createInfoCache->bindGroupCreateInfos.erase(bindGroup);
     s->bindGroupHandlePool.Destroy(bindGroup);
+}
+
+const BlasHandle Graphics::CreateBlas(const BlasCreateInfo& createInfo)
+{
+    BX_ASSERT(s->graphicsCapabilities.raytracing, "Raytracing is not supported, please check `GraphicsCapabilities` first.");
+    BX_ENSURE(ValidateBlasCreateInfo(createInfo));
+
+    BlasHandle blasHandle = s->blasHandlePool.Create();
+    s_createInfoCache->blasCreateInfos.insert(std::make_pair(blasHandle, createInfo));
+
+    auto vertexBufferIter = s->buffers.find(createInfo.vertexBuffer.buffer);
+    auto indexBufferIter = s->buffers.find(createInfo.indexBuffer.buffer);
+    BX_ENSURE(vertexBufferIter != s->buffers.end());
+    BX_ENSURE(indexBufferIter != s->buffers.end());
+
+    BlasInfo blasInfo{};
+    blasInfo.vertexFormat = VertexFormatToVk(createInfo.vertexFormat);
+    blasInfo.vertexCount = createInfo.vertexBuffer.size.IsSome() ? createInfo.vertexBuffer.size.Unwrap() : vertexBufferIter->second->Size();
+    blasInfo.vertexOffset = createInfo.vertexBuffer.offset;
+    blasInfo.indexType = IndexFormatToVk(createInfo.indexFormat);
+    blasInfo.indexCount = createInfo.indexBuffer.size.IsSome() ? createInfo.indexBuffer.size.Unwrap() : indexBufferIter->second->Size();
+    blasInfo.indexOffset = createInfo.indexBuffer.offset;
+    std::shared_ptr<Blas> blas(new Blas(createInfo.name, s->device, *s->physicalDevice, *s->uploadCmdList, vertexBufferIter->second, indexBufferIter->second, blasInfo));
+
+    s->blases.insert(std::make_pair(blasHandle, blas));
+
+    return blasHandle;
+}
+
+void Graphics::DestroyBlas(BlasHandle& blas)
+{
+    BX_ASSERT(s->graphicsCapabilities.raytracing, "Raytracing is not supported, please check `GraphicsCapabilities` first.");
+
+    s->blases.erase(blas);
+    s_createInfoCache->blasCreateInfos.erase(blas);
+    s->blasHandlePool.Destroy(blas);
 }
 
 RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descriptor)

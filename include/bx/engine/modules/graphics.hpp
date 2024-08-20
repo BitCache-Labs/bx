@@ -55,6 +55,10 @@ public:
 	static BindGroupHandle CreateBindGroup(const BindGroupCreateInfo& createInfo);
 	static void DestroyBindGroup(BindGroupHandle& bindGroup);
 
+	static const BlasCreateInfo& GetBlasCreateInfo(BlasHandle blas);
+	static const BlasHandle CreateBlas(const BlasCreateInfo& createInfo);
+	static void DestroyBlas(BlasHandle& blas);
+
 	// Cmds
 	static const RenderPassDescriptor& GetRenderPassDescriptor(RenderPassHandle renderPass);
 	static RenderPassHandle BeginRenderPass(const RenderPassDescriptor& descriptor);
@@ -105,6 +109,7 @@ private:
 		HashMap<ComputePipelineHandle, ComputePipelineCreateInfo> computePipelineCreateInfos;
 		HashMap<BindGroupHandle, BindGroupCreateInfo> bindGroupCreateInfos;
 		HashMap<RenderPassHandle, RenderPassDescriptor> renderPassCreateInfos;
+		HashMap<BlasHandle, BlasCreateInfo> blasCreateInfos;
 	};
 	static std::unique_ptr<CreateInfoCache> s_createInfoCache;
 

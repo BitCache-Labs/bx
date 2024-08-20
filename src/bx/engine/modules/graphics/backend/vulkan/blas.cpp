@@ -12,20 +12,23 @@
 
 namespace Vk
 {
-	Blas::Blas(std::shared_ptr<Device> device, const PhysicalDevice& physicalDevice,
-               CmdList& uploadCmdList, const Mesh& mesh)
-        : AccelerationStructure(mesh.name, device, physicalDevice) {
+	Blas::Blas(const String& name, std::shared_ptr<Device> device, const PhysicalDevice& physicalDevice,
+        CmdList& uploadCmdList, std::shared_ptr<Buffer> vertexBuffer, std::shared_ptr<Buffer> indexBuffer, const BlasInfo& info)
+        : AccelerationStructure(name, device, physicalDevice)
+    {
+        BX_ENSURE(info.vertexOffset == 0 && info.indexOffset == 0);
+
         VkAccelerationStructureGeometryKHR geometry{};
         geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
         geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
         geometry.geometry.triangles.sType =
             VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
         geometry.geometry.triangles.vertexData.deviceAddress =
-            mesh.vertexBuffer->GetDeviceAddress();
-        geometry.geometry.triangles.vertexStride = sizeof(Vertex);
-        geometry.geometry.triangles.maxVertex = static_cast<uint32_t>(mesh.vertexCount);
+            vertexBuffer->GetDeviceAddress();
+        geometry.geometry.triangles.vertexStride = info.vertexStride;
+        geometry.geometry.triangles.maxVertex = info.vertexCount;
         geometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-        geometry.geometry.triangles.indexData.deviceAddress = mesh.indexBuffer->GetDeviceAddress();
+        geometry.geometry.triangles.indexData.deviceAddress = indexBuffer->GetDeviceAddress();
         geometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
         geometry.geometry.triangles.transformData = {};
 
@@ -37,15 +40,15 @@ namespace Vk
         this->buildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
         this->buildGeometryInfo.srcAccelerationStructure = nullptr;
 
-        this->buildSizesInfo = CalculateBuildSizes(mesh.indexCount / 3);
+        this->buildSizesInfo = CalculateBuildSizes(info.indexCount / 3);
 
         std::shared_ptr<Buffer> scratchBuffer =
             std::make_shared<Buffer>("BLAS scratch buffer", device, physicalDevice,
-                                     BufferUsageBits::STORAGE_BUFFER, 69, BufferLocation::GPU_ONLY);
+                                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 1024 * 1024 * 16, BufferLocation::GPU_ONLY);
         CreateAccelerationStructure(*this->blas, 0);
 
         uploadCmdList.BuildBLAS(geometry, scratchBuffer, this->blas, GetAccelerationStructure(),
-                                mesh.indexCount);
+                                info.indexCount);
     }
 
     Blas::~Blas() {

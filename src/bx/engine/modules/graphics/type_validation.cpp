@@ -265,3 +265,20 @@ b8 ValidateComputePipelineCreateInfo(const ComputePipelineCreateInfo& createInfo
 
 	return true;
 }
+
+b8 ValidateBlasCreateInfo(const BlasCreateInfo& createInfo)
+{
+	if (createInfo.vertexBuffer.buffer == BufferHandle::null)
+	{
+		BX_LOGE("Invalid blas creation info: vertex buffer cannot be null.");
+		return false;
+	}
+
+	if (createInfo.indexBuffer.buffer == BufferHandle::null)
+	{
+		BX_LOGE("Invalid blas creation info: index buffer cannot be null.");
+		return false;
+	}
+
+	return true;
+}

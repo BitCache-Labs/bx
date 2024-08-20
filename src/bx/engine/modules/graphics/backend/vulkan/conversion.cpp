@@ -345,6 +345,11 @@ namespace Vk
 		}
 	}
 
+	VkIndexType IndexFormatToVk(const IndexFormat& format)
+	{
+		return format == IndexFormat::UINT16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+	}
+
 	VkFrontFace FrontFaceToVk(const FrontFace& frontFace)
 	{
 		switch (frontFace)

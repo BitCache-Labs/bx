@@ -31,6 +31,8 @@ struct BindGroupLayoutApi {};
 using BindGroupLayoutHandle = Handle<BindGroupLayoutApi>;
 struct BindGroupApi {};
 using BindGroupHandle = Handle<BindGroupApi>;
+struct BlasApi {};
+using BlasHandle = Handle<BlasApi>;
 
 ENUM(ShaderType,
 	VERTEX,
@@ -568,12 +570,23 @@ struct ImageDataLayout
 
 struct BufferSlice
 {
+	BufferSlice() = default;
 	BufferSlice(BufferHandle buffer, u64 offset = 0, const Optional<u64>& size = Optional<u64>::None())
 		: buffer(buffer), offset(offset), size(size) {}
 
 	BufferHandle buffer = BufferHandle::null;
 	u64 offset = 0;
 	Optional<u64> size = Optional<u64>::None();
+};
+
+struct BlasCreateInfo
+{
+	String name = "Blas";
+
+	BufferSlice vertexBuffer{};
+	VertexFormat vertexFormat = VertexFormat::FLOAT_32X3;
+	BufferSlice indexBuffer{};
+	IndexFormat indexFormat = IndexFormat::UINT32;
 };
 
 struct Operations
