@@ -14,7 +14,7 @@
 #include "bx/engine/modules/window.hpp"
 #include "bx/engine/modules/imgui.hpp"
 
-#include "bx/engine/modules/graphics/backend/vulkan/blas.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/acceleration_structure.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/resource_state_tracker.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/conversion.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/compute_pipeline.hpp"
