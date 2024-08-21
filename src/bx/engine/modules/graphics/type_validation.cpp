@@ -296,3 +296,17 @@ b8 ValidateBlasCreateInfo(const BlasCreateInfo& createInfo)
 
 	return true;
 }
+
+b8 ValidateTlasCreateInfo(const TlasCreateInfo& createInfo)
+{
+	for (u32 i = 0; i < createInfo.blasInstances.size(); i++)
+	{
+		if (!createInfo.blasInstances[i].blas)
+		{
+			BX_LOGE("Invalid tlas creation info: blas instance {} cannot be null.", i);
+			return false;
+		}
+	}
+
+	return true;
+}

@@ -10,3 +10,4 @@ b8 ValidateBindGroupCreateInfo(const BindGroupCreateInfo& createInfo);
 b8 ValidateGraphicsPipelineCreateInfo(const GraphicsPipelineCreateInfo& createInfo);
 b8 ValidateComputePipelineCreateInfo(const ComputePipelineCreateInfo& createInfo);
 b8 ValidateBlasCreateInfo(const BlasCreateInfo& createInfo);
+b8 ValidateTlasCreateInfo(const TlasCreateInfo& createInfo);

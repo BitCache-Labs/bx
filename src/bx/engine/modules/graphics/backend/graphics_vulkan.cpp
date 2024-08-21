@@ -756,8 +756,66 @@ void Graphics::DestroyBlas(BlasHandle& blas)
 const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
 {
     BX_ASSERT(s->graphicsCapabilities.raytracing, "Raytracing is not supported, please check `GraphicsCapabilities` first.");
+    BX_ENSURE(ValidateTlasCreateInfo(createInfo));
 
+    TlasHandle tlasHandle = s->tlasHandlePool.Create();
+    s_createInfoCache->tlasCreateInfos.insert(std::make_pair(tlasHandle, createInfo));
 
+    List<VkAccelerationStructureInstanceKHR> instances{};
+    instances.reserve(createInfo.blasInstances.size());
+    for (u32 i = 0; i < createInfo.blasInstances.size(); i++)
+    {
+        const BlasInstance& blasInstance = createInfo.blasInstances[i];
+
+        auto blasIter = s->blases.find(blasInstance.blas);
+        BX_ENSURE(blasIter != s->blases.end());
+
+        VkAccelerationStructureInstanceKHR vkInstance{};
+        Mat4 transform = blasInstance.transform.Transpose();
+        memcpy(&vkInstance.transform, transform.data, sizeof(VkTransformMatrixKHR));
+        vkInstance.instanceCustomIndex = blasInstance.instanceCustomIndex;
+        vkInstance.mask = blasInstance.mask;
+        vkInstance.flags = VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR; // TODO: ??
+        vkInstance.accelerationStructureReference = blasIter->second->GetDeviceAddress();
+
+        instances.push_back(vkInstance);
+    }
+
+    u32 instancesSize = instances.size() * sizeof(VkAccelerationStructureInstanceKHR);
+    std::shared_ptr<Buffer> instancesBuffer(new Buffer("Tlas Instances Buffer", s->device, *s->physicalDevice,
+        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, instancesSize, BufferLocation::GPU_ONLY));
+
+    std::shared_ptr<Buffer> stagingBuffer(new Buffer("Write Tlas Instances Staging Buffer", s->device,
+        *s->physicalDevice, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        static_cast<uint64_t>(instancesSize), BufferLocation::CPU_TO_GPU));
+
+    void* bufferData = stagingBuffer->Map();
+    memcpy(bufferData, instances.data(), instancesSize);
+    stagingBuffer->Unmap();
+
+    if (!s->uploadCmdList)
+        s->uploadCmdList = s->cmdQueue->GetCmdList();
+    s->uploadCmdList->CopyBuffers(stagingBuffer, instancesBuffer);
+
+    VkAccelerationStructureGeometryInstancesDataKHR instancesData{};
+    instancesData.arrayOfPointers = false;
+    instancesData.data.deviceAddress = instancesBuffer->GetDeviceAddress();
+
+    VkAccelerationStructureGeometryKHR geometry{};
+    geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    geometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+    geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    geometry.geometry.instances = instancesData;
+
+    VkBuildAccelerationStructureFlagsKHR flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+
+    u32 tlasSize = Tlas::RequiredSize(s->device, *s->physicalDevice, geometry, instances.size(), flags);
+    std::shared_ptr<Tlas> tlas(new Tlas(createInfo.name, s->device, *s->physicalDevice, tlasSize));
+    tlas->Build(*s->uploadCmdList, instances, flags);
+
+    s->tlases.insert(std::make_pair(tlasHandle, tlas));
+
+    return tlasHandle;
 }
 
 void Graphics::DestroyTlas(TlasHandle& tlas)

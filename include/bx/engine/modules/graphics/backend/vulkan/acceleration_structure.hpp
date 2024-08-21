@@ -44,6 +44,8 @@ namespace Vk
 
         void Build(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags);
         void Update(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags);
+
+        VkDeviceAddress GetDeviceAddress() const;
     };
 
     class Tlas : AccelerationStructure

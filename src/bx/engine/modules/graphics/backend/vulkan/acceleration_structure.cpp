@@ -127,6 +127,11 @@ namespace Vk
         cmdList.UpdateAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, GetBuffer(), GetAccelerationStructure());
     }
 
+    VkDeviceAddress Blas::GetDeviceAddress() const
+    {
+        return GetBuffer()->GetDeviceAddress();
+    }
+
     Tlas::Tlas(const String& name, std::shared_ptr<Device> device,
         const PhysicalDevice& physicalDevice, u32 size)
         : AccelerationStructure(name, device, physicalDevice, size, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)
@@ -134,21 +139,23 @@ namespace Vk
 
     }
 
+    u32 Tlas::RequiredSize(std::shared_ptr<Device> device, const PhysicalDevice& physicalDevice,
+        VkAccelerationStructureGeometryKHR geometry, u32 maxPrimitiveCounts, VkBuildAccelerationStructureFlagsKHR flags)
+    {
+        VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
+        buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+        buildInfo.flags = flags;
+        buildInfo.geometryCount = 1;
+        buildInfo.pGeometries = &geometry;
+        buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+        buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+
+        return CalculateBuildSizes(*device, physicalDevice.RayTracingProperties(), buildInfo, maxPrimitiveCounts).accelerationStructureSize;
+    }
+
     void Tlas::Build(CmdList& cmdList, const List<VkAccelerationStructureInstanceKHR>& instances, VkBuildAccelerationStructureFlagsKHR flags)
     {
         std::shared_ptr<Buffer> scratchBuffer = ScratchBuffer::Get(device, physicalDevice);
-
-        u32 instancesSize = instances.size() * sizeof(VkAccelerationStructureInstanceKHR);
-        std::shared_ptr<Buffer> instancesBuffer(new Buffer("Tlas Instances Buffer", device, physicalDevice,
-            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, instancesSize, BufferLocation::GPU_ONLY));
-
-        std::shared_ptr<Buffer> stagingBuffer(new Buffer("Write Tlas Instances Staging Buffer", device,
-            physicalDevice, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            static_cast<uint64_t>(instancesSize), BufferLocation::CPU_TO_GPU));
-
-        void* bufferData = stagingBuffer->Map();
-        memcpy(bufferData, instances.data(), instancesSize);
-        stagingBuffer->Unmap();
 
         VkMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;

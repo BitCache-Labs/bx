@@ -592,9 +592,19 @@ struct BlasCreateInfo
 	IndexFormat indexFormat = IndexFormat::UINT32;
 };
 
+struct BlasInstance
+{
+	Mat4 transform = Mat4::Identity();
+	u32 instanceCustomIndex = 0;
+	u8 mask = 0;
+	BlasHandle blas = BlasHandle::null;
+};
+
 struct TlasCreateInfo
 {
 	String name = "Tlas";
+
+	List<BlasInstance> blasInstances{};
 };
 
 struct Operations

@@ -60,6 +60,8 @@ struct RendererState : NoCopy
 
     BufferHandle vertexConstantsBuffer = BufferHandle::null;
     BufferHandle lightSourceBuffer = BufferHandle::null;
+
+    TlasHandle tlas = TlasHandle::null;
 };
 static std::unique_ptr<RendererState> s = nullptr;
 
@@ -200,6 +202,35 @@ void Renderer::UpdateCameras()
     }
 }
 
+void UpdateTlas()
+{
+    List<BlasInstance> blasInstances{};
+
+    EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
+        [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr)
+        {
+            if (mr.GetMaterialCount() == 0)
+                return;
+
+            SizeType index = 0;
+            for (const auto& mesh : mf.GetMeshes())
+            {
+                const auto& material = mr.GetMaterial(index++);
+                index %= mr.GetMaterialCount();
+
+                if (!mesh || !material)
+                    continue;
+
+                
+            }
+        });
+
+    TlasCreateInfo tlasCreateInfo{};
+    tlasCreateInfo.name = "Dynamic Tlas";
+    tlasCreateInfo.blasInstances = blasInstances;
+    s->tlas = Graphics::CreateTlas(tlasCreateInfo);
+}
+
 void RecreateRenderTargets()
 {
     if (Window::WasResized())
@@ -243,7 +274,7 @@ void Renderer::Initialize()
     lightSourceCreateInfo.size = sizeof(LightSourceData) * 10;
     lightSourceCreateInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::COPY_DST;
     s->lightSourceBuffer = Graphics::CreateBuffer(lightSourceCreateInfo);
-    
+
     RecreateRenderTargets();
 }
 
@@ -268,6 +299,7 @@ void Renderer::Render()
     UpdateLightSources();
     UpdateCameras();
     BuildShaderPipelines();
+    UpdateTlas();
 
     Graphics::UpdateDebugLines();
 
