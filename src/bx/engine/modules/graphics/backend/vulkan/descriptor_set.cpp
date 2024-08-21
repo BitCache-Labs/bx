@@ -2,6 +2,7 @@
 
 #include "bx/engine/core/macros.hpp"
 
+#include "bx/engine/modules/graphics/backend/vulkan/acceleration_structure.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/device.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/descriptor_pool.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/descriptor_set_layout.hpp"
@@ -85,6 +86,25 @@ namespace Vk
         writeInfo.descriptorCount = 1;
         writeInfo.descriptorType = type;
         writeInfo.pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
+    }
+
+    void DescriptorSet::SetAccelerationStructure(uint32_t binding, std::shared_ptr<Tlas> tlas)
+    {
+        VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
+        descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+        descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
+        VkAccelerationStructureKHR accelerationStructure = tlas->GetAccelerationStructure();
+        descriptorAccelerationStructureInfo.pAccelerationStructures = &accelerationStructure;
+
+        VkWriteDescriptorSet writeInfo{};
+        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeInfo.pNext = &descriptorAccelerationStructureInfo;
+        writeInfo.dstSet = this->descriptorSet;
+        writeInfo.dstBinding = binding;
+        writeInfo.descriptorCount = 1;
+        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
         vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
     }

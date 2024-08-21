@@ -151,7 +151,7 @@ namespace Vk
         input.client = GLSLANG_CLIENT_VULKAN;
         input.client_version = GLSLANG_TARGET_VULKAN_1_0;
         input.target_language = GLSLANG_TARGET_SPV;
-        input.target_language_version = GLSLANG_TARGET_SPV_1_0;
+        input.target_language_version = GLSLANG_TARGET_SPV_1_4;
         input.code = src.c_str();
         input.default_version = 100;
         input.default_profile = GLSLANG_CORE_PROFILE;

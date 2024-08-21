@@ -26,10 +26,15 @@ namespace Vk
         deviceFeatures.fillModeNonSolid = VK_TRUE;
         deviceFeatures.samplerAnisotropy = VK_TRUE;
 
+        VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{};
+        rayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+        rayQueryFeatures.rayQuery = true;
+
         VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
         accelerationStructureFeatures.sType =
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
         accelerationStructureFeatures.accelerationStructure = true;
+        accelerationStructureFeatures.pNext = &rayQueryFeatures;
 
         VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures{};
         bufferDeviceAddressFeatures.sType =

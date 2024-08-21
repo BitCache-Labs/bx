@@ -47,7 +47,7 @@ using namespace Vk;
 
 constexpr bool ENABLE_VALIDATION =
 #ifdef _DEBUG
-false;
+true;
 #else
 false;
 #endif
@@ -462,7 +462,7 @@ ShaderHandle Graphics::CreateShader(const ShaderCreateInfo& createInfo)
     s_createInfoCache->shaderCreateInfos.insert(std::make_pair(shaderHandle, createInfo));
 
     String meta = String(R""""(
-    #version 450
+    #version 460
     
     #ifndef VULKAN
     #define VULKAN
@@ -680,7 +680,7 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
             BX_ENSURE(tlasIter != s->tlases.end());
 
             VkDescriptorType type = layout->GetDescriptorType(entry.binding);
-            descriptorSet->SetBuffer(entry.binding, type, tlasIter->second->GetBuffer());
+            descriptorSet->SetAccelerationStructure(entry.binding, tlasIter->second);
             break;
         }
         default:
@@ -784,7 +784,7 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
         memcpy(&vkInstance.transform, transform.data, sizeof(VkTransformMatrixKHR));
         vkInstance.instanceCustomIndex = blasInstance.instanceCustomIndex;
         vkInstance.mask = blasInstance.mask;
-        vkInstance.flags = VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR; // TODO: ??
+        vkInstance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR | VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR; // TODO: ??
         vkInstance.accelerationStructureReference = blasIter->second->GetBuffer()->GetDeviceAddress();
 
         instances.push_back(vkInstance);
@@ -1126,8 +1126,6 @@ void Graphics::SetComputePipeline(ComputePipelineHandle computePipeline)
     BX_ENSURE(pipelineIter != s->computePipelines.end());
 
     s->cmdList->BindComputePipeline(pipelineIter->second);
-
-    BX_FAIL("TODO");
 }
 
 void Graphics::DispatchWorkgroups(u32 x, u32 y, u32 z)

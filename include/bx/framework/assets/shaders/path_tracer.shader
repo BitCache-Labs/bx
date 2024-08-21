@@ -3,15 +3,15 @@
 
 #include "[engine]/shaders/ray_tracing/ray.shader"
 
-layout (BINDING(0, 0), std140) uniform Constants
+layout (BINDING(0, 0), std140) uniform _Constants
 {
     mat4 invView;
     mat4 invProj;
     uint width;
     uint height;
-};
+} Constants;
 layout(BINDING(0, 1)) uniform accelerationStructureEXT Scene;
-layout (BINDING(0, 2)), rgba8) uniform image2D OutImage;
+layout (BINDING(0, 2), rgba8) uniform image2D OutImage;
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()

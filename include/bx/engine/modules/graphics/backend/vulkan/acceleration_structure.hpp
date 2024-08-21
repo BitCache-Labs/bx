@@ -18,6 +18,7 @@ namespace Vk
     public:
         ~AccelerationStructure();
 
+        VkAccelerationStructureKHR GetAccelerationStructure() const;
         std::shared_ptr<Buffer> GetBuffer() const;
 
     protected:
@@ -26,8 +27,6 @@ namespace Vk
 
         const std::shared_ptr<Device> device;
         const PhysicalDevice& physicalDevice;
-
-        VkAccelerationStructureKHR GetAccelerationStructure() const;
 
     private:
         VkAccelerationStructureKHR accelerationStructure;
