@@ -226,7 +226,7 @@ void UpdateTlas()
                     continue;
 
                 BlasInstance blasInstance{};
-                blasInstance.transform = trx.GetMatrix();
+                blasInstance.transform = trx.GetMatrix() * mesh->GetMatrix();
                 blasInstance.instanceCustomIndex = 0; // TODO
                 blasInstance.mask = 0xFF;
                 blasInstance.blas = mesh->GetBlas();
@@ -239,6 +239,7 @@ void UpdateTlas()
         TlasCreateInfo tlasCreateInfo{};
         tlasCreateInfo.name = "Dynamic Tlas";
         tlasCreateInfo.blasInstances = blasInstances;
+        if (s->tlas) Graphics::DestroyTlas(s->tlas);
         s->tlas = Graphics::CreateTlas(tlasCreateInfo);
     }
 }

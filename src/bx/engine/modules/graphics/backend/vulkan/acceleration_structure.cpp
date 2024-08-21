@@ -58,6 +58,8 @@ namespace Vk
         createInfo.offset = 0;
 
         VK_ASSERT(!Pfn::vkCreateAccelerationStructureKHR(device->GetDevice(), &createInfo, nullptr, &this->accelerationStructure), "Failed to create acceleration structure.");
+        DebugNames::Set(*device, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR, reinterpret_cast<uint64_t>(this->accelerationStructure),
+            name);
     }
 
     AccelerationStructure::~AccelerationStructure()
