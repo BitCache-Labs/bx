@@ -63,7 +63,7 @@ void File::Initialize()
 #if defined(BX_INSTALL)
 	AddWildcard("[engine]", BX_PROJECT_PATH"/engine");
 #else
-	AddWildcard("[engine]", BX_PROJECT_PATH"/extern/bx/include/bx/framework/assets");
+	AddWildcard("[engine]", BX_PATH"/include/bx/framework/assets");
 #endif // BX_INSTALL
 	AddWildcard("[settings]", BX_PROJECT_PATH"/game/settings");
 
