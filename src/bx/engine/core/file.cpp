@@ -60,6 +60,11 @@ void File::Initialize()
 {
 #if defined(BX_PLATFORM_PC) || defined(BX_PLATFORM_LINUX)
 	AddWildcard("[assets]", BX_PROJECT_PATH"/game/assets");
+#if defined(BX_INSTALL)
+	AddWildcard("[engine]", BX_PROJECT_PATH"/engine");
+#else
+	AddWildcard("[engine]", BX_PATH"/include/bx/framework/assets");
+#endif // BX_INSTALL
 	AddWildcard("[settings]", BX_PROJECT_PATH"/game/settings");
 
 	// All platforms
