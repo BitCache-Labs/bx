@@ -153,7 +153,7 @@ namespace Vk
         return CalculateBuildSizes(*device, physicalDevice.RayTracingProperties(), buildInfo, maxPrimitiveCounts).accelerationStructureSize;
     }
 
-    void Tlas::Build(CmdList& cmdList, const List<VkAccelerationStructureInstanceKHR>& instances, VkBuildAccelerationStructureFlagsKHR flags)
+    void Tlas::Build(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags)
     {
         std::shared_ptr<Buffer> scratchBuffer = ScratchBuffer::Get(device, physicalDevice);
 
@@ -164,18 +164,18 @@ namespace Vk
         vkCmdPipelineBarrier(cmdList.GetCommandBuffer(), VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
             VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
 
-        /*VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
+        VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
         buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
         buildInfo.flags = flags;
         buildInfo.geometryCount = 1;
         buildInfo.pGeometries = &geometry;
         buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-        buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;*/
+        buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
 
-        //cmdList.BuildAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, GetBuffer(), GetAccelerationStructure());
+        cmdList.BuildAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, GetBuffer(), GetAccelerationStructure());
     }
 
-    void Tlas::Update(CmdList& cmdList, const List<VkAccelerationStructureInstanceKHR>& instances, VkBuildAccelerationStructureFlagsKHR flags)
+    void Tlas::Update(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags)
     {
 
     }

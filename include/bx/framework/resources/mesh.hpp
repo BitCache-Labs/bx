@@ -70,6 +70,7 @@ public:
 
 	inline BufferHandle GetVertexBuffer() const { return m_vertexBuffer; }
 	inline BufferHandle GetIndexBuffer() const { return m_indexBuffer; }
+	inline BlasHandle GetBlas() const { return m_blas; }
 
 private:
 	template <typename T>

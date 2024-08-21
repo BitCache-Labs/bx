@@ -47,7 +47,7 @@ using namespace Vk;
 
 constexpr bool ENABLE_VALIDATION =
 #ifdef _DEBUG
-true;
+false;
 #else
 false;
 #endif
@@ -798,6 +798,7 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
     s->uploadCmdList->CopyBuffers(stagingBuffer, instancesBuffer);
 
     VkAccelerationStructureGeometryInstancesDataKHR instancesData{};
+    instancesData.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
     instancesData.arrayOfPointers = false;
     instancesData.data.deviceAddress = instancesBuffer->GetDeviceAddress();
 
@@ -807,11 +808,17 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
     geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
     geometry.geometry.instances = instancesData;
 
+    VkAccelerationStructureBuildRangeInfoKHR rangeInfo{};
+    rangeInfo.firstVertex = 0;
+    rangeInfo.primitiveCount = instances.size();
+    rangeInfo.primitiveOffset = 0;
+    rangeInfo.transformOffset = 0;
+
     VkBuildAccelerationStructureFlagsKHR flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
 
     u32 tlasSize = Tlas::RequiredSize(s->device, *s->physicalDevice, geometry, instances.size(), flags);
     std::shared_ptr<Tlas> tlas(new Tlas(createInfo.name, s->device, *s->physicalDevice, tlasSize));
-    tlas->Build(*s->uploadCmdList, instances, flags);
+    tlas->Build(*s->uploadCmdList, geometry, rangeInfo, flags);
 
     s->tlases.insert(std::make_pair(tlasHandle, tlas));
 

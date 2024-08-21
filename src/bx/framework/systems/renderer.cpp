@@ -221,14 +221,22 @@ void UpdateTlas()
                 if (!mesh || !material)
                     continue;
 
-                
+                BlasInstance blasInstance{};
+                blasInstance.transform = trx.GetMatrix();
+                blasInstance.instanceCustomIndex = 0; // TODO
+                blasInstance.mask = 0xFF;
+                blasInstance.blas = mesh->GetBlas();
+                blasInstances.push_back(blasInstance);
             }
         });
 
-    TlasCreateInfo tlasCreateInfo{};
-    tlasCreateInfo.name = "Dynamic Tlas";
-    tlasCreateInfo.blasInstances = blasInstances;
-    s->tlas = Graphics::CreateTlas(tlasCreateInfo);
+    if (!blasInstances.empty()) // TODO: handle empty tlases internally
+    {
+        TlasCreateInfo tlasCreateInfo{};
+        tlasCreateInfo.name = "Dynamic Tlas";
+        tlasCreateInfo.blasInstances = blasInstances;
+        s->tlas = Graphics::CreateTlas(tlasCreateInfo);
+    }
 }
 
 void RecreateRenderTargets()
