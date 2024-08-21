@@ -117,6 +117,14 @@ BindingResource BindingResource::TextureViewArray(const List<TextureViewHandle>&
 	return resource;
 }
 
+BindingResource BindingResource::AccelerationStructure(const TlasHandle& accelerationStructure)
+{
+	BindingResource resource{};
+	resource.type = BindingResourceType::ACCELERATION_STRUCTURE;
+	resource.accelerationStructure = accelerationStructure;
+	return resource;
+}
+
 b8 IsVertexFormatInt(const VertexFormat& format)
 {
 	switch (format)

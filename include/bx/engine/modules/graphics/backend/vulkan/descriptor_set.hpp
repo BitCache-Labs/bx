@@ -16,6 +16,7 @@ namespace Vk
     class Image;
     class Sampler;
     class CmdList;
+    class Tlas;
 
     class DescriptorSet : NoCopy {
     public:

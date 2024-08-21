@@ -253,7 +253,8 @@ ENUM(BindingResourceType,
 	SAMPLER,
 	SAMPLER_ARRAY,
 	TEXTURE_VIEW,
-	TEXTURE_VIEW_ARRAY
+	TEXTURE_VIEW_ARRAY,
+	ACCELERATION_STRUCTURE
 );
 
 ENUM(TextureSampleType,
@@ -431,6 +432,7 @@ struct BindingResource
 	static BindingResource SamplerArray(const List<SamplerHandle>& samplers);
 	static BindingResource TextureView(const TextureViewHandle& textureView);
 	static BindingResource TextureViewArray(const List<TextureViewHandle>& textureViews);
+	static BindingResource AccelerationStructure(const TlasHandle& accelerationStructure);
 
 	BindingResourceType type;
 
@@ -438,6 +440,7 @@ struct BindingResource
 	BufferBinding buffer;
 	SamplerHandle sampler;
 	TextureViewHandle textureView;
+	TlasHandle accelerationStructure;
 	List<BufferBinding> bufferArray = List<BufferBinding>{};
 	List<SamplerHandle> samplerArray = List<SamplerHandle>{};
 	List<TextureViewHandle> textureViewArray = List<TextureViewHandle>{};

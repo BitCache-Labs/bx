@@ -127,11 +127,6 @@ namespace Vk
         cmdList.UpdateAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, GetBuffer(), GetAccelerationStructure());
     }
 
-    VkDeviceAddress Blas::GetDeviceAddress() const
-    {
-        return GetBuffer()->GetDeviceAddress();
-    }
-
     Tlas::Tlas(const String& name, std::shared_ptr<Device> device,
         const PhysicalDevice& physicalDevice, u32 size)
         : AccelerationStructure(name, device, physicalDevice, size, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)

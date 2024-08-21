@@ -674,6 +674,15 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
             descriptorSet->SetImage(entry.binding, type, textureViewIter->second.texture, sampler);
             break;
         }
+        case BindingResourceType::ACCELERATION_STRUCTURE:
+        {
+            auto tlasIter = s->tlases.find(entry.resource.accelerationStructure);
+            BX_ENSURE(tlasIter != s->tlases.end());
+
+            VkDescriptorType type = layout->GetDescriptorType(entry.binding);
+            descriptorSet->SetBuffer(entry.binding, type, tlasIter->second->GetBuffer());
+            break;
+        }
         default:
             BX_FAIL("TODO");
         }
@@ -776,7 +785,7 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
         vkInstance.instanceCustomIndex = blasInstance.instanceCustomIndex;
         vkInstance.mask = blasInstance.mask;
         vkInstance.flags = VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR; // TODO: ??
-        vkInstance.accelerationStructureReference = blasIter->second->GetDeviceAddress();
+        vkInstance.accelerationStructureReference = blasIter->second->GetBuffer()->GetDeviceAddress();
 
         instances.push_back(vkInstance);
     }

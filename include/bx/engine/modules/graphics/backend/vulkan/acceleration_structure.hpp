@@ -18,6 +18,8 @@ namespace Vk
     public:
         ~AccelerationStructure();
 
+        std::shared_ptr<Buffer> GetBuffer() const;
+
     protected:
         AccelerationStructure(const String& name, std::shared_ptr<Device> device,
             const PhysicalDevice& physicalDevice, u32 size, VkAccelerationStructureTypeKHR type);
@@ -26,14 +28,13 @@ namespace Vk
         const PhysicalDevice& physicalDevice;
 
         VkAccelerationStructureKHR GetAccelerationStructure() const;
-        std::shared_ptr<Buffer> GetBuffer() const;
 
     private:
         VkAccelerationStructureKHR accelerationStructure;
         std::shared_ptr<Buffer> buffer;
     };
 
-    class Blas : AccelerationStructure
+    class Blas : public AccelerationStructure
     {
     public:
         Blas(const String& name, std::shared_ptr<Device> device,
@@ -44,11 +45,9 @@ namespace Vk
 
         void Build(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags);
         void Update(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags);
-
-        VkDeviceAddress GetDeviceAddress() const;
     };
 
-    class Tlas : AccelerationStructure
+    class Tlas : public AccelerationStructure
     {
     public:
         Tlas(const String& name, std::shared_ptr<Device> device,

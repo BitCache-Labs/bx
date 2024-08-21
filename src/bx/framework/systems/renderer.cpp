@@ -19,119 +19,131 @@
 #include <bx/engine/modules/graphics.hpp>
 #include <bx/engine/modules/window.hpp>
 
-struct VertexConstantsUniform
+//struct VertexConstantsUniform
+//{
+//    Mat4 view = Mat4::Identity();
+//    Mat4 projection = Mat4::Identity();
+//    Mat4 viewProjection = Mat4::Identity();
+//};
+//
+//struct VertexMeshUniform
+//{
+//    Mat4 model = Mat4::Identity();
+//    Mat4 boneToMesh = Mat4::Identity();
+//    Vec4i lightIndices = Vec4i(-1, -1, -1, -1);
+//};
+//
+//struct LightSourceData
+//{
+//    u32 type = 0;
+//    f32 intensity = 1.0f;
+//
+//    i32 shadowMapIndex = -1;
+//    u32 cascadeCount = 0;
+//
+//    Vec3 position = Vec3(0, 0, 0);
+//    f32 constant = 1.0f;
+//
+//    Vec3 direction = Vec3(0, 0, 0);
+//    f32 linear_cutoff = 0.1f;
+//
+//    Vec3 color = Vec3(1, 1, 1);
+//    f32 quadratic_outerCutoff = 0.01f;
+//};
+
+struct ViewConstants
 {
-    Mat4 view = Mat4::Identity();
-    Mat4 projection = Mat4::Identity();
-    Mat4 viewProjection = Mat4::Identity();
-};
-
-struct VertexMeshUniform
-{
-    Mat4 model = Mat4::Identity();
-    Mat4 boneToMesh = Mat4::Identity();
-    Vec4i lightIndices = Vec4i(-1, -1, -1, -1);
-};
-
-struct LightSourceData
-{
-    u32 type = 0;
-    f32 intensity = 1.0f;
-
-    i32 shadowMapIndex = -1;
-    u32 cascadeCount = 0;
-
-    Vec3 position = Vec3(0, 0, 0);
-    f32 constant = 1.0f;
-
-    Vec3 direction = Vec3(0, 0, 0);
-    f32 linear_cutoff = 0.1f;
-
-    Vec3 color = Vec3(1, 1, 1);
-    f32 quadratic_outerCutoff = 0.01f;
+    Mat4 invView;
+    Mat4 invProj;
+    u32 width;
+    u32 height;
 };
 
 struct RendererState : NoCopy
 {
-    HashMap<ResourceHandle, GraphicsPipelineHandle> shaderPipelines{};
+    //HashMap<ResourceHandle, GraphicsPipelineHandle> shaderPipelines{};
+    /*BufferHandle vertexConstantsBuffer = BufferHandle::null;
+    BufferHandle lightSourceBuffer = BufferHandle::null;*/
 
     TextureHandle colorTarget = TextureHandle::null;
-    TextureHandle depthTarget = TextureHandle::null;
-
-    BufferHandle vertexConstantsBuffer = BufferHandle::null;
-    BufferHandle lightSourceBuffer = BufferHandle::null;
+    //TextureHandle depthTarget = TextureHandle::null;
 
     TlasHandle tlas = TlasHandle::null;
+
+    List<ViewConstants> viewConstants{};
+    BufferHandle viewConstantsBuffer = BufferHandle::null;
+
+    ComputePipelineHandle pathTracerPipeline = ComputePipelineHandle::null;
 };
 static std::unique_ptr<RendererState> s = nullptr;
 
-void BuildShaderPipelines()
-{
-    VertexBufferLayout vertexBufferLayout{};
-    vertexBufferLayout.stride = sizeof(Mesh::Vertex);
-    vertexBufferLayout.attributes = {
-        VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, position), 0),
-        VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, color),    1),
-        VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, normal),   2),
-        VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, tangent),  3),
-        VertexAttribute(VertexFormat::FLOAT_32X2, offsetof(Mesh::Vertex, uv),       4),
-        VertexAttribute(VertexFormat::SINT_32X4,  offsetof(Mesh::Vertex, bones),    5),
-        VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, weights),  6)
-    };
-
-    PipelineLayoutDescriptor pipelineLayoutDescriptor{};
-    pipelineLayoutDescriptor.bindGroupLayouts = {
-        BindGroupLayoutDescriptor(0, {
-            BindGroupLayoutEntry(0, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 0, std140) uniform Constants
-            BindGroupLayoutEntry(1, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 1, std140) uniform Model
-            BindGroupLayoutEntry(2, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 2, std140) uniform Animation
-            BindGroupLayoutEntry(4, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::UniformBuffer())                     // layout (binding = 4, std140) uniform LightBuffer
-        }),
-        Material::GetBindGroupLayout()
-    };
-
-    ColorTargetState colorTargetState{};
-    colorTargetState.format = Graphics::GetTextureCreateInfo(Graphics::GetSwapchainColorTarget()).format;
-
-    TextureFormat depthFormat = Graphics::GetTextureCreateInfo(s->depthTarget).format;
-
-    EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
-        [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr)
-        {
-            if (mr.GetMaterialCount() == 0)
-                return;
-
-            SizeType index = 0;
-            for (const auto& mesh : mf.GetMeshes())
-            {
-                const auto& material = mr.GetMaterial(index++);
-                index %= mr.GetMaterialCount();
-
-                if (!mesh || !material)
-                    continue;
-
-                const Material& materialData = material.GetData();
-                const Resource<Shader>& shaderResource = materialData.GetShader();
-                const Shader& shader = shaderResource.GetData();
-
-                if (s->shaderPipelines.find(shaderResource.GetHandle()) == s->shaderPipelines.end())
-                {
-                    GraphicsPipelineCreateInfo createInfo{};
-                    createInfo.name = "Shader Pipeline";
-                    createInfo.vertexShader = shader.GetVertexShader();
-                    createInfo.fragmentShader = shader.GetFragmentShader();
-                    createInfo.vertexBuffers = { vertexBufferLayout };
-                    createInfo.colorTarget = Optional<ColorTargetState>::Some(colorTargetState);
-                    createInfo.cullMode = Optional<Face>::Some(Face::BACK);
-                    createInfo.layout = pipelineLayoutDescriptor;
-                    createInfo.depthFormat = Optional<TextureFormat>::Some(depthFormat);
-
-                    GraphicsPipelineHandle graphicsPipeline = Graphics::CreateGraphicsPipeline(createInfo);
-                    s->shaderPipelines.insert(std::make_pair(shaderResource.GetHandle(), graphicsPipeline));
-                }
-            }
-        });
-}
+//void BuildShaderPipelines()
+//{
+//    VertexBufferLayout vertexBufferLayout{};
+//    vertexBufferLayout.stride = sizeof(Mesh::Vertex);
+//    vertexBufferLayout.attributes = {
+//        VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, position), 0),
+//        VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, color),    1),
+//        VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, normal),   2),
+//        VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, tangent),  3),
+//        VertexAttribute(VertexFormat::FLOAT_32X2, offsetof(Mesh::Vertex, uv),       4),
+//        VertexAttribute(VertexFormat::SINT_32X4,  offsetof(Mesh::Vertex, bones),    5),
+//        VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, weights),  6)
+//    };
+//
+//    PipelineLayoutDescriptor pipelineLayoutDescriptor{};
+//    pipelineLayoutDescriptor.bindGroupLayouts = {
+//        BindGroupLayoutDescriptor(0, {
+//            BindGroupLayoutEntry(0, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 0, std140) uniform Constants
+//            BindGroupLayoutEntry(1, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 1, std140) uniform Model
+//            BindGroupLayoutEntry(2, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),                      // layout (binding = 2, std140) uniform Animation
+//            BindGroupLayoutEntry(4, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::UniformBuffer())                     // layout (binding = 4, std140) uniform LightBuffer
+//        }),
+//        Material::GetBindGroupLayout()
+//    };
+//
+//    ColorTargetState colorTargetState{};
+//    colorTargetState.format = Graphics::GetTextureCreateInfo(Graphics::GetSwapchainColorTarget()).format;
+//
+//    TextureFormat depthFormat = Graphics::GetTextureCreateInfo(s->depthTarget).format;
+//
+//    EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
+//        [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr)
+//        {
+//            if (mr.GetMaterialCount() == 0)
+//                return;
+//
+//            SizeType index = 0;
+//            for (const auto& mesh : mf.GetMeshes())
+//            {
+//                const auto& material = mr.GetMaterial(index++);
+//                index %= mr.GetMaterialCount();
+//
+//                if (!mesh || !material)
+//                    continue;
+//
+//                const Material& materialData = material.GetData();
+//                const Resource<Shader>& shaderResource = materialData.GetShader();
+//                const Shader& shader = shaderResource.GetData();
+//
+//                if (s->shaderPipelines.find(shaderResource.GetHandle()) == s->shaderPipelines.end())
+//                {
+//                    GraphicsPipelineCreateInfo createInfo{};
+//                    createInfo.name = "Shader Pipeline";
+//                    createInfo.vertexShader = shader.GetVertexShader();
+//                    createInfo.fragmentShader = shader.GetFragmentShader();
+//                    createInfo.vertexBuffers = { vertexBufferLayout };
+//                    createInfo.colorTarget = Optional<ColorTargetState>::Some(colorTargetState);
+//                    createInfo.cullMode = Optional<Face>::Some(Face::BACK);
+//                    createInfo.layout = pipelineLayoutDescriptor;
+//                    createInfo.depthFormat = Optional<TextureFormat>::Some(depthFormat);
+//
+//                    GraphicsPipelineHandle graphicsPipeline = Graphics::CreateGraphicsPipeline(createInfo);
+//                    s->shaderPipelines.insert(std::make_pair(shaderResource.GetHandle(), graphicsPipeline));
+//                }
+//            }
+//        });
+//}
 
 void UpdateAnimators()
 {
@@ -142,29 +154,29 @@ void UpdateAnimators()
         });
 }
 
-void UpdateLightSources()
-{
-    List<LightSourceData> lightSources{};
-
-    EntityManager::ForEach<Transform, Light>(
-        [&](Entity entity, const Transform& trx, const Light& l)
-        {
-            LightSourceData lightSource;
-            lightSource.position = trx.GetPosition();
-            lightSource.intensity = l.GetIntensity();
-            lightSource.constant = l.GetConstant();
-            lightSource.linear_cutoff = l.GetLinear();
-            lightSource.quadratic_outerCutoff = l.GetQuadratic();
-            lightSource.color = l.GetColor();
-            lightSources.emplace_back(lightSource);
-        });
-
-    Graphics::WriteBuffer(s->lightSourceBuffer, 0, lightSources.data(), lightSources.size() * sizeof(LightSourceData));
-}
+//void UpdateLightSources()
+//{
+//    List<LightSourceData> lightSources{};
+//
+//    EntityManager::ForEach<Transform, Light>(
+//        [&](Entity entity, const Transform& trx, const Light& l)
+//        {
+//            LightSourceData lightSource;
+//            lightSource.position = trx.GetPosition();
+//            lightSource.intensity = l.GetIntensity();
+//            lightSource.constant = l.GetConstant();
+//            lightSource.linear_cutoff = l.GetLinear();
+//            lightSource.quadratic_outerCutoff = l.GetQuadratic();
+//            lightSource.color = l.GetColor();
+//            lightSources.emplace_back(lightSource);
+//        });
+//
+//    Graphics::WriteBuffer(s->lightSourceBuffer, 0, lightSources.data(), lightSources.size() * sizeof(LightSourceData));
+//}
 
 void Renderer::UpdateCameras()
 {
-    List<VertexConstantsUniform> viewConstants{};
+    s->viewConstants.clear();
 
     EntityManager::ForEach<Transform, Camera>(
         [&](Entity entity, const Transform& trx, Camera& camera)
@@ -177,28 +189,20 @@ void Renderer::UpdateCameras()
             camera.SetView(Mat4::LookAt(trx.GetPosition(), trx.GetPosition() + fwd, Vec3::Up()));
             camera.Update();
 
-            VertexConstantsUniform constants;
-            constants.view = camera.GetView();
-            constants.projection = camera.GetProjection();
-            constants.viewProjection = camera.GetViewProjection();
-            viewConstants.emplace_back(constants);
+            ViewConstants constants;
+            constants.invView = camera.GetView().Inverse();
+            constants.invProj = camera.GetProjection().Inverse();
+            s->viewConstants.emplace_back(constants);
         });
 
     if (editorCamera.IsSome())
     {
         Camera& camera = editorCamera.Unwrap();
 
-        VertexConstantsUniform constants;
-        constants.view = camera.GetView();
-        constants.projection = camera.GetProjection();
-        constants.viewProjection = camera.GetViewProjection();
-        viewConstants.emplace_back(constants);
-    }
-
-    // TODO: for now just uploading last camera, maybe splitscreen support?
-    if (viewConstants.size() > 0)
-    {
-        Graphics::WriteBuffer(s->vertexConstantsBuffer, 0, &viewConstants.back(), Math::Min(viewConstants.size(), static_cast<SizeType>(1)) * sizeof(VertexConstantsUniform));
+        ViewConstants constants;
+        constants.invView = camera.GetView().Inverse();
+        constants.invProj = camera.GetProjection().Inverse();
+        s->viewConstants.emplace_back(constants);
     }
 }
 
@@ -254,16 +258,16 @@ void RecreateRenderTargets()
         if (s->colorTarget) Graphics::DestroyTexture(s->colorTarget);
         s->colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
 
-        TextureCreateInfo depthTargetCreateInfo{};
+        /*TextureCreateInfo depthTargetCreateInfo{};
         depthTargetCreateInfo.name = "Depth Target";
         depthTargetCreateInfo.size = Extend3D(w, h, 1);
         depthTargetCreateInfo.format = TextureFormat::DEPTH24_PLUS_STENCIL8;
         depthTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
         if (s->depthTarget) Graphics::DestroyTexture(s->depthTarget);
-        s->depthTarget = Graphics::CreateTexture(depthTargetCreateInfo);
+        s->depthTarget = Graphics::CreateTexture(depthTargetCreateInfo);*/
 
-        // TODO: temporary safety, this line is unnecessary as long as the color target format doesn't change (except for the first time)
-        s->shaderPipelines.clear();
+        //// TODO: temporary safety, this line is unnecessary as long as the color target format doesn't change (except for the first time)
+        //s->shaderPipelines.clear();
     }
 }
 
@@ -271,7 +275,7 @@ void Renderer::Initialize()
 {
     s = std::unique_ptr<RendererState>(new RendererState());
 
-    BufferCreateInfo vertexConstantsCreateInfo{};
+    /*BufferCreateInfo vertexConstantsCreateInfo{};
     vertexConstantsCreateInfo.name = "Vertex Constants";
     vertexConstantsCreateInfo.size = sizeof(VertexConstantsUniform);
     vertexConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::COPY_DST;
@@ -281,7 +285,38 @@ void Renderer::Initialize()
     lightSourceCreateInfo.name = "Light Sources";
     lightSourceCreateInfo.size = sizeof(LightSourceData) * 10;
     lightSourceCreateInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::COPY_DST;
-    s->lightSourceBuffer = Graphics::CreateBuffer(lightSourceCreateInfo);
+    s->lightSourceBuffer = Graphics::CreateBuffer(lightSourceCreateInfo);*/
+
+    BufferCreateInfo viewConstantsCreateInfo{};
+    viewConstantsCreateInfo.name = "View Constants Buffer";
+    viewConstantsCreateInfo.size = sizeof(ViewConstants);
+    viewConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::COPY_DST;
+    s->viewConstantsBuffer = Graphics::CreateBuffer(viewConstantsCreateInfo);
+
+    { // Path Tracer Pipeline
+        ShaderCreateInfo shaderCreateInfo{};
+        shaderCreateInfo.name = "Path Tracer Shader";
+        shaderCreateInfo.shaderType = ShaderType::COMPUTE;
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/path_tracer.shader")));
+        ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
+
+        PipelineLayoutDescriptor pipelineLayoutDescriptor{};
+        pipelineLayoutDescriptor.bindGroupLayouts = {
+            BindGroupLayoutDescriptor(0, {
+                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),
+            })
+        };
+
+        ComputePipelineCreateInfo pipelineCreateInfo{};
+        pipelineCreateInfo.name = "Path Tracer Pipeline";
+        pipelineCreateInfo.layout = pipelineLayoutDescriptor;
+        pipelineCreateInfo.shader = shader;
+        s->pathTracerPipeline = Graphics::CreateComputePipeline(pipelineCreateInfo);
+
+        Graphics::DestroyShader(shader);
+    }
 
     RecreateRenderTargets();
 }
@@ -304,17 +339,48 @@ void Renderer::Render()
 {
     // TODO: this is a better fit for the update method, however, Graphics::Update is called BEFORE all the world does its updating, leaving its state 1 frame behind
     UpdateAnimators();
-    UpdateLightSources();
+    //UpdateLightSources();
     UpdateCameras();
-    BuildShaderPipelines();
+    //BuildShaderPipelines();
     UpdateTlas();
 
-    Graphics::UpdateDebugLines();
+    //Graphics::UpdateDebugLines();
 
     TextureViewHandle colorTargetView = Graphics::CreateTextureView(s->colorTarget);
-    TextureViewHandle depthTargetView = Graphics::CreateTextureView(s->depthTarget);
+    auto& colorTargetCreateInfo = Graphics::GetTextureCreateInfo(s->colorTarget);
+    u32 width = colorTargetCreateInfo.size.width;
+    u32 height = colorTargetCreateInfo.size.height;
 
-    RenderPassDescriptor renderPassDescriptor{};
+    if (s->viewConstants.empty())
+        return; // TODO: render to multiple render targets
+    s->viewConstants.back().width = width;
+    s->viewConstants.back().height = height;
+    Graphics::WriteBuffer(s->viewConstantsBuffer, 0, &s->viewConstants.back(), sizeof(ViewConstants));
+
+    
+    //TextureViewHandle depthTargetView = Graphics::CreateTextureView(s->depthTarget);
+
+    BindGroupCreateInfo createInfo{};
+    createInfo.name = "Renderer Core BindGroup";
+    createInfo.layout = Graphics::GetBindGroupLayout(s->pathTracerPipeline, 0);
+    createInfo.entries = {
+        BindGroupEntry(0, BindingResource::Buffer(BufferBinding(s->viewConstantsBuffer))),
+        BindGroupEntry(1, BindingResource::AccelerationStructure(s->tlas)),
+        BindGroupEntry(2, BindingResource::TextureView(colorTargetView))
+    };
+    BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
+
+    ComputePassDescriptor computePassDescriptor{};
+    computePassDescriptor.name = "Path Tracing";
+    ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
+    {
+        Graphics::SetComputePipeline(s->pathTracerPipeline);
+        Graphics::SetBindGroup(0, bindGroup);
+        Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
+    }
+    Graphics::EndComputePass(computePass);
+
+    /*RenderPassDescriptor renderPassDescriptor{};
     renderPassDescriptor.name = "Draw Meshes Pass";
     renderPassDescriptor.colorAttachments = { RenderPassColorAttachment(colorTargetView) };
     renderPassDescriptor.depthStencilAttachment = Optional<RenderPassDepthStencilAttachment>::Some(depthTargetView);
@@ -396,7 +462,7 @@ void Renderer::Render()
                 }
             });
     }
-    Graphics::EndRenderPass(renderPass);
+    Graphics::EndRenderPass(renderPass);*/
 
     PresentPass presentPass(s->colorTarget);
     presentPass.Dispatch();
