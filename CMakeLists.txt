@@ -162,6 +162,7 @@ set (BX_SRCS
 	"src/bx/framework/systems/renderer/id_pass.cpp"
 	"src/bx/framework/systems/renderer/present_pass.cpp"
 	"src/bx/framework/systems/renderer/srgb_to_linear_pass.cpp"
+	"src/bx/framework/systems/renderer/wfpt_pass.cpp"
 	"src/bx/framework/systems/renderer.cpp"
 	"src/bx/framework/systems/dynamics.cpp"
 	"src/bx/framework/systems/acoustics.cpp"

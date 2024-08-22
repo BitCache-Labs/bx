@@ -32,15 +32,17 @@ void main()
     ray.direction = direction.xyz;
 
     rayQueryEXT rayQuery;
-	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, ray.origin, 0.01, ray.direction, 1000.0);
+	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsOpaqueEXT, 0xFF, ray.origin, 0.01, ray.direction, 1000.0);
 	rayQueryProceedEXT(rayQuery);
+
+    vec3 color = vec3(0.0);
 
 	if (rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT)
     {
-		imageStore(OutImage, id, vec4(1.0, 0.0, 1.0, 1.0));
+        const float t = rayQueryGetIntersectionTEXT(rayQuery, true);    
+
+        color = vec3(t * 0.03);
 	}
-    else
-    {
-        imageStore(OutImage, id, vec4(0.0, 0.0, 1.0, 1.0));
-    }
+
+    imageStore(OutImage, id, vec4(color, 1.0));
 }

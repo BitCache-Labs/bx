@@ -5,6 +5,7 @@
 
 using c8 = char;
 using b8 = bool;
+using b32 = uint32_t;
 
 static constexpr b8 bFalse = false;
 static constexpr b8 bTrue = true;
