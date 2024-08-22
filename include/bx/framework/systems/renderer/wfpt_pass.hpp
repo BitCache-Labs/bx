@@ -29,11 +29,14 @@ private:
 	BufferHandle raysBuffer;
 	BufferHandle rayCountBuffer;
 	BufferHandle intersectionsBuffer;
+	BufferHandle payloadsBuffer;
 
 	BufferHandle raygenConstantsBuffer;
+	BufferHandle resolveConstantsBuffer;
 	BufferHandle shadeConstantsBuffer;
 
 	BindGroupHandle extendBindGroup;
 	BindGroupHandle raygenBindGroup;
+	BindGroupHandle resolveBindGroup;
 	BindGroupHandle shadeBindGroup;
 };

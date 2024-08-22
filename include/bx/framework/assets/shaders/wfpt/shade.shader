@@ -1,6 +1,7 @@
 #include "[engine]/shaders/Language.shader"
 
 #include "[engine]/shaders/ray_tracing/ray.shader"
+#include "[engine]/shaders/wfpt/payload.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -22,7 +23,10 @@ layout (BINDING(0, 3), std430) readonly buffer _Intersections
     Intersection intersections[];
 };
 
-layout (BINDING(0, 4), rgba8) uniform image2D OutImage;
+layout (BINDING(0, 4), std430) buffer _Payloads
+{
+    Payload payloads[];
+};
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
@@ -45,6 +49,5 @@ void main()
 
     }
 
-    ivec2 pid2d = ivec2(pid % constants.width, pid / constants.width);
-    imageStore(OutImage, pid2d, vec4(color, 1.0));
+    payloads[pid].accumulated = color;
 }
