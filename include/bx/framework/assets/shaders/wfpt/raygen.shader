@@ -19,7 +19,6 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
 {
     ivec2 id = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 dispatchSize = ivec2(gl_WorkGroupSize.xy * gl_NumWorkGroups.xy);
     if (id.x >= constants.width || id.y >= constants.height) return;
 
     vec2 pixelCenter = vec2(id.x + 0.5, id.y + 0.5);
