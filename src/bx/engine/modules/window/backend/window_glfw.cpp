@@ -87,9 +87,19 @@ bool Window::Initialize()
 		return false;
 	}
 
+#ifdef BX_EDITOR_BUILD
+	const String& title = Data::GetString("Title", "BX Editor", DataTarget::EDITOR);
+	int width = Data::GetInt("Width", 800, DataTarget::EDITOR);
+	int height = Data::GetInt("Height", 600, DataTarget::EDITOR);
+	bool fullscreen = Data::GetBool("Fullscreen", false, DataTarget::EDITOR);
+	bool maximized = Data::GetBool("Maximized", true, DataTarget::EDITOR);
+#else
 	const String& title = Data::GetString("Title", "Title", DataTarget::SYSTEM);
 	int width = Data::GetInt("Width", 800, DataTarget::SYSTEM);
 	int height = Data::GetInt("Height", 600, DataTarget::SYSTEM);
+	bool fullscreen = Data::GetBool("Fullscreen", false, DataTarget::SYSTEM);
+	bool maximized = Data::GetBool("Maximized", true, DataTarget::SYSTEM);
+#endif
 
 	GLFWmonitor* pMonitor = nullptr;
 
@@ -132,6 +142,18 @@ bool Window::Initialize()
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 #endif
+
+	if (fullscreen)
+	{
+		pMonitor = glfwGetPrimaryMonitor();
+		const GLFWvidmode* pMode = glfwGetVideoMode(pMonitor);
+		width = pMode->width;
+		height = pMode->height;
+	}
+	else
+	{
+		glfwWindowHint(GLFW_MAXIMIZED, maximized ? GLFW_TRUE : GLFW_FALSE);
+	}
 
 	pWindow = glfwCreateWindow(width, height, title.c_str(), pMonitor, NULL);
 

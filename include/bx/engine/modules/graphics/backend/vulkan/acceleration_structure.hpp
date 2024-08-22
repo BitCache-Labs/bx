@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "bx/engine/core/guard.hpp"
@@ -57,5 +58,10 @@ namespace Vk
 
         void Build(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags);
         void Update(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags);
+
+        void TrackBlas(std::shared_ptr<Blas> blas);
+
+    private:
+        std::vector<std::shared_ptr<Blas>> trackedBlases;
     };
 }

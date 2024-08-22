@@ -176,4 +176,9 @@ namespace Vk
     {
 
     }
+
+    void Tlas::TrackBlas(std::shared_ptr<Blas> blas)
+    {
+        trackedBlases.push_back(blas);
+    }
 }

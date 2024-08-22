@@ -828,6 +828,17 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
     std::shared_ptr<Tlas> tlas(new Tlas(createInfo.name, s->device, *s->physicalDevice, tlasSize));
     tlas->Build(*s->uploadCmdList, geometry, rangeInfo, flags);
 
+    // TODO: avoid doing this loop twice
+    for (u32 i = 0; i < createInfo.blasInstances.size(); i++)
+    {
+        const BlasInstance& blasInstance = createInfo.blasInstances[i];
+
+        auto blasIter = s->blases.find(blasInstance.blas);
+        BX_ENSURE(blasIter != s->blases.end());
+
+        tlas->TrackBlas(blasIter->second);
+    }
+
     s->tlases.insert(std::make_pair(tlasHandle, tlas));
 
     return tlasHandle;
