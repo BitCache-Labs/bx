@@ -288,7 +288,10 @@ target_link_libraries (bx ${BX_LIBS})
 target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if (MSVC)
-	target_compile_options(bx PUBLIC "/ZI")
+	if (NOT BX_INSTALL)
+		target_compile_options(bx PUBLIC "/Zi")
+	endif ()
+
 	target_link_options(bx PUBLIC "/INCREMENTAL")
 endif ()
 
