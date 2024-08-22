@@ -446,6 +446,13 @@ namespace Vk
         vkCmdDispatch(this->cmdBuffer, x, y, z);
     }
 
+    void CmdList::DispatchIndirect(std::shared_ptr<Buffer> indirectArgs, u32 offset)
+    {
+        vkCmdDispatchIndirect(this->cmdBuffer, indirectArgs->GetBuffer(), offset);
+
+        this->trackedBuffers.push_back(indirectArgs);
+    }
+
     void CmdList::PushConstant(const std::string& name, void* constant, size_t size,
         VkShaderStageFlags stageFlags) {
         vkCmdPushConstants(this->cmdBuffer, this->boundGraphicsPipeline->GetLayout(),

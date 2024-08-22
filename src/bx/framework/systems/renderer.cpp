@@ -157,7 +157,7 @@ void Renderer::Render()
     if (m_wfptPass)
     {
         m_wfptPass->seed = frameIdx;
-        m_wfptPass->maxBounces = 2;
+        m_wfptPass->maxBounces = 3;
         m_wfptPass->Dispatch(m_cameras.back());
     }
 

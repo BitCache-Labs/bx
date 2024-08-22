@@ -63,6 +63,7 @@ namespace Vk
             uint32_t firstInstance = 0, uint32_t vertexOffset = 0);
 
         void Dispatch(uint32_t x, uint32_t y = 1, uint32_t z = 1);
+        void DispatchIndirect(std::shared_ptr<Buffer> indirectArgs, u32 offset);
 
         template <typename T>
         void PushConstant(const std::string& name, T& constant, VkShaderStageFlags stageFlags) {

@@ -817,6 +817,18 @@ void Graphics::DispatchWorkgroups(u32 x, u32 y, u32 z)
     glDispatchCompute(x, y, z);
 }
 
+void Graphics::DispatchWorkgroupsIndirect(BufferHandle indirectArgs)
+{
+    BX_ASSERT(s->activeComputePass, "No compute pass active.");
+    BX_ASSERT(s->boundComputePipeline, "No compute pipeline bound.");
+
+    auto bufferIter = s->buffers.find(indirectArgs);
+    BX_ENSURE(bufferIter != s->buffers.end());
+
+    glDispatchComputeIndirect(bufferIter->second);
+}
+
+
 void Graphics::EndComputePass(ComputePassHandle& computePass)
 {
     BX_ASSERT(s->activeComputePass, "No compute pass active.");

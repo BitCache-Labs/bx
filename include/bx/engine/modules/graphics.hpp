@@ -78,6 +78,7 @@ public:
 	static ComputePassHandle BeginComputePass(const ComputePassDescriptor& descriptor);
 	static void SetComputePipeline(ComputePipelineHandle computePipeline);
 	static void DispatchWorkgroups(u32 x, u32 y, u32 z);
+	static void DispatchWorkgroupsIndirect(BufferHandle indirectArgs);
 	static void EndComputePass(ComputePassHandle& computePass);
 
 	// TODO: merge these two, make SizeType optional??
