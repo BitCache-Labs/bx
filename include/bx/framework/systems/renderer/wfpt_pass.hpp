@@ -18,6 +18,7 @@ public:
 	WfptPass(const WfptCreateInfo& createInfo);
 	~WfptPass();
 
+	void SetTlas(TlasHandle tlas);
 	void Dispatch(const Camera& camera);
 
 	static void ClearPipelineCache();

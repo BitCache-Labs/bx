@@ -5,6 +5,7 @@
 #include <bx/engine/modules/graphics.hpp>
 
 #include "bx/framework/components/camera.hpp"
+#include "bx/framework/systems/renderer/wfpt_pass.hpp"
 
 class SceneView;
 
@@ -42,10 +43,14 @@ private:
 
 	TlasHandle m_tlas = TlasHandle::null;
 
+	b8 m_dirtyPasses = true;
+	std::unique_ptr<WfptPass> m_wfptPass = nullptr;
+
 	List<Camera> m_cameras{};
 	OptionalView<Camera> m_editorCamera = OptionalView<Camera>::None();
 
 	void UpdateCameras();
 	void UpdateTlas();
 	void RecreateRenderTargets();
+	void RebuildPasses();
 };

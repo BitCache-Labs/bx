@@ -10,7 +10,6 @@
 #include "bx/framework/systems/renderer/id_pass.hpp"
 #include "bx/framework/systems/renderer/present_pass.hpp"
 #include "bx/framework/systems/renderer/srgb_to_linear_pass.hpp"
-#include "bx/framework/systems/renderer/wfpt_pass.hpp"
 
 #include <bx/engine/core/file.hpp>
 #include <bx/engine/core/data.hpp>
@@ -89,6 +88,11 @@ void Renderer::UpdateTlas()
         tlasCreateInfo.blasInstances = blasInstances;
         if (m_tlas) Graphics::DestroyTlas(m_tlas);
         m_tlas = Graphics::CreateTlas(tlasCreateInfo);
+
+        if (m_wfptPass)
+        {
+            m_wfptPass->SetTlas(m_tlas);
+        }
     }
 }
 
@@ -106,6 +110,21 @@ void Renderer::RecreateRenderTargets()
         colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
         if (m_colorTarget) Graphics::DestroyTexture(m_colorTarget);
         m_colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
+
+        m_dirtyPasses = true;
+    }
+}
+
+void Renderer::RebuildPasses()
+{
+    if (m_dirtyPasses)
+    {
+        WfptCreateInfo wfptCreateInfo{};
+        wfptCreateInfo.colorTarget = m_colorTarget;
+        wfptCreateInfo.tlas = m_tlas;
+        m_wfptPass = std::unique_ptr<WfptPass>(new WfptPass(wfptCreateInfo));
+
+        m_dirtyPasses = false;
     }
 }
 
@@ -133,14 +152,14 @@ void Renderer::Render()
     UpdateAnimators();
     UpdateCameras();
     UpdateTlas();
+    RebuildPasses();
 
-    WfptCreateInfo wfptCreateInfo{};
-    wfptCreateInfo.colorTarget = m_colorTarget;
-    wfptCreateInfo.tlas = m_tlas;
-    WfptPass wfptPass(wfptCreateInfo);
-    wfptPass.seed = frameIdx;
-    wfptPass.maxBounces = 2;
-    wfptPass.Dispatch(m_cameras.back());
+    if (m_wfptPass)
+    {
+        m_wfptPass->seed = frameIdx;
+        m_wfptPass->maxBounces = 2;
+        m_wfptPass->Dispatch(m_cameras.back());
+    }
 
     PresentPass presentPass(m_colorTarget);
     presentPass.Dispatch();

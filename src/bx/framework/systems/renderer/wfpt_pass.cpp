@@ -361,6 +361,25 @@ WfptPass::~WfptPass()
     Graphics::DestroyBindGroup(resolveBindGroup);
 }
 
+void WfptPass::SetTlas(TlasHandle tlas)
+{
+    createInfo.tlas = tlas;
+
+    BindGroupCreateInfo connectBindGroupCreateInfo{};
+    connectBindGroupCreateInfo.name = "Wfpt Connect Bind Group";
+    connectBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(ConnectPipeline::Get(), 0);
+    connectBindGroupCreateInfo.entries = {
+        BindGroupEntry(0, BindingResource::Buffer(shadowRaysBuffer)),
+        BindGroupEntry(1, BindingResource::Buffer(shadowRayDistancesBuffer)),
+        BindGroupEntry(2, BindingResource::Buffer(shadowRayCountBuffer)),
+        BindGroupEntry(3, BindingResource::Buffer(payloadsBuffer)),
+        BindGroupEntry(4, BindingResource::Buffer(shadowRayPixelMappingBuffer)),
+        BindGroupEntry(5, BindingResource::AccelerationStructure(createInfo.tlas)),
+    };
+    Graphics::DestroyBindGroup(connectBindGroup);
+    connectBindGroup = Graphics::CreateBindGroup(connectBindGroupCreateInfo);
+}
+
 void WfptPass::Dispatch(const Camera& camera)
 {
     ComputePassDescriptor computePassDescriptor{};

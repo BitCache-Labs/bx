@@ -71,6 +71,8 @@ BindingTypeDescriptor BindingTypeDescriptor::AccelerationStructure()
 
 BindingResource BindingResource::Buffer(const BufferBinding& bufferBinding)
 {
+	BX_ENSURE(bufferBinding.buffer);
+
 	BindingResource resource{};
 	resource.type = BindingResourceType::BUFFER;
 	resource.buffer = bufferBinding;
@@ -87,6 +89,8 @@ BindingResource BindingResource::BufferArray(const List<BufferBinding>& bufferBi
 
 BindingResource BindingResource::Sampler(const SamplerHandle& sampler)
 {
+	BX_ENSURE(sampler);
+
 	BindingResource resource{};
 	resource.type = BindingResourceType::SAMPLER;
 	resource.sampler = sampler;
@@ -103,6 +107,8 @@ BindingResource BindingResource::SamplerArray(const List<SamplerHandle>& sampler
 
 BindingResource BindingResource::TextureView(const TextureViewHandle& textureView)
 {
+	BX_ENSURE(textureView);
+
 	BindingResource resource{};
 	resource.type = BindingResourceType::TEXTURE_VIEW;
 	resource.textureView = textureView;
@@ -119,6 +125,8 @@ BindingResource BindingResource::TextureViewArray(const List<TextureViewHandle>&
 
 BindingResource BindingResource::AccelerationStructure(const TlasHandle& accelerationStructure)
 {
+	BX_ENSURE(accelerationStructure);
+
 	BindingResource resource{};
 	resource.type = BindingResourceType::ACCELERATION_STRUCTURE;
 	resource.accelerationStructure = accelerationStructure;
