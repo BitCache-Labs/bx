@@ -196,9 +196,9 @@ void SceneView::Render(const ImVec2& size)
         });
 
     Renderer& renderer = SystemManager::GetSystem<Renderer>();
-    renderer.editorCamera = OptionalView<Camera>::Some(&g_sceneCam);
+    renderer.m_editorCamera = OptionalView<Camera>::Some(&g_sceneCam);
     renderer.Render();
-    renderer.editorCamera = OptionalView<Camera>::None();
+    renderer.m_editorCamera = OptionalView<Camera>::None();
 
     IdPass idPass(g_idColorTarget, g_idDepthTarget);
     idPass.Dispatch(g_sceneCam);
@@ -287,7 +287,8 @@ void SceneView::Present(bool& show)
 
     Render(contentRegionAvail);
 #ifdef BX_GRAPHICS_VULKAN_BACKEND
-    TextureHandle editorCameraColorTarget = Renderer::GetEditorCameraColorTarget();
+    Renderer& renderer = SystemManager::GetSystem<Renderer>();
+    TextureHandle editorCameraColorTarget = renderer.GetEditorCameraColorTarget();
     if (editorCameraColorTarget)
     {
         static std::shared_ptr<Vk::DescriptorSet> descriptorSets[3];
@@ -297,7 +298,8 @@ void SceneView::Present(bool& show)
         ImGui::Image((void*)descriptorSets[frameIdx]->GetDescriptorSet(), contentRegionAvail);
     }
 #elif defined BX_GRAPHICS_OPENGL_BACKEND
-    TextureHandle editorCameraColorTarget = Renderer::GetEditorCameraColorTarget();
+    Renderer& renderer = SystemManager::GetSystem<Renderer>();
+    TextureHandle editorCameraColorTarget = renderer.GetEditorCameraColorTarget();
     if (editorCameraColorTarget)
     {
         GLuint rawEditorCameraColorTarget = GraphicsOpenGL::GetRawTextureHandle(editorCameraColorTarget);

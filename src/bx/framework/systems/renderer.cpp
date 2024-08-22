@@ -1,7 +1,6 @@
 #include "bx/framework/systems/renderer.hpp"
 
 #include "bx/framework/components/transform.hpp"
-#include "bx/framework/components/camera.hpp"
 #include "bx/framework/components/mesh_filter.hpp"
 #include "bx/framework/components/mesh_renderer.hpp"
 #include "bx/framework/components/animator.hpp"
@@ -20,18 +19,6 @@
 #include <bx/engine/modules/graphics.hpp>
 #include <bx/engine/modules/window.hpp>
 
-struct RendererState : NoCopy
-{
-    TextureHandle colorTarget = TextureHandle::null;
-
-    TlasHandle tlas = TlasHandle::null;
-
-    List<Camera> cameras{};
-
-    ComputePipelineHandle pathTracerPipeline = ComputePipelineHandle::null;
-};
-static std::unique_ptr<RendererState> s = nullptr;
-
 void UpdateAnimators()
 {
     EntityManager::ForEach<Animator>(
@@ -43,7 +30,7 @@ void UpdateAnimators()
 
 void Renderer::UpdateCameras()
 {
-    s->cameras.clear();
+    m_cameras.clear();
 
     EntityManager::ForEach<Transform, Camera>(
         [&](Entity entity, const Transform& trx, Camera& camera)
@@ -56,17 +43,17 @@ void Renderer::UpdateCameras()
             camera.SetView(Mat4::LookAt(trx.GetPosition(), trx.GetPosition() + fwd, Vec3::Up()));
             camera.Update();
 
-            s->cameras.push_back(camera);
+            m_cameras.push_back(camera);
         });
 
-    if (editorCamera.IsSome())
+    if (m_editorCamera.IsSome())
     {
-        Camera& camera = editorCamera.Unwrap();
-        s->cameras.push_back(camera);
+        Camera& camera = m_editorCamera.Unwrap();
+        m_cameras.push_back(camera);
     }
 }
 
-void UpdateTlas()
+void Renderer::UpdateTlas()
 {
     List<BlasInstance> blasInstances{};
 
@@ -99,12 +86,12 @@ void UpdateTlas()
         TlasCreateInfo tlasCreateInfo{};
         tlasCreateInfo.name = "Dynamic Tlas";
         tlasCreateInfo.blasInstances = blasInstances;
-        if (s->tlas) Graphics::DestroyTlas(s->tlas);
-        s->tlas = Graphics::CreateTlas(tlasCreateInfo);
+        if (m_tlas) Graphics::DestroyTlas(m_tlas);
+        m_tlas = Graphics::CreateTlas(tlasCreateInfo);
     }
 }
 
-void RecreateRenderTargets()
+void Renderer::RecreateRenderTargets()
 {
     if (Window::WasResized())
     {
@@ -116,15 +103,13 @@ void RecreateRenderTargets()
         colorTargetCreateInfo.size = Extend3D(w, h, 1);
         colorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
         colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
-        if (s->colorTarget) Graphics::DestroyTexture(s->colorTarget);
-        s->colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
+        if (m_colorTarget) Graphics::DestroyTexture(m_colorTarget);
+        m_colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
     }
 }
 
 void Renderer::Initialize()
 {
-    s = std::unique_ptr<RendererState>(new RendererState());
-
     RecreateRenderTargets();
 }
 
@@ -133,8 +118,7 @@ void Renderer::Shutdown()
     IdPass::ClearPipelineCache();
     PresentPass::ClearPipelineCache();
     SrgbToLinearPass::ClearPipelineCache();
-
-    s.reset();
+    WfptPass::ClearPipelineCache();
 }
 
 void Renderer::Update()
@@ -149,25 +133,20 @@ void Renderer::Render()
     UpdateCameras();
     UpdateTlas();
 
-    TextureViewHandle colorTargetView = Graphics::CreateTextureView(s->colorTarget);
-    auto& colorTargetCreateInfo = Graphics::GetTextureCreateInfo(s->colorTarget);
-    u32 width = colorTargetCreateInfo.size.width;
-    u32 height = colorTargetCreateInfo.size.height;
-
     WfptCreateInfo wfptCreateInfo{};
-    wfptCreateInfo.colorTarget = s->colorTarget;
-    wfptCreateInfo.tlas = s->tlas;
+    wfptCreateInfo.colorTarget = m_colorTarget;
+    wfptCreateInfo.tlas = m_tlas;
     WfptPass wfptPass(wfptCreateInfo);
-    wfptPass.Dispatch(s->cameras.back());
+    wfptPass.Dispatch(m_cameras.back());
 
-    PresentPass presentPass(s->colorTarget);
+    PresentPass presentPass(m_colorTarget);
     presentPass.Dispatch();
 }
 
 TextureHandle Renderer::GetEditorCameraColorTarget()
 {
 #ifdef BX_EDITOR_BUILD
-    return s->colorTarget;// Graphics::GetSwapchainColorTarget();
+    return m_colorTarget;// Graphics::GetSwapchainColorTarget();
 #else
     return TextureHandle::null;
 #endif

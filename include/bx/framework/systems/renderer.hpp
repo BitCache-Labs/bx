@@ -4,8 +4,9 @@
 #include <bx/engine/core/math.hpp>
 #include <bx/engine/modules/graphics.hpp>
 
+#include "bx/framework/components/camera.hpp"
+
 class SceneView;
-class Camera;
 
 class Renderer : public System
 {
@@ -24,7 +25,7 @@ public:
 	void BindConstants(const Mat4& viewMtx, const Mat4& projMtx, const Mat4& viewProjMtx);*/
 
 	// Returns the color target texture rendered from the editor camera, will return null handle if not in editor build
-	static TextureHandle GetEditorCameraColorTarget();
+	TextureHandle GetEditorCameraColorTarget();
 
 private:
 	friend class SceneView;
@@ -35,7 +36,14 @@ private:
 	void Update() override;
 	void Render() override;
 
-	OptionalView<Camera> editorCamera = OptionalView<Camera>::None();
+	TextureHandle m_colorTarget = TextureHandle::null;
+
+	TlasHandle m_tlas = TlasHandle::null;
+
+	List<Camera> m_cameras{};
+	OptionalView<Camera> m_editorCamera = OptionalView<Camera>::None();
 
 	void UpdateCameras();
+	void UpdateTlas();
+	void RecreateRenderTargets();
 };
