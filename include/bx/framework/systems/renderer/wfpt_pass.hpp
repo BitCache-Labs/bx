@@ -22,21 +22,23 @@ public:
 
 	static void ClearPipelineCache();
 
+	u32 maxBounces = 3;
+	u32 seed = 1337;
+
 private:
+	WfptCreateInfo createInfo;
 	TextureViewHandle colorTargetView;
 	u32 width, height;
 
-	BufferHandle raysBuffer;
-	BufferHandle rayCountBuffer;
+	BufferHandle raysBuffer[2];
+	BufferHandle pixelMappingBuffer[2];
+	BufferHandle rayCountBuffer[2];
 	BufferHandle intersectionsBuffer;
 	BufferHandle payloadsBuffer;
 
 	BufferHandle raygenConstantsBuffer;
 	BufferHandle resolveConstantsBuffer;
-	BufferHandle shadeConstantsBuffer;
 
-	BindGroupHandle extendBindGroup;
 	BindGroupHandle raygenBindGroup;
 	BindGroupHandle resolveBindGroup;
-	BindGroupHandle shadeBindGroup;
 };

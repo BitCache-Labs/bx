@@ -92,6 +92,8 @@ namespace Vk
 
     void DescriptorSet::SetAccelerationStructure(uint32_t binding, std::shared_ptr<Tlas> tlas)
     {
+        trackedAccelerationStructures[binding] = tlas;
+
         VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
         descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
         descriptorAccelerationStructureInfo.accelerationStructureCount = 1;

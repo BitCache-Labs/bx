@@ -83,6 +83,7 @@ public:
 	// TODO: merge these two, make SizeType optional??
 	static void WriteBuffer(BufferHandle buffer, u64 offset, const void* data);
 	static void WriteBuffer(BufferHandle buffer, u64 offset, const void* data, SizeType size);
+	static void ClearBuffer(BufferHandle buffer);
 
 	static void WriteTexture(TextureHandle texture, const void* data, const Extend3D& offset, const Extend3D& size);
 	static void ReadTexture(TextureHandle texture, void* data,  const Extend3D& offset, const Extend3D& size);

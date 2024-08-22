@@ -36,6 +36,8 @@ private:
 	void Update() override;
 	void Render() override;
 
+	u32 frameIdx = 0;
+
 	TextureHandle m_colorTarget = TextureHandle::null;
 
 	TlasHandle m_tlas = TlasHandle::null;

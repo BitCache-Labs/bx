@@ -307,7 +307,7 @@ if (BX_INSTALL)
 	#)
 
 	# Hide the console on installed builds
-	if (MSVC)
-		target_link_options(bx INTERFACE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
-	endif ()
+	#if (MSVC)
+	#	target_link_options(bx INTERFACE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
+	#endif ()
 endif ()

@@ -17,14 +17,19 @@ layout (BINDING(0, 2), std430) writeonly buffer _Intersections
     Intersection intersections[];
 };
 
-layout(BINDING(0, 3)) uniform accelerationStructureEXT Scene;
+layout (BINDING(0, 3), std430) readonly buffer _PixelMapping
+{
+    uint pixelMapping[];
+};
+
+layout(BINDING(0, 4)) uniform accelerationStructureEXT Scene;
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= rayCount) return;
-    uint pid = id; // TODO: pixelmapping
+    uint pid = pixelMapping[id];
 
     Ray ray = rays[id];
 

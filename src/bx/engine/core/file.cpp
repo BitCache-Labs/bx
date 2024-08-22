@@ -182,8 +182,8 @@ void File::AddWildcard(const String& wildcard, const String& value)
 	{
 		if (!CreateDirectory(value))
 		{
-			BX_LOGE("Failed to create directory!");
-			BX_ASSERT(false, "Create directory failed!");
+			BX_LOGE("Failed to create directory {} {}!", wildcard.c_str(), value.c_str());
+			BX_FAIL("Create directory failed {} {}!", wildcard.c_str(), value.c_str());
 		}
 	}
 	s_wildcards[wildcard] = value;

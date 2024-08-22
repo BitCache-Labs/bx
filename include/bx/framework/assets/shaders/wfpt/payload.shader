@@ -6,7 +6,7 @@ struct Payload
 	vec3 accumulated;
 	uint _PADDING0;
 	vec3 throughput;
-	uint _PADDING1;
+	uint rngState;
 };
 
 #endif // PAYLOAD_H

@@ -41,6 +41,7 @@ namespace Vk
         Array<std::shared_ptr<Image>, 64> trackedSampledImages;
         Array<std::shared_ptr<Image>, 64> trackedStorageImages;
         Array<std::shared_ptr<Sampler>, 64> trackedSamplers;
+        Array<std::shared_ptr<Tlas>, 64> trackedAccelerationStructures;
 
         const std::shared_ptr<Device> device;
         const std::shared_ptr<DescriptorPool> pool;

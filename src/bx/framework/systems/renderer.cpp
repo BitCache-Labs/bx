@@ -137,10 +137,13 @@ void Renderer::Render()
     wfptCreateInfo.colorTarget = m_colorTarget;
     wfptCreateInfo.tlas = m_tlas;
     WfptPass wfptPass(wfptCreateInfo);
+    wfptPass.seed = frameIdx;
     wfptPass.Dispatch(m_cameras.back());
 
     PresentPass presentPass(m_colorTarget);
     presentPass.Dispatch();
+
+    frameIdx++;
 }
 
 TextureHandle Renderer::GetEditorCameraColorTarget()

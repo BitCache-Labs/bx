@@ -252,7 +252,6 @@ void Graphics::EndFrame()
     {
         s->cmdQueue->SubmitCmdList(s->uploadCmdList, nullptr, {}, {}, {});
         s->uploadCmdList.reset();
-        s->device->WaitIdle();
     }
 
     if (Window::IsActive())
@@ -288,7 +287,7 @@ void Graphics::EndFrame()
             &s->swapchain->GetRenderFinishedSemaphore() };
         s->cmdQueue->SubmitCmdList(s->cmdList, s->presentFence, waitSemaphores, presentWaitStages,
             presentSignalSemaphores);
-        s->device->WaitIdle();
+        
         // Present when rendering is finished, indicated by the `presentSignalSemaphores`
         s->swapchain->Present(*s->cmdQueue, *s->presentFence, presentSignalSemaphores);
         ResourceStateTracker::ApplyImplicitImageTransition(*s->swapchain->GetImage(currentFrame),
@@ -1186,6 +1185,18 @@ void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data, Si
     auto& createInfo = GetBufferCreateInfo(buffer);
 
     ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::Some(size));
+}
+
+void Graphics::ClearBuffer(BufferHandle buffer)
+{
+    BX_ENSURE(buffer);
+
+    auto bufferIter = s->buffers.find(buffer);
+    BX_ENSURE(bufferIter != s->buffers.end());
+    auto& createInfo = GetBufferCreateInfo(buffer);
+
+    List<u8> data(createInfo.size);
+    ::WriteBuffer(bufferIter->second, data.data(), createInfo, Optional<SizeType>::None());
 }
 
 void Graphics::WriteTexture(TextureHandle texture, const void* data, const Extend3D& offset, const Extend3D& size)

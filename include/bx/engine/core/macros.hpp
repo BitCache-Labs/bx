@@ -13,7 +13,7 @@
 
 #define BX_BIT(x) (1 << (x))
 
-#ifdef BX_DEBUG_BUILD
+#ifndef BX_DEBUG_BUILD
 #define BX_LOGD(...) Log::Print(__FILE__, __LINE__, __func__, LogLevel::LOG_DEBUG, Log::Format(__VA_ARGS__))
 #define BX_LOGI(...) Log::Print(__FILE__, __LINE__, __func__, LogLevel::LOG_INFO, Log::Format(__VA_ARGS__))
 #define BX_LOGW(...) Log::Print(__FILE__, __LINE__, __func__, LogLevel::LOG_WARNING, Log::Format(__VA_ARGS__))
