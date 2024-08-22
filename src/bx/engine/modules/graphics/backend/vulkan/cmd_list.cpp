@@ -64,6 +64,13 @@ namespace Vk
         this->trackedDescriptorSets.clear();
     }
 
+    void CmdList::FillBuffer(std::shared_ptr<Buffer> dst, u32 value)
+    {
+        vkCmdFillBuffer(this->cmdBuffer, dst->GetBuffer(), 0, dst->Size(), value);
+
+        this->trackedBuffers.push_back(dst);
+    }
+
     void CmdList::CopyBuffers(std::shared_ptr<Buffer> src, std::shared_ptr<Buffer> dst) {
         VK_ASSERT(src->Size() == dst->Size(), "Copy buffers src and dst must have the same size.");
 

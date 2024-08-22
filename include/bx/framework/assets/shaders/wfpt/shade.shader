@@ -50,6 +50,23 @@ layout (BINDING(0, 8), std430) readonly buffer _Intersections
     Intersection intersections[];
 };
 
+layout (BINDING(0, 9), std430) writeonly buffer _ShadowRays
+{
+    Ray shadowRays[];
+};
+layout(BINDING(0, 10)) writeonly buffer _ShadowRayDistances
+{
+    float shadowRayDistances[];
+};
+layout(BINDING(0, 11)) buffer _ShadowRayCount
+{
+    uint shadowRayCount;
+};
+layout(BINDING(0, 12)) writeonly buffer _ShadowPixelMapping
+{
+    uint shadowPixelMapping[];
+};
+
 void shootRay(vec3 origin, vec3 direction, uint pid)
 {
     Ray ray;
@@ -59,6 +76,18 @@ void shootRay(vec3 origin, vec3 direction, uint pid)
     uint rayIdx = atomicAdd(outRayCount, 1u);
     outRays[rayIdx] = ray;
     outPixelMapping[rayIdx] = pid;
+}
+
+void shootShadowRay(vec3 origin, vec3 direction, float tMax, uint pid)
+{
+    Ray ray;
+    ray.origin = origin;
+    ray.direction = direction;
+
+    uint rayIdx = atomicAdd(shadowRayCount, 1u);
+    shadowRays[rayIdx] = ray;
+    shadowRayDistances[rayIdx] = tMax;
+    shadowPixelMapping[rayIdx] = pid;
 }
 
 vec3 shadeSky(vec3 direction, vec3 throughput)
@@ -93,13 +122,27 @@ void main()
     {
         throughput *= 0.6;
 
-        vec3 origin = ray.origin + ray.direction * intersection.t;
-        vec3 direction = getUniformSphereSample(vec2(
-            randomUniformFloat(payload.rngState),
-            randomUniformFloat(payload.rngState)
-        ));
-        origin += direction * RT_EPSILON;
-        shootRay(origin, direction, pid);
+        vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
+
+        { // Direct illumination
+            vec3 L = normalize(vec3(0.3, 1.0, 0.2));
+
+            vec3 origin = intersectionPos;
+            vec3 direction = L;
+            origin += direction * RT_EPSILON;
+
+            shootShadowRay(origin, direction, 1000.0, pid);
+        }
+
+        { // Indirect illumination
+            vec3 origin = intersectionPos;
+            vec3 direction = getUniformSphereSample(vec2(
+                randomUniformFloat(payload.rngState),
+                randomUniformFloat(payload.rngState)
+            ));
+            origin += direction * RT_EPSILON;
+            shootRay(origin, direction, pid);
+        }
     }
     else
     {

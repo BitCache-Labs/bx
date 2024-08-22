@@ -1195,8 +1195,9 @@ void Graphics::ClearBuffer(BufferHandle buffer)
     BX_ENSURE(bufferIter != s->buffers.end());
     auto& createInfo = GetBufferCreateInfo(buffer);
 
-    List<u8> data(createInfo.size);
-    ::WriteBuffer(bufferIter->second, data.data(), createInfo, Optional<SizeType>::None());
+    BX_ASSERT(createInfo.usageFlags & BufferUsageFlags::COPY_DST, "Buffer must be created with BufferUsageFlags::COPY_DST when clearing.");
+
+    s->cmdList->FillBuffer(bufferIter->second, 0);
 }
 
 void Graphics::WriteTexture(TextureHandle texture, const void* data, const Extend3D& offset, const Extend3D& size)

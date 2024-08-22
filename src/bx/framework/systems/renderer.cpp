@@ -1,3 +1,4 @@
+
 #include "bx/framework/systems/renderer.hpp"
 
 #include "bx/framework/components/transform.hpp"
@@ -138,6 +139,7 @@ void Renderer::Render()
     wfptCreateInfo.tlas = m_tlas;
     WfptPass wfptPass(wfptCreateInfo);
     wfptPass.seed = frameIdx;
+    wfptPass.maxBounces = 2;
     wfptPass.Dispatch(m_cameras.back());
 
     PresentPass presentPass(m_colorTarget);

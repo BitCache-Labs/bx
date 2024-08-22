@@ -55,6 +55,40 @@ struct ShadeConstants
     u32 seed;
 };
 
+struct ConnectPipeline : public LazyInit<ConnectPipeline, ComputePipelineHandle>
+{
+    ConnectPipeline()
+    {
+        ShaderCreateInfo shaderCreateInfo{};
+        shaderCreateInfo.name = "Wfpt Connect Shader";
+        shaderCreateInfo.shaderType = ShaderType::COMPUTE;
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/wfpt/connect.shader")));;
+        ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
+
+        PipelineLayoutDescriptor pipelineLayoutDescriptor{};
+        pipelineLayoutDescriptor.bindGroupLayouts = {
+            BindGroupLayoutDescriptor(0, {
+                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowRays
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowRayDistances
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowRayCount
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // payloads
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowPixelMapping
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()), // scene
+            })
+        };
+
+        ComputePipelineCreateInfo pipelineCreateInfo{};
+        pipelineCreateInfo.name = "Wfpt Connect Pipeline";
+        pipelineCreateInfo.layout = pipelineLayoutDescriptor;
+        pipelineCreateInfo.shader = shader;
+        data = Graphics::CreateComputePipeline(pipelineCreateInfo);
+
+        Graphics::DestroyShader(shader);
+    }
+};
+template<>
+std::unique_ptr<ConnectPipeline> LazyInit<ConnectPipeline, ComputePipelineHandle>::cache = nullptr;
+
 struct ExtendPipeline : public LazyInit<ExtendPipeline, ComputePipelineHandle>
 {
     ExtendPipeline()
@@ -171,6 +205,10 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // outPixelMapping
                 BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // payloads
                 BindGroupLayoutEntry(8, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // intersections
+                BindGroupLayoutEntry(9, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // shadowRays
+                BindGroupLayoutEntry(10, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowRayDistances
+                BindGroupLayoutEntry(11, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowRayCount
+                BindGroupLayoutEntry(12, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowPixelMapping
             })
         };
 
@@ -211,11 +249,35 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
         rayCountBuffer[i] = Graphics::CreateBuffer(rayCountCreateInfo);
 
         BufferCreateInfo pixelMappingCreateInfo{};
-        pixelMappingCreateInfo.name = Log::Format("Wfpt Pixelmapping {} Buffer", i);
+        pixelMappingCreateInfo.name = Log::Format("Wfpt Pixel Mapping {} Buffer", i);
         pixelMappingCreateInfo.size = width * height * sizeof(u32);
         pixelMappingCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
         pixelMappingBuffer[i] = Graphics::CreateBuffer(pixelMappingCreateInfo);
     }
+
+    BufferCreateInfo shadowRaysCreateInfo{};
+    shadowRaysCreateInfo.name = "Wfpt Shadow Rays Buffer";
+    shadowRaysCreateInfo.size = width * height * sizeof(Ray);
+    shadowRaysCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
+    shadowRaysBuffer = Graphics::CreateBuffer(shadowRaysCreateInfo);
+
+    BufferCreateInfo shadowRayDistancesCreateInfo{};
+    shadowRayDistancesCreateInfo.name = "Wfpt Shadow Ray Distances Buffer";
+    shadowRayDistancesCreateInfo.size = width * height * sizeof(f32);
+    shadowRayDistancesCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
+    shadowRayDistancesBuffer = Graphics::CreateBuffer(shadowRayDistancesCreateInfo);
+
+    BufferCreateInfo shadowRayCountCreateInfo{};
+    shadowRayCountCreateInfo.name = "Wfpt Shadow Ray Count Buffer";
+    shadowRayCountCreateInfo.size = sizeof(u32);
+    shadowRayCountCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
+    shadowRayCountBuffer = Graphics::CreateBuffer(shadowRayCountCreateInfo);
+
+    BufferCreateInfo shadowRayPixelMappingCreateInfo{};
+    shadowRayPixelMappingCreateInfo.name = "Wfpt Shadow Ray Pixel Mapping Buffer";
+    shadowRayPixelMappingCreateInfo.size = width * height * sizeof(u32);
+    shadowRayPixelMappingCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
+    shadowRayPixelMappingBuffer = Graphics::CreateBuffer(shadowRayPixelMappingCreateInfo);
 
     BufferCreateInfo intersectionsCreateInfo{};
     intersectionsCreateInfo.name = "Wfpt Intersections Buffer";
@@ -240,6 +302,19 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     resolveConstantsCreateInfo.size = sizeof(ResolveConstants);
     resolveConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
     resolveConstantsBuffer = Graphics::CreateBuffer(resolveConstantsCreateInfo);
+
+    BindGroupCreateInfo connectBindGroupCreateInfo{};
+    connectBindGroupCreateInfo.name = "Wfpt Connect Bind Group";
+    connectBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(ConnectPipeline::Get(), 0);
+    connectBindGroupCreateInfo.entries = {
+        BindGroupEntry(0, BindingResource::Buffer(shadowRaysBuffer)),
+        BindGroupEntry(1, BindingResource::Buffer(shadowRayDistancesBuffer)),
+        BindGroupEntry(2, BindingResource::Buffer(shadowRayCountBuffer)),
+        BindGroupEntry(3, BindingResource::Buffer(payloadsBuffer)),
+        BindGroupEntry(4, BindingResource::Buffer(shadowRayPixelMappingBuffer)),
+        BindGroupEntry(5, BindingResource::AccelerationStructure(createInfo.tlas)),
+    };
+    connectBindGroup = Graphics::CreateBindGroup(connectBindGroupCreateInfo);
 
     BindGroupCreateInfo raygenBindGroupCreateInfo{};
     raygenBindGroupCreateInfo.name = "Wfpt Raygen Bind Group";
@@ -272,11 +347,16 @@ WfptPass::~WfptPass()
         Graphics::DestroyBuffer(pixelMappingBuffer[i]);
     }
     
+    Graphics::DestroyBuffer(shadowRaysBuffer);
+    Graphics::DestroyBuffer(shadowRayDistancesBuffer);
+    Graphics::DestroyBuffer(shadowRayCountBuffer);
+    Graphics::DestroyBuffer(shadowRayPixelMappingBuffer);
     Graphics::DestroyBuffer(intersectionsBuffer);
     Graphics::DestroyBuffer(payloadsBuffer);
     Graphics::DestroyBuffer(raygenConstantsBuffer);
     Graphics::DestroyBuffer(resolveConstantsBuffer);
 
+    Graphics::DestroyBindGroup(connectBindGroup);
     Graphics::DestroyBindGroup(raygenBindGroup);
     Graphics::DestroyBindGroup(resolveBindGroup);
 }
@@ -306,9 +386,7 @@ void WfptPass::Dispatch(const Camera& camera)
     Graphics::WriteBuffer(pixelMappingBuffer[0], 0, pixelMappingData.data());
 
     u32 rayCountData = width * height;
-    u32 zeroData = 0;
     Graphics::WriteBuffer(rayCountBuffer[0], 0, &rayCountData);
-    Graphics::ClearBuffer(rayCountBuffer[1]);
 
     ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
@@ -324,6 +402,9 @@ void WfptPass::Dispatch(const Camera& camera)
             BufferHandle outRayCount = rayCountBuffer[(bounce + 1) % 2];
             BufferHandle pixelMapping = pixelMappingBuffer[bounce % 2];
             BufferHandle outPixelMapping = pixelMappingBuffer[(bounce + 1) % 2];
+
+            Graphics::ClearBuffer(outRayCount);
+            Graphics::ClearBuffer(shadowRayCountBuffer);
 
             ShadeConstants shadeConstants{};
             shadeConstants.width = width;
@@ -363,6 +444,10 @@ void WfptPass::Dispatch(const Camera& camera)
                 BindGroupEntry(6, BindingResource::Buffer(outPixelMapping)),
                 BindGroupEntry(7, BindingResource::Buffer(payloadsBuffer)),
                 BindGroupEntry(8, BindingResource::Buffer(intersectionsBuffer)),
+                BindGroupEntry(9, BindingResource::Buffer(shadowRaysBuffer)),
+                BindGroupEntry(10, BindingResource::Buffer(shadowRayDistancesBuffer)),
+                BindGroupEntry(11, BindingResource::Buffer(shadowRayCountBuffer)),
+                BindGroupEntry(12, BindingResource::Buffer(shadowRayPixelMappingBuffer))
             };
             BindGroupHandle shadeBindGroup = Graphics::CreateBindGroup(shadeBindGroupCreateInfo);
             
@@ -372,6 +457,10 @@ void WfptPass::Dispatch(const Camera& camera)
 
             Graphics::SetComputePipeline(ShadePipeline::Get());
             Graphics::SetBindGroup(0, shadeBindGroup);
+            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+
+            Graphics::SetComputePipeline(ConnectPipeline::Get());
+            Graphics::SetBindGroup(0, connectBindGroup);
             Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
 
             Graphics::DestroyBindGroup(extendBindGroup);
@@ -388,6 +477,7 @@ void WfptPass::Dispatch(const Camera& camera)
 
 void WfptPass::ClearPipelineCache()
 {
+    ConnectPipeline::Clear();
     ExtendPipeline::Clear();
     RaygenPipeline::Clear();
     ResolvePipeline::Clear();

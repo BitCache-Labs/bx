@@ -33,12 +33,17 @@ private:
 	BufferHandle raysBuffer[2];
 	BufferHandle pixelMappingBuffer[2];
 	BufferHandle rayCountBuffer[2];
+	BufferHandle shadowRaysBuffer;
+	BufferHandle shadowRayDistancesBuffer;
+	BufferHandle shadowRayCountBuffer;
+	BufferHandle shadowRayPixelMappingBuffer;
 	BufferHandle intersectionsBuffer;
 	BufferHandle payloadsBuffer;
 
 	BufferHandle raygenConstantsBuffer;
 	BufferHandle resolveConstantsBuffer;
 
+	BindGroupHandle connectBindGroup;
 	BindGroupHandle raygenBindGroup;
 	BindGroupHandle resolveBindGroup;
 };

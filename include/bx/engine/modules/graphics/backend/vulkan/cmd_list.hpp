@@ -25,6 +25,7 @@ namespace Vk
 
         VkCommandBuffer GetCommandBuffer() const;
 
+        void FillBuffer(std::shared_ptr<Buffer> dst, u32 value);
         void CopyBuffers(std::shared_ptr<Buffer> src, std::shared_ptr<Buffer> dst);
         void CopyBuffers(std::shared_ptr<Buffer> src, std::shared_ptr<Image> dst);
         void CopyBuffers(std::shared_ptr<Image> src, std::shared_ptr<Buffer> dst, VkOffset3D offset, VkExtent3D size);
