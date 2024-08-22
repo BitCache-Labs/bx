@@ -1,5 +1,5 @@
-#ifndef RANDOM_H
-#define RANDOM_H
+#ifndef MATH_H
+#define MATH_H
 
 const float PI = 3.14159265358979323846264338327;
 const float INV_PI = (1.0 / PI);
@@ -15,7 +15,7 @@ const float U16_MAX = 65535u;
 
 const float GOLDEN_RATIO = 1.6180339887498948482;
 
-const vec3 RIGHT = vec(1.0, 0.0, 0.0);
+const vec3 RIGHT = vec3(1.0, 0.0, 0.0);
 const vec3 UP = vec3(0.0, 1.0, 0.0);
 const vec3 FORWARD = vec3(0.0, 0.0, 1.0);
 
@@ -29,4 +29,4 @@ bool isNan(float x)
 	return x != x;
 }
 
-#endif // RANDOM_H
+#endif // MATH_H

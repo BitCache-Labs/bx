@@ -5,7 +5,7 @@
 
 vec3 getUniformHemisphereSample(vec2 uv)
 {
-	float phi = (3.14159265358979 * 2.0) * uv.x;
+	float phi = TWO_PI * uv.x;
     float r = sqrt(1.0 - uv.y * uv.y);
     float sin_phi = sin(phi);
     float cos_phi = cos(phi);
@@ -19,7 +19,7 @@ vec3 getUniformHemisphereSample(vec2 uv)
 
 vec3 getUniformSphereSample(vec2 uv)
 {
-    float phi = (3.14159265358979 * 2.0) * uv.x;
+    float phi = TWO_PI * uv.x;
     float theta = acos(1.0 - 2.0 * uv.y);
 
     float sin_phi = sin(phi);
