@@ -292,6 +292,12 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     payloadsCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     payloadsBuffer = Graphics::CreateBuffer(payloadsCreateInfo);
 
+    BufferCreateInfo indirectArgsCreateInfo{};
+    indirectArgsCreateInfo.name = "Indirect Args Buffer";
+    indirectArgsCreateInfo.size = 3 * sizeof(u32);
+    indirectArgsCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
+    indirectArgsBuffer = Graphics::CreateBuffer(indirectArgsCreateInfo);
+
     BufferCreateInfo raygenConstantsCreateInfo{};
     raygenConstantsCreateInfo.name = "Wfpt Raygen Constants Buffer";
     raygenConstantsCreateInfo.size = sizeof(RaygenConstants);
@@ -354,6 +360,7 @@ WfptPass::~WfptPass()
     Graphics::DestroyBuffer(shadowRayPixelMappingBuffer);
     Graphics::DestroyBuffer(intersectionsBuffer);
     Graphics::DestroyBuffer(payloadsBuffer);
+    Graphics::DestroyBuffer(indirectArgsBuffer);
     Graphics::DestroyBuffer(raygenConstantsBuffer);
     Graphics::DestroyBuffer(resolveConstantsBuffer);
 
@@ -472,16 +479,16 @@ void WfptPass::Dispatch(const Camera& camera)
         };
         BindGroupHandle shadeBindGroup = Graphics::CreateBindGroup(shadeBindGroupCreateInfo);
         
-        WriteIndirectArgsPass writeIndirectArgsExtend(rayCount, 128);
-        BufferHandle indirectArgsBuffer = writeIndirectArgsExtend.Dispatch();
+        WriteIndirectArgsPass writeIndirectArgs(128);
+        //writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
 
         computePassDescriptor.name = "Wfpt Extend";
         computePass = Graphics::BeginComputePass(computePassDescriptor);
         {
             Graphics::SetComputePipeline(ExtendPipeline::Get());
             Graphics::SetBindGroup(0, extendBindGroup);
-            Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
-            //Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+            //Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
+            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
         }
         Graphics::EndComputePass(computePass);
 
@@ -497,6 +504,8 @@ void WfptPass::Dispatch(const Camera& camera)
             Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
         }
         Graphics::EndComputePass(computePass);
+        
+        writeIndirectArgs.Dispatch(indirectArgsBuffer, shadowRayCountBuffer);
 
         /*WriteIndirectArgsPass writeIndirectArgsConnect(shadowRayCountBuffer, 128);
         indirectArgsBuffer = writeIndirectArgsConnect.Dispatch();*/

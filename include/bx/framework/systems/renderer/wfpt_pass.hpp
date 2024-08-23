@@ -40,6 +40,7 @@ private:
 	BufferHandle shadowRayPixelMappingBuffer;
 	BufferHandle intersectionsBuffer;
 	BufferHandle payloadsBuffer;
+	BufferHandle indirectArgsBuffer;
 
 	BufferHandle raygenConstantsBuffer;
 	BufferHandle resolveConstantsBuffer;

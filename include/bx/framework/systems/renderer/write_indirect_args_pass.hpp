@@ -7,15 +7,13 @@
 class WriteIndirectArgsPass : NoCopy
 {
 public:
-	WriteIndirectArgsPass(BufferHandle countBuffer, u32 groupSize);
+	WriteIndirectArgsPass(u32 groupSize);
 	~WriteIndirectArgsPass();
 
-	BufferHandle Dispatch();
+	void Dispatch(BufferHandle indirectArgsBuffer, BufferHandle countBuffer);
 
 	static void ClearPipelineCache();
 
 private:
-	BufferHandle indirectArgsBuffer;
 	BufferHandle constantsBuffer;
-	BindGroupHandle bindGroup;
 };

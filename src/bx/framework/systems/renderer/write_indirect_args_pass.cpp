@@ -45,14 +45,8 @@ struct WriteIndirectArgsPipeline : public LazyInit<WriteIndirectArgsPipeline, Co
 template<>
 std::unique_ptr<WriteIndirectArgsPipeline> LazyInit<WriteIndirectArgsPipeline, ComputePipelineHandle>::cache = nullptr;
 
-WriteIndirectArgsPass::WriteIndirectArgsPass(BufferHandle countBuffer, u32 groupSize)
+WriteIndirectArgsPass::WriteIndirectArgsPass(u32 groupSize)
 {
-    BufferCreateInfo indirectArgsCreateInfo{};
-    indirectArgsCreateInfo.name = "Indirect Args Buffer";
-    indirectArgsCreateInfo.size = 3 * sizeof(u32);
-    indirectArgsCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
-    indirectArgsBuffer = Graphics::CreateBuffer(indirectArgsCreateInfo);
-
     Constants constantsData{};
     constantsData.groupSize = groupSize;
 
@@ -62,7 +56,15 @@ WriteIndirectArgsPass::WriteIndirectArgsPass(BufferHandle countBuffer, u32 group
     constantsCreateInfo.data = &constantsData;
     constantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
     constantsBuffer = Graphics::CreateBuffer(constantsCreateInfo);
+}
 
+WriteIndirectArgsPass::~WriteIndirectArgsPass()
+{
+    Graphics::DestroyBuffer(constantsBuffer);
+}
+
+void WriteIndirectArgsPass::Dispatch(BufferHandle indirectArgsBuffer, BufferHandle countBuffer)
+{
     BindGroupCreateInfo createInfo{};
     createInfo.name = "Write Indirect Args BindGroup";
     createInfo.layout = Graphics::GetBindGroupLayout(WriteIndirectArgsPipeline::Get(), 0);
@@ -71,21 +73,10 @@ WriteIndirectArgsPass::WriteIndirectArgsPass(BufferHandle countBuffer, u32 group
         BindGroupEntry(1, BindingResource::Buffer(countBuffer)),
         BindGroupEntry(2, BindingResource::Buffer(indirectArgsBuffer))
     };
-    bindGroup = Graphics::CreateBindGroup(createInfo);
-}
+    BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
 
-WriteIndirectArgsPass::~WriteIndirectArgsPass()
-{
-    Graphics::DestroyBindGroup(bindGroup);
-    Graphics::DestroyBuffer(indirectArgsBuffer);
-    Graphics::DestroyBuffer(constantsBuffer);
-}
-
-BufferHandle WriteIndirectArgsPass::Dispatch()
-{
     ComputePassDescriptor computePassDescriptor{};
     computePassDescriptor.name = "Write Indirect Args";
-
     ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
         Graphics::SetComputePipeline(WriteIndirectArgsPipeline::Get());
@@ -94,7 +85,7 @@ BufferHandle WriteIndirectArgsPass::Dispatch()
     }
     Graphics::EndComputePass(computePass);
 
-    return indirectArgsBuffer;
+    Graphics::DestroyBindGroup(bindGroup);
 }
 
 void WriteIndirectArgsPass::ClearPipelineCache()
