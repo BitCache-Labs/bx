@@ -6,6 +6,8 @@
 
 #include "bx/framework/components/camera.hpp"
 
+class BlasDataPool;
+
 struct WfptCreateInfo
 {
 	TextureHandle colorTarget = TextureHandle::null;
@@ -19,7 +21,7 @@ public:
 	~WfptPass();
 
 	void SetTlas(TlasHandle tlas);
-	void Dispatch(const Camera& camera);
+	void Dispatch(const Camera& camera, const BlasDataPool& blasDataPool);
 
 	static void ClearPipelineCache();
 

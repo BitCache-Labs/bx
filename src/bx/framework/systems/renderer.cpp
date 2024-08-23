@@ -73,6 +73,8 @@ void Renderer::UpdateTlas()
                 if (!mesh || !material)
                     continue;
 
+                // TODO: submit mesh to blas data pool
+
                 BlasInstance blasInstance{};
                 blasInstance.transform = trx.GetMatrix() * mesh->GetMatrix();
                 blasInstance.instanceCustomIndex = 0; // TODO

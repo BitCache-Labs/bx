@@ -5,6 +5,9 @@
 #include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/sampling.shader"
 
+#define BLAS_DATA_BINDINGS
+#include "[engine]/shaders/ray_tracing/blas_data.shader"
+
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uint width;

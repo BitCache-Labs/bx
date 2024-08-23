@@ -2,6 +2,7 @@
 
 #include "bx/framework/systems/renderer/lazy_init.hpp"
 #include "bx/framework/systems/renderer/write_indirect_args_pass.hpp"
+#include "bx/framework/systems/renderer/blas_data_pool.hpp"
 
 #include "bx/framework/components/transform.hpp"
 #include "bx/framework/components/mesh_filter.hpp"
@@ -210,7 +211,8 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(10, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowRayDistances
                 BindGroupLayoutEntry(11, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowRayCount
                 BindGroupLayoutEntry(12, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowPixelMapping
-            })
+            }),
+            BlasDataPool::GetBindGroupLayout(),
         };
 
         ComputePipelineCreateInfo pipelineCreateInfo{};
@@ -388,7 +390,7 @@ void WfptPass::SetTlas(TlasHandle tlas)
     connectBindGroup = Graphics::CreateBindGroup(connectBindGroupCreateInfo);
 }
 
-void WfptPass::Dispatch(const Camera& camera)
+void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool)
 {
     RaygenConstants raygenConstants{};
     raygenConstants.invView = camera.GetInvView();
@@ -478,6 +480,7 @@ void WfptPass::Dispatch(const Camera& camera)
             BindGroupEntry(12, BindingResource::Buffer(shadowRayPixelMappingBuffer))
         };
         BindGroupHandle shadeBindGroup = Graphics::CreateBindGroup(shadeBindGroupCreateInfo);
+        BindGroupHandle shadeBlasDataPoolGroup = blasDataPool.CreateBindGroup(ShadePipeline::Get());
         
         WriteIndirectArgsPass writeIndirectArgs(128);
         writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
@@ -496,6 +499,7 @@ void WfptPass::Dispatch(const Camera& camera)
         {
             Graphics::SetComputePipeline(ShadePipeline::Get());
             Graphics::SetBindGroup(0, shadeBindGroup);
+            Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, shadeBlasDataPoolGroup);
             Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
         }
         Graphics::EndComputePass(computePass);
@@ -513,6 +517,7 @@ void WfptPass::Dispatch(const Camera& camera)
 
         Graphics::DestroyBindGroup(extendBindGroup);
         Graphics::DestroyBindGroup(shadeBindGroup);
+        Graphics::DestroyBindGroup(shadeBlasDataPoolGroup);
         Graphics::DestroyBuffer(shadeConstantsBuffer);
     }
 

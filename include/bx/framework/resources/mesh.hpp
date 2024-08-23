@@ -10,12 +10,13 @@ public:
 	struct Vertex
 	{
 		Vec3 position;
+		u32 _PADDING;
 		Vec4 color;
+		Vec4i bones;
+		Vec4 weights;
 		Vec3 normal;
 		Vec3 tangent;
 		Vec2 uv;
-		Vec4i bones;
-		Vec4 weights;
 	};
 
 public:
