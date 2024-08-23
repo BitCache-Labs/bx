@@ -472,25 +472,29 @@ void WfptPass::Dispatch(const Camera& camera)
         };
         BindGroupHandle shadeBindGroup = Graphics::CreateBindGroup(shadeBindGroupCreateInfo);
         
+        WriteIndirectArgsPass writeIndirectArgsExtend(rayCount, 128);
+        BufferHandle indirectArgsBuffer = writeIndirectArgsExtend.Dispatch();
+
         computePassDescriptor.name = "Wfpt Extend";
         computePass = Graphics::BeginComputePass(computePassDescriptor);
         {
             Graphics::SetComputePipeline(ExtendPipeline::Get());
             Graphics::SetBindGroup(0, extendBindGroup);
-            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+            Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
+            //Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
         }
         Graphics::EndComputePass(computePass);
 
-        WriteIndirectArgsPass writeIndirectArgsShade(rayCount, 128);
-        BufferHandle indirectArgsBuffer = writeIndirectArgsShade.Dispatch();
+        /*WriteIndirectArgsPass writeIndirectArgsShade(rayCount, 128);
+        indirectArgsBuffer = writeIndirectArgsShade.Dispatch();*/
 
         computePassDescriptor.name = "Wfpt Shade";
         computePass = Graphics::BeginComputePass(computePassDescriptor);
         {
             Graphics::SetComputePipeline(ShadePipeline::Get());
             Graphics::SetBindGroup(0, shadeBindGroup);
-            Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
-            //Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+            //Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
+            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
         }
         Graphics::EndComputePass(computePass);
 

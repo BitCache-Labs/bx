@@ -49,7 +49,7 @@ WriteIndirectArgsPass::WriteIndirectArgsPass(BufferHandle countBuffer, u32 group
 {
     BufferCreateInfo indirectArgsCreateInfo{};
     indirectArgsCreateInfo.name = "Indirect Args Buffer";
-    indirectArgsCreateInfo.size = 4 * sizeof(u32);
+    indirectArgsCreateInfo.size = 3 * sizeof(u32);
     indirectArgsCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
     indirectArgsBuffer = Graphics::CreateBuffer(indirectArgsCreateInfo);
 

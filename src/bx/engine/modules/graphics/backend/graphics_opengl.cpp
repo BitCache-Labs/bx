@@ -817,7 +817,7 @@ void Graphics::DispatchWorkgroups(u32 x, u32 y, u32 z)
     glDispatchCompute(x, y, z);
 }
 
-void Graphics::DispatchWorkgroupsIndirect(BufferHandle indirectArgs)
+void Graphics::DispatchWorkgroupsIndirect(BufferHandle indirectArgs, u32 offset)
 {
     BX_ASSERT(s->activeComputePass, "No compute pass active.");
     BX_ASSERT(s->boundComputePipeline, "No compute pipeline bound.");
@@ -825,7 +825,9 @@ void Graphics::DispatchWorkgroupsIndirect(BufferHandle indirectArgs)
     auto bufferIter = s->buffers.find(indirectArgs);
     BX_ENSURE(bufferIter != s->buffers.end());
 
-    glDispatchComputeIndirect(bufferIter->second);
+    glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, bufferIter->second);
+    glDispatchComputeIndirect(offset);
+    glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, 0);
 }
 
 

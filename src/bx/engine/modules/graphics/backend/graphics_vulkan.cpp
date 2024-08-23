@@ -47,7 +47,7 @@ using namespace Vk;
 
 constexpr bool ENABLE_VALIDATION =
 #ifdef _DEBUG
-true;
+false;
 #else
 false;
 #endif
@@ -1146,7 +1146,7 @@ void Graphics::DispatchWorkgroups(u32 x, u32 y, u32 z)
     s->cmdList->Dispatch(x, y, z);
 }
 
-void Graphics::DispatchWorkgroupsIndirect(BufferHandle indirectArgs)
+void Graphics::DispatchWorkgroupsIndirect(BufferHandle indirectArgs, u32 offset)
 {
     BX_ASSERT(s->activeComputePass, "No compute pass active.");
     BX_ASSERT(s->boundComputePipeline, "No compute pipeline bound.");
@@ -1154,7 +1154,10 @@ void Graphics::DispatchWorkgroupsIndirect(BufferHandle indirectArgs)
     auto bufferIter = s->buffers.find(indirectArgs);
     BX_ENSURE(bufferIter != s->buffers.end());
 
-    s->cmdList->DispatchIndirect(bufferIter->second, 0);
+    auto& createInfo = GetBufferCreateInfo(indirectArgs);
+    BX_ASSERT(createInfo.usageFlags & BufferUsageFlags::INDIRECT, "Buffer must be created with BufferUsageFlags::INDIRECT when using as indirect args.");
+
+    s->cmdList->DispatchIndirect(bufferIter->second, offset);
 }
 
 void Graphics::EndComputePass(ComputePassHandle& computePass)
