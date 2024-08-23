@@ -18,8 +18,6 @@ namespace Vk
             const PhysicalDevice& physicalDevice, VkBufferUsageFlags usage, uint64_t size,
             BufferLocation location);
         ~Buffer();
-        explicit Buffer(Buffer&& other) noexcept;
-        Buffer& operator=(Buffer&& other) noexcept;
 
         void* Map();
         void Unmap();

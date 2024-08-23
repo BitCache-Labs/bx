@@ -24,7 +24,7 @@ namespace Vk
         ~CmdQueue();
 
         void ProcessCmdLists(bool wait = false);
-        std::shared_ptr<CmdList> GetCmdList();
+        std::shared_ptr<CmdList> GetCmdList(const String& name);
         void SubmitCmdList(std::shared_ptr<CmdList> cmdList, std::shared_ptr<Fence> fence,
             const List<Semaphore*>& waitSemaphores,
             const List<VkPipelineStageFlags>& waitStages,
@@ -44,7 +44,7 @@ namespace Vk
             std::shared_ptr<CmdList> cmdList;
         };
 
-        std::queue<InFlightCmdList> busyCmdLists;
+        List<InFlightCmdList> busyCmdLists;
         std::queue<std::shared_ptr<CmdList>> idleCmdLists;
     };
 }

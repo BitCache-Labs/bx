@@ -18,8 +18,8 @@
 
 namespace Vk
 {
-    CmdList::CmdList(std::shared_ptr<Device> device, const CmdQueue& cmdQueue)
-        : device(device), cmdQueue(cmdQueue) {
+    CmdList::CmdList(const String& name, std::shared_ptr<Device> device, const CmdQueue& cmdQueue)
+        : name(name), device(device), cmdQueue(cmdQueue) {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = cmdQueue.GetCmdPool();

@@ -72,8 +72,9 @@ namespace Vk
 
     private:
         friend class CmdQueue;
-        CmdList(std::shared_ptr<Device> device, const CmdQueue& cmdQueue);
+        CmdList(const String& name, std::shared_ptr<Device> device, const CmdQueue& cmdQueue);
 
+        const String name;
         const std::shared_ptr<Device> device;
         const CmdQueue& cmdQueue;
 

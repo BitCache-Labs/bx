@@ -20,7 +20,6 @@ namespace Vk
 
         VmaAllocationCreateInfo allocCreateInfo{};
         if (physicalDevice.RayTracingSuitable()) {
-            //allocCreateInfo.flags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
             createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         }
         if (location == BufferLocation::CPU_TO_GPU) {
@@ -37,28 +36,8 @@ namespace Vk
             name);
     }
 
-    Buffer::Buffer(Buffer&& other) noexcept
-        : size(other.size),
-        buffer(other.buffer),
-        allocation(other.allocation),
-        device(other.device) {
-        other.buffer = VK_NULL_HANDLE;
-        other.allocation = VK_NULL_HANDLE;
-    }
-
-    Buffer& Buffer::operator=(Buffer&& other) noexcept {
-        this->size = other.size;
-        this->buffer = other.buffer;
-        this->allocation = other.allocation;
-        other.buffer = VK_NULL_HANDLE;
-        other.allocation = VK_NULL_HANDLE;
-        return *this;
-    }
-
     Buffer::~Buffer() {
-        if (this->buffer) {
-            vmaDestroyBuffer(this->device->GetAllocator(), this->buffer, this->allocation);
-        }
+        vmaDestroyBuffer(this->device->GetAllocator(), this->buffer, this->allocation);
     }
 
     void* Buffer::Map() {

@@ -47,7 +47,7 @@ using namespace Vk;
 
 constexpr bool ENABLE_VALIDATION =
 #ifdef _DEBUG
-false;
+true;
 #else
 false;
 #endif
@@ -195,6 +195,8 @@ bool Graphics::Initialize()
     s->sampler = std::shared_ptr<Sampler>(new Sampler("Sampler", s->device, *s->physicalDevice,
         SamplerInfo{}));
 
+    s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
+
     BufferCreateInfo bufferCreateInfo{};
     bufferCreateInfo.name = "Empty Buffer";
     bufferCreateInfo.size = 1;
@@ -227,7 +229,7 @@ void Graphics::Reload()
 
 void Graphics::NewFrame()
 {
-    s->cmdQueue->ProcessCmdLists();
+    s->cmdQueue->ProcessCmdLists(true);
 
     if (Window::IsActive())
     {
@@ -243,16 +245,14 @@ void Graphics::NewFrame()
 
     // All cmds of the entire frame will be recorded into a single cmd list
     // This is because we designed the graphics module api to act like it's immediate
-    s->cmdList = s->cmdQueue->GetCmdList();
+    s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
+    if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
 }
 
 void Graphics::EndFrame()
 {
-    if (s->uploadCmdList)
-    {
-        s->cmdQueue->SubmitCmdList(s->uploadCmdList, nullptr, {}, {}, {});
-        s->uploadCmdList.reset();
-    }
+    s->cmdQueue->SubmitCmdList(s->uploadCmdList, nullptr, {}, {}, {});
+    s->uploadCmdList.reset();
 
     if (Window::IsActive())
     {
@@ -743,8 +743,6 @@ const BlasHandle Graphics::CreateBlas(const BlasCreateInfo& createInfo)
 
     u32 blasSize = Blas::RequiredSize(s->device, *s->physicalDevice, geometry, indexCount / 3, flags);
     std::shared_ptr<Blas> blas(new Blas(createInfo.name, s->device, *s->physicalDevice, blasSize));
-    if (!s->uploadCmdList)
-        s->uploadCmdList = s->cmdQueue->GetCmdList();
     blas->Build(*s->uploadCmdList, geometry, rangeInfo, flags);
 
     s->blases.insert(std::make_pair(blasHandle, blas));
@@ -801,8 +799,6 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
     memcpy(bufferData, instances.data(), instancesSize);
     stagingBuffer->Unmap();
 
-    if (!s->uploadCmdList)
-        s->uploadCmdList = s->cmdQueue->GetCmdList();
     s->uploadCmdList->CopyBuffers(stagingBuffer, instancesBuffer);
 
     VkAccelerationStructureGeometryInstancesDataKHR instancesData{};
@@ -1054,7 +1050,7 @@ void Graphics::SetBindGroup(u32 index, BindGroupHandle bindGroup)
     BX_ENSURE(bindGroupIter != s->bindGroups.end());
 
     b8 isGraphics = s->activeRenderPassHandle;
-    bindGroupIter->second->TransitionResourceStates(s->cmdList, isGraphics);
+    bindGroupIter->second->TransitionResourceStates(*s->cmdList, isGraphics);
 
     VkPipelineBindPoint bindPoint = s->activeRenderPassHandle ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
     s->cmdList->BindDescriptorSet(bindGroupIter->second, index, bindPoint);
@@ -1167,9 +1163,16 @@ void Graphics::DispatchWorkgroupsIndirect(BufferHandle indirectArgs, u32 offset)
     VkMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
     barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     vkCmdPipelineBarrier(s->cmdList->GetCommandBuffer(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0, nullptr, 0, nullptr);
+
+    //VkMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    barrier.srcAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+    vkCmdPipelineBarrier(s->cmdList->GetCommandBuffer(), VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+        VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 1, &barrier, 0, nullptr, 0, nullptr);
 
     s->cmdList->DispatchIndirect(bufferIter->second, offset);
 }
@@ -1197,8 +1200,6 @@ void WriteBuffer(const std::shared_ptr<Buffer>& buffer, const void* data, const 
     memcpy(bufferData, data, size.IsSome() ? size.Unwrap() : createInfo.size);
     stagingBuffer->Unmap();
 
-    if (!s->uploadCmdList)
-        s->uploadCmdList = s->cmdQueue->GetCmdList();
     s->uploadCmdList->CopyBuffers(stagingBuffer, buffer);
 }
 
@@ -1259,8 +1260,6 @@ void Graphics::WriteTexture(TextureHandle texture, const void* data, const Exten
     memcpy(bufferData, data, sizeInBytes);
     stagingBuffer->Unmap();
 
-    if (!s->uploadCmdList)
-        s->uploadCmdList = s->cmdQueue->GetCmdList();
     s->uploadCmdList->TransitionImageLayout(textureIter->second, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT);
     s->uploadCmdList->CopyBuffers(stagingBuffer, textureIter->second);
 }
@@ -1284,7 +1283,7 @@ void Graphics::ReadTexture(TextureHandle texture, void* data, const Extend3D& of
 
     u32 offsetHeight = createInfo.size.height - offset.height;
 
-    auto cmdList = s->cmdQueue->GetCmdList();
+    auto cmdList = s->cmdQueue->GetCmdList("Read Texture Cmd List");
     cmdList->TransitionImageLayout(textureIter->second, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT);
     cmdList->CopyBuffers(textureIter->second, readbackBuffer, VkOffset3D{ (i32)offset.width, (i32)offsetHeight, (i32)offset.depthOrArrayLayers }, VkExtent3D{size.width, size.height, size.depthOrArrayLayers});
     cmdList->TransitionImageLayout(textureIter->second, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);

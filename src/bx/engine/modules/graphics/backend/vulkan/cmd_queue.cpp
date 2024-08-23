@@ -67,7 +67,7 @@ namespace Vk
             fence = std::shared_ptr<Fence>(new Fence("Submit Cmd List", this->device));
         vkQueueSubmit(this->queue, 1, &submitInfo, fence->GetFence());
 
-        this->busyCmdLists.push(InFlightCmdList{ fence, cmdList });
+        this->busyCmdLists.push_back(InFlightCmdList{ fence, cmdList });
     }
 
     VkQueue CmdQueue::GetQueue() const {
@@ -79,22 +79,29 @@ namespace Vk
     }
 
     void CmdQueue::ProcessCmdLists(bool wait) {
-        while (!this->busyCmdLists.empty()) {
-            auto busyCmdList = this->busyCmdLists.front();
-            if (busyCmdList.fence->IsComplete()) {
+        List<u32> finishedIndices{};
+        for (u32 i = 0; i < busyCmdLists.size(); i++)
+        {
+            auto& busyCmdList = this->busyCmdLists[i];
+            if (busyCmdList.fence->IsComplete())
+            {
                 busyCmdList.cmdList->Reset();
                 this->idleCmdLists.push(busyCmdList.cmdList);
-                this->busyCmdLists.pop();
+                finishedIndices.push_back(i);
             }
-            else if (!wait) {
-                break;
-            }
+        }
+
+        std::sort(finishedIndices.begin(), finishedIndices.end());
+
+        for (i32 i = finishedIndices.size() - 1; i >= 0; i--)
+        {
+            busyCmdLists.erase(busyCmdLists.begin() + finishedIndices[i]);
         }
     }
 
-    std::shared_ptr<CmdList> CmdQueue::GetCmdList() {
+    std::shared_ptr<CmdList> CmdQueue::GetCmdList(const String& name) {
         if (this->idleCmdLists.empty()) {
-            auto cmdList = std::shared_ptr<CmdList>(new CmdList(this->device, *this));
+            auto cmdList = std::shared_ptr<CmdList>(new CmdList(name, this->device, *this));
             cmdList->Begin();
             return cmdList;
         }

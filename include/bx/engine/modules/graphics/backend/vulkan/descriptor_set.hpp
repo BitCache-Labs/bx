@@ -30,7 +30,7 @@ namespace Vk
             std::shared_ptr<Sampler> sampler);
         void SetAccelerationStructure(uint32_t binding, std::shared_ptr<Tlas> tlas);
 
-        void TransitionResourceStates(std::shared_ptr<CmdList> cmdList, b8 isGraphics) const;
+        void TransitionResourceStates(CmdList& cmdList, b8 isGraphics) const;
 
         VkDescriptorSet GetDescriptorSet() const;
 

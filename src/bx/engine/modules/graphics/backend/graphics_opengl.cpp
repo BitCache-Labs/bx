@@ -873,7 +873,7 @@ void Graphics::ClearBuffer(BufferHandle buffer)
     auto& createInfo = GetBufferCreateInfo(buffer);
 
     List<u8> data(createInfo.size);
-    glNamedBufferData(bufferIter->second, size, data.data(), GL_DYNAMIC_DRAW);
+    glNamedBufferData(bufferIter->second, createInfo.size, data.data(), GL_DYNAMIC_DRAW);
 }
 
 void Graphics::WriteTexture(TextureHandle texture, const void* data, const Extend3D& offset, const Extend3D& size)

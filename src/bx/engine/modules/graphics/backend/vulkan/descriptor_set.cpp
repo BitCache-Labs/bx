@@ -111,7 +111,7 @@ namespace Vk
         vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
     }
 
-    void DescriptorSet::TransitionResourceStates(std::shared_ptr<CmdList> cmdList, b8 isGraphics) const
+    void DescriptorSet::TransitionResourceStates(CmdList& cmdList, b8 isGraphics) const
     {
         for (auto& image : trackedSampledImages)
         {
@@ -120,7 +120,7 @@ namespace Vk
             VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             VkPipelineStageFlags stageFlags = isGraphics ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-            cmdList->TransitionImageLayout(image, layout, stageFlags);
+            cmdList.TransitionImageLayout(image, layout, stageFlags);
         }
 
         for (auto& image : trackedStorageImages)
@@ -130,7 +130,7 @@ namespace Vk
             VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL;
             VkPipelineStageFlags stageFlags = isGraphics ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-            cmdList->TransitionImageLayout(image, layout, stageFlags);
+            cmdList.TransitionImageLayout(image, layout, stageFlags);
         }
     }
 
