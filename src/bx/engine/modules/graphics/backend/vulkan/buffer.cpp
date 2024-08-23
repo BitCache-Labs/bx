@@ -20,13 +20,14 @@ namespace Vk
 
         VmaAllocationCreateInfo allocCreateInfo{};
         if (physicalDevice.RayTracingSuitable()) {
-            allocCreateInfo.flags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+            //allocCreateInfo.flags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
             createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         }
         if (location == BufferLocation::CPU_TO_GPU) {
             allocCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
             allocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;//??
         }
+        allocCreateInfo.flags |= VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
         VK_ASSERT(!vmaCreateBuffer(device->GetAllocator(), &createInfo, &allocCreateInfo,

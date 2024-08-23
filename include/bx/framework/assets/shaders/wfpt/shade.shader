@@ -22,11 +22,11 @@ layout (BINDING(0, 2), std430) writeonly buffer _OutRays
     Ray outRays[];
 };
 
-layout(BINDING(0, 3)) readonly buffer _RayCount
+layout(BINDING(0, 3), std430) readonly buffer _RayCount
 {
     uint rayCount;
 };
-layout(BINDING(0, 4)) buffer _OutRayCount
+layout(BINDING(0, 4), std430) buffer _OutRayCount
 {
     uint outRayCount;
 };
@@ -54,15 +54,15 @@ layout (BINDING(0, 9), std430) writeonly buffer _ShadowRays
 {
     Ray shadowRays[];
 };
-layout(BINDING(0, 10)) writeonly buffer _ShadowRayDistances
+layout(BINDING(0, 10), std430) writeonly buffer _ShadowRayDistances
 {
     float shadowRayDistances[];
 };
-layout(BINDING(0, 11)) buffer _ShadowRayCount
+layout(BINDING(0, 11), std430) buffer _ShadowRayCount
 {
     uint shadowRayCount;
 };
-layout(BINDING(0, 12)) writeonly buffer _ShadowPixelMapping
+layout(BINDING(0, 12), std430) writeonly buffer _ShadowPixelMapping
 {
     uint shadowPixelMapping[];
 };

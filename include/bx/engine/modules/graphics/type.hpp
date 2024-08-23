@@ -654,6 +654,19 @@ struct ComputePassDescriptor
 	String name = "Compute Pass";
 };
 
+struct GraphicsStats
+{
+	u32 bufferCount = 0;
+	u32 samplerCount = 0;
+	u32 textureCount = 0;
+	u32 shaderCount = 0;
+	u32 graphicsPipelineCount = 0;
+	u32 computePipelineCount = 0;
+	u32 bindGroupCount = 0;
+	u32 blasCount = 0;
+	u32 tlasCount = 0;
+};
+
 struct GraphicsCapabilities
 {
 	b8 raytracing = false;

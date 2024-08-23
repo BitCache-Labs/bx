@@ -10,6 +10,7 @@
 #include "bx/framework/systems/renderer/id_pass.hpp"
 #include "bx/framework/systems/renderer/present_pass.hpp"
 #include "bx/framework/systems/renderer/srgb_to_linear_pass.hpp"
+#include "bx/framework/systems/renderer/write_indirect_args_pass.hpp"
 
 #include <bx/engine/core/file.hpp>
 #include <bx/engine/core/data.hpp>
@@ -139,6 +140,7 @@ void Renderer::Shutdown()
     PresentPass::ClearPipelineCache();
     SrgbToLinearPass::ClearPipelineCache();
     WfptPass::ClearPipelineCache();
+    WriteIndirectArgsPass::ClearPipelineCache();
 }
 
 void Renderer::Update()
@@ -153,6 +155,11 @@ void Renderer::Render()
     UpdateCameras();
     UpdateTlas();
     RebuildPasses();
+
+    /*GraphicsStats stats = Graphics::GetStats();
+    BX_LOGI("Buffers {} Samplers {} Textures {} Shaders {} GraphicsPipelines {} ComputePipelines {} BindGroups {} Blases {} Tlases {}",
+        stats.bufferCount, stats.samplerCount, stats.textureCount, stats.shaderCount, stats.graphicsPipelineCount,
+        stats.computePipelineCount, stats.bindGroupCount, stats.blasCount, stats.tlasCount);*/
 
     if (m_wfptPass)
     {

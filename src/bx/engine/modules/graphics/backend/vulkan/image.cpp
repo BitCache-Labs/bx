@@ -64,6 +64,7 @@ namespace Vk
             createInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
         VmaAllocationCreateInfo allocCreateInfo{};
+        allocCreateInfo.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
         VK_ASSERT(!vmaCreateImage(device->GetAllocator(), &createInfo, &allocCreateInfo,

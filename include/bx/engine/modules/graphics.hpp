@@ -6,6 +6,7 @@
 class Graphics
 {
 public:
+	static const GraphicsStats GetStats();
 	static const GraphicsCapabilities GetCapabilities();
 
 	// Buffer with 1 byte set to zero, can only be used for read-only purposes (BufferUsageFlags::COPY_SRC | BufferUsageFlags::INDEX | BufferUsageFlags::VERTEX | BufferUsageFlags::UNIFORM | BufferUsageFlags::STORAGE)

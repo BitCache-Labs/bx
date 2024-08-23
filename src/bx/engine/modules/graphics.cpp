@@ -11,6 +11,21 @@
 
 std::unique_ptr<Graphics::CreateInfoCache> Graphics::s_createInfoCache = nullptr;
 
+const GraphicsStats Graphics::GetStats()
+{
+    GraphicsStats stats{};
+    stats.bufferCount = s_createInfoCache->bufferCreateInfos.size();
+    stats.samplerCount = s_createInfoCache->samplerCreateInfos.size();
+    stats.textureCount = s_createInfoCache->textureCreateInfos.size();
+    stats.shaderCount = s_createInfoCache->shaderCreateInfos.size();
+    stats.graphicsPipelineCount = s_createInfoCache->graphicsPipelineCreateInfos.size();
+    stats.computePipelineCount = s_createInfoCache->computePipelineCreateInfos.size();
+    stats.bindGroupCount = s_createInfoCache->bindGroupCreateInfos.size();
+    stats.blasCount = s_createInfoCache->blasCreateInfos.size();
+    stats.tlasCount = s_createInfoCache->tlasCreateInfos.size();
+    return stats;
+}
+
 const TextureCreateInfo& Graphics::GetTextureCreateInfo(TextureHandle texture)
 {
     BX_ENSURE(texture);
