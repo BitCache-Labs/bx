@@ -73,10 +73,12 @@ void Renderer::UpdateTlas()
                 if (!mesh || !material)
                     continue;
 
-                m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), trx.GetInvMatrix());
+                Mat4 matrix = trx.GetMatrix() * mesh->GetMatrix();
+
+                m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), matrix.Inverse());
 
                 BlasInstance blasInstance{};
-                blasInstance.transform = trx.GetMatrix() * mesh->GetMatrix();
+                blasInstance.transform = matrix;
                 blasInstance.instanceCustomIndex = blasInstances.size(); // TODO
                 blasInstance.mask = 0xFF;
                 blasInstance.blas = mesh->GetBlas();
