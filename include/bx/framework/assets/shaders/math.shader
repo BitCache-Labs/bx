@@ -29,4 +29,9 @@ bool isNan(float x)
 	return x != x;
 }
 
+uint divCeil(uint x, uint y)
+{
+	return (x + y - 1) / y;
+}
+
 #endif // MATH_H
