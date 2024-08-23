@@ -195,8 +195,6 @@ bool Graphics::Initialize()
     s->sampler = std::shared_ptr<Sampler>(new Sampler("Sampler", s->device, *s->physicalDevice,
         SamplerInfo{}));
 
-    s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
-
     BufferCreateInfo bufferCreateInfo{};
     bufferCreateInfo.name = "Empty Buffer";
     bufferCreateInfo.size = 1;
@@ -246,7 +244,6 @@ void Graphics::NewFrame()
     // All cmds of the entire frame will be recorded into a single cmd list
     // This is because we designed the graphics module api to act like it's immediate
     s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
-    if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
 }
 
 void Graphics::EndFrame()
@@ -743,6 +740,7 @@ const BlasHandle Graphics::CreateBlas(const BlasCreateInfo& createInfo)
 
     u32 blasSize = Blas::RequiredSize(s->device, *s->physicalDevice, geometry, indexCount / 3, flags);
     std::shared_ptr<Blas> blas(new Blas(createInfo.name, s->device, *s->physicalDevice, blasSize));
+    if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
     blas->Build(*s->uploadCmdList, geometry, rangeInfo, flags);
 
     s->blases.insert(std::make_pair(blasHandle, blas));
@@ -799,6 +797,7 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
     memcpy(bufferData, instances.data(), instancesSize);
     stagingBuffer->Unmap();
 
+    if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
     s->uploadCmdList->CopyBuffers(stagingBuffer, instancesBuffer);
 
     VkAccelerationStructureGeometryInstancesDataKHR instancesData{};
@@ -1200,6 +1199,7 @@ void WriteBuffer(const std::shared_ptr<Buffer>& buffer, const void* data, const 
     memcpy(bufferData, data, size.IsSome() ? size.Unwrap() : createInfo.size);
     stagingBuffer->Unmap();
 
+    if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
     s->uploadCmdList->CopyBuffers(stagingBuffer, buffer);
 }
 
@@ -1260,6 +1260,7 @@ void Graphics::WriteTexture(TextureHandle texture, const void* data, const Exten
     memcpy(bufferData, data, sizeInBytes);
     stagingBuffer->Unmap();
 
+    if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
     s->uploadCmdList->TransitionImageLayout(textureIter->second, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT);
     s->uploadCmdList->CopyBuffers(stagingBuffer, textureIter->second);
 }
