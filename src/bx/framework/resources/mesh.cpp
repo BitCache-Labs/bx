@@ -10,6 +10,39 @@
 #include <fstream>
 #include <sstream>
 
+List<Mesh::Vertex> Mesh::BuildVertices() const
+{
+    List<Vertex> vertices(m_vertices.size());
+    for (SizeType i = 0; i < vertices.size(); i++)
+    {
+        auto& v = vertices[i];
+        v.position = m_vertices[i];
+        v.color = m_colors[i];
+        v.normal = m_normals[i];
+        v.tangent = m_tangents[i];
+        v.uv = m_uvs[i];
+        v.bones = m_bones[i];
+        v.weights = m_weights[i];
+    }
+    return vertices;
+}
+
+List<Mesh::Triangle> Mesh::BuildTriangles() const
+{
+    List<Triangle> triangles(m_indices.size() / 3);
+    for (SizeType i = 0; i < m_indices.size() / 3; i++)
+    {
+        auto& t = triangles[i];
+        t.i0 = m_indices[i * 3 + 0];
+        t.p0 = m_vertices[t.i0];
+        t.i1 = m_indices[i * 3 + 1];
+        t.p1 = m_vertices[t.i1];
+        t.i2 = m_indices[i * 3 + 2];
+        t.p2 = m_vertices[t.i2];
+    }
+    return triangles;
+}
+
 template<>
 bool Resource<Mesh>::Save(const String& filename, const Mesh& data)
 {
@@ -37,22 +70,7 @@ bool Resource<Mesh>::Load(const String& filename, Mesh& data)
     cereal::PortableBinaryInputArchive archive(stream);
     archive(cereal::make_nvp("mesh", data));
 
-    // Build graphic components
-    List<Mesh::Vertex> vertices;
-    vertices.resize(data.m_vertices.size());
-
-    // TODO: can we avoid doing this, can get very slow with a lot of assets
-    for (SizeType i = 0; i < vertices.size(); i++)
-    {
-        auto& v = vertices[i];
-        v.position = data.m_vertices[i];
-        v.color = data.m_colors[i];
-        v.normal = data.m_normals[i];
-        v.tangent = data.m_tangents[i];
-        v.uv = data.m_uvs[i];
-        v.bones = data.m_bones[i];
-        v.weights = data.m_weights[i];
-    }
+    List<Mesh::Vertex> vertices = data.BuildVertices();
 
     BufferCreateInfo vertexCreateInfo{};
     vertexCreateInfo.name = Log::Format("{} Vertex Buffer", filename);

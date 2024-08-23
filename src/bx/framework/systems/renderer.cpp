@@ -73,7 +73,7 @@ void Renderer::UpdateTlas()
                 if (!mesh || !material)
                     continue;
 
-                // TODO: submit mesh to blas data pool
+                m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), trx.GetInvMatrix());
 
                 BlasInstance blasInstance{};
                 blasInstance.transform = trx.GetMatrix() * mesh->GetMatrix();
@@ -83,6 +83,8 @@ void Renderer::UpdateTlas()
                 blasInstances.push_back(blasInstance);
             }
         });
+
+    m_blasDataPool->Submit();
 
     if (!blasInstances.empty()) // TODO: handle empty tlases internally
     {
@@ -133,6 +135,8 @@ void Renderer::RebuildPasses()
 
 void Renderer::Initialize()
 {
+    m_blasDataPool = std::unique_ptr<BlasDataPool>(new BlasDataPool());
+
     RecreateRenderTargets();
 }
 
@@ -167,7 +171,7 @@ void Renderer::Render()
     {
         m_wfptPass->seed = frameIdx;
         m_wfptPass->maxBounces = 3;
-        m_wfptPass->Dispatch(m_cameras.back());
+        m_wfptPass->Dispatch(m_cameras.back(), *m_blasDataPool);
     }
 
     PresentPass presentPass(m_colorTarget);

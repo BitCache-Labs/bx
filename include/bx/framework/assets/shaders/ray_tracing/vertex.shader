@@ -4,9 +4,9 @@
 struct Vertex
 {
 	vec3 position;
-	u32 _PADDING0;
+	uint _PADDING0;
 	vec4 color;
-	vec4i bones;
+	ivec4 bones;
 	vec4 weights;
 	vec3 normal;
 	vec3 tangent;

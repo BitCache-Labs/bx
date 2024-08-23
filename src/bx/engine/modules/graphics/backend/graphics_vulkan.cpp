@@ -1187,44 +1187,44 @@ void Graphics::EndComputePass(ComputePassHandle& computePass)
     s->boundComputePipeline = ComputePipelineHandle::null;
 }
 
-void WriteBuffer(const std::shared_ptr<Buffer>& buffer, const void* data, const BufferCreateInfo& createInfo, Optional<SizeType> size)
+void WriteBuffer(const std::shared_ptr<Buffer>& buffer, const void* data, const BufferCreateInfo& createInfo, Optional<SizeType> optionalSize, u32 offset)
 {
     BX_ASSERT(createInfo.usageFlags & BufferUsageFlags::COPY_DST, "Buffer must be created with BufferUsageFlags::COPY_DST when writing to.");
 
+    const u32 size = optionalSize.IsSome() ? optionalSize.Unwrap() : createInfo.size;
+
     std::shared_ptr<Buffer> stagingBuffer(new Buffer(Log::Format("Write {} Staging Buffer", createInfo.name), s->device,
         *s->physicalDevice, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        static_cast<uint64_t>(createInfo.size), BufferLocation::CPU_TO_GPU));
+        static_cast<uint64_t>(size), BufferLocation::CPU_TO_GPU));
 
     void* bufferData = stagingBuffer->Map();
-    memcpy(bufferData, data, size.IsSome() ? size.Unwrap() : createInfo.size);
+    memcpy(bufferData, data, size);
     stagingBuffer->Unmap();
 
     if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
-    s->uploadCmdList->CopyBuffers(stagingBuffer, buffer);
+    s->uploadCmdList->CopyBuffers(stagingBuffer, buffer, offset);
 }
 
 void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data)
 {
     BX_ENSURE(buffer && data);
-    BX_ASSERT(offset == 0, "Offset must be 0 for now.");
 
     auto bufferIter = s->buffers.find(buffer);
     BX_ENSURE(bufferIter != s->buffers.end());
     auto& createInfo = GetBufferCreateInfo(buffer);
 
-    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::None());
+    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::None(), offset);
 }
 
 void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data, SizeType size)
 {
     BX_ENSURE(buffer && data);
-    BX_ASSERT(offset == 0, "Offset must be 0 for now.");
 
     auto bufferIter = s->buffers.find(buffer);
     BX_ENSURE(bufferIter != s->buffers.end());
     auto& createInfo = GetBufferCreateInfo(buffer);
 
-    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::Some(size));
+    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::Some(size), offset);
 }
 
 void Graphics::ClearBuffer(BufferHandle buffer)

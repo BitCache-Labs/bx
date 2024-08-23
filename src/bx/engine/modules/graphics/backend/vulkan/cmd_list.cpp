@@ -71,11 +71,12 @@ namespace Vk
         this->trackedBuffers.push_back(dst);
     }
 
-    void CmdList::CopyBuffers(std::shared_ptr<Buffer> src, std::shared_ptr<Buffer> dst) {
-        VK_ASSERT(src->Size() == dst->Size(), "Copy buffers src and dst must have the same size.");
+    void CmdList::CopyBuffers(std::shared_ptr<Buffer> src, std::shared_ptr<Buffer> dst, u32 dstOffset) {
+        VK_ASSERT((src->Size() + dstOffset) <= dst->Size(), "Copy buffers src size + dst offset must be less than dst size.");
 
         VkBufferCopy copyRegion{};
         copyRegion.size = src->Size();
+        copyRegion.dstOffset = dstOffset;
 
         vkCmdCopyBuffer(this->cmdBuffer, src->GetBuffer(), dst->GetBuffer(), 1, &copyRegion);
 

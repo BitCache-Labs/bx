@@ -19,6 +19,16 @@ public:
 		Vec2 uv;
 	};
 
+	struct Triangle
+	{
+		Vec3 p0;
+		u32 i0;
+		Vec3 p1;
+		u32 i1;
+		Vec3 p2;
+		u32 i2;
+	};
+
 public:
 	Mesh() {}
 	Mesh(
@@ -45,7 +55,7 @@ public:
 	inline const Mat4& GetMatrix() const { return m_transform; }
 	inline void SetMatrix(const Mat4& matrix) { m_transform = matrix; }
 
-	inline const List<Vec3>& GetVertices() const { return m_vertices; }
+	inline const List<Vec3>& GetVertices() const { return m_vertices; } // TODO: rename to positions
 	inline void SetVertices(const List<Vec3>& vertices) { m_vertices = vertices; }
 
 	inline const List<Vec4>& GetColors() const { return m_colors; }
@@ -72,6 +82,9 @@ public:
 	inline BufferHandle GetVertexBuffer() const { return m_vertexBuffer; }
 	inline BufferHandle GetIndexBuffer() const { return m_indexBuffer; }
 	inline BlasHandle GetBlas() const { return m_blas; }
+
+	List<Vertex> BuildVertices() const;
+	List<Triangle> BuildTriangles() const;
 
 private:
 	template <typename T>

@@ -8,8 +8,6 @@ struct BlasAccessor
 {
 	uint vertexOffset;
 	uint vertexCount;
-	uint indexOffset;
-	uint indexCount;
 	uint triangleOffset;
 	uint _PADDING0;
 };

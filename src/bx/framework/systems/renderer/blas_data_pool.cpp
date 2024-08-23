@@ -18,7 +18,7 @@ BlasDataPool::BlasDataPool()
 
     BufferCreateInfo blasTrianglesCreateInfo{};
     blasTrianglesCreateInfo.name = "Blas Triangles Buffer";
-    blasTrianglesCreateInfo.size = MAX_BLAS_TRIANGLES * sizeof(Triangle);
+    blasTrianglesCreateInfo.size = MAX_BLAS_TRIANGLES * sizeof(Mesh::Triangle);
     blasTrianglesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST;
     blasTrianglesBuffer = Graphics::CreateBuffer(blasTrianglesCreateInfo);
 
@@ -35,6 +35,59 @@ BlasDataPool::~BlasDataPool()
     Graphics::DestroyBuffer(blasInstancesBuffer);
     Graphics::DestroyBuffer(blasTrianglesBuffer);
     Graphics::DestroyBuffer(blasVerticesBuffer);
+}
+
+BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
+{
+    const List<Mesh::Vertex> vertices = mesh.BuildVertices();
+    const List<Mesh::Triangle> triangles = mesh.BuildTriangles();
+
+    BlasAccessor accessor{};
+    accessor.vertexCount = vertices.size();
+    accessor.vertexOffset = blasVerticesCount;
+    accessor.triangleOffset = blasTriangleCount;
+    
+    Graphics::WriteBuffer(blasAccessorsBuffer, blasAccessorCount * sizeof(BlasAccessor), &accessor, sizeof(BlasAccessor));
+    blasAccessorCount++;
+    Graphics::WriteBuffer(blasVerticesBuffer, blasVerticesCount * sizeof(Mesh::Vertex), vertices.data(), vertices.size() * sizeof(Mesh::Vertex));
+    blasVerticesCount += vertices.size();
+    Graphics::WriteBuffer(blasTrianglesBuffer, blasTriangleCount * sizeof(Mesh::Triangle), triangles.data(), triangles.size() * sizeof(Mesh::Triangle));
+    blasTriangleCount += triangles.size();
+
+    return accessor;
+}
+
+void BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform)
+{
+    u32 blasIdx;
+    auto accessorIndexIter = blasAccessorIndices.find(resourceHandle);
+    if (accessorIndexIter == blasAccessorIndices.end())
+    {
+        blasIdx = blasAccessors.size();
+
+        BlasAccessor accessor = AllocateBlas(mesh);
+        blasAccessors.push_back(accessor);
+        blasAccessorIndices.insert(std::make_pair(resourceHandle, blasIdx));
+    }
+    else
+    {
+        blasIdx = accessorIndexIter->second;
+    }
+
+    BlasInstance blasInstance{};
+    blasInstance.invTransform = invTransform;
+    blasInstance.blasIdx = blasIdx;
+    blasInstance.materialIdx = 0; // TODO
+    pendingInstances.push_back(blasInstance);
+}
+
+void BlasDataPool::Submit()
+{
+    if (!pendingInstances.empty())
+    {
+        Graphics::WriteBuffer(blasInstancesBuffer, 0, pendingInstances.data(), pendingInstances.size() * sizeof(BlasInstance));
+        pendingInstances.clear();
+    }
 }
 
 BindGroupLayoutDescriptor BlasDataPool::GetBindGroupLayout()

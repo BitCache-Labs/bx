@@ -6,25 +6,13 @@
 
 #include "bx/framework/components/camera.hpp"
 #include "bx/framework/systems/renderer/wfpt_pass.hpp"
+#include "bx/framework/systems/renderer/blas_data_pool.hpp"
 
 class SceneView;
 
 class Renderer : public System
 {
 public:
-	/*Vec4i GetLightIndices(const Vec3& pos);
-
-	void UpdateAnimators();
-	void UpdateCameras();
-	void UpdateLights();
-
-	void CollectDrawCommands();
-
-	void DrawCommand(const GraphicsHandle pipeline, u32 numResourceBindings, const GraphicsHandle* pResourcesBindings, u32 numBuffers, const GraphicsHandle* pBuffers, const u64* offset, const GraphicsHandle indexBuffer, u32 count);
-	void DrawCommands();
-
-	void BindConstants(const Mat4& viewMtx, const Mat4& projMtx, const Mat4& viewProjMtx);*/
-
 	// Returns the color target texture rendered from the editor camera, will return null handle if not in editor build
 	TextureHandle GetEditorCameraColorTarget();
 
@@ -45,6 +33,7 @@ private:
 
 	b8 m_dirtyPasses = true;
 	std::unique_ptr<WfptPass> m_wfptPass = nullptr;
+	std::unique_ptr<BlasDataPool> m_blasDataPool = nullptr;
 
 	List<Camera> m_cameras{};
 	OptionalView<Camera> m_editorCamera = OptionalView<Camera>::None();
