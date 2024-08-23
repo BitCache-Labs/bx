@@ -28,7 +28,7 @@ layout (BINDING(0, 2), std430) writeonly buffer _IndirectArgs
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-    indirectArgs.x = divCeil(1658 * 1080, constants.groupSize);//divCeil(count, constants.groupSize);//max(1, uint(ceil(float(1920 * 1080) / float(constants.groupSize))));
+    indirectArgs.x = divCeil(count, constants.groupSize);//divCeil(count, constants.groupSize);//max(1, uint(ceil(float(1920 * 1080) / float(constants.groupSize))));
     indirectArgs.y = 1;
     indirectArgs.z = 1;
 }

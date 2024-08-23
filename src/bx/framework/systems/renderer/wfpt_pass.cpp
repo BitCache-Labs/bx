@@ -480,43 +480,34 @@ void WfptPass::Dispatch(const Camera& camera)
         BindGroupHandle shadeBindGroup = Graphics::CreateBindGroup(shadeBindGroupCreateInfo);
         
         WriteIndirectArgsPass writeIndirectArgs(128);
-        //writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
+        writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
 
         computePassDescriptor.name = "Wfpt Extend";
         computePass = Graphics::BeginComputePass(computePassDescriptor);
         {
             Graphics::SetComputePipeline(ExtendPipeline::Get());
             Graphics::SetBindGroup(0, extendBindGroup);
-            //Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
-            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+            Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
         }
         Graphics::EndComputePass(computePass);
-
-        /*WriteIndirectArgsPass writeIndirectArgsShade(rayCount, 128);
-        indirectArgsBuffer = writeIndirectArgsShade.Dispatch();*/
 
         computePassDescriptor.name = "Wfpt Shade";
         computePass = Graphics::BeginComputePass(computePassDescriptor);
         {
             Graphics::SetComputePipeline(ShadePipeline::Get());
             Graphics::SetBindGroup(0, shadeBindGroup);
-            //Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
-            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+            Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
         }
         Graphics::EndComputePass(computePass);
         
         writeIndirectArgs.Dispatch(indirectArgsBuffer, shadowRayCountBuffer);
-
-        /*WriteIndirectArgsPass writeIndirectArgsConnect(shadowRayCountBuffer, 128);
-        indirectArgsBuffer = writeIndirectArgsConnect.Dispatch();*/
 
         computePassDescriptor.name = "Wfpt Connect";
         computePass = Graphics::BeginComputePass(computePassDescriptor);
         {
             Graphics::SetComputePipeline(ConnectPipeline::Get());
             Graphics::SetBindGroup(0, connectBindGroup);
-            //Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
-            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+            Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
         }
         Graphics::EndComputePass(computePass);
 

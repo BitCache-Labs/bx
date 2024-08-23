@@ -1143,6 +1143,13 @@ void Graphics::DispatchWorkgroups(u32 x, u32 y, u32 z)
     BX_ASSERT(s->activeComputePass, "No compute pass active.");
     BX_ASSERT(s->boundComputePipeline, "No compute pipeline bound.");
 
+    VkMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    vkCmdPipelineBarrier(s->cmdList->GetCommandBuffer(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0, nullptr, 0, nullptr);
+
     s->cmdList->Dispatch(x, y, z);
 }
 
@@ -1156,6 +1163,13 @@ void Graphics::DispatchWorkgroupsIndirect(BufferHandle indirectArgs, u32 offset)
 
     auto& createInfo = GetBufferCreateInfo(indirectArgs);
     BX_ASSERT(createInfo.usageFlags & BufferUsageFlags::INDIRECT, "Buffer must be created with BufferUsageFlags::INDIRECT when using as indirect args.");
+
+    VkMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+    vkCmdPipelineBarrier(s->cmdList->GetCommandBuffer(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0, nullptr, 0, nullptr);
 
     s->cmdList->DispatchIndirect(bufferIter->second, offset);
 }
