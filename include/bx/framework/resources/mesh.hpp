@@ -10,13 +10,17 @@ public:
 	struct Vertex
 	{
 		Vec3 position;
-		u32 _PADDING;
+		u32 _PADDING0;
 		Vec4 color;
 		Vec4i bones;
 		Vec4 weights;
 		Vec3 normal;
+		u32 _PADDING1;
 		Vec3 tangent;
+		u32 _PADDING2;
 		Vec2 uv;
+		u32 _PADDING3;
+		u32 _PADDING4;
 	};
 
 	struct Triangle

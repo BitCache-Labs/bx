@@ -25,6 +25,8 @@ struct Intersection
     u32 blasInstanceIdx;
     f32 t;
     b32 frontFace;
+    u32 _PADDING0;
+    u32 _PADDING1;
 };
 
 struct Payload

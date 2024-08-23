@@ -77,7 +77,7 @@ void Renderer::UpdateTlas()
 
                 BlasInstance blasInstance{};
                 blasInstance.transform = trx.GetMatrix() * mesh->GetMatrix();
-                blasInstance.instanceCustomIndex = 0; // TODO
+                blasInstance.instanceCustomIndex = blasInstances.size(); // TODO
                 blasInstance.mask = 0xFF;
                 blasInstance.blas = mesh->GetBlas();
                 blasInstances.push_back(blasInstance);
@@ -161,11 +161,6 @@ void Renderer::Render()
     UpdateCameras();
     UpdateTlas();
     RebuildPasses();
-
-    /*GraphicsStats stats = Graphics::GetStats();
-    BX_LOGI("Buffers {} Samplers {} Textures {} Shaders {} GraphicsPipelines {} ComputePipelines {} BindGroups {} Blases {} Tlases {}",
-        stats.bufferCount, stats.samplerCount, stats.textureCount, stats.shaderCount, stats.graphicsPipelineCount,
-        stats.computePipelineCount, stats.bindGroupCount, stats.blasCount, stats.tlasCount);*/
 
     if (m_wfptPass)
     {

@@ -24,6 +24,8 @@ public:
 		Mat4 invTransform;
 		u32 blasIdx;
 		u32 materialIdx;
+		u32 _PADDING0;
+		u32 _PADDING1;
 	};
 
 public:

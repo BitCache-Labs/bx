@@ -9,8 +9,12 @@ struct Vertex
 	ivec4 bones;
 	vec4 weights;
 	vec3 normal;
+	uint _PADDING1;
 	vec3 tangent;
+	uint _PADDING2;
 	vec2 uv;
+	uint _PADDING3;
+	uint _PADDING4;
 };
 
 #endif // VERTEX_H

@@ -7,7 +7,7 @@ layout (BINDING(0, 0), std430) readonly buffer _Rays
 {
     Ray rays[];
 };
-layout(BINDING(0, 1)) readonly buffer _RayCount
+layout(BINDING(0, 1), std430) readonly buffer _RayCount
 {
     uint rayCount;
 };
@@ -42,7 +42,8 @@ void main()
     {
         intersection.uv = rayQueryGetIntersectionBarycentricsEXT(rayQuery, true);
         intersection.primitiveIdx = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, true);
-        intersection.blasInstanceIdx = rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, true);// TODO: rayQueryGetIntersectionInstanceIdEXT??
+        intersection.blasInstanceIdx = rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, true);
+        //intersection.blasInstanceIdx = rayQueryGetIntersectionInstanceIdEXT(rayQuery, true);
         intersection.t = rayQueryGetIntersectionTEXT(rayQuery, true);    
 	    intersection.frontFace = rayQueryGetIntersectionFrontFaceEXT(rayQuery, true);
     }

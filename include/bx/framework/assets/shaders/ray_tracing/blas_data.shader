@@ -17,26 +17,28 @@ struct BlasInstance
 	mat4 invTransform;
 	uint blasIdx;
 	uint materialIdx;
+	uint _PADDING0;
+	uint _PADDING1;
 };
 
 #ifdef BLAS_DATA_BINDINGS
 
-layout(BINDING(1, 0)) readonly buffer _BlasAccessors
+layout(BINDING(1, 0), std430) readonly buffer _BlasAccessors
 {
     BlasAccessor blasAccessors[];
 };
 
-layout(BINDING(1, 1)) readonly buffer _BlasInstances
+layout(BINDING(1, 1), std430) readonly buffer _BlasInstances
 {
     BlasInstance blasInstances[];
 };
 
-layout(BINDING(1, 2)) readonly buffer _BlasTriangles
+layout(BINDING(1, 2), std430) readonly buffer _BlasTriangles
 {
     Triangle blasTriangles[];
 };
 
-layout(BINDING(1, 3)) readonly buffer _BlasVertices
+layout(BINDING(1, 3), std430) readonly buffer _BlasVertices
 {
     Vertex blasVertices[];
 };

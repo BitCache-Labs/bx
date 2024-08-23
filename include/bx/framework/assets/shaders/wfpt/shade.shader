@@ -123,7 +123,29 @@ void main()
 
     if (intersection.t != T_MISS)
     {
-        throughput *= 0.6;
+        BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
+        BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
+
+        Triangle triangle = blasTriangles[intersection.primitiveIdx + blasAccessor.triangleOffset];
+        Vertex vertex0 = blasVertices[triangle.i0 + blasAccessor.vertexOffset];
+        Vertex vertex1 = blasVertices[triangle.i1 + blasAccessor.vertexOffset];
+        Vertex vertex2 = blasVertices[triangle.i2 + blasAccessor.vertexOffset];
+
+        vec3 barycentrics = barycentricsFromUv(intersection.uv);
+        vec3 normal = normalize(vertex0.normal * barycentrics.x
+            + vertex1.normal * barycentrics.y
+            + vertex2.normal * barycentrics.z);
+
+        mat4 invTransTransform = transpose(blasInstance.invTransform);
+        normal = normalize((invTransTransform * vec4(normal, 1.0)).xyz);
+        if (!intersection.frontFace)
+        {
+            normal = -normal;
+        }
+
+        vec3 color = normal * 0.5 + 0.5;
+
+        throughput *= color;
 
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 

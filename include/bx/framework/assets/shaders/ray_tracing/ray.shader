@@ -20,6 +20,13 @@ struct Intersection
 	uint blasInstanceIdx;
 	float t;
 	bool frontFace;
+	uint _PADDING0;
+	uint _PADDING1;
 };
+
+vec3 barycentricsFromUv(vec2 uv)
+{
+	return vec3(1.0 - uv.x - uv.y, uv.xy);
+}
 
 #endif // RAY_H
