@@ -32,4 +32,31 @@ float randomUniformFloat(inout uint state)
 	return float(state) * (1.0 / float(0xffffffffU));
 }
 
+vec2 randomUniformFloat2(inout uint state)
+{
+	return vec2(
+		randomUniformFloat(state),
+		randomUniformFloat(state)
+	);
+}
+
+vec3 randomUniformFloat3(inout uint state)
+{
+	return vec3(
+		randomUniformFloat(state),
+		randomUniformFloat(state),
+		randomUniformFloat(state)
+	);
+}
+
+vec4 randomUniformFloat4(inout uint state)
+{
+	return vec4(
+		randomUniformFloat(state),
+		randomUniformFloat(state),
+		randomUniformFloat(state),
+		randomUniformFloat(state)
+	);
+}
+
 #endif // RANDOM_H

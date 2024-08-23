@@ -1,9 +1,11 @@
 #include "[engine]/shaders/Language.shader"
 
-#include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/wfpt/payload.shader"
 #include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/sampling.shader"
+
+#include "[engine]/shaders/ray_tracing/ray.shader"
+#include "[engine]/shaders/ray_tracing/material/layered_lobe.shader"
 
 #define BLAS_DATA_BINDINGS
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
@@ -123,6 +125,7 @@ void main()
 
     if (intersection.t != T_MISS)
     {
+        // Query vertex data from global blas data pool
         BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
         BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
 
@@ -136,6 +139,7 @@ void main()
             + vertex1.normal * barycentrics.y
             + vertex2.normal * barycentrics.z);
 
+        // Correct normal for transform and backface hits
         mat4 invTransTransform = transpose(blasInstance.invTransform);
         normal = normalize((invTransTransform * vec4(normal, 1.0)).xyz);
         if (!intersection.frontFace)
@@ -143,9 +147,29 @@ void main()
             normal = -normal;
         }
 
-        vec3 color = normal * 0.5 + 0.5;
+        // Build tangent to world matrix and correct for wOut below hemisphere (can happen due to normal mapping)
+        mat3 tangentToWorld = buildOrthonormalBasis(normal);
+        mat3 worldToTangent = transpose(tangentToWorld);
 
-        throughput *= color;
+        vec3 wOutTangentSpace = normalize(worldToTangent * -ray.direction);
+        if (wOutTangentSpace.z < 0.0 && intersection.frontFace)
+        {
+            wOutTangentSpace.z *= -0.25;
+            wOutTangentSpace = normalize(wOutTangentSpace);
+        }
+
+        vec2 bsdfNoise = randomUniformFloat2(payload.rngState);
+
+        DiffuseLobe diffuseLobe;
+        diffuseLobe.albedo = vec3(0.4, 0.4, 0.4);
+        BsdfSample bsdfSample = sampleDiffuseBsdf(diffuseLobe, bsdfNoise);
+        BsdfEval bsdfEval = evalDiffuseBsdf(diffuseLobe);
+
+        vec3 wInWorldSpace = vec3(0.0);
+        applyBsdf(bsdfSample, bsdfEval, tangentToWorld, normal, throughput, wInWorldSpace);
+
+        //vec3 color = normal * 0.5 + 0.5;
+        //throughput *= color;
 
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
@@ -161,10 +185,7 @@ void main()
 
         { // Indirect illumination
             vec3 origin = intersectionPos;
-            vec3 direction = getUniformSphereSample(vec2(
-                randomUniformFloat(payload.rngState),
-                randomUniformFloat(payload.rngState)
-            ));
+            vec3 direction = wInWorldSpace;
             origin += direction * RT_EPSILON;
             shootRay(origin, direction, pid);
         }

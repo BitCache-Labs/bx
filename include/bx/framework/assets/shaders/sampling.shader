@@ -3,6 +3,20 @@
 
 #include "[engine]/shaders/math.shader"
 
+vec3 getCosineHemisphereSample(vec2 uv)
+{
+    float phi = TWO_PI * uv.x;
+    float sin_theta = sqrt(1.0 - uv.y);
+    float sin_phi = sin(phi);
+    float cos_phi = cos(phi);
+
+    return vec3(
+        sin_phi * sin_theta,
+        cos_phi * sin_theta,
+        safeSqrt(uv.y)
+    ); 
+}
+
 vec3 getUniformHemisphereSample(vec2 uv)
 {
 	float phi = TWO_PI * uv.x;
