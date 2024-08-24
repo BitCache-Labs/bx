@@ -28,6 +28,7 @@ namespace Vk
         void SetBuffer(uint32_t binding, VkDescriptorType type, std::shared_ptr<Buffer> buffer);
         void SetImage(uint32_t binding, VkDescriptorType type, std::shared_ptr<Image> image,
             std::shared_ptr<Sampler> sampler);
+        void SetImageArray(u32 binding, VkDescriptorType type, const List<std::shared_ptr<Image>> images, std::shared_ptr<Sampler> sampler);
         void SetAccelerationStructure(uint32_t binding, std::shared_ptr<Tlas> tlas);
 
         void TransitionResourceStates(CmdList& cmdList, b8 isGraphics) const;

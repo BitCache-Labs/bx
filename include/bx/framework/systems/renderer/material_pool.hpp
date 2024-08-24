@@ -13,8 +13,8 @@ class MaterialPool : NoCopy
 public:
 	struct MaterialDescriptor
 	{
-		Vec3 baseColorFactor;
-		u32 _PADDING0;
+		Vec3 baseColorFactor = Vec3(1.0, 1.0, 1.0);
+		u32 baseColorTexture = UINT32_MAX;
 	};
 
 public:
@@ -30,14 +30,17 @@ public:
 	constexpr static u32 BIND_GROUP_SET = 2;
 
 	constexpr static u32 MAX_MATERIALS = 1024 * 32;
+	constexpr static u32 MAX_TEXTURES = 1024;
 
 private:
 	BufferHandle materialDescriptorsBuffer = BufferHandle::null;
+	TextureHandle textures[MAX_TEXTURES];
 
 	u32 materialDescriptorCount = 0;
 
 	std::unordered_map<ResourceHandle, u32> materialDescriptorIndices;
 	List<MaterialDescriptor> materialDescriptors;
 
+	u32 AvailableTextureIdx() const;
 	MaterialDescriptor AllocateMaterial(const Material& material);
 };

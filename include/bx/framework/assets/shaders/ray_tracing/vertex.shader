@@ -12,7 +12,7 @@ struct Vertex
 	uint _PADDING1;
 	vec3 tangent;
 	uint _PADDING2;
-	vec2 uv;
+	vec2 texCoord;
 	uint _PADDING3;
 	uint _PADDING4;
 };

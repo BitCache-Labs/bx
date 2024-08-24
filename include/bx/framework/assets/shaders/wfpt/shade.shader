@@ -142,6 +142,9 @@ void main()
         vec3 normal = normalize(vertex0.normal * barycentrics.x
             + vertex1.normal * barycentrics.y
             + vertex2.normal * barycentrics.z);
+        vec2 texCoord = normalize(vertex0.texCoord * barycentrics.x
+            + vertex1.texCoord * barycentrics.y
+            + vertex2.texCoord * barycentrics.z);
 
         // Correct normal for transform and backface hits
         mat4 invTransTransform = transpose(blasInstance.invTransform);
@@ -163,7 +166,7 @@ void main()
         }
 
         // Load and sample material
-        SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx]);
+        SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
 
         vec2 bsdfNoise = randomUniformFloat2(payload.rngState);
 

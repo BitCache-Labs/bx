@@ -105,6 +105,7 @@ struct State : NoCopy
 
     BufferHandle emptyBuffer = BufferHandle::null;
     TextureHandle emptyTexture = TextureHandle::null;
+    TextureViewHandle emptyTextureView = TextureViewHandle::null;
 
     Array<TextureHandle, Swapchain::MAX_FRAMES_IN_FLIGHT> swapchainColorTargets = {};
     Array<TextureViewHandle, Swapchain::MAX_FRAMES_IN_FLIGHT> swapchainColorTargetViews = {};
@@ -205,6 +206,9 @@ bool Graphics::Initialize()
     textureCreateInfo.name = "Empty Texture";
     textureCreateInfo.size = Extend3D(1, 1, 1);
     textureCreateInfo.usageFlags = TextureUsageFlags::COPY_SRC | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
+    textureCreateInfo.format = TextureFormat::RGBA8_UNORM;
+    s->emptyTexture = Graphics::CreateTexture(textureCreateInfo);
+    s->emptyTextureView = Graphics::CreateTextureView(s->emptyTexture);
 
     BuildSwapchain(s_createInfoCache->textureCreateInfos);
 
@@ -314,6 +318,11 @@ const BufferHandle& Graphics::EmptyBuffer()
 const TextureHandle& Graphics::EmptyTexture()
 {
     return s->emptyTexture;
+}
+
+const TextureViewHandle& Graphics::EmptyTextureView()
+{
+    return s->emptyTextureView;
 }
 
 TextureHandle Graphics::GetSwapchainColorTarget()
@@ -671,6 +680,22 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
             VkDescriptorType type = layout->GetDescriptorType(entry.binding);
             std::shared_ptr<Sampler> sampler = type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? s->sampler : nullptr;
             descriptorSet->SetImage(entry.binding, type, textureViewIter->second.texture, sampler);
+            break;
+        }
+        case BindingResourceType::TEXTURE_VIEW_ARRAY:
+        {
+            List<std::shared_ptr<Image>> textures{};
+            for (const auto& textureView : entry.resource.textureViewArray)
+            {
+                auto textureViewIter = s->textureViews.find(textureView);
+                BX_ENSURE(textureViewIter != s->textureViews.end());
+
+                textures.push_back(textureViewIter->second.texture);
+            }
+
+            VkDescriptorType type = layout->GetDescriptorType(entry.binding);
+            std::shared_ptr<Sampler> sampler = type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? s->sampler : nullptr;
+            descriptorSet->SetImageArray(entry.binding, type, textures, sampler);
             break;
         }
         case BindingResourceType::ACCELERATION_STRUCTURE:

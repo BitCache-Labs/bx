@@ -13,6 +13,8 @@ public:
 	static const BufferHandle& EmptyBuffer();
 	// 2D texture with 1 pixel set to zero, can only be used for read-only purposes (TextureUsageFlags::COPY_SRC | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING)
 	static const TextureHandle& EmptyTexture();
+	// Texture view of Graphics::EmptyTexture
+	static const TextureViewHandle& EmptyTextureView();
 
 	// Swapchain
 	// TODO: rework api a bit so it matches the old func calls better

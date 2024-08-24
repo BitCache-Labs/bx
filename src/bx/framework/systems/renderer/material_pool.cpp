@@ -3,6 +3,7 @@
 #include "bx/framework/resources/material.hpp"
 
 MaterialPool::MaterialPool()
+    : textures{}
 {
     BufferCreateInfo materialDescriptorsCreateInfo{};
     materialDescriptorsCreateInfo.name = "Material Descriptors Buffer";
@@ -16,31 +17,35 @@ MaterialPool::~MaterialPool()
     Graphics::DestroyBuffer(materialDescriptorsBuffer);
 }
 
-//BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
-//{
-//    const List<Mesh::Vertex> vertices = mesh.BuildVertices();
-//    const List<Mesh::Triangle> triangles = mesh.BuildTriangles();
-//
-//    BlasAccessor accessor{};
-//    accessor.vertexCount = vertices.size();
-//    accessor.vertexOffset = blasVerticesCount;
-//    accessor.triangleOffset = blasTriangleCount;
-//
-//    Graphics::WriteBuffer(blasAccessorsBuffer, blasAccessorCount * sizeof(BlasAccessor), &accessor, sizeof(BlasAccessor));
-//    blasAccessorCount++;
-//    Graphics::WriteBuffer(blasVerticesBuffer, blasVerticesCount * sizeof(Mesh::Vertex), vertices.data(), vertices.size() * sizeof(Mesh::Vertex));
-//    blasVerticesCount += vertices.size();
-//    Graphics::WriteBuffer(blasTrianglesBuffer, blasTriangleCount * sizeof(Mesh::Triangle), triangles.data(), triangles.size() * sizeof(Mesh::Triangle));
-//    blasTriangleCount += triangles.size();
-//
-//    return accessor;
-//}
+u32 MaterialPool::AvailableTextureIdx() const
+{
+    for (u32 i = 0; i < MAX_TEXTURES; i++)
+    {
+        if (!textures[i])
+        {
+            return i;
+        }
+    }
+    
+    BX_FAIL("No more available textures.");
+    return 0;
+}
 
 MaterialPool::MaterialDescriptor MaterialPool::AllocateMaterial(const Material& material)
 {
     MaterialDescriptor materialDescriptor{};
     materialDescriptor.baseColorFactor = material.GetBaseColorFactor().Xyz();
     
+    const auto& materialTextures = material.GetTextures();
+
+    auto baseColorTextureIter = materialTextures.find("Albedo");
+    if (baseColorTextureIter != materialTextures.end())
+    {
+        u32 textureIdx = AvailableTextureIdx();
+        textures[textureIdx] = baseColorTextureIter->second.GetData().GetTexture();
+        materialDescriptor.baseColorTexture = textureIdx;
+    }
+
     Graphics::WriteBuffer(materialDescriptorsBuffer, materialDescriptorCount * sizeof(MaterialDescriptor), &materialDescriptor, sizeof(MaterialDescriptor));
     materialDescriptorCount++;
 
@@ -75,17 +80,32 @@ void MaterialPool::Submit()
 BindGroupLayoutDescriptor MaterialPool::GetBindGroupLayout()
 {
     return BindGroupLayoutDescriptor(BIND_GROUP_SET, {
-            BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // materialDescriptors
+            BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                     // materialDescriptors
+            BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT), Optional<u32>::Some(MAX_TEXTURES)),    // materialTextures
         });
 }
 
 BindGroupHandle MaterialPool::CreateBindGroup(ComputePipelineHandle pipeline) const
 {
+    List<TextureViewHandle> textureViews(MAX_TEXTURES);
+    for (u32 i = 0; i < MAX_TEXTURES; i++)
+    {
+        if (textures[i])
+        {
+            textureViews[i] = Graphics::CreateTextureView(textures[i]);
+        }
+        else
+        {
+            textureViews[i] = Graphics::EmptyTextureView();
+        }
+    }
+
     BindGroupCreateInfo createInfo{};
     createInfo.name = "Material Bind Group";
     createInfo.layout = Graphics::GetBindGroupLayout(pipeline, BIND_GROUP_SET);
     createInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(materialDescriptorsBuffer)),
+        BindGroupEntry(1, BindingResource::TextureViewArray(textureViews))
     };
     return Graphics::CreateBindGroup(createInfo);
 }

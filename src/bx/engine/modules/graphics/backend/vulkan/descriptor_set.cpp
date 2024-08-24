@@ -90,6 +90,41 @@ namespace Vk
         vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
     }
 
+    void DescriptorSet::SetImageArray(u32 binding, VkDescriptorType type, const List<std::shared_ptr<Image>> images, std::shared_ptr<Sampler> sampler)
+    {
+        trackedSamplers[binding] = sampler;
+
+        List<VkDescriptorImageInfo> imageInfos(images.size());
+        for (u32 i = 0; i < images.size(); i++)
+        {
+            auto& imageInfo = imageInfos[i];
+            if (type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
+                // TODO: this assumption may break, storage images are allowed to be read in a fragment shader, query resource state tracker for accurate states
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+                //trackedStorageImages[binding] = image;
+            }
+            else {
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+                //trackedSampledImages[binding] = image;
+            }
+            imageInfo.imageView = images[i]->GetImageView();
+            if (sampler)
+                imageInfo.sampler = sampler->GetSampler();
+        }
+
+        VkWriteDescriptorSet writeInfo{};
+        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeInfo.dstSet = this->descriptorSet;
+        writeInfo.dstBinding = binding;
+        writeInfo.descriptorCount = images.size();
+        writeInfo.descriptorType = type;
+        writeInfo.pImageInfo = imageInfos.data();
+
+        vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
+    }
+
     void DescriptorSet::SetAccelerationStructure(uint32_t binding, std::shared_ptr<Tlas> tlas)
     {
         trackedAccelerationStructures[binding] = tlas;
