@@ -2,7 +2,7 @@
 #define BSDF_H
 
 #include "[engine]/shaders/math.shader"
-#include "[engine]/sampling.shader"
+#include "[engine]/shaders/sampling.shader"
 
 struct BsdfSample
 {

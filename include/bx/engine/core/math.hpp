@@ -272,6 +272,9 @@ struct Vec4
 	Vec4 Normalized() const;
 	Vec4 Abs() const;
 
+	Vec2 Xy() const;
+	Vec3 Xyz() const;
+
 	void Set(f32 x, f32 y, f32 z, f32 w);
 
 	Vec4 AddScalar(f32 rhs) const;

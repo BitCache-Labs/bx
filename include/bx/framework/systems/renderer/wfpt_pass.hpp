@@ -7,6 +7,7 @@
 #include "bx/framework/components/camera.hpp"
 
 class BlasDataPool;
+class MaterialPool;
 
 struct WfptCreateInfo
 {
@@ -21,7 +22,7 @@ public:
 	~WfptPass();
 
 	void SetTlas(TlasHandle tlas);
-	void Dispatch(const Camera& camera, const BlasDataPool& blasDataPool);
+	void Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, const MaterialPool& materialPool);
 
 	static void ClearPipelineCache();
 

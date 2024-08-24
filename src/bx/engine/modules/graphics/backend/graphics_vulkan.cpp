@@ -248,8 +248,11 @@ void Graphics::NewFrame()
 
 void Graphics::EndFrame()
 {
-    s->cmdQueue->SubmitCmdList(s->uploadCmdList, nullptr, {}, {}, {});
-    s->uploadCmdList.reset();
+    if (s->uploadCmdList)
+    {
+        s->cmdQueue->SubmitCmdList(s->uploadCmdList, nullptr, {}, {}, {});
+        s->uploadCmdList.reset();
+    }
 
     if (Window::IsActive())
     {

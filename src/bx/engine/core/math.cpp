@@ -299,6 +299,16 @@ Vec4 Vec4::Abs() const
 	return Vec4(fabsf(x), fabsf(y), fabsf(z), fabsf(w));
 }
 
+Vec2 Vec4::Xy() const
+{
+	return Vec2(x, y);
+}
+
+Vec3 Vec4::Xyz() const
+{
+	return Vec3(x, y, z);
+}
+
 void Vec4::Set(f32 x, f32 y, f32 z, f32 w)
 {
 	data[0] = x;

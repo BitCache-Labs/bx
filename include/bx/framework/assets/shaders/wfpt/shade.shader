@@ -3,10 +3,10 @@
 #include "[engine]/shaders/wfpt/payload.shader"
 #include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/sampling.shader"
-
 #include "[engine]/shaders/ray_tracing/ray.shader"
-#include "[engine]/shaders/ray_tracing/material/layered_lobe.shader"
 
+#define MATERIAL_BINDINGS
+#include "[engine]/shaders/ray_tracing/material.shader"
 #define BLAS_DATA_BINDINGS
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 
@@ -162,10 +162,13 @@ void main()
             wOutTangentSpace = normalize(wOutTangentSpace);
         }
 
+        // Load and sample material
+        SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx]);
+
         vec2 bsdfNoise = randomUniformFloat2(payload.rngState);
 
         DiffuseLobe diffuseLobe;
-        diffuseLobe.albedo = vec3(0.4, 0.4, 0.4);
+        diffuseLobe.albedo = material.baseColorFactor;
         BsdfSample bsdfSample = sampleDiffuseBsdf(diffuseLobe, bsdfNoise);
         BsdfEval bsdfEval = evalDiffuseBsdf(diffuseLobe);
 

@@ -32,7 +32,7 @@ public:
 	BlasDataPool();
 	~BlasDataPool();
 
-	void SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform);
+	void SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx);
 	void Submit();
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline) const;

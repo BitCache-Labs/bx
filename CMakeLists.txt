@@ -161,6 +161,7 @@ set (BX_SRCS
 	"src/bx/framework/resources/texture.cpp"
 	"src/bx/framework/systems/renderer/blas_data_pool.cpp"
 	"src/bx/framework/systems/renderer/id_pass.cpp"
+	"src/bx/framework/systems/renderer/material_pool.cpp"
 	"src/bx/framework/systems/renderer/present_pass.cpp"
 	"src/bx/framework/systems/renderer/srgb_to_linear_pass.cpp"
 	"src/bx/framework/systems/renderer/wfpt_pass.cpp"

@@ -75,11 +75,12 @@ void Renderer::UpdateTlas()
 
                 Mat4 matrix = trx.GetMatrix() * mesh->GetMatrix();
 
-                m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), matrix.Inverse());
+                u32 materialIdx = m_materialPool->SubmitInstance(material.GetData(), material.GetHandle());
+                m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), matrix.Inverse(), materialIdx);
 
                 BlasInstance blasInstance{};
                 blasInstance.transform = matrix;
-                blasInstance.instanceCustomIndex = blasInstances.size(); // TODO
+                blasInstance.instanceCustomIndex = blasInstances.size();
                 blasInstance.mask = 0xFF;
                 blasInstance.blas = mesh->GetBlas();
                 blasInstances.push_back(blasInstance);
@@ -87,6 +88,7 @@ void Renderer::UpdateTlas()
         });
 
     m_blasDataPool->Submit();
+    m_materialPool->Submit();
 
     if (!blasInstances.empty()) // TODO: handle empty tlases internally
     {
@@ -105,7 +107,7 @@ void Renderer::UpdateTlas()
 
 void Renderer::RecreateRenderTargets()
 {
-    if (Window::WasResized())
+    if (Window::WasResized() || !m_colorTarget)
     {
         i32 w, h;
         Window::GetSize(&w, &h);
@@ -129,6 +131,7 @@ void Renderer::RebuildPasses()
         WfptCreateInfo wfptCreateInfo{};
         wfptCreateInfo.colorTarget = m_colorTarget;
         wfptCreateInfo.tlas = m_tlas;
+        m_wfptPass.reset();
         m_wfptPass = std::unique_ptr<WfptPass>(new WfptPass(wfptCreateInfo));
 
         m_dirtyPasses = false;
@@ -138,6 +141,7 @@ void Renderer::RebuildPasses()
 void Renderer::Initialize()
 {
     m_blasDataPool = std::unique_ptr<BlasDataPool>(new BlasDataPool());
+    m_materialPool = std::unique_ptr<MaterialPool>(new MaterialPool());
 
     RecreateRenderTargets();
 }
@@ -168,7 +172,7 @@ void Renderer::Render()
     {
         m_wfptPass->seed = frameIdx;
         m_wfptPass->maxBounces = 3;
-        m_wfptPass->Dispatch(m_cameras.back(), *m_blasDataPool);
+        m_wfptPass->Dispatch(m_cameras.back(), *m_blasDataPool, *m_materialPool);
     }
 
     PresentPass presentPass(m_colorTarget);

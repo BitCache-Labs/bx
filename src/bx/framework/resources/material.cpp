@@ -35,6 +35,11 @@ bool Resource<Material>::Load(const String& filename, Material& data)
     cereal::JSONInputArchive archive(stream);
     archive(cereal::make_nvp("material", data));
 
+    float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float g = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float b = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    data.m_baseColorFactor = Vec4(r, g, b, 1.0);
+
     return true;
 }
 
