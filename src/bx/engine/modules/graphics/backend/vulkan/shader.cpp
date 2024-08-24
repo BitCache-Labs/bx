@@ -22,6 +22,7 @@ namespace Vk
             return GLSLANG_STAGE_COMPUTE;
         default:
             BX_FAIL("Unsupported shader stage.");
+            return GLSLANG_STAGE_VERTEX;
         }
     }
 

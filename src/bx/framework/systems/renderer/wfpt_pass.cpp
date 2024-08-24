@@ -57,6 +57,10 @@ struct ShadeConstants
     u32 height;
     u32 bounce;
     u32 seed;
+    b32 russianRoulette;
+    u32 _PADDING0;
+    u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct ConnectPipeline : public LazyInit<ConnectPipeline, ComputePipelineHandle>
@@ -443,6 +447,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool)
         shadeConstants.height = height;
         shadeConstants.bounce = bounce;
         shadeConstants.seed = seed;
+        shadeConstants.russianRoulette = russianRoulette;
 
         BufferCreateInfo shadeConstantsCreateInfo{};
         shadeConstantsCreateInfo.name = "Wfpt Shade Constants Buffer";

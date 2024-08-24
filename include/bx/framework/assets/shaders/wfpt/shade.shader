@@ -16,6 +16,10 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint height;
     uint bounce;
     uint seed;
+    bool russianRoulette;
+    uint _PADDING0;
+    uint _PADDING1;
+    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 1), std430) readonly buffer _Rays
@@ -166,7 +170,7 @@ void main()
         BsdfEval bsdfEval = evalDiffuseBsdf(diffuseLobe);
 
         vec3 wInWorldSpace = vec3(0.0);
-        applyBsdf(bsdfSample, bsdfEval, tangentToWorld, normal, throughput, wInWorldSpace);
+        bool validSample = applyBsdf(bsdfSample, bsdfEval, tangentToWorld, normal, throughput, wInWorldSpace);
 
         //vec3 color = normal * 0.5 + 0.5;
         //throughput *= color;
@@ -183,7 +187,21 @@ void main()
             shootShadowRay(origin, direction, 1000.0, pid);
         }
 
-        { // Indirect illumination
+        // Indirect illumination
+        if (validSample)
+        {
+            bool russianRouletteTerminate = false;
+            if (constants.russianRoulette && constants.bounce > 1)
+            {
+                float russianRoulette = max(throughput.r, max(throughput.g, throughput.b));
+                russianRouletteTerminate = randomUniformFloat(payload.rngState) > russianRoulette;
+
+                if (russianRouletteTerminate)
+                {
+                    throughput *= 1.0 / russianRoulette;
+                }
+            }
+
             vec3 origin = intersectionPos;
             vec3 direction = wInWorldSpace;
             origin += direction * RT_EPSILON;
