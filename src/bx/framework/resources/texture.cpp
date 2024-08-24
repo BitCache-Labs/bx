@@ -55,5 +55,8 @@ bool Resource<Texture>::Load(const String& filename, Texture& data)
 template<>
 void Resource<Texture>::Unload(Texture& data)
 {
-    Graphics::DestroyTexture(data.m_texture);
+    if (data.m_texture)
+    {
+        Graphics::DestroyTexture(data.m_texture);
+    }
 }

@@ -101,7 +101,10 @@ bool Resource<Mesh>::Load(const String& filename, Mesh& data)
 template<>
 void Resource<Mesh>::Unload(Mesh& data)
 {
-    Graphics::DestroyBuffer(data.m_vertexBuffer);
-    Graphics::DestroyBuffer(data.m_indexBuffer);
-    Graphics::DestroyBlas(data.m_blas);
+    if (data.m_vertexBuffer)
+    {
+        Graphics::DestroyBuffer(data.m_vertexBuffer);
+        Graphics::DestroyBuffer(data.m_indexBuffer);
+        Graphics::DestroyBlas(data.m_blas);
+    }
 }
