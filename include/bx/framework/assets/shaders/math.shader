@@ -24,6 +24,11 @@ float safeSqrt(float x)
 	return sqrt(max(0.0, x));
 }
 
+float sqr(float x)
+{
+    return x * x;
+}
+
 bool isNan(float x)
 {
 	return x != x;

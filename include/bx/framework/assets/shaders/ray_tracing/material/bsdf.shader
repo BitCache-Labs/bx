@@ -4,6 +4,8 @@
 #include "[engine]/shaders/math.shader"
 #include "[engine]/shaders/sampling.shader"
 
+#include "[engine]/shaders/ray_tracing/material/tangent_space_trig_helpers.shader"
+
 struct BsdfSample
 {
 	vec3 wInTangentSpace;
