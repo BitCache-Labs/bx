@@ -168,18 +168,14 @@ void main()
         // Load and sample material
         SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
 
-        vec2 bsdfNoise = randomUniformFloat2(payload.rngState);
+        vec3 bsdfNoise = randomUniformFloat3(payload.rngState);
 
-        DiffuseLobe diffuseLobe;
-        diffuseLobe.albedo = material.baseColorFactor;
-        BsdfSample bsdfSample = sampleDiffuseBsdf(diffuseLobe, bsdfNoise);
-        BsdfEval bsdfEval = evalDiffuseBsdf(diffuseLobe);
+        LayeredLobe layeredLobe = layeredLobeFromMaterial(material);
+        BsdfSample bsdfSample = sampleLayeredBsdf(layeredLobe, bsdfNoise, wOutTangentSpace, intersection.frontFace);
+        BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, bsdfSample.wInTangentSpace, intersection.frontFace);
 
         vec3 wInWorldSpace = vec3(0.0);
         bool validSample = applyBsdf(bsdfSample, bsdfEval, tangentToWorld, normal, throughput, wInWorldSpace);
-
-        //vec3 color = normal * 0.5 + 0.5;
-        //throughput *= color;
 
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 

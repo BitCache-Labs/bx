@@ -14,6 +14,11 @@ struct MaterialDescriptor
 struct SampledMaterial
 {
 	vec3 baseColorFactor;
+    vec3 emissiveFactor;
+    float metallicFactor;
+    float roughnessFactor;
+    float ior;
+    float transmissionFactor;
 };
 
 #ifdef MATERIAL_BINDINGS
@@ -37,7 +42,51 @@ SampledMaterial sampleMaterial(MaterialDescriptor materialDescriptor, vec2 uv)
 		sampledMaterial.baseColorFactor *= texture(materialTextures[materialDescriptor.baseColorTexture], uv).rgb;
 	}
 
+    sampledMaterial.metallicFactor = 1.0;
+    sampledMaterial.roughnessFactor = 0.15;
+    sampledMaterial.ior = 1.5;
+    sampledMaterial.transmissionFactor = 0.0;
+
 	return sampledMaterial;
 }
+
+LayeredLobe layeredLobeFromMaterial(SampledMaterial sampledMaterial)
+{
+    float metallic = sampledMaterial.metallicFactor;
+    float roughness = sampledMaterial.roughnessFactor;
+    bool transmission = sampledMaterial.transmissionFactor == 1.0;
+    float ior = sampledMaterial.ior;
+    vec3 baseColor = sampledMaterial.baseColorFactor;
+
+    DiffuseLobe diffuse_lobe = DiffuseLobe(vec3(-1.0));
+    TransmissionLobe transmission_lobe = TransmissionLobe(0.0);
+    if (transmission)
+    {
+        transmission_lobe.ior = ior;
+    }
+    else
+    {
+        diffuse_lobe.albedo = max(0.0, 1.0 - metallic) * baseColor;
+    }
+
+    SpecularLobe specular_lobe;
+    specular_lobe.albedo = mix(vec3(0.04), baseColor, metallic);
+    specular_lobe.roughnessFactor = roughness;
+    specular_lobe.metallicFactor = metallic;
+    specular_lobe.ior = ior;
+    specular_lobe.thickness = 0.1; // TODO: make this controllable from pbr pipeline
+
+    LayeredLobe layered_lobe;
+    layered_lobe.diffuseLobe = diffuse_lobe;
+    layered_lobe.specularLobe = specular_lobe;
+    layered_lobe.transmissionLobe = transmission_lobe;
+    return layered_lobe;
+}
+
+// TODO:
+// - fix the diffuse specular energy conservation
+// - allow diffuse specular to use transmittance when roughness == 1.0 (just don't always reflect)
+// - specialized conductor fresnel equation
+// - allow transmittance with roughness < 1.0
 
 #endif // MATERIAL_H

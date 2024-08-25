@@ -113,6 +113,13 @@ BsdfEval evalSpecularBsdf(SpecularLobe lobe, vec3 w_out_tangent_space, vec3 w_in
     BsdfEval eval;
     eval.reflectance = (evalGgxNdf(ggx_alpha, half_vec_tangent_space) * f * g2) / jacobian;
     eval.fractionTransmitted = 1.0 - f;
+
+    // Conductor base color hack
+    if (specularBsdfIsConductor(lobe))
+    {
+        eval.reflectance *= lobe.albedo;
+    }
+
     return eval;
 }
 
