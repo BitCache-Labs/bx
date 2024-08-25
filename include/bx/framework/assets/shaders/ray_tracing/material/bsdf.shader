@@ -73,6 +73,16 @@ vec3 refractDir(vec3 wInTangentSpace, float relativeIor)
 	return -_refract(-wInTangentSpace, FORWARD, 1.0 / relativeIor);
 }
 
+vec3 calculateAbsorption(vec3 layer_color, float thickness, float cos_theta_wo, float cos_theta_wi)
+{
+    vec3 inverse_color = 1.0 - layer_color;
+    float inverse_cos_theta_i = 1.0 / min(1.0, max(MIN_COS_THETA_THRESHOLD, cos_theta_wi));
+    float inverse_cos_theta_o = 1.0 / min(1.0, max(MIN_COS_THETA_THRESHOLD, cos_theta_wo));
+    float val = thickness * (inverse_cos_theta_i + inverse_cos_theta_o);
+    vec3 absorption = exp(-inverse_color * val);
+    return absorption;
+}
+
 float getGgxAlpha(float roughnessFactor)
 {
 	float roughness = max(MIN_ROUGHNESS_THRESHOLD, roughnessFactor);
