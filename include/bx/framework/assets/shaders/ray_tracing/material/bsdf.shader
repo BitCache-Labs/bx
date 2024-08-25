@@ -171,4 +171,91 @@ vec3 fresnelConductorFitted(float cosTheta, float ni)
     return saturate(f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0) - v);
 }
 
+float evalGgxG1(float nDotWo, float ggxAlpha)
+{
+    if (nDotWo <= 0.0)
+    {
+        return 0.0;
+    }
+    float a2 = sqr(ggxAlpha);
+    float denomC = sqrt(a2 + (1.0 - a2) * sqr(nDotWo)) + nDotWo;
+    return (2.0 * nDotWo) / denomC;
+}
+
+float evalGgxG2(float nDotWi, float nDotWo, float ggxAlpha)
+{
+    float a2 = sqr(ggxAlpha);
+    float denomA = nDotWo * sqrt(a2 + (1.0 - a2) * sqr(nDotWi));
+    float denomB = nDotWi * sqrt(a2 + (1.0 - a2) * sqr(nDotWo));
+    return (2.0 * nDotWi * nDotWo) / (denomA + denomB);
+}
+
+vec3 sampleGgxVndf(vec3 wOutTangentSpace, float ggxAlpha, vec2 uv)
+{
+    vec2 alpha = vec2(ggxAlpha);
+
+    vec3 wOutHemisphere = normalize(vec3(
+        wOutTangentSpace.x * alpha.x,
+        wOutTangentSpace.y * alpha.y,
+        wOutTangentSpace.z
+    ));
+
+    float phi = TWO_PI * uv.x;
+    float a = saturate(min(alpha.x, alpha.y));
+    float s = 1.0 + length(wOutTangentSpace.xy);
+    float a2 = sqr(a);
+    float s2 = sqr(s);
+    float k = (1.0 - a2) * s2 / (s2 + a2 * sqr(wOutTangentSpace.z));
+    float b;
+    if (wOutTangentSpace.z > 0.0) { // TODO: use mix
+        b = k * wOutHemisphere.z;
+    } else {
+        b = wOutHemisphere.z;
+    }
+
+    float z = (1.0 - uv.y) * (1.0 + b) - b;
+    float sinTheta = safeSqrt(saturate(1.0 - sqr(z)));
+    vec3 wInHemisphere = vec3(sinTheta * cos(phi), sinTheta * sin(phi), z);
+    vec3 microfacetHemisphere = wOutHemisphere + wInHemisphere;
+
+    return normalize(vec3(
+        microfacetHemisphere.xy * alpha,
+        max(0.0, microfacetHemisphere.z)
+    ));
+}
+
+float evalGgxNdf(float ggxAlpha, vec3 microfacetNormal)
+{
+    if (microfacetNormal.z <= 0.0)
+    {
+        return 0.0;
+    }
+
+    float a2 = sqr(ggxAlpha);
+    float cos2Theta;
+    float squared_part_of_denom = (a2 + tan2ThetaTangentSpaceIntermediate(microfacetNormal, cos2Theta));
+    return a2 / (PI * sqr(cos2Theta) * sqr(squared_part_of_denom));
+}
+
+float evalGgxVndfPdf(float ggxAlpha, vec3 wOutTangentSpace, vec3 microfacetNormal)
+{
+    vec2 alpha = vec2(ggxAlpha);
+    float ndf = evalGgxNdf(ggxAlpha, microfacetNormal);
+    vec2 a_o = alpha * wOutTangentSpace.xy;
+    float len2 = dot(a_o, a_o);
+    float t = safeSqrt(len2 + sqr(wOutTangentSpace.z));
+
+    if (wOutTangentSpace.z > 0.0)
+    {
+        float a = saturate(min(alpha.x, alpha.y));
+        float s = 1.0 + length(wOutTangentSpace.xy);
+        float a2 = sqr(a);
+        float s2 = sqr(s);
+        float k = (1.0 - a2) * s2 / (s2 + a2 * sqr(wOutTangentSpace.z));
+        return ndf / (2.0 * (k * wOutTangentSpace.z + t));
+    }
+
+    return ndf * (t - wOutTangentSpace.z) / (2.0 * len2);
+}
+
 #endif // BSDF_H
