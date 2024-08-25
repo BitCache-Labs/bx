@@ -39,6 +39,39 @@ uint divCeil(uint x, uint y)
 	return (x + y - 1) / y;
 }
 
+float saturate(float x)
+{
+    return clamp(x, 0.0, 1.0);
+}
+
+vec2 saturate(vec2 x)
+{
+    return clamp(x, 0.0, 1.0);
+}
+
+vec3 saturate(vec3 x)
+{
+    return clamp(x, 0.0, 1.0);
+}
+
+vec4 saturate(vec4 x)
+{
+    return clamp(x, 0.0, 1.0);
+}
+
+vec3 _reflect(vec3 v, vec3 n)
+{
+    return v - 2.0 * dot(v, n) * n;
+}
+
+vec3 _refract(vec3 uv, vec3 normal, float ior)
+{
+    float cos_theta = min(dot(-uv, normal), 1.0);
+    vec3 r_perp = ior * (uv + cos_theta * normal);
+    vec3 r_parl = -sqrt(abs(1.0 - dot(r_perp, r_perp))) * normal;
+    return r_perp + r_parl;
+}
+
 // http://jcgt.org/published/0006/01/01/
 mat3 buildOrthonormalBasis(vec3 n)
 {
