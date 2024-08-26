@@ -50,17 +50,17 @@ void main()
     if (!shadowRayHit(ray, rayDistance))
     {
         Payload payload = payloads[pid];
-        vec3 throughput = payload.throughput;
-        vec3 accumulated = payload.accumulated;
-
+        vec3 throughput = unpackRgb9e5(payload.throughput);
+        vec3 accumulated = unpackRgb9e5(payload.accumulated);
+        
         vec3 emission = vec3(0.6, 0.6, 0.5); // TODO: sun sampling
-
+        
         vec3 lightingContribution = throughput * emission;// pdf
-
+        
         accumulated += lightingContribution;
-
-        payload.throughput = throughput;
-        payload.accumulated = accumulated;
+        
+        payload.throughput = packRgb9e5(throughput);
+        payload.accumulated = packRgb9e5(accumulated);
         payloads[pid] = payload;
     }
 }

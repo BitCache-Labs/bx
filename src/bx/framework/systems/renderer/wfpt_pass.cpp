@@ -38,10 +38,10 @@ struct Intersection
 
 struct Payload
 {
-    Vec3 accumulated;
-    u32 _PADDING0;
-    Vec3 throughput;
+    u32 accumulated;
+    u32 throughput;
     u32 rngState;
+    u32 _PADDING0;
 };
 
 struct RaygenConstants

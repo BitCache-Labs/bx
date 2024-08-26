@@ -118,8 +118,8 @@ void main()
     Payload payload = payloads[pid];
     Ray ray = unpackRay(rays[id]);
 
-    vec3 throughput = payload.throughput;
-    vec3 accumulated = payload.accumulated;
+    vec3 throughput = unpackRgb9e5(payload.throughput);
+    vec3 accumulated = unpackRgb9e5(payload.accumulated);
     if (constants.bounce == 0)
     {
         accumulated = vec3(0.0);
@@ -215,7 +215,7 @@ void main()
         accumulated += shadeSky(ray.direction, throughput);
     }
 
-    payload.throughput = throughput;
-    payload.accumulated = accumulated;
+    payload.throughput = packRgb9e5(throughput);
+    payload.accumulated = packRgb9e5(accumulated);
     payloads[pid] = payload;
 }

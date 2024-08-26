@@ -24,5 +24,5 @@ void main()
 
     Payload payload = payloads[i];
 
-    imageStore(OutImage, id, vec4(payload.accumulated, 1.0));
+    imageStore(OutImage, id, vec4(unpackRgb9e5(payload.accumulated), 1.0));
 }
