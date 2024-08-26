@@ -251,6 +251,18 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     width = colorTargetCreateInfo.size.width;
     height = colorTargetCreateInfo.size.height;
 
+    List<u32> pixelMappingData(width * height);
+    for (u32 i = 0; i < width * height; i++)
+    {
+        pixelMappingData[i] = i;
+    }
+    BufferCreateInfo identityPixelMappingCreateInfo{};
+    identityPixelMappingCreateInfo.name = "Wfpt Identity Pixel Mapping Buffer";
+    identityPixelMappingCreateInfo.size = width * height * sizeof(u32);
+    identityPixelMappingCreateInfo.data = pixelMappingData.data();
+    identityPixelMappingCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
+    identityPixelMappingBuffer = Graphics::CreateBuffer(identityPixelMappingCreateInfo);
+
     for (u32 i = 0; i < 2; i++)
     {
         BufferCreateInfo raysCreateInfo{};
@@ -370,6 +382,7 @@ WfptPass::~WfptPass()
         Graphics::DestroyBuffer(pixelMappingBuffer[i]);
     }
     
+    Graphics::DestroyBuffer(identityPixelMappingBuffer);
     Graphics::DestroyBuffer(shadowRaysBuffer);
     Graphics::DestroyBuffer(shadowRayDistancesBuffer);
     Graphics::DestroyBuffer(shadowRayCountBuffer);
@@ -418,13 +431,6 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
     resolveConstants.height = height;
     Graphics::WriteBuffer(resolveConstantsBuffer, 0, &resolveConstants);
 
-    List<u32> pixelMappingData(width * height);
-    for (u32 i = 0; i < width * height; i++)
-    {
-        pixelMappingData[i] = i;
-    }
-    Graphics::WriteBuffer(pixelMappingBuffer[0], 0, pixelMappingData.data());
-
     u32 rayCountData = width * height;
     Graphics::WriteBuffer(rayCountBuffer[0], 0, &rayCountData);
 
@@ -444,7 +450,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         BufferHandle outRays = raysBuffer[(bounce + 1) % 2];
         BufferHandle rayCount = rayCountBuffer[bounce % 2];
         BufferHandle outRayCount = rayCountBuffer[(bounce + 1) % 2];
-        BufferHandle pixelMapping = pixelMappingBuffer[bounce % 2];
+        BufferHandle pixelMapping = bounce == 0 ? identityPixelMappingBuffer : pixelMappingBuffer[bounce % 2];
         BufferHandle outPixelMapping = pixelMappingBuffer[(bounce + 1) % 2];
 
         Graphics::ClearBuffer(outRayCount);
