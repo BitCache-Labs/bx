@@ -334,6 +334,8 @@ struct Color
 		struct { f32 r, g, b, a; };
 	};
 
+	Vec3 Xyz() const;
+
 	static Color Black() { return Color(0, 0, 0, 1); }
 	static Color Blue() { return Color(0, 0, 1, 1); }
 	static Color Cyan() { return Color(0, 1, 1, 1); }

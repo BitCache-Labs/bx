@@ -4,6 +4,7 @@
 #include "bx/framework/systems/renderer/write_indirect_args_pass.hpp"
 #include "bx/framework/systems/renderer/blas_data_pool.hpp"
 #include "bx/framework/systems/renderer/material_pool.hpp"
+#include "bx/framework/systems/renderer/sky.hpp"
 
 #include "bx/framework/components/transform.hpp"
 #include "bx/framework/components/mesh_filter.hpp"
@@ -226,7 +227,8 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(12, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowPixelMapping
             }),
             BlasDataPool::GetBindGroupLayout(),
-            MaterialPool::GetBindGroupLayout()
+            MaterialPool::GetBindGroupLayout(),
+            Sky::GetBindGroupLayout()
         };
 
         ComputePipelineCreateInfo pipelineCreateInfo{};
@@ -417,7 +419,7 @@ void WfptPass::SetTlas(TlasHandle tlas)
     connectBindGroup = Graphics::CreateBindGroup(connectBindGroupCreateInfo);
 }
 
-void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, const MaterialPool& materialPool)
+void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, const MaterialPool& materialPool, const Sky& sky)
 {
     RaygenConstants raygenConstants{};
     raygenConstants.invView = camera.GetInvView();
@@ -503,6 +505,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         BindGroupHandle shadeBindGroup = Graphics::CreateBindGroup(shadeBindGroupCreateInfo);
         BindGroupHandle shadeBlasDataPoolGroup = blasDataPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle shadeMaterialPoolGroup = materialPool.CreateBindGroup(ShadePipeline::Get());
+        BindGroupHandle shadeSkyGroup = sky.CreateBindGroup(ShadePipeline::Get());
         
         WriteIndirectArgsPass writeIndirectArgs(128);
         writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
@@ -523,6 +526,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
             Graphics::SetBindGroup(0, shadeBindGroup);
             Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, shadeBlasDataPoolGroup);
             Graphics::SetBindGroup(MaterialPool::BIND_GROUP_SET, shadeMaterialPoolGroup);
+            Graphics::SetBindGroup(Sky::BIND_GROUP_SET, shadeSkyGroup);
             Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
         }
         Graphics::EndComputePass(computePass);
@@ -542,6 +546,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         Graphics::DestroyBindGroup(shadeBindGroup);
         Graphics::DestroyBindGroup(shadeBlasDataPoolGroup);
         Graphics::DestroyBindGroup(shadeMaterialPoolGroup);
+        Graphics::DestroyBindGroup(shadeSkyGroup);
         Graphics::DestroyBuffer(shadeConstantsBuffer);
     }
 

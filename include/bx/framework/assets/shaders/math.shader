@@ -96,16 +96,15 @@ mat3 buildOrthonormalBasis(vec3 n)
 }
 
 // (from "Efficient Construction of Perpendicular Vectors Without Branching", 2009)
-//fn get_perpendicular_vector(u: vec3<f32>) -> vec3<f32> {
-//    let a: vec3<f32> = abs(u);
-//
-//    // Be explicit about uint types in the ternary to work around
-//    // https://github.com/microsoft/DirectXShaderCompiler/issues/4727
-//    let xm: u32 = select(0u, 1u, ((a.x - a.y) < 0 && (a.x - a.z) < 0));
-//    let ym: u32 = select(0u, 1 ^ xm, (a.y - a.z) < 0);
-//    let zm: u32 = 1 ^ (xm | ym);
-//
-//    return cross(u, vec3<f32>(f32(xm), f32(ym), f32(zm)));
-//}
+vec3 getPerpendicularVector(vec3 u)
+{
+    vec3 a = abs(u);
+    
+    uint xm = ((a.x - a.y) < 0 && (a.x - a.z) < 0) ? 1u : 0u;//select(0u, 1u, );
+    uint ym = (a.y - a.z) < 0 ? 1 ^ xm : 0u;//select(0u, 1 ^ xm, );
+    uint zm = 1 ^ (xm | ym);
+    
+    return cross(u, vec3(float(xm), float(ym), float(zm)));
+}
 
 #endif // MATH_H

@@ -8,6 +8,7 @@
 #include "bx/framework/systems/renderer/wfpt_pass.hpp"
 #include "bx/framework/systems/renderer/blas_data_pool.hpp"
 #include "bx/framework/systems/renderer/material_pool.hpp"
+#include "bx/framework/systems/renderer/sky.hpp"
 
 class SceneView;
 
@@ -36,6 +37,7 @@ private:
 	std::unique_ptr<WfptPass> m_wfptPass = nullptr;
 	std::unique_ptr<BlasDataPool> m_blasDataPool = nullptr;
 	std::unique_ptr<MaterialPool> m_materialPool = nullptr;
+	std::unique_ptr<Sky> m_sky = nullptr;
 
 	List<Camera> m_cameras{};
 	OptionalView<Camera> m_editorCamera = OptionalView<Camera>::None();

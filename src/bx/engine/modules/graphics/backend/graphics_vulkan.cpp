@@ -646,12 +646,14 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
     {
         auto layoutIter = s->graphicsPipelineLayouts.find(GraphicsPipelineHandle{ rawPipeline });
         BX_ENSURE(layoutIter != s->graphicsPipelineLayouts.end());
+        BX_ASSERT(layoutIndex < layoutIter->second.size(), "Layout index out of range.");
         layout = layoutIter->second[layoutIndex];
     }
     else
     {
         auto layoutIter = s->computePipelineLayouts.find(ComputePipelineHandle{ rawPipeline });
         BX_ENSURE(layoutIter != s->computePipelineLayouts.end());
+        BX_ASSERT(layoutIndex < layoutIter->second.size(), "Layout index out of range.");
         layout = layoutIter->second[layoutIndex];
     }
 

@@ -142,6 +142,7 @@ void Renderer::Initialize()
 {
     m_blasDataPool = std::unique_ptr<BlasDataPool>(new BlasDataPool());
     m_materialPool = std::unique_ptr<MaterialPool>(new MaterialPool());
+    m_sky = std::unique_ptr<Sky>(new Sky());
 
     RecreateRenderTargets();
 }
@@ -168,11 +169,13 @@ void Renderer::Render()
     UpdateTlas();
     RebuildPasses();
 
+    m_sky->Submit();
+
     if (m_wfptPass)
     {
         m_wfptPass->seed = frameIdx;
         m_wfptPass->maxBounces = 3;
-        m_wfptPass->Dispatch(m_cameras.back(), *m_blasDataPool, *m_materialPool);
+        m_wfptPass->Dispatch(m_cameras.back(), *m_blasDataPool, *m_materialPool, *m_sky);
     }
 
     PresentPass presentPass(m_colorTarget);

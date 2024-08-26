@@ -9,6 +9,8 @@
 #include "[engine]/shaders/ray_tracing/material.shader"
 #define BLAS_DATA_BINDINGS
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
+#define SKY_BINDINGS
+#include "[engine]/shaders/ray_tracing/sky.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -180,10 +182,8 @@ void main()
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         { // Direct illumination
-            vec3 L = normalize(vec3(0.3, 1.0, 0.2));
-
             vec3 origin = intersectionPos;
-            vec3 direction = L;
+            vec3 direction = sampleSunDirection(randomUniformFloat2(payload.rngState));
             origin += direction * RT_EPSILON;
 
             shootShadowRay(origin, direction, 1000.0, pid);

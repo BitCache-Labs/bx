@@ -42,8 +42,8 @@ SampledMaterial sampleMaterial(MaterialDescriptor materialDescriptor, vec2 uv)
 		sampledMaterial.baseColorFactor *= texture(materialTextures[materialDescriptor.baseColorTexture], uv).rgb;
 	}
 
-    sampledMaterial.metallicFactor = 1.0;
-    sampledMaterial.roughnessFactor = 0.15;
+    sampledMaterial.metallicFactor = 0.0;
+    sampledMaterial.roughnessFactor = 0.85;
     sampledMaterial.ior = 1.5;
     sampledMaterial.transmissionFactor = 0.0;
 

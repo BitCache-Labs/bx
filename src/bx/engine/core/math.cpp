@@ -393,6 +393,11 @@ Vec4 Vec4::FromValuePtr(f32* vptr)
 	return v;
 }
 
+Vec3 Color::Xyz() const
+{
+	return Vec3(r, g, b);
+}
+
 f32 Color::At(i32 i) const
 {
 	return data[i];

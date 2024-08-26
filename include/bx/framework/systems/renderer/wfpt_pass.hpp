@@ -8,6 +8,7 @@
 
 class BlasDataPool;
 class MaterialPool;
+class Sky;
 
 struct WfptCreateInfo
 {
@@ -22,7 +23,7 @@ public:
 	~WfptPass();
 
 	void SetTlas(TlasHandle tlas);
-	void Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, const MaterialPool& materialPool);
+	void Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, const MaterialPool& materialPool, const Sky& sky);
 
 	static void ClearPipelineCache();
 
