@@ -19,6 +19,12 @@ struct Ray
     u32 _PADDING1;
 };
 
+struct PackedRay
+{
+    Vec3 origin;
+    u32 direction;
+};
+
 struct Intersection
 {
     Vec2 uv;
@@ -249,7 +255,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     {
         BufferCreateInfo raysCreateInfo{};
         raysCreateInfo.name = Log::Format("Wfpt Rays {} Buffer", i);
-        raysCreateInfo.size = width * height * sizeof(Ray);
+        raysCreateInfo.size = width * height * sizeof(PackedRay);
         raysCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
         raysBuffer[i] = Graphics::CreateBuffer(raysCreateInfo);
 
@@ -268,7 +274,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
 
     BufferCreateInfo shadowRaysCreateInfo{};
     shadowRaysCreateInfo.name = "Wfpt Shadow Rays Buffer";
-    shadowRaysCreateInfo.size = width * height * sizeof(Ray);
+    shadowRaysCreateInfo.size = width * height * sizeof(PackedRay);
     shadowRaysCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     shadowRaysBuffer = Graphics::CreateBuffer(shadowRaysCreateInfo);
 

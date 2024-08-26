@@ -5,7 +5,7 @@
 
 layout (BINDING(0, 0), std430) readonly buffer _Rays
 {
-    Ray rays[];
+    PackedRay rays[];
 };
 layout(BINDING(0, 1), std430) readonly buffer _RayCount
 {
@@ -31,7 +31,7 @@ void main()
     if (id >= rayCount) return;
     uint pid = pixelMapping[id];
 
-    Ray ray = rays[id];
+    Ray ray = unpackRay(rays[id]);
 
     rayQueryEXT rayQuery;
 	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsOpaqueEXT, 0xFF, ray.origin, RT_EPSILON, ray.direction, 1000.0);

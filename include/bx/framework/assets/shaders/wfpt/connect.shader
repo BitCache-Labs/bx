@@ -6,7 +6,7 @@
 
 layout (BINDING(0, 0), std430) readonly buffer _ShadowRays
 {
-    Ray shadowRays[];
+    PackedRay shadowRays[];
 };
 layout (BINDING(0, 1), std430) readonly buffer _ShadowRayDistances
 {
@@ -44,7 +44,7 @@ void main()
     if (id >= shadowRayCount) return;
     uint pid = shadowPixelMapping[id];
 
-    Ray ray = shadowRays[id];
+    Ray ray = unpackRay(shadowRays[id]);
     float rayDistance = shadowRayDistances[id];
 
     if (!shadowRayHit(ray, rayDistance))

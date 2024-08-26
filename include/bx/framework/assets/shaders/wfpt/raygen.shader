@@ -12,7 +12,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
 
 layout (BINDING(0, 1), std430) writeonly buffer _Rays
 {
-    Ray rays[];
+    PackedRay rays[];
 };
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
@@ -32,5 +32,5 @@ void main()
     ray.origin = origin.xyz;
     ray.direction = direction.xyz;
 
-    rays[id.y * constants.width + id.x] = ray;
+    rays[id.y * constants.width + id.x] = packRay(ray);
 }

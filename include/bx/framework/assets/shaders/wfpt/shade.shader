@@ -24,11 +24,11 @@ layout (BINDING(0, 0), std140) uniform _Constants
 
 layout (BINDING(0, 1), std430) readonly buffer _Rays
 {
-    Ray rays[];
+    PackedRay rays[];
 };
 layout (BINDING(0, 2), std430) writeonly buffer _OutRays
 {
-    Ray outRays[];
+    PackedRay outRays[];
 };
 
 layout(BINDING(0, 3), std430) readonly buffer _RayCount
@@ -61,7 +61,7 @@ layout (BINDING(0, 8), std430) readonly buffer _Intersections
 
 layout (BINDING(0, 9), std430) writeonly buffer _ShadowRays
 {
-    Ray shadowRays[];
+    PackedRay shadowRays[];
 };
 layout(BINDING(0, 10), std430) writeonly buffer _ShadowRayDistances
 {
@@ -83,7 +83,7 @@ void shootRay(vec3 origin, vec3 direction, uint pid)
     ray.direction = direction;
 
     uint rayIdx = atomicAdd(outRayCount, 1u);
-    outRays[rayIdx] = ray;
+    outRays[rayIdx] = packRay(ray);
     outPixelMapping[rayIdx] = pid;
 }
 
@@ -94,7 +94,7 @@ void shootShadowRay(vec3 origin, vec3 direction, float tMax, uint pid)
     ray.direction = direction;
 
     uint rayIdx = atomicAdd(shadowRayCount, 1u);
-    shadowRays[rayIdx] = ray;
+    shadowRays[rayIdx] = packRay(ray);
     shadowRayDistances[rayIdx] = tMax;
     shadowPixelMapping[rayIdx] = pid;
 }
@@ -116,7 +116,7 @@ void main()
 
     Intersection intersection = intersections[pid];
     Payload payload = payloads[pid];
-    Ray ray = rays[id];
+    Ray ray = unpackRay(rays[id]);
 
     vec3 throughput = payload.throughput;
     vec3 accumulated = payload.accumulated;
