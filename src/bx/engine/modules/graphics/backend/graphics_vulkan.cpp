@@ -231,8 +231,6 @@ void Graphics::Reload()
 
 void Graphics::NewFrame()
 {
-    s->cmdQueue->ProcessCmdLists(true);
-
     if (Window::IsActive())
     {
         if (Window::WasResized())

@@ -13,7 +13,7 @@ namespace Vk
 {
     CmdQueue::CmdQueue(const std::shared_ptr<Device> device,
         const PhysicalDevice& physicalDevice, QueueType type)
-        : device(device) {
+        : device(device), busyCmdListsMutex{} {
         vkGetDeviceQueue(device->GetDevice(), physicalDevice.GraphicsFamily(), 0, &this->queue);
 
         VkCommandPoolCreateInfo poolInfo{};
@@ -29,10 +29,14 @@ namespace Vk
 
         VK_ASSERT(!vkCreateCommandPool(device->GetDevice(), &poolInfo, nullptr, &this->cmdPool),
             "Failed to create command pool.");
+
+        processCmdListsThread = std::thread(&CmdQueue::ProcessCmdLists, this);
     }
 
     CmdQueue::~CmdQueue() {
-        this->ProcessCmdLists(true);
+        shouldProcessCmdLists = false;
+        processCmdListsThread.join();
+
         std::queue<std::shared_ptr<CmdList>>().swap(this->idleCmdLists);
 
         vkDestroyCommandPool(this->device->GetDevice(), this->cmdPool, nullptr);
@@ -67,6 +71,7 @@ namespace Vk
             fence = std::shared_ptr<Fence>(new Fence("Submit Cmd List", this->device));
         vkQueueSubmit(this->queue, 1, &submitInfo, fence->GetFence());
 
+        std::lock_guard<std::mutex> guard(busyCmdListsMutex);
         this->busyCmdLists.push_back(InFlightCmdList{ fence, cmdList });
     }
 
@@ -78,28 +83,33 @@ namespace Vk
         return this->cmdPool;
     }
 
-    void CmdQueue::ProcessCmdLists(bool wait) {
-        List<u32> finishedIndices{};
-        for (u32 i = 0; i < busyCmdLists.size(); i++)
+    void CmdQueue::ProcessCmdLists() {
+
+        while (shouldProcessCmdLists)
         {
-            auto& busyCmdList = this->busyCmdLists[i];
-            if (busyCmdList.fence->IsComplete())
             {
-                busyCmdList.cmdList->Reset();
-                this->idleCmdLists.push(busyCmdList.cmdList);
-                finishedIndices.push_back(i);
+                busyCmdListsMutex.lock();
+                if (!busyCmdLists.empty())
+                {
+                    auto busyCmdList = this->busyCmdLists.front();
+
+                    busyCmdListsMutex.unlock();
+                    busyCmdList.fence->Wait();
+                    busyCmdListsMutex.lock();
+
+                    busyCmdList.cmdList->Reset();
+                    this->idleCmdLists.push(busyCmdList.cmdList);
+                    this->busyCmdLists.erase(this->busyCmdLists.begin());
+                }
+                busyCmdListsMutex.unlock();
             }
-        }
 
-        std::sort(finishedIndices.begin(), finishedIndices.end());
-
-        for (i32 i = finishedIndices.size() - 1; i >= 0; i--)
-        {
-            busyCmdLists.erase(busyCmdLists.begin() + finishedIndices[i]);
+            std::this_thread::yield();
         }
     }
 
     std::shared_ptr<CmdList> CmdQueue::GetCmdList(const String& name) {
+        std::lock_guard<std::mutex> guard(busyCmdListsMutex);
         if (this->idleCmdLists.empty()) {
             auto cmdList = std::shared_ptr<CmdList>(new CmdList(name, this->device, *this));
             cmdList->Begin();

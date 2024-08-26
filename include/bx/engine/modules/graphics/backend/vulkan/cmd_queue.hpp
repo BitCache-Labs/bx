@@ -1,11 +1,14 @@
 #pragma once
 
 #include "bx/engine/core/guard.hpp"
+#include "bx/engine/core/type.hpp"
 #include "bx/engine/containers/list.hpp"
 
 #include "vulkan_api.hpp"
 
 #include <queue>
+#include <thread>
+#include <mutex>
 
 namespace Vk
 {
@@ -22,8 +25,7 @@ namespace Vk
         CmdQueue(const std::shared_ptr<Device> device, const PhysicalDevice& physicalDevice,
             QueueType type);
         ~CmdQueue();
-
-        void ProcessCmdLists(bool wait = false);
+        
         std::shared_ptr<CmdList> GetCmdList(const String& name);
         void SubmitCmdList(std::shared_ptr<CmdList> cmdList, std::shared_ptr<Fence> fence,
             const List<Semaphore*>& waitSemaphores,
@@ -46,5 +48,11 @@ namespace Vk
 
         List<InFlightCmdList> busyCmdLists;
         std::queue<std::shared_ptr<CmdList>> idleCmdLists;
+
+        void ProcessCmdLists();
+        std::mutex busyCmdListsMutex;
+        std::mutex processCmdListsThreadMutex;
+        std::thread processCmdListsThread;
+        b8 shouldProcessCmdLists = true;
     };
 }
