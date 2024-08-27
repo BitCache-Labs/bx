@@ -114,6 +114,7 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Setup common engine sources
 set (BX_SRCS
+	"src/bx/engine/core/byte_types.cpp"
 	"src/bx/engine/core/data.cpp"
 	"src/bx/engine/core/ecs.cpp"
 	"src/bx/engine/core/file.cpp"

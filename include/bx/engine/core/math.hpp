@@ -105,6 +105,30 @@ namespace Math
 	{
         return AlignDown(value + alignment - 1, alignment);
     }
+
+	static f32 U32BitsToF32(u32 x)
+	{
+		union
+		{
+			u32 src;
+			f32 dst;
+		};
+
+		src = x;
+		return dst;
+	}
+
+	static u32 F32BitsToU32(f32 x)
+	{
+		union
+		{
+			f32 src;
+			u32 dst;
+		};
+
+		src = x;
+		return dst;
+	}
 }
 
 struct Vec2
@@ -128,6 +152,8 @@ struct Vec2
 	f32 Magnitude() const;
 	Vec2 Normalized() const;
 	Vec2 Abs() const;
+
+	Vec2 Yx() const;
 
 	void Set(f32 x, f32 y);
 
@@ -199,6 +225,9 @@ struct Vec3
 	Vec3 Normalized() const;
 	Vec3 Abs() const;
 
+	Vec2 Xy() const;
+	Vec2 Yx() const;
+
 	void Set(f32 x, f32 y, f32 z);
 
 	Vec3 AddScalar(f32 rhs) const;
@@ -239,6 +268,8 @@ struct Vec3
 	static Vec3 Up() { return Vec3(0, 1, 0); }
 	static Vec3 Forward() { return Vec3(0, 0, 1); }
 
+	static Vec3 Clamp(const Vec3& x, const Vec3& lo, const Vec3& hi);
+
 	static f32 Dot(const Vec3& a, const Vec3& b);
 
 	static Vec3 Lerp(const Vec3& a, const Vec3& b, f32 t);
@@ -248,6 +279,26 @@ struct Vec3
 	static Vec3 Cross(const Vec3& a, const Vec3& b);
 
 	static Vec3 FromValuePtr(f32* v);
+};
+
+struct Vec3u
+{
+	Vec3u() : data{ 0, 0, 0 } {}
+	Vec3u(u32 x, u32 y, u32 z)
+		: data{ x, y, z }
+	{}
+
+	union
+	{
+		u32 data[3];
+		struct { u32 x, y, z; };
+	};
+
+	//i32 At(i32 i);
+	inline u32& operator[](u32 i) { return data[i]; }
+	inline const u32& operator[](u32 i) const { return data[i]; }
+
+	static Vec3u FromValuePtr(u32* v);
 };
 
 struct Vec4
@@ -497,4 +548,30 @@ struct Box3
 			&& min.y <= other.max.y && max.y >= other.min.y
 			&& min.z <= other.max.z && max.z >= other.min.z;
 	}
+};
+
+namespace Packing
+{
+	u32 Pack2xF16(f16 data[2]);
+	u32 Pack4xU8(u8 data[4]);
+}
+
+// pack a hdr rgb value in a u32
+struct PackedRgb9e5
+{
+	PackedRgb9e5() = default;
+	PackedRgb9e5(Vec3 rgb);
+	Vec3 Unpack() const;
+
+	u32 data;
+};
+
+// Pack an unit vector in a u32
+struct PackedNormalizedXyz10
+{
+	PackedNormalizedXyz10() = default;
+	PackedNormalizedXyz10(Vec3 dir, u32 offset = 0);
+	Vec3 Unpack(u32 offset = 0) const;
+
+	u32 data;
 };

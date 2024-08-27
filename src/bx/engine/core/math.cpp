@@ -72,6 +72,11 @@ Vec2 Vec2::Abs() const
 	return Vec2(fabsf(x), fabsf(y));
 }
 
+Vec2 Vec2::Yx() const
+{
+	return Vec2(y, x);
+}
+
 void Vec2::Set(f32 x, f32 y)
 {
 	data[0] = x;
@@ -182,6 +187,16 @@ Vec3 Vec3::Abs() const
 	return Vec3(fabsf(x), fabsf(y), fabsf(z));
 }
 
+Vec2 Vec3::Xy() const
+{
+	return Vec2(x, y);
+}
+
+Vec2 Vec3::Yx() const
+{
+	return Vec2(y, x);
+}
+
 void Vec3::Set(f32 x, f32 y, f32 z)
 {
 	data[0] = x;
@@ -242,6 +257,15 @@ Vec3 Vec3::Div(const Vec3& rhs) const
 	return Vec3::FromValuePtr(glm::value_ptr(v));
 }
 
+Vec3 Vec3::Clamp(const Vec3& x, const Vec3& lo, const Vec3& hi)
+{
+	return Vec3(
+		Math::Clamp(x.x, lo.x, hi.x),
+		Math::Clamp(x.y, lo.y, hi.y),
+		Math::Clamp(x.z, lo.z, hi.z)
+	);
+}
+
 f32 Vec3::Dot(const Vec3& a, const Vec3& b)
 {
 	return glm::dot(glm::make_vec3(a.data), glm::make_vec3(b.data));
@@ -268,6 +292,13 @@ Vec3 Vec3::FromValuePtr(f32* vptr)
 {
 	Vec3 v;
 	memcpy(v.data, vptr, sizeof(Vec3));
+	return v;
+}
+
+Vec3u Vec3u::FromValuePtr(u32* vptr)
+{
+	Vec3u v;
+	memcpy(v.data, vptr, sizeof(Vec3u));
 	return v;
 }
 
@@ -1533,3 +1564,99 @@ Mat4 Mat4::FromValuePtr(f32* vptr)
 }
 
 #endif // USE_GLM_IMPL
+
+namespace Packing
+{
+	u32 Pack2xF16(f16 data[2])
+	{
+		return static_cast<u32>(data[0].data) | (static_cast<u32>(data[1].data) >> 16);
+	}
+
+	u32 Pack4xU8(u8 data[4])
+	{
+		return (u32)data[0] >> 24 | (u32)data[1] >> 16 | (u32)data[2] >> 8 | (u32)data[3];
+	}
+}
+
+// https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/Shaders/PixelPacking_RGBE.hlsli
+// Copyright (c) Microsoft. All rights reserved.
+// This code is licensed under the MIT License (MIT).
+PackedRgb9e5::PackedRgb9e5(Vec3 rgb)
+{
+	using namespace Math;
+
+	float max_val = U32BitsToF32(0x477F8000u);
+	float min_val = U32BitsToF32(0x37800000u);
+	Vec3 clamped_rgb = Vec3::Clamp(rgb, Vec3::Splat(0.0f), Vec3::Splat(max_val));
+	float max_channel = Max(Max(min_val, clamped_rgb.x), Max(clamped_rgb.y, clamped_rgb.z));
+	float bias = U32BitsToF32((F32BitsToU32(max_channel) + 0x07804000u) & 0x7F800000u);
+	rgb = clamped_rgb + bias;
+	Vec3u rgbui = Vec3u(
+		F32BitsToU32(rgb.x),
+		F32BitsToU32(rgb.y),
+		F32BitsToU32(rgb.z)
+	);
+	u32 e = (F32BitsToU32(bias) << 4u) + 0x10000000u;
+	data = e | rgbui.z << 18 | rgbui.y << 9 | (rgbui.x & 0x1FFu);
+}
+
+// https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/Shaders/PixelPacking_RGBE.hlsli
+// Copyright (c) Microsoft. All rights reserved.
+// This code is licensed under the MIT License (MIT).
+Vec3 PackedRgb9e5::Unpack() const
+{
+	Vec3 rgb = Vec3(data & 0x1FFu, (data >> 9) & 0x1FFu, (data >> 18) & 0x1FFu);
+	u32 l = (data >> 27) - 24;
+	return Vec3(
+		std::ldexp(rgb.x, l),
+		std::ldexp(rgb.y, l),
+		std::ldexp(rgb.z, l)
+	);
+}
+
+// Inspired by https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
+Vec2 DirOctQuadEncode(Vec3 dir)
+{
+	Vec2 ret_val = dir.Xy() / (abs(dir.x) + abs(dir.y) + abs(dir.z));
+	if (dir.z < 0.0f) {
+		Vec2 signs = Vec2(ret_val.x >= 0.0f ? 1.0f : -1.0f, ret_val.y >= 0.0f ? 1.0f : -1.0f);
+		ret_val = (Vec2::Splat(1.0) - ret_val.Yx().Abs()) * signs;
+	}
+	return ret_val * 0.5 + 0.5;
+}
+
+// Inspired by https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
+Vec3 DirOctQuadDecode(Vec2 encoded_in)
+{
+	Vec2 encoded = encoded_in * 2.0 - 1.0;
+	Vec3 n = Vec3(encoded.x, encoded.y, 1.0 - abs(encoded.x) - abs(encoded.y));
+	float t = Math::Clamp(-n.z, 0.0f, 1.0f);
+	Vec2 added = Vec2(n.x >= 0.0 ? -t : t, n.y >= 0.0 ? -t : t);
+	n.x += added.x;
+	n.y += added.y;
+	return n.Normalized();
+}
+
+u32 Pack30OctEncodedDir(Vec2 oct_encoded_dir, u32 offset)
+{
+	return ((u32(round(oct_encoded_dir.y * float(0x7fff))) << 15) |
+		u32(round(oct_encoded_dir.x * float(0x7fff))))
+		<< offset;
+}
+
+Vec2 Unpack30OctEncodedDir(u32 packed, u32 offset)
+{
+	return Vec2(float((packed >> offset) & 0x7fff) / float(0x7fff),
+		float((packed >> (offset + 15)) & 0x7fff) / float(0x7fff));
+}
+
+PackedNormalizedXyz10::PackedNormalizedXyz10(Vec3 dir, u32 offset)
+{
+	Vec2 oct_encoded_dir = DirOctQuadEncode(dir);
+	data = Pack30OctEncodedDir(oct_encoded_dir, offset);
+}
+
+Vec3 PackedNormalizedXyz10::Unpack(u32 offset) const
+{
+	return DirOctQuadDecode(Unpack30OctEncodedDir(data, offset));
+}

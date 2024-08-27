@@ -30,3 +30,17 @@ using CVoidPtr = const void*;
 
 using CharPtr = char*;
 using CCharPtr = const char*;
+
+struct f16
+{
+    f16() = default;
+    f16(const f16& other);
+    f16(f32 f);
+
+    f16& operator=(const f16& other);
+    f16& operator=(f32 f);
+
+    operator f32() const;
+
+    i16 data;
+};

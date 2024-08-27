@@ -191,17 +191,24 @@ void main()
         BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
 
         Triangle triangle = blasTriangles[intersection.primitiveIdx + blasAccessor.triangleOffset];
-        Vertex vertex0 = blasVertices[triangle.i0 + blasAccessor.vertexOffset];
-        Vertex vertex1 = blasVertices[triangle.i1 + blasAccessor.vertexOffset];
-        Vertex vertex2 = blasVertices[triangle.i2 + blasAccessor.vertexOffset];
+        PackedVertex vertex0 = blasVertices[triangle.i0 + blasAccessor.vertexOffset];
+        PackedVertex vertex1 = blasVertices[triangle.i1 + blasAccessor.vertexOffset];
+        PackedVertex vertex2 = blasVertices[triangle.i2 + blasAccessor.vertexOffset];
+
+        vec3 normal0 = unpackNormalizedXyz10(vertex0.normal, 0);
+        vec3 normal1 = unpackNormalizedXyz10(vertex1.normal, 0);
+        vec3 normal2 = unpackNormalizedXyz10(vertex2.normal, 0);
+        vec2 texCoord0 = unpackHalf2x16(vertex0.texCoord);
+        vec2 texCoord1 = unpackHalf2x16(vertex1.texCoord);
+        vec2 texCoord2 = unpackHalf2x16(vertex2.texCoord);
 
         vec3 barycentrics = barycentricsFromUv(intersection.uv);
-        vec3 normal = normalize(vertex0.normal * barycentrics.x
-            + vertex1.normal * barycentrics.y
-            + vertex2.normal * barycentrics.z);
-        vec2 texCoord = vertex0.texCoord * barycentrics.x
-            + vertex1.texCoord * barycentrics.y
-            + vertex2.texCoord * barycentrics.z;
+        vec3 normal = normalize(normal0 * barycentrics.x
+            + normal1 * barycentrics.y
+            + normal2 * barycentrics.z);
+        vec2 texCoord = texCoord0 * barycentrics.x
+            + texCoord1 * barycentrics.y
+            + texCoord2 * barycentrics.z;
 
         // Correct normal for transform and backface hits
         mat4 invTransTransform = transpose(blasInstance.invTransform);

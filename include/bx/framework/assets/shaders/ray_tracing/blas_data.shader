@@ -48,7 +48,7 @@ layout(BINDING(1, 3), std430) readonly buffer _BlasTriangles
 
 layout(BINDING(1, 4), std430) readonly buffer _BlasVertices
 {
-    Vertex blasVertices[];
+    PackedVertex blasVertices[];
 };
 
 layout(BINDING(1, 5), std430) readonly buffer _BlasEmissiveInstanceIndices

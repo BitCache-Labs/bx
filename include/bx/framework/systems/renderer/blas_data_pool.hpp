@@ -28,6 +28,19 @@ public:
 		u32 _PADDING1;
 	};
 
+	struct PackedVertex
+	{
+		Vec3 position;
+		u32 _PADDING0;
+		Vec3 tangent; // TODO: encode
+		u32 texCoord;
+		Vec4 weights; // TODO: encode
+		PackedNormalizedXyz10 normal;
+		PackedRgb9e5 color;
+		u32 bones;
+		u32 _PADDING1;
+	};
+
 public:
 	BlasDataPool();
 	~BlasDataPool();

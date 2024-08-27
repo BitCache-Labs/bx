@@ -38,7 +38,7 @@ BlasDataPool::BlasDataPool()
 
     BufferCreateInfo blasVerticesCreateInfo{};
     blasVerticesCreateInfo.name = "Blas Vertices Buffer";
-    blasVerticesCreateInfo.size = MAX_BLAS_VERTICES * sizeof(Mesh::Vertex);
+    blasVerticesCreateInfo.size = MAX_BLAS_VERTICES * sizeof(PackedVertex);
     blasVerticesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST;
     blasVerticesBuffer = Graphics::CreateBuffer(blasVerticesCreateInfo);
 
@@ -62,6 +62,20 @@ BlasDataPool::~BlasDataPool()
 BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
 {
     const List<Mesh::Vertex> vertices = mesh.BuildVertices();
+    List<PackedVertex> packedVertices(vertices.size());
+    for (u32 i = 0; i < vertices.size(); i++)
+    {
+        const auto& vertex = vertices[i];
+        packedVertices[i].position = vertex.position;
+        packedVertices[i].tangent = vertex.tangent;
+        f16 uv[2] = { vertex.uv.x, vertex.uv.y };
+        packedVertices[i].texCoord = Packing::Pack2xF16(uv);
+        packedVertices[i].weights = vertex.weights;
+        packedVertices[i].normal = PackedNormalizedXyz10(vertex.normal);
+        packedVertices[i].color = PackedRgb9e5(vertex.color.Xyz());
+        //packedVertices[i].bones = Packing::Pack4xU8(vertex.bones); TODO!
+    }
+
     const List<Mesh::Triangle> triangles = mesh.BuildTriangles();
 
     BlasAccessor accessor{};
@@ -72,8 +86,8 @@ BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
     
     Graphics::WriteBuffer(blasAccessorsBuffer, blasAccessorCount * sizeof(BlasAccessor), &accessor, sizeof(BlasAccessor));
     blasAccessorCount++;
-    Graphics::WriteBuffer(blasVerticesBuffer, blasVerticesCount * sizeof(Mesh::Vertex), vertices.data(), vertices.size() * sizeof(Mesh::Vertex));
-    blasVerticesCount += vertices.size();
+    Graphics::WriteBuffer(blasVerticesBuffer, blasVerticesCount * sizeof(PackedVertex), packedVertices.data(), packedVertices.size() * sizeof(PackedVertex));
+    blasVerticesCount += packedVertices.size();
     Graphics::WriteBuffer(blasTrianglesBuffer, blasTriangleCount * sizeof(Mesh::Triangle), triangles.data(), triangles.size() * sizeof(Mesh::Triangle));
     blasTriangleCount += triangles.size();
 
