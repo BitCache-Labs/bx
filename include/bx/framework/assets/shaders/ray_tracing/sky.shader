@@ -29,6 +29,11 @@ float sunIntensity(float zenithAngleCos)
     return intensity;
 }
 
+float sunSolidAngle()
+{
+    return TWO_PI * (1.0 - cos(skyConstants.sunSize * 0.1));
+}
+
 vec3 sampleSunDirection(vec2 uv)
 {
 	return normalize(perturbDirectionVector(uv, -skyConstants.sunDirection, skyConstants.sunSize * 0.1));

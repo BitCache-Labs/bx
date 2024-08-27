@@ -18,6 +18,8 @@ public:
 	inline const Vec4& GetBaseColorFactor() const { return m_baseColorFactor; }
 	inline void SetBaseColorFactor(const Vec4& baseColorFactor) { m_baseColorFactor = baseColorFactor; }
 
+	inline b8 IsEmissive() const { return m_isEmissive; }
+
 	inline Resource<Texture>& GetTexture(const String& name) { return m_textures[name]; }
 	inline void RemoveTexture(const String& name) { m_textures.erase(m_textures.find(name)); }
 	inline const HashMap<String, Resource<Texture>>& GetTextures() const { return m_textures; }
@@ -43,5 +45,8 @@ private:
 	mutable HashMap<BindGroupLayoutHandle, BindGroupHandle> m_bindGroupCache;
 
 	Vec4 m_baseColorFactor = Vec4(1, 1, 1, 1);
+
+	b8 m_isEmissive = false;
+
 	HashMap<String, Resource<Texture>> m_textures;
 };

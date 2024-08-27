@@ -833,6 +833,11 @@ public:
 				textureName = "";
 			}
 
+			if (ImGui::Checkbox("Is Emissive", &data.m_isEmissive))
+			{
+				changed = true;
+			}
+
 			ImGui::Unindent(10);
 		}
 		ImGui::Spacing();

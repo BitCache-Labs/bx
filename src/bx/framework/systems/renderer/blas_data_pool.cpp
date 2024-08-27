@@ -27,6 +27,12 @@ BlasDataPool::BlasDataPool()
     blasVerticesCreateInfo.size = MAX_BLAS_VERTICES * sizeof(Mesh::Vertex);
     blasVerticesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST;
     blasVerticesBuffer = Graphics::CreateBuffer(blasVerticesCreateInfo);
+
+    BufferCreateInfo blasEmissiveTriangleIndicesCreateInfo{};
+    blasEmissiveTriangleIndicesCreateInfo.name = "Blas Emissive Instance Indices Buffer";
+    blasEmissiveTriangleIndicesCreateInfo.size = MAX_BLAS_INSTANCES * sizeof(u32);
+    blasEmissiveTriangleIndicesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST;
+    blasEmissiveInstanceIndicesBuffer = Graphics::CreateBuffer(blasEmissiveTriangleIndicesCreateInfo);
 }
 
 BlasDataPool::~BlasDataPool()
@@ -35,6 +41,7 @@ BlasDataPool::~BlasDataPool()
     Graphics::DestroyBuffer(blasInstancesBuffer);
     Graphics::DestroyBuffer(blasTrianglesBuffer);
     Graphics::DestroyBuffer(blasVerticesBuffer);
+    Graphics::DestroyBuffer(blasEmissiveInstanceIndicesBuffer);
 }
 
 BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
@@ -46,6 +53,7 @@ BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
     accessor.vertexCount = vertices.size();
     accessor.vertexOffset = blasVerticesCount;
     accessor.triangleOffset = blasTriangleCount;
+    accessor.triangleCount = triangles.size();
     
     Graphics::WriteBuffer(blasAccessorsBuffer, blasAccessorCount * sizeof(BlasAccessor), &accessor, sizeof(BlasAccessor));
     blasAccessorCount++;
@@ -54,10 +62,23 @@ BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
     Graphics::WriteBuffer(blasTrianglesBuffer, blasTriangleCount * sizeof(Mesh::Triangle), triangles.data(), triangles.size() * sizeof(Mesh::Triangle));
     blasTriangleCount += triangles.size();
 
+    //if (isEmissive)
+    //{
+    //    // TODO: precreate these during mesh import process
+    //    List<u32> indices(triangles.size());
+    //    for (u32 i = 0; i < triangles.size(); i++)
+    //    {
+    //        indices[i] = i;
+    //    }
+
+    //    Graphics::WriteBuffer(blasEmissiveTriangleIndicesBuffer, blasEmissiveTriangleCount * sizeof(u32), indices.data(), indices.size() * sizeof(u32));
+    //    blasEmissiveTriangleCount += triangles.size();
+    //}
+
     return accessor;
 }
 
-void BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx)
+void BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx, b8 isEmissive)
 {
     u32 blasIdx;
     auto accessorIndexIter = blasAccessorIndices.find(resourceHandle);
@@ -79,6 +100,12 @@ void BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandl
     blasInstance.blasIdx = blasIdx;
     blasInstance.materialIdx = materialIdx;
     pendingInstances.push_back(blasInstance);
+
+    if (isEmissive)
+    {
+        pendingEmissiveInstanceIndices.push_back(pendingInstances.size() - 1);
+        pendingEmissiveTriangleCount += mesh.GetIndices().size() / 3;
+    }
 }
 
 void BlasDataPool::Submit()
@@ -87,6 +114,12 @@ void BlasDataPool::Submit()
     {
         Graphics::WriteBuffer(blasInstancesBuffer, 0, pendingInstances.data(), pendingInstances.size() * sizeof(BlasInstance));
         pendingInstances.clear();
+
+        pendingEmissiveInstanceIndices[0] = pendingEmissiveTriangleCount;
+        pendingEmissiveInstanceIndices[1] = pendingEmissiveInstanceIndices.size() - 2;
+        Graphics::WriteBuffer(blasEmissiveInstanceIndicesBuffer, 0, pendingEmissiveInstanceIndices.data(), pendingEmissiveInstanceIndices.size() * sizeof(u32));
+        pendingEmissiveInstanceIndices = List<u32>(2);
+        pendingEmissiveTriangleCount = 0;
     }
 }
 
@@ -96,7 +129,8 @@ BindGroupLayoutDescriptor BlasDataPool::GetBindGroupLayout()
             BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // blasAccessors
             BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // blasInstances
             BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // blasTriangles
-            BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true))      // blasVertices
+            BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // blasVertices
+            BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true))      // blasEmissiveTriangleIndices
     });
 }
 
@@ -110,6 +144,7 @@ BindGroupHandle BlasDataPool::CreateBindGroup(ComputePipelineHandle pipeline) co
         BindGroupEntry(1, BindingResource::Buffer(blasInstancesBuffer)),
         BindGroupEntry(2, BindingResource::Buffer(blasTrianglesBuffer)),
         BindGroupEntry(3, BindingResource::Buffer(blasVerticesBuffer)),
+        BindGroupEntry(4, BindingResource::Buffer(blasEmissiveInstanceIndicesBuffer))
     };
     return Graphics::CreateBindGroup(createInfo);
 }

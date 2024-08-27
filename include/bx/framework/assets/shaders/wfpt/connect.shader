@@ -55,7 +55,7 @@ void main()
         
         vec3 emission = vec3(0.6, 0.6, 0.5); // TODO: sun sampling
         
-        vec3 lightingContribution = throughput * emission;// pdf
+        vec3 lightingContribution = (throughput * emission) / payload.directIlluminationPdf;
         
         accumulated += lightingContribution;
         

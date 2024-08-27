@@ -8,7 +8,7 @@ struct Payload
 	PackedRgb9e5 accumulated;
 	PackedRgb9e5 throughput;
 	uint rngState;
-	uint _PADDING0;
+	float directIlluminationPdf;
 };
 
 #endif // PAYLOAD_H

@@ -4,6 +4,7 @@
 #include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
+#include "[engine]/shaders/ray_tracing/sample.shader"
 
 #define MATERIAL_BINDINGS
 #include "[engine]/shaders/ray_tracing/material.shader"
@@ -77,6 +78,60 @@ layout(BINDING(0, 12), std430) writeonly buffer _ShadowPixelMapping
 {
     uint shadowPixelMapping[];
 };
+
+Sample sampleUniformLight(vec4 random, vec3 p)
+{
+    float sunPickProbability = 0.5;
+    if (random.x < sunPickProbability)
+    {
+        Sample lightSample;
+        lightSample.directionToLight = sampleSunDirection(random.yz);
+        lightSample.distanceToLight = 10000.0;
+        lightSample.pdf = sunPickProbability;//sunPickProbability * (1.0 / sunSolidAngle());
+        return lightSample;
+    }
+
+    uint emissiveTriangleCount = blasEmissiveInstanceIndices[0];
+    uint instanceCount = blasEmissiveInstanceIndices[1];
+
+    uint pickedTriangleIdx = uint(random.y * float(emissiveTriangleCount));
+
+    uint offset = 0;
+    for (uint i = 0; i < instanceCount; i++)
+    {
+        BlasInstance instance = blasInstances[blasEmissiveInstanceIndices[i + 2]];
+        BlasAccessor blas = blasAccessors[instance.blasIdx];
+
+        if (pickedTriangleIdx < blas.triangleCount + offset)
+        {
+            uint triangleIndex = pickedTriangleIdx - offset;
+            uint triangleOffset = blas.triangleOffset;
+            uint vertexOffset = blas.vertexOffset;
+
+            Triangle triangle = transformedTriangle(blasTriangles[triangleIndex + triangleOffset], inverse(instance.invTransform));
+            vec3 barycentrics = barycentricsFromUv(random.zw);
+            vec3 samplePosition = triangle.p0 * barycentrics.x + triangle.p1 * barycentrics.y + triangle.p2 * barycentrics.z;
+
+            vec3 directionToLight = samplePosition - p;
+            float distanceToLight = length(directionToLight);
+            directionToLight = normalize(directionToLight);
+
+            //float area = areaOfTriangle(triangle);
+            float pdf = 1.0 / float(emissiveTriangleCount);//(distanceToLight * distanceToLight) / (abs(directionToLight.y) * area);
+            pdf *= (1.0 - sunPickProbability);
+
+            Sample lightSample;
+            lightSample.directionToLight = directionToLight;
+            lightSample.distanceToLight = distanceToLight;
+            lightSample.pdf = pdf;
+            return lightSample;
+        }
+        else
+        {
+            offset += blas.triangleCount;
+        }
+    }
+}
 
 void shootRay(vec3 origin, vec3 direction, uint pid)
 {
@@ -182,11 +237,15 @@ void main()
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         { // Direct illumination
+            Sample lightSample = sampleUniformLight(randomUniformFloat4(payload.rngState), intersectionPos);
+            
             vec3 origin = intersectionPos;
-            vec3 direction = sampleSunDirection(randomUniformFloat2(payload.rngState));
+            vec3 direction = lightSample.directionToLight;
             origin += direction * RT_EPSILON;
-
-            shootShadowRay(origin, direction, 1000.0, pid);
+            
+            payload.directIlluminationPdf = lightSample.pdf;
+            
+            shootShadowRay(origin, direction, lightSample.distanceToLight, pid);
         }
 
         // Indirect illumination

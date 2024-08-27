@@ -42,7 +42,7 @@ struct Payload
     u32 accumulated;
     u32 throughput;
     u32 rngState;
-    u32 _PADDING0;
+    f32 directIlluminationPdf;
 };
 
 struct RaygenConstants

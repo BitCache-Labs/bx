@@ -18,4 +18,16 @@ float areaOfTriangle(Triangle triangle)
 	return length(cross(p01, p02)) * 0.5;
 }
 
+Triangle transformedTriangle(Triangle triangle, mat4 transform)
+{
+	return Triangle(
+		(transform * vec4(triangle.p0, 1.0)).xyz,
+        triangle.i0,
+        (transform * vec4(triangle.p1, 1.0)).xyz,
+        triangle.i1,
+        (transform * vec4(triangle.p2, 1.0)).xyz,
+        triangle.i2
+	);
+}
+
 #endif // TRIANGLE_H

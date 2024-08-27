@@ -16,7 +16,7 @@ public:
 		u32 vertexOffset;
 		u32 vertexCount;
 		u32 triangleOffset;
-		u32 _PADDING0;
+		u32 triangleCount;
 	};
 
 	struct BlasInstance
@@ -32,7 +32,7 @@ public:
 	BlasDataPool();
 	~BlasDataPool();
 
-	void SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx);
+	void SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx, b8 isEmissive);
 	void Submit();
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline) const;
@@ -50,6 +50,7 @@ private:
 	BufferHandle blasInstancesBuffer = BufferHandle::null;
 	BufferHandle blasTrianglesBuffer = BufferHandle::null;
 	BufferHandle blasVerticesBuffer = BufferHandle::null;
+	BufferHandle blasEmissiveInstanceIndicesBuffer = BufferHandle::null;
 
 	u32 blasAccessorCount = 0;
 	u32 blasTriangleCount = 0;
@@ -59,6 +60,8 @@ private:
 	List<BlasAccessor> blasAccessors;
 
 	List<BlasInstance> pendingInstances{};
+	List<u32> pendingEmissiveInstanceIndices = List<u32>(2);
+	u32 pendingEmissiveTriangleCount = 0;
 
 	BlasAccessor AllocateBlas(const Mesh& mesh);
 };

@@ -9,7 +9,7 @@ struct BlasAccessor
 	uint vertexOffset;
 	uint vertexCount;
 	uint triangleOffset;
-	uint _PADDING0;
+	uint triangleCount;
 };
 
 struct BlasInstance
@@ -41,6 +41,13 @@ layout(BINDING(1, 2), std430) readonly buffer _BlasTriangles
 layout(BINDING(1, 3), std430) readonly buffer _BlasVertices
 {
     Vertex blasVertices[];
+};
+
+layout(BINDING(1, 4), std430) readonly buffer _BlasEmissiveInstanceIndices
+{
+	// TODO: put these counters in a const buffer
+	// Where element 0 is the total emissive triangle count, element 1 is instance count
+	uint blasEmissiveInstanceIndices[];
 };
 
 #endif // BLAS_DATA_BINDINGS

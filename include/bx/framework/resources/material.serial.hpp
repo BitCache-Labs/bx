@@ -22,6 +22,7 @@ public:
 	{
 		ar(cereal::make_nvp("shader", data.m_shader));
 		ar(cereal::make_nvp("textures", data.m_textures));
+		ar(cereal::make_nvp("isEmissive", data.m_isEmissive));
 	}
 
 	template<class Archive>
@@ -29,6 +30,7 @@ public:
 	{
 		ar(cereal::make_nvp("shader", data.m_shader));
 		ar(cereal::make_nvp("textures", data.m_textures));
+		ar(cereal::make_nvp("isEmissive", data.m_isEmissive));
 	}
 };
 REGISTER_SERIAL(Material);

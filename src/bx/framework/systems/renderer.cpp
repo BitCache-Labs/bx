@@ -76,7 +76,7 @@ void Renderer::UpdateTlas()
                 Mat4 matrix = trx.GetMatrix() * mesh->GetMatrix();
 
                 u32 materialIdx = m_materialPool->SubmitInstance(material.GetData(), material.GetHandle());
-                m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), matrix.Inverse(), materialIdx);
+                m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), matrix.Inverse(), materialIdx, material.GetData().IsEmissive());
 
                 BlasInstance blasInstance{};
                 blasInstance.transform = matrix;
