@@ -91,15 +91,15 @@ Sample sampleUniformLight(vec4 random, vec3 p)
         return lightSample;
     }
 
-    uint emissiveTriangleCount = blasEmissiveInstanceIndices[0];
-    uint instanceCount = blasEmissiveInstanceIndices[1];
+    uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
+    uint instanceCount = blasDataConstants.emissiveInstanceCount;
 
     uint pickedTriangleIdx = uint(random.y * float(emissiveTriangleCount));
 
     uint offset = 0;
     for (uint i = 0; i < instanceCount; i++)
     {
-        BlasInstance instance = blasInstances[blasEmissiveInstanceIndices[i + 2]];
+        BlasInstance instance = blasInstances[blasEmissiveInstanceIndices[i]];
         BlasAccessor blas = blasAccessors[instance.blasIdx];
 
         if (pickedTriangleIdx < blas.triangleCount + offset)

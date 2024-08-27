@@ -46,6 +46,7 @@ public:
 	constexpr static u32 MAX_BLAS_VERTICES = 1024 * 1024;
 
 private:
+	BufferHandle blasDataConstantsBuffer = BufferHandle::null;
 	BufferHandle blasAccessorsBuffer = BufferHandle::null;
 	BufferHandle blasInstancesBuffer = BufferHandle::null;
 	BufferHandle blasTrianglesBuffer = BufferHandle::null;
@@ -60,7 +61,7 @@ private:
 	List<BlasAccessor> blasAccessors;
 
 	List<BlasInstance> pendingInstances{};
-	List<u32> pendingEmissiveInstanceIndices = List<u32>(2);
+	List<u32> pendingEmissiveInstanceIndices{};
 	u32 pendingEmissiveTriangleCount = 0;
 
 	BlasAccessor AllocateBlas(const Mesh& mesh);

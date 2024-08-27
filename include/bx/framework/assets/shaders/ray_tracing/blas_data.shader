@@ -23,27 +23,35 @@ struct BlasInstance
 
 #ifdef BLAS_DATA_BINDINGS
 
-layout(BINDING(1, 0), std430) readonly buffer _BlasAccessors
+layout (BINDING(1, 0), std140) uniform _BlasDataConstants
+{
+	uint emissiveTriangleCount;
+    uint emissiveInstanceCount;
+	uint _PADDING0;
+	uint _PADDING1;
+} blasDataConstants;
+
+layout(BINDING(1, 1), std430) readonly buffer _BlasAccessors
 {
     BlasAccessor blasAccessors[];
 };
 
-layout(BINDING(1, 1), std430) readonly buffer _BlasInstances
+layout(BINDING(1, 2), std430) readonly buffer _BlasInstances
 {
     BlasInstance blasInstances[];
 };
 
-layout(BINDING(1, 2), std430) readonly buffer _BlasTriangles
+layout(BINDING(1, 3), std430) readonly buffer _BlasTriangles
 {
     Triangle blasTriangles[];
 };
 
-layout(BINDING(1, 3), std430) readonly buffer _BlasVertices
+layout(BINDING(1, 4), std430) readonly buffer _BlasVertices
 {
     Vertex blasVertices[];
 };
 
-layout(BINDING(1, 4), std430) readonly buffer _BlasEmissiveInstanceIndices
+layout(BINDING(1, 5), std430) readonly buffer _BlasEmissiveInstanceIndices
 {
 	// TODO: put these counters in a const buffer
 	// Where element 0 is the total emissive triangle count, element 1 is instance count
