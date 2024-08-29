@@ -81,7 +81,9 @@ layout(BINDING(0, 12), std430) writeonly buffer _ShadowPixelMapping
 
 Sample sampleUniformLight(vec4 random, vec3 p)
 {
-    float sunPickProbability = 0.5;
+    uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
+
+    float sunPickProbability = emissiveTriangleCount == 0 ? 1.0 : 0.5;
     if (random.x < sunPickProbability)
     {
         Sample lightSample;
@@ -91,9 +93,7 @@ Sample sampleUniformLight(vec4 random, vec3 p)
         return lightSample;
     }
 
-    uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
     uint instanceCount = blasDataConstants.emissiveInstanceCount;
-
     uint pickedTriangleIdx = uint(random.y * float(emissiveTriangleCount));
 
     uint offset = 0;

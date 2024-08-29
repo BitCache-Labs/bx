@@ -1569,7 +1569,15 @@ namespace Packing
 {
 	u32 Pack2xF16(f16 data[2])
 	{
-		return static_cast<u32>(data[0].data) | (static_cast<u32>(data[1].data) >> 16);
+		union
+		{
+			signed short in[2];
+			u32 out;
+		};
+
+		in[0] = data[0].data;
+		in[1] = data[1].data;
+		return out;
 	}
 
 	u32 Pack4xU8(u8 data[4])
