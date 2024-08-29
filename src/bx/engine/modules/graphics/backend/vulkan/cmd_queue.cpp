@@ -91,11 +91,11 @@ namespace Vk
                 busyCmdListsMutex.lock();
                 if (!busyCmdLists.empty())
                 {
-                    auto busyCmdList = this->busyCmdLists.front();
+                    InFlightCmdList busyCmdList = this->busyCmdLists.front();
 
-                    busyCmdListsMutex.unlock();
+                    //busyCmdListsMutex.unlock();
                     busyCmdList.fence->Wait();
-                    busyCmdListsMutex.lock();
+                    //busyCmdListsMutex.lock();
 
                     busyCmdList.cmdList->Reset();
                     this->idleCmdLists.push(busyCmdList.cmdList);

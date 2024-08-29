@@ -135,9 +135,13 @@ void BlasDataPool::Submit()
         constants.emissiveInstanceCount = pendingEmissiveInstanceIndices.size();
         constants.emissiveTriangleCount = pendingEmissiveTriangleCount;
         Graphics::WriteBuffer(blasDataConstantsBuffer, 0, &constants);
-        Graphics::WriteBuffer(blasEmissiveInstanceIndicesBuffer, 0, pendingEmissiveInstanceIndices.data(), pendingEmissiveInstanceIndices.size() * sizeof(u32));
-        pendingEmissiveInstanceIndices.clear();
-        pendingEmissiveTriangleCount = 0;
+
+        if (!pendingEmissiveInstanceIndices.empty())
+        {
+            Graphics::WriteBuffer(blasEmissiveInstanceIndicesBuffer, 0, pendingEmissiveInstanceIndices.data(), pendingEmissiveInstanceIndices.size() * sizeof(u32));
+            pendingEmissiveInstanceIndices.clear();
+            pendingEmissiveTriangleCount = 0;
+        }
     }
 }
 
