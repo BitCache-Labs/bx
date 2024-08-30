@@ -5,6 +5,7 @@
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/ray_tracing/sample.shader"
+#include "[engine]/shaders/ray_tracing/restir.shader"
 
 #define MATERIAL_BINDINGS
 #include "[engine]/shaders/ray_tracing/material.shader"
@@ -246,13 +247,16 @@ void main()
         { // Direct illumination
             Sample lightSample = sampleUniformLight(randomUniformFloat4(payload.rngState), intersectionPos);
             
-            vec3 origin = intersectionPos;
-            vec3 direction = lightSample.directionToLight;
-            origin += direction * RT_EPSILON;
-            
-            payload.directIlluminationPdf = lightSample.pdf;
-            
-            shootShadowRay(origin, direction, lightSample.distanceToLight, pid);
+            if (dot(lightSample.directionToLight, normal) > 0.0)
+            {
+                vec3 origin = intersectionPos;
+                vec3 direction = lightSample.directionToLight;
+                origin += direction * RT_EPSILON;
+                
+                payload.directIlluminationPdf = lightSample.pdf;
+                
+                shootShadowRay(origin, direction, lightSample.distanceToLight, pid);
+            }
         }
 
         // Indirect illumination
