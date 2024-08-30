@@ -83,7 +83,7 @@ Sample sampleUniformLight(vec4 random, vec3 p)
 {
     uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
 
-    float sunPickProbability = emissiveTriangleCount == 0 ? 1.0 : 0.5;
+    float sunPickProbability = 0.0;//emissiveTriangleCount == 0 ? 1.0 : 0.5;
     if (random.x < sunPickProbability)
     {
         Sample lightSample;
@@ -159,7 +159,7 @@ void shootShadowRay(vec3 origin, vec3 direction, float tMax, uint pid)
 vec3 shadeSky(vec3 direction, vec3 throughput)
 {
     float a = (direction.y + 1.0) * 0.5;
-    vec3 color = (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
+    vec3 color = vec3(0.0);//(1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
 
     return color * throughput;
 }
