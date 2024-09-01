@@ -13,7 +13,7 @@ namespace Vk
     GraphicsPipeline::GraphicsPipeline(
         std::shared_ptr<Device> device, const std::vector<const Shader*>& shaders,
         std::shared_ptr<RenderPass> renderPass,
-        const std::vector<std::shared_ptr<DescriptorSetLayout>>& descriptorSetLayouts,
+        const HashMap<u32, std::shared_ptr<DescriptorSetLayout>>& descriptorSetLayouts,
         std::vector<PushConstantRange> pushConstants, GraphicsPipelineInfo info)
         : info(info),
         device(device),
@@ -95,7 +95,7 @@ namespace Vk
 
         std::vector<VkDescriptorSetLayout> vkDescriptorSetLayouts{};
         for (auto& descriptorSetLayout : descriptorSetLayouts) {
-            vkDescriptorSetLayouts.push_back(descriptorSetLayout->GetLayout());
+            vkDescriptorSetLayouts.push_back(descriptorSetLayout.second->GetLayout());
         }
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

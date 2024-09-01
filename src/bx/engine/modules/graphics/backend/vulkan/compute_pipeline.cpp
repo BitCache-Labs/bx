@@ -11,7 +11,7 @@ namespace Vk
 {
     ComputePipeline::ComputePipeline(
         std::shared_ptr<Device> device, std::shared_ptr<Shader> shader,
-        List<std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts)
+        const HashMap<u32, std::shared_ptr<DescriptorSetLayout>>& descriptorSetLayouts)
         : device(device), descriptorSetLayouts(descriptorSetLayouts) {
         VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
         computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -22,7 +22,7 @@ namespace Vk
 
         std::vector<VkDescriptorSetLayout> vkDescriptorSetLayouts{};
         for (auto& descriptorSetLayout : descriptorSetLayouts) {
-            vkDescriptorSetLayouts.push_back(descriptorSetLayout->GetLayout());
+            vkDescriptorSetLayouts.push_back(descriptorSetLayout.second->GetLayout());
         }
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

@@ -14,7 +14,7 @@
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/ray_tracing/sample.shader"
-#include "[engine]/shaders/ray_tracing/restir.shader"
+#include "[engine]/shaders/restir/restir.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {

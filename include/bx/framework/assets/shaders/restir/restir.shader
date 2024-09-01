@@ -45,7 +45,7 @@ layout (BINDING(3, 0), std430) buffer _RestirSamples
     RestirSample restirSamples[];
 };
 
-layout (BINDING(3, 1), std430) buffer _RestirSamples
+layout (BINDING(3, 1), std430) buffer _RestirSamplesHistory
 {
     RestirSample restirSamplesHistory[];
 };

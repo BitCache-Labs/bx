@@ -27,8 +27,10 @@ namespace Vk
         else
             poolInfo.queueFamilyIndex = physicalDevice.PresentFamily();
 
-        VK_ASSERT(!vkCreateCommandPool(device->GetDevice(), &poolInfo, nullptr, &this->cmdPool),
+        VkCommandPool vkCmdPool;
+        VK_ASSERT(!vkCreateCommandPool(device->GetDevice(), &poolInfo, nullptr, &vkCmdPool),
             "Failed to create command pool.");
+        cmdPool = std::shared_ptr<Atomic<VkCommandPool>>(new Atomic<VkCommandPool>(vkCmdPool));
 
         processCmdListsThread = std::thread(&CmdQueue::ProcessCmdLists, this);
     }
@@ -39,7 +41,11 @@ namespace Vk
 
         std::queue<std::shared_ptr<CmdList>>().swap(this->idleCmdLists);
 
-        vkDestroyCommandPool(this->device->GetDevice(), this->cmdPool, nullptr);
+        cmdPool->Read([&](auto& cmdPool)
+            {
+                vkDestroyCommandPool(this->device->GetDevice(), cmdPool, nullptr);
+            });
+        
     }
 
     void CmdQueue::SubmitCmdList(std::shared_ptr<CmdList> cmdList, std::shared_ptr<Fence> fence,
@@ -79,12 +85,12 @@ namespace Vk
         return this->queue;
     }
 
-    VkCommandPool CmdQueue::GetCmdPool() const {
+    std::shared_ptr<Atomic<VkCommandPool>> CmdQueue::GetCmdPool() const {
         return this->cmdPool;
     }
 
-    void CmdQueue::ProcessCmdLists() {
-
+    void CmdQueue::ProcessCmdLists()
+    {
         while (shouldProcessCmdLists)
         {
             {
@@ -93,11 +99,10 @@ namespace Vk
                 {
                     InFlightCmdList busyCmdList = this->busyCmdLists.front();
 
-                    //busyCmdListsMutex.unlock();
+                    busyCmdListsMutex.unlock();
                     busyCmdList.fence->Wait();
-                    //busyCmdListsMutex.lock();
+                    busyCmdListsMutex.lock();
 
-                    busyCmdList.cmdList->Reset();
                     this->idleCmdLists.push(busyCmdList.cmdList);
                     this->busyCmdLists.erase(this->busyCmdLists.begin());
                 }
@@ -118,6 +123,7 @@ namespace Vk
         else {
             auto cmdList = this->idleCmdLists.front();
             this->idleCmdLists.pop();
+            cmdList->Reset();
             cmdList->Begin();
             return cmdList;
         }

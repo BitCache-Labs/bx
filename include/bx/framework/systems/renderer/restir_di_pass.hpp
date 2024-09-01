@@ -37,5 +37,8 @@ public:
 private:
 	u32 dispatchSize;
 
-	BindGroupHandle bindGroup;
+	BufferHandle spatialReuseConstantsBuffer;
+
+	BindGroupHandle spatialReuseBindGroup;
+	BindGroupHandle restirBindGroup;
 };

@@ -3,6 +3,7 @@
 #include "bx/engine/core/guard.hpp"
 #include "bx/engine/core/type.hpp"
 #include "bx/engine/containers/list.hpp"
+#include "bx/engine/containers/hash_map.hpp"
 
 #include "vulkan_api.hpp"
 
@@ -41,7 +42,7 @@ namespace Vk
         GraphicsPipeline(std::shared_ptr<Device> device,
             const List<const Shader*>& shaders,
             std::shared_ptr<RenderPass> renderPass,
-            const List<std::shared_ptr<DescriptorSetLayout>>& descriptorSetLayouts,
+            const HashMap<u32, std::shared_ptr<DescriptorSetLayout>>& descriptorSetLayouts,
             List<PushConstantRange> pushConstants, GraphicsPipelineInfo info);
         ~GraphicsPipeline();
 
@@ -57,6 +58,6 @@ namespace Vk
 
         const std::shared_ptr<Device> device;
         const std::shared_ptr<RenderPass> renderPass;
-        const List<std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts;
+        const HashMap<u32, std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts;
     };
 }

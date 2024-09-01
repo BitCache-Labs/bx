@@ -47,7 +47,7 @@ using namespace Vk;
 
 constexpr bool ENABLE_VALIDATION =
 #ifdef _DEBUG
-false;
+true;
 #else
 false;
 #endif
@@ -85,9 +85,9 @@ struct State : NoCopy
     HashMap<TextureViewHandle, TextureView> textureViews;
     HashMap<ShaderHandle, std::shared_ptr<Shader>> shaders;
     HashMap<GraphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>> graphicsPipelines;
-    HashMap<GraphicsPipelineHandle, const List<std::shared_ptr<DescriptorSetLayout>>> graphicsPipelineLayouts;
+    HashMap<GraphicsPipelineHandle, const HashMap<u32, std::shared_ptr<DescriptorSetLayout>>> graphicsPipelineLayouts;
     HashMap<ComputePipelineHandle, std::shared_ptr<ComputePipeline>> computePipelines;
-    HashMap<ComputePipelineHandle, const List<std::shared_ptr<DescriptorSetLayout>>> computePipelineLayouts;
+    HashMap<ComputePipelineHandle, const HashMap<u32, std::shared_ptr<DescriptorSetLayout>>> computePipelineLayouts;
     HashMap<BindGroupHandle, std::shared_ptr<DescriptorSet>> bindGroups;
     HashMap<BlasHandle, std::shared_ptr<Blas>> blases;
     HashMap<TlasHandle, std::shared_ptr<Tlas>> tlases;
@@ -519,7 +519,7 @@ GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCr
 
     s->graphicsPipelines.insert(std::make_pair(graphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>{}));
 
-    List<std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts{};
+    HashMap<u32, std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts{};
     for (auto& layout : createInfo.layout.bindGroupLayouts)
     {
         List<VkDescriptorSetLayoutBinding> bindings{};
@@ -534,7 +534,7 @@ GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCr
         }
 
         std::shared_ptr<DescriptorSetLayout> descriptorSetLayout(new DescriptorSetLayout(Log::Format("{} layout", createInfo.name.c_str()), s->device, bindings));
-        descriptorSetLayouts.push_back(descriptorSetLayout);
+        descriptorSetLayouts.insert(std::make_pair(layout.group, descriptorSetLayout));
     }
 
     s->graphicsPipelineLayouts.emplace(std::piecewise_construct,
@@ -561,7 +561,7 @@ ComputePipelineHandle Graphics::CreateComputePipeline(const ComputePipelineCreat
     ComputePipelineHandle computePipelineHandle = s->computePipelineHandlePool.Create();
     s_createInfoCache->computePipelineCreateInfos.insert(std::make_pair(computePipelineHandle, createInfo));
 
-    List<std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts{};
+    HashMap<u32, std::shared_ptr<DescriptorSetLayout>> descriptorSetLayouts{};
     for (auto& layout : createInfo.layout.bindGroupLayouts)
     {
         List<VkDescriptorSetLayoutBinding> bindings{};
@@ -576,7 +576,7 @@ ComputePipelineHandle Graphics::CreateComputePipeline(const ComputePipelineCreat
         }
 
         std::shared_ptr<DescriptorSetLayout> descriptorSetLayout(new DescriptorSetLayout(Log::Format("{} layout", createInfo.name.c_str()), s->device, bindings));
-        descriptorSetLayouts.push_back(descriptorSetLayout);
+        descriptorSetLayouts.insert(std::make_pair(layout.group, descriptorSetLayout));
     }
 
     auto shaderIter = s->shaders.find(createInfo.shader);
@@ -646,15 +646,17 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
     {
         auto layoutIter = s->graphicsPipelineLayouts.find(GraphicsPipelineHandle{ rawPipeline });
         BX_ENSURE(layoutIter != s->graphicsPipelineLayouts.end());
-        BX_ASSERT(layoutIndex < layoutIter->second.size(), "Layout index out of range.");
-        layout = layoutIter->second[layoutIndex];
+        auto bindGroupIter = layoutIter->second.find(layoutIndex);
+        BX_ASSERT(bindGroupIter != layoutIter->second.end(), "Layout index {} not found.", layoutIndex);
+        layout = bindGroupIter->second;
     }
     else
     {
         auto layoutIter = s->computePipelineLayouts.find(ComputePipelineHandle{ rawPipeline });
         BX_ENSURE(layoutIter != s->computePipelineLayouts.end());
-        BX_ASSERT(layoutIndex < layoutIter->second.size(), "Layout index out of range.");
-        layout = layoutIter->second[layoutIndex];
+        auto bindGroupIter = layoutIter->second.find(layoutIndex);
+        BX_ASSERT(bindGroupIter != layoutIter->second.end(), "Layout index {} not found.", layoutIndex);
+        layout = bindGroupIter->second;
     }
 
     std::shared_ptr<DescriptorSet> descriptorSet(new DescriptorSet(createInfo.name, s->device, s->descriptorPool, layout));

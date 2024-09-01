@@ -39,8 +39,7 @@ namespace Vk
     }
 
     void Fence::Wait() const {
-        // Allow for 2 seconds of stall
-        vkWaitForFences(this->device->GetDevice(), 1, &this->fence, true, 1e+9 * 2);
+        vkWaitForFences(this->device->GetDevice(), 1, &this->fence, true, std::numeric_limits<u64>::max());
     }
 
     void Fence::Reset() {
