@@ -37,11 +37,20 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
             uint vertexOffset = blas.vertexOffset;
 
             Triangle triangle = transformedTriangle(blasTriangles[triangleIndex + triangleOffset], inverse(instance.invTransform));
+            vec3 edge1 = triangle.p1 - triangle.p0;
+            vec3 edge2 = triangle.p2 - triangle.p0;
+            float area = calculateTriangleAreaFromEdges(edge1, edge2);
+            vec3 triangleNormal = normalize(cross(edge1, edge2));
             vec3 barycentrics = barycentricsFromUv(random.zw);
             vec3 samplePosition = triangle.p0 * barycentrics.x + triangle.p1 * barycentrics.y + triangle.p2 * barycentrics.z;
-            float distanceToLight = distance(p, samplePosition);
 
-            float pdf = (distanceToLight * distanceToLight) / float(emissiveTriangleCount);
+            vec3 directionToLight = samplePosition - p;
+            float distanceToLight = length(directionToLight);
+            directionToLight = normalize(directionToLight);
+
+            float cosOut = abs(dot(triangleNormal, -directionToLight));
+
+            float pdf = 1.0 / (triangleLightSolidAngle(cosOut, area, distanceToLight) * float(emissiveTriangleCount));
             pdf *= (1.0 - sunPickProbability);
 
             RestirSample lightSample;

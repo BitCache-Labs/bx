@@ -11,11 +11,14 @@ struct Triangle
 	uint i2;
 };
 
-float areaOfTriangle(Triangle triangle)
+float calculateTriangleAreaFromEdges(vec3 edge1, vec3 edge2)
 {
-	vec3 p01 = triangle.p1 - triangle.p0;
-	vec3 p02 = triangle.p2 - triangle.p0;
-	return length(cross(p01, p02)) * 0.5;
+	return length(cross(edge1, edge2)) * 0.5;
+}
+
+float triangleLightSolidAngle(float cosOut, float lightArea, float lightDistance)
+{
+	return min(TWO_PI, (cosOut * lightArea) / (lightDistance * lightDistance));
 }
 
 Triangle transformedTriangle(Triangle triangle, mat4 transform)
