@@ -27,10 +27,8 @@ namespace Vk
         else
             poolInfo.queueFamilyIndex = physicalDevice.PresentFamily();
 
-        VkCommandPool vkCmdPool;
-        VK_ASSERT(!vkCreateCommandPool(device->GetDevice(), &poolInfo, nullptr, &vkCmdPool),
+        VK_ASSERT(!vkCreateCommandPool(device->GetDevice(), &poolInfo, nullptr, &cmdPool),
             "Failed to create command pool.");
-        cmdPool = std::shared_ptr<Atomic<VkCommandPool>>(new Atomic<VkCommandPool>(vkCmdPool));
 
         processCmdListsThread = std::thread(&CmdQueue::ProcessCmdLists, this);
     }
@@ -41,10 +39,7 @@ namespace Vk
 
         std::queue<std::shared_ptr<CmdList>>().swap(this->idleCmdLists);
 
-        cmdPool->Read([&](auto& cmdPool)
-            {
-                vkDestroyCommandPool(this->device->GetDevice(), cmdPool, nullptr);
-            });
+        vkDestroyCommandPool(this->device->GetDevice(), cmdPool, nullptr);
         
     }
 
@@ -85,7 +80,7 @@ namespace Vk
         return this->queue;
     }
 
-    std::shared_ptr<Atomic<VkCommandPool>> CmdQueue::GetCmdPool() const {
+    VkCommandPool CmdQueue::GetCmdPool() const {
         return this->cmdPool;
     }
 

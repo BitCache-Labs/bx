@@ -3,7 +3,6 @@
 #include "bx/engine/core/guard.hpp"
 #include "bx/engine/core/type.hpp"
 #include "bx/engine/containers/list.hpp"
-#include "bx/engine/containers/atomic.hpp"
 
 #include "vulkan_api.hpp"
 
@@ -34,11 +33,11 @@ namespace Vk
             const List<Semaphore*>& signalSemaphores);
 
         VkQueue GetQueue() const;
-        std::shared_ptr<Atomic<VkCommandPool>> GetCmdPool() const;
+        VkCommandPool GetCmdPool() const;
 
     private:
         VkQueue queue;
-        std::shared_ptr<Atomic<VkCommandPool>> cmdPool;
+        VkCommandPool cmdPool;
 
         const std::shared_ptr<Device> device;
 

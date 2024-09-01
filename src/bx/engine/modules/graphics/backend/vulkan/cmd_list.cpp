@@ -20,25 +20,19 @@ namespace Vk
 {
     CmdList::CmdList(const String& name, std::shared_ptr<Device> device, const CmdQueue& cmdQueue)
         : name(name), device(device), cmdQueue(cmdQueue) {
-        cmdQueue.GetCmdPool()->Read([&](auto& cmdPool)
-            {
-                VkCommandBufferAllocateInfo allocInfo{};
-                allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-                allocInfo.commandPool = cmdPool;
-                allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-                allocInfo.commandBufferCount = 1;
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = cmdQueue.GetCmdPool();
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
 
-                VK_ASSERT(!vkAllocateCommandBuffers(device->GetDevice(), &allocInfo, &this->cmdBuffer),
-                    "Failed to allocate command buffer.");
-            });
+        VK_ASSERT(!vkAllocateCommandBuffers(device->GetDevice(), &allocInfo, &this->cmdBuffer),
+            "Failed to allocate command buffer.");
     }
 
     CmdList::~CmdList() {
-        cmdQueue.GetCmdPool()->Read([&](auto& cmdPool)
-            {
-                vkFreeCommandBuffers(this->device->GetDevice(), cmdPool, 1,
-                    &this->cmdBuffer);
-            });
+        vkFreeCommandBuffers(this->device->GetDevice(), cmdQueue.GetCmdPool(), 1,
+            &this->cmdBuffer);
     }
 
     VkCommandBuffer CmdList::GetCommandBuffer() const
