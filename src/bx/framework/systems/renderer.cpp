@@ -174,6 +174,7 @@ void Renderer::Render()
     if (m_wfptPass)
     {
         m_wfptPass->seed = frameIdx;
+        m_wfptPass->accumulationFrameIdx = accumulate ? (m_wfptPass->accumulationFrameIdx + 1) : 0;
         m_wfptPass->maxBounces = 3;
         m_wfptPass->Dispatch(m_cameras.back(), *m_blasDataPool, *m_materialPool, *m_sky);
     }

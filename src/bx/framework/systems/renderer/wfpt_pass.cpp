@@ -58,6 +58,8 @@ struct ResolveConstants
 {
     u32 width;
     u32 height;
+    u32 sampleNumber;
+    u32 _PADDING0;
 };
 
 struct ShadeConstants
@@ -450,6 +452,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
     ResolveConstants resolveConstants{};
     resolveConstants.width = width;
     resolveConstants.height = height;
+    resolveConstants.sampleNumber = accumulationFrameIdx;
     Graphics::WriteBuffer(resolveConstantsBuffer, 0, &resolveConstants);
 
     u32 rayCountData = width * height;

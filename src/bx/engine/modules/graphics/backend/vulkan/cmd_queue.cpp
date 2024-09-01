@@ -94,9 +94,9 @@ namespace Vk
                 {
                     InFlightCmdList busyCmdList = this->busyCmdLists.front();
 
-                    busyCmdListsMutex.unlock();
+                    //busyCmdListsMutex.unlock();
                     busyCmdList.fence->Wait();
-                    busyCmdListsMutex.lock();
+                    //busyCmdListsMutex.lock();
 
                     this->idleCmdLists.push(busyCmdList.cmdList);
                     this->busyCmdLists.erase(this->busyCmdLists.begin());

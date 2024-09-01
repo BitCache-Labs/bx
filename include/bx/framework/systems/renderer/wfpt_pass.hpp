@@ -30,6 +30,7 @@ public:
 
 	u32 maxBounces = 3;
 	u32 seed = 1337;
+	u32 accumulationFrameIdx = 0;
 	b8 russianRoulette = true;
 
 private:

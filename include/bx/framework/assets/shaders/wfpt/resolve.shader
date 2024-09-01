@@ -6,6 +6,8 @@ layout (BINDING(0, 0), std140) uniform _Constants
 {
     uint width;
     uint height;
+    uint sampleNumber;
+    uint _PADDING0;
 } constants;
 
 layout (BINDING(0, 1), std430) readonly buffer _Payloads
@@ -24,5 +26,8 @@ void main()
 
     Payload payload = payloads[i];
 
-    imageStore(OutImage, id, vec4(unpackRgb9e5(payload.accumulated), 1.0));
+    vec3 old = imageLoad(OutImage, id).rgb;
+    float portion = 1.0 / (constants.sampleNumber + 1);
+    vec3 resolved = (old * (1.0 - portion) + portion * unpackRgb9e5(payload.accumulated));
+    imageStore(OutImage, id, vec4(resolved, 1.0));
 }

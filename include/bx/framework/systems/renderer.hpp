@@ -18,6 +18,8 @@ public:
 	// Returns the color target texture rendered from the editor camera, will return null handle if not in editor build
 	TextureHandle GetEditorCameraColorTarget();
 
+	b8 accumulate = false;
+
 private:
 	friend class SceneView;
 

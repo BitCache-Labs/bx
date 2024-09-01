@@ -53,7 +53,7 @@ void main()
         vec3 throughput = unpackRgb9e5(payload.throughput);
         vec3 accumulated = unpackRgb9e5(payload.accumulated);
         
-        vec3 emission = vec3(400.0);//vec3(0.6, 0.6, 0.5); // TODO: sun sampling
+        vec3 emission = vec3(4.0);//vec3(0.6, 0.6, 0.5); // TODO: sun sampling
         
         vec3 lightingContribution = (throughput * emission) / payload.directIlluminationPdf;
         

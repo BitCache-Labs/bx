@@ -315,6 +315,10 @@ void SceneView::Present(bool& show)
     ImGui::SameLine();
     if (ImGui::Checkbox("##PhysicsDebugDraw", &g_physicsDebugDraw))
         Physics::SetDebugDraw(g_physicsDebugDraw);
+
+    ImGui::Text("PT Accumulate: ");
+    ImGui::SameLine();
+    ImGui::Checkbox("##PTAccumulate", &SystemManager::GetSystem<Renderer>().accumulate);
     
     bool sceneActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || ImGui::IsWindowHovered();
     if (sceneActive)
