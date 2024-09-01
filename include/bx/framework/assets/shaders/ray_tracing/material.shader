@@ -43,7 +43,7 @@ SampledMaterial sampleMaterial(MaterialDescriptor materialDescriptor, vec2 uv)
 	}
 
     sampledMaterial.metallicFactor = 0.0;
-    sampledMaterial.roughnessFactor = 0.85;
+    sampledMaterial.roughnessFactor = 1.0;
     sampledMaterial.ior = 1.5;
     sampledMaterial.transmissionFactor = 0.0;
 

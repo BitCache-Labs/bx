@@ -9,6 +9,7 @@
 class BlasDataPool;
 class MaterialPool;
 class Sky;
+class RestirDiPass;
 
 struct WfptCreateInfo
 {
@@ -36,6 +37,8 @@ private:
 	TextureViewHandle colorTargetView;
 	u32 width, height;
 
+	std::unique_ptr<RestirDiPass> restirDiPass;
+
 	BufferHandle raysBuffer[2];
 	BufferHandle pixelMappingBuffer[2];
 	BufferHandle identityPixelMappingBuffer;
@@ -47,6 +50,8 @@ private:
 	BufferHandle intersectionsBuffer;
 	BufferHandle payloadsBuffer;
 	BufferHandle indirectArgsBuffer;
+	BufferHandle restirSamplesBuffer;
+	BufferHandle restirSamplesHistoryBuffer;
 
 	BufferHandle raygenConstantsBuffer;
 	BufferHandle resolveConstantsBuffer;

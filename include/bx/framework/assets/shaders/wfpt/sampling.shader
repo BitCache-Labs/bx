@@ -1,0 +1,120 @@
+#ifndef WFPT_SAMPLING_H
+#define WFPT_SAMPLING_H
+
+#include "[engine]/shaders/random.shader"
+#include "[engine]/shaders/ray_tracing/blas_data.shader"
+#include "[engine]/shaders/restir/restir.shader"
+#include "[engine]/shaders/ray_tracing/ray.shader"
+#include "[engine]/shaders/color_helpers.shader"
+
+RestirSample _sampleUniformLight(vec4 random, vec3 p)
+{
+    uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
+
+    float sunPickProbability = 0.0;//emissiveTriangleCount == 0 ? 1.0 : 0.5;
+    if (random.x < sunPickProbability)
+    {
+        RestirSample lightSample;
+        lightSample.path.x1 = p;
+        lightSample.path.x2 = p + sampleSunDirection(random.yz) * 1000.0;
+        lightSample.weight = 1.0 / sunPickProbability;//sunPickProbability * (1.0 / sunSolidAngle());
+        return lightSample;
+    }
+
+    uint instanceCount = blasDataConstants.emissiveInstanceCount;
+    uint pickedTriangleIdx = uint(random.y * float(emissiveTriangleCount));
+
+    uint offset = 0;
+    for (uint i = 0; i < instanceCount; i++)
+    {
+        BlasInstance instance = blasInstances[blasEmissiveInstanceIndices[i]];
+        BlasAccessor blas = blasAccessors[instance.blasIdx];
+
+        if (pickedTriangleIdx < blas.triangleCount + offset)
+        {
+            uint triangleIndex = pickedTriangleIdx - offset;
+            uint triangleOffset = blas.triangleOffset;
+            uint vertexOffset = blas.vertexOffset;
+
+            Triangle triangle = transformedTriangle(blasTriangles[triangleIndex + triangleOffset], inverse(instance.invTransform));
+            vec3 barycentrics = barycentricsFromUv(random.zw);
+            vec3 samplePosition = triangle.p0 * barycentrics.x + triangle.p1 * barycentrics.y + triangle.p2 * barycentrics.z;
+            float distanceToLight = distance(p, samplePosition);
+
+            float pdf = (distanceToLight * distanceToLight) / float(emissiveTriangleCount);
+            pdf *= (1.0 - sunPickProbability);
+
+            RestirSample lightSample;
+            lightSample.path.x1 = p;
+            lightSample.path.x2 = samplePosition;
+            lightSample.weight = 1.0 / pdf;
+            return lightSample;
+        }
+        else
+        {
+            offset += blas.triangleCount;
+        }
+    }
+}
+
+RestirSample generateRestirSample(inout uint rngState,
+    LayeredLobe layeredLobe, mat3 worldToTangent, mat3 tangentToWorld,
+    vec3 normal, bool frontFace,
+    vec3 x1, vec3 x0)
+{
+    const uint M_AREA = 8;
+    const uint M_BSDF = 0;
+
+	Reservoir reservoir;
+    reservoir.weightSum = 0.0;
+
+    #pragma unroll
+	for (uint i = 0; i < M_AREA; i++)
+	{
+        RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
+
+        vec3 wOutWorldSpace = normalize(lightSample.path.x1 - x0);
+        vec3 wInWorldSpace = normalize(lightSample.path.x2 - lightSample.path.x1);
+        vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
+        vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
+
+        BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
+        vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0 / lightSample.weight);
+        float unoccludedContributionWeight = linearToLuma(bsdfContribution);
+
+        float weight = (1.0 / (M_AREA + M_BSDF)) * unoccludedContributionWeight * lightSample.weight;
+        updateReservoir(reservoir, rngState, lightSample, weight);
+	}
+
+    //#pragma unroll
+	//for (uint i = 0; i < M_BSDF; i++)
+	//{
+    //    vec3 wOutWorldSpace = normalize(x1 - x0);
+    //    vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
+    //
+    //    BsdfSample bsdfSample = sampleLayeredBsdf(layeredLobe, randomUniformFloat3(rngState), wOutTangentSpace, frontFace);
+    //    //RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
+    //
+    //    vec3 wInWorldSpace = normalize(tangentToWorld * bsdfSample.wInTangentSpace);
+    //
+    //    RestirSample lightSample;
+    //    lightSample.path.x0 = x0;
+    //    lightSample.path.x1 = x1;
+    //    lightSample.path.x2 = x1 + wInWorldSpace * 1000.0;
+    //    lightSample.weight = 1.0 / bsdfSample.pdf;
+    //
+    //    BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, bsdfSample.wInTangentSpace, frontFace);
+    //    vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0 / lightSample.weight);
+    //    float unoccludedContributionWeight = linearToLuma(bsdfContribution);
+    //
+    //    float weight = (1.0 / (M_AREA + M_BSDF)) * unoccludedContributionWeight * lightSample.weight;
+    //    updateReservoir(reservoir, rngState, lightSample, weight);
+	//}
+
+    RestirSample outputSample = reservoir.outputSample;
+    outputSample.weight = reservoir.weightSum * outputSample.weight; // TODO: mul or divide?
+
+    return outputSample;
+}
+
+#endif // WFPT_SAMPLING_H

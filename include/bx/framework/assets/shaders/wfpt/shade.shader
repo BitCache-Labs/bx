@@ -1,18 +1,20 @@
 #include "[engine]/shaders/Language.shader"
 
+#define MATERIAL_BINDINGS
+#define BLAS_DATA_BINDINGS
+#define SKY_BINDINGS
+
+#include "[engine]/shaders/ray_tracing/material.shader"
+#include "[engine]/shaders/ray_tracing/blas_data.shader"
+#include "[engine]/shaders/ray_tracing/sky.shader"
+
 #include "[engine]/shaders/wfpt/payload.shader"
+#include "[engine]/shaders/wfpt/sampling.shader"
 #include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/ray_tracing/sample.shader"
 #include "[engine]/shaders/ray_tracing/restir.shader"
-
-#define MATERIAL_BINDINGS
-#include "[engine]/shaders/ray_tracing/material.shader"
-#define BLAS_DATA_BINDINGS
-#include "[engine]/shaders/ray_tracing/blas_data.shader"
-#define SKY_BINDINGS
-#include "[engine]/shaders/ray_tracing/sky.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -117,8 +119,7 @@ Sample sampleUniformLight(vec4 random, vec3 p)
             float distanceToLight = length(directionToLight);
             directionToLight = normalize(directionToLight);
 
-            //float area = areaOfTriangle(triangle);
-            float pdf = 1.0 / float(emissiveTriangleCount);//(distanceToLight * distanceToLight) / (abs(directionToLight.y) * area);
+            float pdf = (distanceToLight * distanceToLight) / float(emissiveTriangleCount);
             pdf *= (1.0 - sunPickProbability);
 
             Sample lightSample;
@@ -245,6 +246,26 @@ void main()
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         { // Direct illumination
+#if 1
+            RestirSample lightSample = generateRestirSample(payload.rngState,
+                layeredLobe, worldToTangent, tangentToWorld,
+                normal, intersection.frontFace,
+                intersectionPos, ray.origin);
+
+            vec3 directionToLight = normalize(lightSample.path.x2 - lightSample.path.x1);
+            float distanceToLight = distance(lightSample.path.x2, lightSample.path.x1);
+
+            if (dot(directionToLight, normal) > 0.0)
+            {
+                vec3 origin = intersectionPos;
+                vec3 direction = directionToLight;
+                origin += direction * RT_EPSILON;
+                
+                payload.directIlluminationPdf = 1.0 / lightSample.weight;
+                
+                shootShadowRay(origin, direction, distanceToLight, pid);
+            }
+#else
             Sample lightSample = sampleUniformLight(randomUniformFloat4(payload.rngState), intersectionPos);
             
             if (dot(lightSample.directionToLight, normal) > 0.0)
@@ -257,6 +278,7 @@ void main()
                 
                 shootShadowRay(origin, direction, lightSample.distanceToLight, pid);
             }
+#endif
         }
 
         // Indirect illumination

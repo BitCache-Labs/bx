@@ -3,6 +3,12 @@
 
 #include "[engine]/shaders/math.shader"
 
+float balanceHeuristic(float pdf0, float pdf1)
+{
+    float combined = pdf0 + pdf1;
+    return pdf0 / combined;
+}
+
 vec3 getCosineHemisphereSample(vec2 uv)
 {
     float phi = TWO_PI * uv.x;

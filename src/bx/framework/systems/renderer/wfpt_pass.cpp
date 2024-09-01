@@ -5,6 +5,7 @@
 #include "bx/framework/systems/renderer/blas_data_pool.hpp"
 #include "bx/framework/systems/renderer/material_pool.hpp"
 #include "bx/framework/systems/renderer/sky.hpp"
+#include "bx/framework/systems/renderer/restir_di_pass.hpp"
 
 #include "bx/framework/components/transform.hpp"
 #include "bx/framework/components/mesh_filter.hpp"
@@ -328,6 +329,18 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     indirectArgsCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
     indirectArgsBuffer = Graphics::CreateBuffer(indirectArgsCreateInfo);
 
+    BufferCreateInfo restirSamplesCreateInfo{};
+    restirSamplesCreateInfo.name = "Restir Samples Buffer";
+    restirSamplesCreateInfo.size = width * height * sizeof(RestirDiPass::RestirSample);
+    restirSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
+    restirSamplesBuffer = Graphics::CreateBuffer(restirSamplesCreateInfo);
+
+    BufferCreateInfo restirSamplesHistoryCreateInfo{};
+    restirSamplesHistoryCreateInfo.name = "Restir Samples History Buffer";
+    restirSamplesHistoryCreateInfo.size = width * height * sizeof(RestirDiPass::RestirSample);
+    restirSamplesHistoryCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
+    restirSamplesHistoryBuffer = Graphics::CreateBuffer(restirSamplesHistoryCreateInfo);
+
     BufferCreateInfo raygenConstantsCreateInfo{};
     raygenConstantsCreateInfo.name = "Wfpt Raygen Constants Buffer";
     raygenConstantsCreateInfo.size = sizeof(RaygenConstants);
@@ -371,10 +384,14 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
         BindGroupEntry(2, BindingResource::TextureView(colorTargetView))
     };
     resolveBindGroup = Graphics::CreateBindGroup(resolveBindGroupCreateInfo);
+
+    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(restirSamplesBuffer, restirSamplesHistoryBuffer));
 }
 
 WfptPass::~WfptPass()
 {
+    restirDiPass.reset();
+
     Graphics::DestroyTextureView(colorTargetView);
 
     for (u32 i = 0; i < 2; i++)
@@ -392,6 +409,8 @@ WfptPass::~WfptPass()
     Graphics::DestroyBuffer(intersectionsBuffer);
     Graphics::DestroyBuffer(payloadsBuffer);
     Graphics::DestroyBuffer(indirectArgsBuffer);
+    Graphics::DestroyBuffer(restirSamplesBuffer);
+    Graphics::DestroyBuffer(restirSamplesHistoryBuffer);
     Graphics::DestroyBuffer(raygenConstantsBuffer);
     Graphics::DestroyBuffer(resolveConstantsBuffer);
 
@@ -446,7 +465,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
     }
     Graphics::EndComputePass(computePass);
 
-    for (u32 bounce = 0; bounce < maxBounces; bounce++)
+    for (u32 bounce = 0; bounce < 1/*maxBounces*/; bounce++)
     {
         BufferHandle rays = raysBuffer[bounce % 2];
         BufferHandle outRays = raysBuffer[(bounce + 1) % 2];
@@ -530,6 +549,14 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
             Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
         }
         Graphics::EndComputePass(computePass);
+
+        restirDiPass->Dispatch();
+
+        // TODO: execute final half of shade
+        // At least split the di raygen from shade to happen after restir dispatcch
+
+        // TODO: add restir buffers to shade bindgroup
+        // TODO: add restir buffers to restir bindgroup in restir di pass
         
         writeIndirectArgs.Dispatch(indirectArgsBuffer, shadowRayCountBuffer);
 
