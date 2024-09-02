@@ -41,5 +41,5 @@ void main()
     RestirSample outputSample = reservoir.outputSample;
     outputSample.weight = reservoir.weightSum * outputSample.weight;
 
-    // TODO: fix race condition, will require a second outRestirSamples buffer
+    outRestirSamples[id] = outputSample;
 }

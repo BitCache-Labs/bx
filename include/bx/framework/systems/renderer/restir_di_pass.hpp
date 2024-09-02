@@ -27,7 +27,7 @@ public:
 	};
 
 public:
-	RestirDiPass(BufferHandle samplesBuffer, BufferHandle samplesHistoryBuffer);
+	RestirDiPass(BufferHandle samplesBuffer, BufferHandle outSamplesBuffer, BufferHandle samplesHistoryBuffer);
 	~RestirDiPass();
 
 	void Dispatch();

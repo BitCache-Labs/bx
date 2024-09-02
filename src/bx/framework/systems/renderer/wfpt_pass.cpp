@@ -337,6 +337,12 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     restirSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
     restirSamplesBuffer = Graphics::CreateBuffer(restirSamplesCreateInfo);
 
+    BufferCreateInfo restirOutSamplesCreateInfo{};
+    restirOutSamplesCreateInfo.name = "Restir Out Samples Buffer";
+    restirOutSamplesCreateInfo.size = width * height * sizeof(RestirDiPass::RestirSample);
+    restirOutSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
+    restirOutSamplesBuffer = Graphics::CreateBuffer(restirOutSamplesCreateInfo);
+
     BufferCreateInfo restirSamplesHistoryCreateInfo{};
     restirSamplesHistoryCreateInfo.name = "Restir Samples History Buffer";
     restirSamplesHistoryCreateInfo.size = width * height * sizeof(RestirDiPass::RestirSample);
@@ -387,7 +393,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     };
     resolveBindGroup = Graphics::CreateBindGroup(resolveBindGroupCreateInfo);
 
-    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(restirSamplesBuffer, restirSamplesHistoryBuffer));
+    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(restirSamplesBuffer, restirOutSamplesBuffer, restirSamplesHistoryBuffer));
 }
 
 WfptPass::~WfptPass()

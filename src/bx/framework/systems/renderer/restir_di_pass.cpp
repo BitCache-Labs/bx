@@ -29,8 +29,9 @@ struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipel
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
             }),
             BindGroupLayoutDescriptor(3, {
-                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),
+                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),
             })
         };
 
@@ -46,7 +47,7 @@ struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipel
 template<>
 std::unique_ptr<SpatialReusePipeline> LazyInit<SpatialReusePipeline, ComputePipelineHandle>::cache = nullptr;
 
-RestirDiPass::RestirDiPass(BufferHandle samplesBuffer, BufferHandle samplesHistoryBuffer)
+RestirDiPass::RestirDiPass(BufferHandle samplesBuffer, BufferHandle outSamplesBuffer, BufferHandle samplesHistoryBuffer)
 {
     dispatchSize = Graphics::GetBufferCreateInfo(samplesBuffer).size / sizeof(RestirSample);
 
@@ -69,7 +70,8 @@ RestirDiPass::RestirDiPass(BufferHandle samplesBuffer, BufferHandle samplesHisto
     restirBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(SpatialReusePipeline::Get(), 3);
     restirBindGroupCreateInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(samplesBuffer)),
-        BindGroupEntry(1, BindingResource::Buffer(samplesHistoryBuffer))
+        BindGroupEntry(1, BindingResource::Buffer(outSamplesBuffer)),
+        BindGroupEntry(2, BindingResource::Buffer(samplesHistoryBuffer))
     };
     restirBindGroup = Graphics::CreateBindGroup(restirBindGroupCreateInfo);
 }

@@ -52,6 +52,7 @@ private:
 	BufferHandle payloadsBuffer;
 	BufferHandle indirectArgsBuffer;
 	BufferHandle restirSamplesBuffer;
+	BufferHandle restirOutSamplesBuffer;
 	BufferHandle restirSamplesHistoryBuffer;
 
 	BufferHandle raygenConstantsBuffer;
