@@ -22,6 +22,8 @@ namespace Vk
         VkDescriptorSetLayout GetLayout() const;
         VkDescriptorType GetDescriptorType(u32 binding) const;
 
+        static const DescriptorSetLayout& EmptyLayout(std::shared_ptr<Device> device);
+
     private:
         VkDescriptorSetLayout layout;
 

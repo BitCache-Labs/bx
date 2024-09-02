@@ -58,4 +58,10 @@ namespace Vk
         BX_ENSURE(typeIter != descriptorTypes.end());
         return typeIter->second;
     }
+
+    const DescriptorSetLayout& DescriptorSetLayout::EmptyLayout(std::shared_ptr<Device> device)
+    {
+        static DescriptorSetLayout empty("Empty Layout", device, {});
+        return empty;
+    }
 }

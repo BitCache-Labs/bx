@@ -1,6 +1,7 @@
 #include "bx/engine/modules/graphics/backend/vulkan/compute_pipeline.hpp"
 
 #include "bx/engine/core/macros.hpp"
+#include "bx/engine/core/math.hpp"
 
 #include "bx/engine/modules/graphics/backend/vulkan/descriptor_set_layout.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/device.hpp"
@@ -20,9 +21,25 @@ namespace Vk
         computeShaderStageInfo.pName = "main";
         VkPipelineShaderStageCreateInfo shaderStages[] = { computeShaderStageInfo };
 
-        std::vector<VkDescriptorSetLayout> vkDescriptorSetLayouts{};
-        for (auto& descriptorSetLayout : descriptorSetLayouts) {
-            vkDescriptorSetLayouts.push_back(descriptorSetLayout.second->GetLayout());
+        u32 maxGroup = 0;
+        for (auto& descriptorSetLayout : descriptorSetLayouts)
+        {
+            maxGroup = Math::Max(maxGroup, descriptorSetLayout.first);
+        }
+
+        std::vector<VkDescriptorSetLayout> vkDescriptorSetLayouts(maxGroup + 1);
+        for (auto& descriptorSetLayout : descriptorSetLayouts)
+        {
+            maxGroup = Math::Max(maxGroup, descriptorSetLayout.first);
+            vkDescriptorSetLayouts[descriptorSetLayout.first] = descriptorSetLayout.second->GetLayout();
+        }
+        
+        for (u32 i = 0; i < maxGroup; i++)
+        {
+            if (!vkDescriptorSetLayouts[i])
+            {
+                vkDescriptorSetLayouts[i] = DescriptorSetLayout::EmptyLayout(device).GetLayout();
+            }
         }
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
