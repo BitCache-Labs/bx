@@ -51,9 +51,6 @@ private:
 	BufferHandle intersectionsBuffer;
 	BufferHandle payloadsBuffer;
 	BufferHandle indirectArgsBuffer;
-	BufferHandle restirSamplesBuffer;
-	BufferHandle restirOutSamplesBuffer;
-	BufferHandle restirSamplesHistoryBuffer;
 
 	BufferHandle raygenConstantsBuffer;
 	BufferHandle resolveConstantsBuffer;

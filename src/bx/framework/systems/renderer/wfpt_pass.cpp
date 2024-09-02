@@ -43,7 +43,7 @@ struct Payload
     u32 accumulated;
     u32 throughput;
     u32 rngState;
-    f32 directIlluminationPdf;
+    u32 hitNormal;
 };
 
 struct RaygenConstants
@@ -93,7 +93,8 @@ struct ConnectPipeline : public LazyInit<ConnectPipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // payloads
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowPixelMapping
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()), // scene
-            })
+            }),
+            Restir::GetBindGroupLayout(),
         };
 
         ComputePipelineCreateInfo pipelineCreateInfo{};
@@ -231,7 +232,8 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
             }),
             BlasDataPool::GetBindGroupLayout(),
             MaterialPool::GetBindGroupLayout(),
-            Sky::GetBindGroupLayout()
+            Sky::GetBindGroupLayout(),
+            Restir::GetBindGroupLayout(),
         };
 
         ComputePipelineCreateInfo pipelineCreateInfo{};
@@ -331,24 +333,6 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     indirectArgsCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
     indirectArgsBuffer = Graphics::CreateBuffer(indirectArgsCreateInfo);
 
-    BufferCreateInfo restirSamplesCreateInfo{};
-    restirSamplesCreateInfo.name = "Restir Samples Buffer";
-    restirSamplesCreateInfo.size = width * height * sizeof(RestirDiPass::RestirSample);
-    restirSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
-    restirSamplesBuffer = Graphics::CreateBuffer(restirSamplesCreateInfo);
-
-    BufferCreateInfo restirOutSamplesCreateInfo{};
-    restirOutSamplesCreateInfo.name = "Restir Out Samples Buffer";
-    restirOutSamplesCreateInfo.size = width * height * sizeof(RestirDiPass::RestirSample);
-    restirOutSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
-    restirOutSamplesBuffer = Graphics::CreateBuffer(restirOutSamplesCreateInfo);
-
-    BufferCreateInfo restirSamplesHistoryCreateInfo{};
-    restirSamplesHistoryCreateInfo.name = "Restir Samples History Buffer";
-    restirSamplesHistoryCreateInfo.size = width * height * sizeof(RestirDiPass::RestirSample);
-    restirSamplesHistoryCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
-    restirSamplesHistoryBuffer = Graphics::CreateBuffer(restirSamplesHistoryCreateInfo);
-
     BufferCreateInfo raygenConstantsCreateInfo{};
     raygenConstantsCreateInfo.name = "Wfpt Raygen Constants Buffer";
     raygenConstantsCreateInfo.size = sizeof(RaygenConstants);
@@ -393,7 +377,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     };
     resolveBindGroup = Graphics::CreateBindGroup(resolveBindGroupCreateInfo);
 
-    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(restirSamplesBuffer, restirOutSamplesBuffer, restirSamplesHistoryBuffer));
+    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height));
 }
 
 WfptPass::~WfptPass()
@@ -417,8 +401,6 @@ WfptPass::~WfptPass()
     Graphics::DestroyBuffer(intersectionsBuffer);
     Graphics::DestroyBuffer(payloadsBuffer);
     Graphics::DestroyBuffer(indirectArgsBuffer);
-    Graphics::DestroyBuffer(restirSamplesBuffer);
-    Graphics::DestroyBuffer(restirSamplesHistoryBuffer);
     Graphics::DestroyBuffer(raygenConstantsBuffer);
     Graphics::DestroyBuffer(resolveConstantsBuffer);
 
@@ -534,7 +516,10 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         BindGroupHandle shadeBlasDataPoolGroup = blasDataPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle shadeMaterialPoolGroup = materialPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle shadeSkyGroup = sky.CreateBindGroup(ShadePipeline::Get());
+        BindGroupHandle shadeRestirGroup = restirDiPass->CreateBindGroup(ShadePipeline::Get(), false);
         
+        BindGroupHandle connectRestirGroup = restirDiPass->CreateBindGroup(ConnectPipeline::Get(), true);
+
         WriteIndirectArgsPass writeIndirectArgs(128);
         writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
 
@@ -555,6 +540,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
             Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, shadeBlasDataPoolGroup);
             Graphics::SetBindGroup(MaterialPool::BIND_GROUP_SET, shadeMaterialPoolGroup);
             Graphics::SetBindGroup(Sky::BIND_GROUP_SET, shadeSkyGroup);
+            Graphics::SetBindGroup(Restir::BIND_GROUP_SET, shadeRestirGroup);
             Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
         }
         Graphics::EndComputePass(computePass);
@@ -574,6 +560,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         {
             Graphics::SetComputePipeline(ConnectPipeline::Get());
             Graphics::SetBindGroup(0, connectBindGroup);
+            Graphics::SetBindGroup(Restir::BIND_GROUP_SET, connectRestirGroup);
             Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
         }
         Graphics::EndComputePass(computePass);
@@ -583,6 +570,8 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         Graphics::DestroyBindGroup(shadeBlasDataPoolGroup);
         Graphics::DestroyBindGroup(shadeMaterialPoolGroup);
         Graphics::DestroyBindGroup(shadeSkyGroup);
+        Graphics::DestroyBindGroup(shadeRestirGroup);
+        Graphics::DestroyBindGroup(connectRestirGroup);
         Graphics::DestroyBuffer(shadeConstantsBuffer);
     }
 

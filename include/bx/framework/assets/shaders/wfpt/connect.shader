@@ -1,8 +1,11 @@
 #include "[engine]/shaders/Language.shader"
 #include "[engine]/shaders/extensions/ray_tracing_ext.shader"
 
+#define RESTIR_BINDINGS
+
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/wfpt/payload.shader"
+#include "[engine]/shaders/restir/restir.shader"
 
 layout (BINDING(0, 0), std430) readonly buffer _ShadowRays
 {
@@ -29,10 +32,10 @@ layout (BINDING(0, 4), std430) readonly buffer _ShadowPixelMapping
 
 layout(BINDING(0, 5)) uniform accelerationStructureEXT Scene;
 
-bool shadowRayHit(Ray ray, float tMax)
+bool shadowRayHit(vec3 origin, vec3 direction, float tMax)
 {
     rayQueryEXT rayQuery;
-	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, ray.origin, RT_EPSILON, ray.direction, tMax);
+	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, origin, RT_EPSILON, direction, tMax);
 	rayQueryProceedEXT(rayQuery);
     return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
 }
@@ -44,23 +47,34 @@ void main()
     if (id >= shadowRayCount) return;
     uint pid = shadowPixelMapping[id];
 
-    Ray ray = unpackRay(shadowRays[id]);
-    float rayDistance = shadowRayDistances[id];
+    // Ray ray = unpackRay(shadowRays[id]);
+    // float rayDistance = shadowRayDistances[id];
 
-    if (!shadowRayHit(ray, rayDistance))
+    RestirSample lightSample = restirSamples[pid];
+    vec3 origin = lightSample.x1;
+    vec3 direction = normalize(lightSample.x2 - lightSample.x1);
+    float tMax = distance(lightSample.x2, lightSample.x1);
+
+    Payload payload = payloads[pid];
+    //vec3 hitNormal = unpackNormalizedXyz10(payload.hitNormal, 0);
+
+    //if (dot(direction, hitNormal) > 0.0 || true)
     {
-        Payload payload = payloads[pid];
-        vec3 throughput = unpackRgb9e5(payload.throughput);
-        vec3 accumulated = unpackRgb9e5(payload.accumulated);
-        
-        vec3 emission = vec3(4.0);//vec3(0.6, 0.6, 0.5); // TODO: sun sampling
-        
-        vec3 lightingContribution = (throughput * emission) / payload.directIlluminationPdf;
-        
-        accumulated += lightingContribution;
-        
-        payload.throughput = packRgb9e5(throughput);
-        payload.accumulated = packRgb9e5(accumulated);
-        payloads[pid] = payload;
+        if (!shadowRayHit(origin + direction * RT_EPSILON, direction, tMax))
+        {
+            vec3 throughput = unpackRgb9e5(payload.throughput);
+            vec3 accumulated = unpackRgb9e5(payload.accumulated);
+            
+            vec3 emission = vec3(4.0);//vec3(0.6, 0.6, 0.5); // TODO: sun sampling
+            
+            vec3 lightingContribution = (throughput * emission) * lightSample.weight;
+            
+            accumulated += lightingContribution;
+            // accumulated = origin * 0.04;
+            
+            payload.throughput = packRgb9e5(throughput);
+            payload.accumulated = packRgb9e5(accumulated);
+            payloads[pid] = payload;
+        }
     }
 }

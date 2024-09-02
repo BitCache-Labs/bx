@@ -3,6 +3,7 @@
 #define MATERIAL_BINDINGS
 #define BLAS_DATA_BINDINGS
 #define SKY_BINDINGS
+#define RESTIR_BINDINGS
 
 #include "[engine]/shaders/ray_tracing/material.shader"
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
@@ -253,39 +254,49 @@ void main()
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         { // Direct illumination
-#if 1
             RestirSample lightSample = generateRestirSample(payload.rngState,
                 layeredLobe, worldToTangent, tangentToWorld,
                 normal, intersection.frontFace,
                 intersectionPos, ray.origin);
 
-            vec3 directionToLight = normalize(lightSample.path.x2 - lightSample.path.x1);
-            float distanceToLight = distance(lightSample.path.x2, lightSample.path.x1);
-
-            if (dot(directionToLight, normal) > 0.0)
-            {
-                vec3 origin = intersectionPos;
-                vec3 direction = directionToLight;
-                origin += direction * RT_EPSILON;
-                
-                payload.directIlluminationPdf = 1.0 / lightSample.weight;
-                
-                shootShadowRay(origin, direction, distanceToLight, pid);
-            }
-#else
-            Sample lightSample = sampleUniformLight(randomUniformFloat4(payload.rngState), intersectionPos);
+            outRestirSamples[pid] = lightSample;
+            uint rayIdx = atomicAdd(shadowRayCount, 1u);
+            shadowPixelMapping[rayIdx] = pid;
             
-            if (dot(lightSample.directionToLight, normal) > 0.0)
-            {
-                vec3 origin = intersectionPos;
-                vec3 direction = lightSample.directionToLight;
-                origin += direction * RT_EPSILON;
-                
-                payload.directIlluminationPdf = lightSample.pdf;
-                
-                shootShadowRay(origin, direction, lightSample.distanceToLight, pid);
-            }
-#endif
+
+//#if 1
+//            RestirSample lightSample = generateRestirSample(payload.rngState,
+//                layeredLobe, worldToTangent, tangentToWorld,
+//                normal, intersection.frontFace,
+//                intersectionPos, ray.origin);
+//
+//            vec3 directionToLight = normalize(lightSample.path.x2 - lightSample.path.x1);
+//            float distanceToLight = distance(lightSample.path.x2, lightSample.path.x1);
+//
+//            if (dot(directionToLight, normal) > 0.0)
+//            {
+//                vec3 origin = intersectionPos;
+//                vec3 direction = directionToLight;
+//                origin += direction * RT_EPSILON;
+//                
+//                payload.directIlluminationPdf = 1.0 / lightSample.weight;
+//                
+//                shootShadowRay(origin, direction, distanceToLight, pid);
+//            }
+//#else
+//            Sample lightSample = sampleUniformLight(randomUniformFloat4(payload.rngState), intersectionPos);
+//            
+//            if (dot(lightSample.directionToLight, normal) > 0.0)
+//            {
+//                vec3 origin = intersectionPos;
+//                vec3 direction = lightSample.directionToLight;
+//                origin += direction * RT_EPSILON;
+//                
+//                payload.directIlluminationPdf = lightSample.pdf;
+//                
+//                shootShadowRay(origin, direction, lightSample.distanceToLight, pid);
+//            }
+//#endif
         }
 
         // Indirect illumination
@@ -308,10 +319,14 @@ void main()
             origin += direction * RT_EPSILON;
             shootRay(origin, direction, pid);
         }
+
+        //payload.hitNormal = packNormalizedXyz10(normal, 0);
     }
     else
     {
         accumulated += shadeSky(ray.direction, throughput);
+
+        outRestirSamples[pid] = invalidRestirSample();
     }
 
     payload.throughput = packRgb9e5(throughput);

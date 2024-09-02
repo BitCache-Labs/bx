@@ -3,23 +3,14 @@
 
 #include "[engine]/shaders/random.shader"
 
-struct RestirPath
-{
-	vec3 x0;
-	uint _PADDING0;
-	vec3 x1;
-	uint _PADDING1;
-	vec3 x2;
-	uint _PADDING2;
-};
-
 struct RestirSample
 {
-	RestirPath path;
+	vec3 x0;
 	float weight;
+	vec3 x1;
 	float unoccludedContributionWeight;
+	vec3 x2;
 	uint _PADDING0;
-	uint _PADDING1;
 };
 
 struct Reservoir
@@ -27,6 +18,23 @@ struct Reservoir
 	RestirSample outputSample;
 	float weightSum;
 };
+
+RestirSample invalidRestirSample()
+{
+	RestirSample restirSample;
+	restirSample.x0 = vec3(69.0);
+	restirSample.x1 = vec3(69.0);
+	restirSample.unoccludedContributionWeight = 69.9;
+	restirSample.x2 = vec3(69.9);
+
+	restirSample.weight = -1.0;
+	return restirSample;
+}
+
+bool isRestirSampleValid(RestirSample restirSample)
+{
+	return restirSample.weight != -1.0;
+}
 
 void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSample restirSample, float weight)
 {
@@ -40,17 +48,17 @@ void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSampl
 
 #ifdef RESTIR_BINDINGS
 
-layout (BINDING(3, 0), std430) readonly buffer _RestirSamples
+layout (BINDING(4, 0), std430) buffer _RestirSamples
 {
     RestirSample restirSamples[];
 };
 
-layout (BINDING(3, 1), std430) writeonly buffer _OutRestirSamples
+layout (BINDING(4, 1), std430) buffer _OutRestirSamples
 {
     RestirSample outRestirSamples[];
 };
 
-layout (BINDING(3, 2), std430) buffer _RestirSamplesHistory
+layout (BINDING(4, 2), std430) buffer _RestirSamplesHistory
 {
     RestirSample restirSamplesHistory[];
 };

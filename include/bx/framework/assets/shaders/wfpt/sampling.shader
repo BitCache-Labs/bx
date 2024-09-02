@@ -15,8 +15,8 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
     if (random.x < sunPickProbability)
     {
         RestirSample lightSample;
-        lightSample.path.x1 = p;
-        lightSample.path.x2 = p + sampleSunDirection(random.yz) * 1000.0;
+        lightSample.x1 = p;
+        lightSample.x2 = p + sampleSunDirection(random.yz) * 1000.0;
         lightSample.weight = 1.0 / sunPickProbability;//sunPickProbability * (1.0 / sunSolidAngle());
         return lightSample;
     }
@@ -54,8 +54,8 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
             pdf *= (1.0 - sunPickProbability);
 
             RestirSample lightSample;
-            lightSample.path.x1 = p;
-            lightSample.path.x2 = samplePosition;
+            lightSample.x1 = p;
+            lightSample.x2 = samplePosition;
             lightSample.weight = 1.0 / pdf;
             return lightSample;
         }
@@ -82,8 +82,8 @@ RestirSample generateRestirSample(inout uint rngState,
 	{
         RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
 
-        vec3 wOutWorldSpace = normalize(lightSample.path.x1 - x0);
-        vec3 wInWorldSpace = normalize(lightSample.path.x2 - lightSample.path.x1);
+        vec3 wOutWorldSpace = normalize(lightSample.x1 - x0);
+        vec3 wInWorldSpace = normalize(lightSample.x2 - lightSample.x1);
         vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
         vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
 
