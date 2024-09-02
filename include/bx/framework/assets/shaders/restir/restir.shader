@@ -17,9 +17,9 @@ struct RestirSample
 {
 	RestirPath path;
 	float weight;
+	float unoccludedContributionWeight;
 	uint _PADDING0;
 	uint _PADDING1;
-	uint _PADDING2;
 };
 
 struct Reservoir

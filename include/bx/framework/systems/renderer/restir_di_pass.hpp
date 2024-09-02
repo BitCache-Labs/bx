@@ -21,9 +21,9 @@ public:
 	{
 		RestirPath path;
 		f32 weight;
+		f32 unoccludedContributionWeight;
 		u32 _PADDING0;
 		u32 _PADDING1;
-		u32 _PADDING2;
 	};
 
 public:

@@ -37,6 +37,21 @@ vec3 getUniformHemisphereSample(vec2 uv)
     );
 }
 
+vec2 getUniformDiskSample(vec2 uv)
+{
+    float phi = TWO_PI * uv.x;
+    float theta = acos(1.0 - 2.0 * uv.y);
+
+    float sin_phi = sin(phi);
+    float cos_phi = cos(phi);
+    float sin_theta = sin(theta);
+
+    return vec2(
+        sin_theta * cos_phi,
+        sin_theta * sin_phi
+    );
+}
+
 vec3 getUniformSphereSample(vec2 uv)
 {
     float phi = TWO_PI * uv.x;
