@@ -8,8 +8,7 @@ struct Payload
 	PackedRgb9e5 accumulated;
 	PackedRgb9e5 throughput;
 	uint rngState;
-	//PackedNormalizedXyz10 hitNormal;
-	uint _PADDING0;
+	PackedNormalizedXyz10 hitNormal;
 };
 
 #endif // PAYLOAD_H

@@ -227,6 +227,7 @@ void main()
         {
             normal = -normal;
         }
+        payload.hitNormal = packNormalizedXyz10(normal, 0);
 
         // Build tangent to world matrix and correct for wOut below hemisphere (can happen due to normal mapping)
         mat3 tangentToWorld = buildOrthonormalBasis(normal);
@@ -319,8 +320,6 @@ void main()
             origin += direction * RT_EPSILON;
             shootRay(origin, direction, pid);
         }
-
-        //payload.hitNormal = packNormalizedXyz10(normal, 0);
     }
     else
     {

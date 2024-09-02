@@ -51,14 +51,14 @@ void main()
     // float rayDistance = shadowRayDistances[id];
 
     RestirSample lightSample = restirSamples[pid];
-    vec3 origin = lightSample.x1;
-    vec3 direction = normalize(lightSample.x2 - lightSample.x1);
-    float tMax = distance(lightSample.x2, lightSample.x1);
+    vec3 origin = lightSample.x1.xyz;
+    vec3 direction = normalize(lightSample.x2.xyz - lightSample.x1.xyz);
+    float tMax = distance(lightSample.x2.xyz, lightSample.x1.xyz);
 
     Payload payload = payloads[pid];
-    //vec3 hitNormal = unpackNormalizedXyz10(payload.hitNormal, 0);
+    vec3 hitNormal = unpackNormalizedXyz10(payload.hitNormal, 0);
 
-    //if (dot(direction, hitNormal) > 0.0 || true)
+    if (dot(direction, hitNormal) > 0.0)
     {
         if (!shadowRayHit(origin + direction * RT_EPSILON, direction, tMax))
         {
@@ -70,7 +70,6 @@ void main()
             vec3 lightingContribution = (throughput * emission) * lightSample.weight;
             
             accumulated += lightingContribution;
-            // accumulated = origin * 0.04;
             
             payload.throughput = packRgb9e5(throughput);
             payload.accumulated = packRgb9e5(accumulated);

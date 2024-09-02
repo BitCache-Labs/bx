@@ -5,12 +5,13 @@
 
 struct RestirSample
 {
-	vec3 x0;
+	vec4 x0;
+	vec4 x1;
+	vec4 x2;
 	float weight;
-	vec3 x1;
 	float unoccludedContributionWeight;
-	vec3 x2;
 	uint _PADDING0;
+	uint _PADDING1;
 };
 
 struct Reservoir
@@ -22,11 +23,6 @@ struct Reservoir
 RestirSample invalidRestirSample()
 {
 	RestirSample restirSample;
-	restirSample.x0 = vec3(69.0);
-	restirSample.x1 = vec3(69.0);
-	restirSample.unoccludedContributionWeight = 69.9;
-	restirSample.x2 = vec3(69.9);
-
 	restirSample.weight = -1.0;
 	return restirSample;
 }
