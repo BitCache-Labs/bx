@@ -15,6 +15,8 @@ public:
 	{
 		Vec3 baseColorFactor = Vec3(1.0, 1.0, 1.0);
 		u32 baseColorTexture = UINT32_MAX;
+		Vec3 emissiveFactor = Vec3(0.0, 0.0, 0.0);
+		u32 _PADDING0;
 	};
 
 public:

@@ -9,6 +9,7 @@
 
 #include "bx/framework/systems/renderer/id_pass.hpp"
 #include "bx/framework/systems/renderer/present_pass.hpp"
+#include "bx/framework/systems/renderer/restir_di_pass.hpp"
 #include "bx/framework/systems/renderer/srgb_to_linear_pass.hpp"
 #include "bx/framework/systems/renderer/write_indirect_args_pass.hpp"
 
@@ -151,6 +152,7 @@ void Renderer::Shutdown()
 {
     IdPass::ClearPipelineCache();
     PresentPass::ClearPipelineCache();
+    RestirDiPass::ClearPipelineCache();
     SrgbToLinearPass::ClearPipelineCache();
     WfptPass::ClearPipelineCache();
     WriteIndirectArgsPass::ClearPipelineCache();

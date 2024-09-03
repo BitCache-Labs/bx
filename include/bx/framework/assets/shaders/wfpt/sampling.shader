@@ -15,8 +15,8 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
     if (random.x < sunPickProbability)
     {
         RestirSample lightSample;
-        lightSample.x1.xyz = p;
-        lightSample.x2.xyz = p + sampleSunDirection(random.yz) * 1000.0;
+        lightSample.x1 = p;
+        lightSample.x2 = p + sampleSunDirection(random.yz) * 1000.0;
         lightSample.weight = 1.0 / sunPickProbability;//sunPickProbability * (1.0 / sunSolidAngle());
         return lightSample;
     }
@@ -54,8 +54,9 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
             pdf *= (1.0 - sunPickProbability);
 
             RestirSample lightSample;
-            lightSample.x1.xyz = p;
-            lightSample.x2.xyz = samplePosition;
+            lightSample._PADDING0 = 0;// Remove
+            lightSample.x1 = p;
+            lightSample.x2 = samplePosition;
             lightSample.weight = 1.0 / pdf;
             return lightSample;
         }
@@ -66,8 +67,8 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
     }
 
     RestirSample lightSample;
-    lightSample.x1.xyz = vec3(-1.0);
-    lightSample.x2.xyz = vec3(-1.0);
+    lightSample.x1 = vec3(-1.0);
+    lightSample.x2 = vec3(-1.0);
     lightSample.weight = -1.0;
     return lightSample;
 }
@@ -77,47 +78,52 @@ RestirSample generateRestirSample(inout uint rngState,
     vec3 normal, bool frontFace,
     vec3 x1, vec3 x0)
 {
-    const uint M_AREA = 32;
+    const uint M_AREA = 1;
     const uint M_BSDF = 0;
 
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
 
-	Reservoir reservoir;
-    reservoir.weightSum = 0.0;
+	Reservoir reservoir = makeReservoir();
 
     #pragma unroll
 	for (uint i = 0; i < M_AREA; i++)
 	{
         RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
-        lightSample.x0.xyz = x0;
+        lightSample.x0 = x0;
 
-        vec3 wInWorldSpace = normalize(lightSample.x2.xyz - lightSample.x1.xyz);
+        vec3 wInWorldSpace = normalize(lightSample.x2 - lightSample.x1);
         vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
 
         BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
-        vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0); // 1.0 / lightSample.weight, but don't use pdf
+        vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0); // 1.0 / lightSample.weight, but don't use pdf?
         lightSample.unoccludedContributionWeight = linearToLuma(bsdfContribution);
+
+        if (i == 0)
+        {
+            reservoir.outputSample = lightSample;
+        }
 
         float weight = (1.0 / (M_AREA + M_BSDF)) * lightSample.unoccludedContributionWeight * lightSample.weight;
         updateReservoir(reservoir, rngState, lightSample, weight);
+        reservoir.outputSample = lightSample;
 	}
 
     //#pragma unroll
 	//for (uint i = 0; i < M_BSDF; i++)
 	//{
-    //    vec3 wOutWorldSpace = normalize(x1.xyz - x0.xyz);
+    //    vec3 wOutWorldSpace = normalize(x1 - x0);
     //    vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
     //
     //    BsdfSample bsdfSample = sampleLayeredBsdf(layeredLobe, randomUniformFloat3(rngState), wOutTangentSpace, frontFace);
-    //    //RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1.xyz);
+    //    //RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
     //
     //    vec3 wInWorldSpace = normalize(tangentToWorld * bsdfSample.wInTangentSpace);
     //
     //    RestirSample lightSample;
-    //    lightSample.path.x0.xyz = x0.xyz;
-    //    lightSample.path.x1.xyz = x1.xyz;
-    //    lightSample.path.x2.xyz = x1.xyz + wInWorldSpace * 1000.0;
+    //    lightSample.path.x0 = x0;
+    //    lightSample.path.x1 = x1;
+    //    lightSample.path.x2 = x1 + wInWorldSpace * 1000.0;
     //    lightSample.weight = 1.0 / bsdfSample.pdf;
     //
     //    BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, bsdfSample.wInTangentSpace, frontFace);

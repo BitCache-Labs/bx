@@ -46,6 +46,11 @@ MaterialPool::MaterialDescriptor MaterialPool::AllocateMaterial(const Material& 
         materialDescriptor.baseColorTexture = textureIdx;
     }
 
+    if (material.IsEmissive())
+    {
+        materialDescriptor.emissiveFactor = Vec3::Splat(4.0);
+    }
+
     Graphics::WriteBuffer(materialDescriptorsBuffer, materialDescriptorCount * sizeof(MaterialDescriptor), &materialDescriptor, sizeof(MaterialDescriptor));
     materialDescriptorCount++;
 

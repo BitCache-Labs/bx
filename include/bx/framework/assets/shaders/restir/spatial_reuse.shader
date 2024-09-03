@@ -25,6 +25,8 @@ void main()
 
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
     
+    RestirSample originalSample = restirSamples[id];
+
     Reservoir reservoir;
     reservoir.weightSum = 0.0;
     
@@ -36,14 +38,15 @@ void main()
         uint flatOffset = offset.y * constants.width + offset.x;
         RestirSample restirSample = restirSamples[id + flatOffset];
     
-        if (isRestirSampleValid(restirSample) || true)
+        if (isRestirSampleValid(restirSample))
         {
-            float weight = (1.0 / 1.0) * restirSample.unoccludedContributionWeight * restirSample.weight;
+            float weight = (1.0 / NUM_SPATIAL_SAMPLES) * restirSample.unoccludedContributionWeight * restirSample.weight;
             updateReservoir(reservoir, rngState, restirSample, weight);
         }
     }
     
     RestirSample outputSample = reservoir.outputSample;
+    outputSample.x1 = originalSample.x1;
     outputSample.weight = reservoir.weightSum * outputSample.weight;
 
     outRestirSamples[id] = outputSample;

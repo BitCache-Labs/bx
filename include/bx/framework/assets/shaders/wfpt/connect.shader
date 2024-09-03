@@ -7,14 +7,14 @@
 #include "[engine]/shaders/wfpt/payload.shader"
 #include "[engine]/shaders/restir/restir.shader"
 
-layout (BINDING(0, 0), std430) readonly buffer _ShadowRays
-{
-    PackedRay shadowRays[];
-};
-layout (BINDING(0, 1), std430) readonly buffer _ShadowRayDistances
-{
-    float shadowRayDistances[];
-};
+//layout (BINDING(0, 0), std430) readonly buffer _ShadowRays
+//{
+//    PackedRay shadowRays[];
+//};
+//layout (BINDING(0, 1), std430) readonly buffer _ShadowRayDistances
+//{
+//    float shadowRayDistances[];
+//};
 layout(BINDING(0, 2)) readonly buffer _ShadowRayCount
 {
     uint shadowRayCount;

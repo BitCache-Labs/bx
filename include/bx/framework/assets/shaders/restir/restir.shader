@@ -5,12 +5,25 @@
 
 struct RestirSample
 {
-	vec4 x0;
-	vec4 x1;
-	vec4 x2;
+	vec3 x0;
 	float weight;
+	vec3 x1;
 	float unoccludedContributionWeight;
+	vec3 x2;
+	uint _PADDING0;
 };
+
+RestirSample makeRestirSample()
+{
+	RestirSample restirSample;
+	restirSample.x0 = vec3(0.0);
+	restirSample.weight = 0.0;
+	restirSample.x1 = vec3(0.0);
+	restirSample.unoccludedContributionWeight = 0.0;
+	restirSample.x2 = vec3(0.0);
+	restirSample._PADDING0 = 0;
+	return restirSample;
+}
 
 struct Reservoir
 {
@@ -18,11 +31,12 @@ struct Reservoir
 	float weightSum;
 };
 
-RestirSample invalidRestirSample()
+Reservoir makeReservoir()
 {
-	RestirSample restirSample;
-	restirSample.weight = 0.0;
-	return restirSample;
+	Reservoir reservoir;
+	reservoir.outputSample = makeRestirSample();
+	reservoir.weightSum = 0.0;
+	return reservoir;
 }
 
 bool isRestirSampleValid(RestirSample restirSample)

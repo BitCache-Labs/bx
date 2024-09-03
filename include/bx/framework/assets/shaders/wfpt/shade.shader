@@ -66,14 +66,14 @@ layout (BINDING(0, 8), std430) readonly buffer _Intersections
     Intersection intersections[];
 };
 
-layout (BINDING(0, 9), std430) writeonly buffer _ShadowRays
-{
-    PackedRay shadowRays[];
-};
-layout(BINDING(0, 10), std430) writeonly buffer _ShadowRayDistances
-{
-    float shadowRayDistances[];
-};
+//layout (BINDING(0, 9), std430) writeonly buffer _ShadowRays
+//{
+//    PackedRay shadowRays[];
+//};
+//layout(BINDING(0, 10), std430) writeonly buffer _ShadowRayDistances
+//{
+//    float shadowRayDistances[];
+//};
 layout(BINDING(0, 11), std430) buffer _ShadowRayCount
 {
     uint shadowRayCount;
@@ -154,17 +154,17 @@ void shootRay(vec3 origin, vec3 direction, uint pid)
     outPixelMapping[rayIdx] = pid;
 }
 
-void shootShadowRay(vec3 origin, vec3 direction, float tMax, uint pid)
-{
-    Ray ray;
-    ray.origin = origin;
-    ray.direction = direction;
-
-    uint rayIdx = atomicAdd(shadowRayCount, 1u);
-    shadowRays[rayIdx] = packRay(ray);
-    shadowRayDistances[rayIdx] = tMax;
-    shadowPixelMapping[rayIdx] = pid;
-}
+//void shootShadowRay(vec3 origin, vec3 direction, float tMax, uint pid)
+//{
+//    Ray ray;
+//    ray.origin = origin;
+//    ray.direction = direction;
+//
+//    uint rayIdx = atomicAdd(shadowRayCount, 1u);
+//    shadowRays[rayIdx] = packRay(ray);
+//    shadowRayDistances[rayIdx] = tMax;
+//    shadowPixelMapping[rayIdx] = pid;
+//}
 
 vec3 shadeSky(vec3 direction, vec3 throughput)
 {
@@ -245,6 +245,11 @@ void main()
         // Load and sample material
         SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
 
+        if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01 && constants.bounce == 0)
+        {
+            accumulated += throughput * material.emissiveFactor;
+        }
+
         vec3 bsdfNoise = randomUniformFloat3(payload.rngState);
 
         LayeredLobe layeredLobe = layeredLobeFromMaterial(material);
@@ -262,7 +267,6 @@ void main()
                 normal, intersection.frontFace,
                 intersectionPos, ray.origin);
 
-            
             uint rayIdx = atomicAdd(shadowRayCount, 1u);
             shadowPixelMapping[rayIdx] = pid;
             
@@ -327,7 +331,7 @@ void main()
     {
         accumulated += shadeSky(ray.direction, throughput);
 
-        directLightSample = invalidRestirSample();
+        directLightSample = makeRestirSample();
     }
 
     payload.throughput = packRgb9e5(throughput);

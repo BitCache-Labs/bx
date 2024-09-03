@@ -9,6 +9,8 @@ struct MaterialDescriptor
 {
 	vec3 baseColorFactor;
 	uint baseColorTexture;
+    vec3 emissiveFactor;
+    uint _PADDING0;
 };
 
 struct SampledMaterial
@@ -41,6 +43,7 @@ SampledMaterial sampleMaterial(MaterialDescriptor materialDescriptor, vec2 uv)
 	{
 		sampledMaterial.baseColorFactor *= texture(materialTextures[materialDescriptor.baseColorTexture], uv).rgb;
 	}
+    sampledMaterial.emissiveFactor = materialDescriptor.emissiveFactor;
 
     sampledMaterial.metallicFactor = 0.0;
     sampledMaterial.roughnessFactor = 1.0;
