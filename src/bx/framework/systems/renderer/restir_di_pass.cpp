@@ -58,19 +58,19 @@ RestirDiPass::RestirDiPass(u32 width, u32 height)
     BufferCreateInfo restirSamplesCreateInfo{};
     restirSamplesCreateInfo.name = "Restir Samples Buffer";
     restirSamplesCreateInfo.size = width * height * sizeof(Restir::RestirSample);
-    restirSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
+    restirSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     samplesBuffer = Graphics::CreateBuffer(restirSamplesCreateInfo);
 
     BufferCreateInfo restirOutSamplesCreateInfo{};
     restirOutSamplesCreateInfo.name = "Restir Out Samples Buffer";
     restirOutSamplesCreateInfo.size = width * height * sizeof(Restir::RestirSample);
-    restirOutSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
+    restirOutSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     outSamplesBuffer = Graphics::CreateBuffer(restirOutSamplesCreateInfo);
 
     BufferCreateInfo restirSamplesHistoryCreateInfo{};
     restirSamplesHistoryCreateInfo.name = "Restir Samples History Buffer";
     restirSamplesHistoryCreateInfo.size = width * height * sizeof(Restir::RestirSample);
-    restirSamplesHistoryCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::INDIRECT;
+    restirSamplesHistoryCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     samplesHistoryBuffer = Graphics::CreateBuffer(restirSamplesHistoryCreateInfo);
 
     BufferCreateInfo spatialReuseConstantsCreateInfo{};
@@ -116,7 +116,6 @@ BindGroupHandle RestirDiPass::CreateBindGroup(ComputePipelineHandle pipeline, b8
 
 void RestirDiPass::Dispatch()
 {
-    return;
     SpatialReuseConstants spatialReuseConstants{};
     spatialReuseConstants.dispatchSize = width * height;
     spatialReuseConstants.seed = seed;

@@ -64,6 +64,12 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
             offset += blas.triangleCount;
         }
     }
+
+    RestirSample lightSample;
+    lightSample.x1.xyz = vec3(-1.0);
+    lightSample.x2.xyz = vec3(-1.0);
+    lightSample.weight = -1.0;
+    return lightSample;
 }
 
 RestirSample generateRestirSample(inout uint rngState,
@@ -74,6 +80,9 @@ RestirSample generateRestirSample(inout uint rngState,
     const uint M_AREA = 32;
     const uint M_BSDF = 0;
 
+    vec3 wOutWorldSpace = normalize(x1 - x0);
+    vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
+
 	Reservoir reservoir;
     reservoir.weightSum = 0.0;
 
@@ -81,10 +90,9 @@ RestirSample generateRestirSample(inout uint rngState,
 	for (uint i = 0; i < M_AREA; i++)
 	{
         RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
+        lightSample.x0.xyz = x0;
 
-        vec3 wOutWorldSpace = normalize(lightSample.x1.xyz - x0);
         vec3 wInWorldSpace = normalize(lightSample.x2.xyz - lightSample.x1.xyz);
-        vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
         vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
 
         BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);

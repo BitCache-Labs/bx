@@ -194,6 +194,8 @@ void main()
         payload.rngState = pcgHash(pid ^ xorShiftU32(constants.seed));
     }
 
+    RestirSample directLightSample;
+
     if (intersection.t != T_MISS)
     {
         // Query vertex data from global blas data pool
@@ -255,12 +257,12 @@ void main()
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         { // Direct illumination
-            RestirSample lightSample = generateRestirSample(payload.rngState,
+            directLightSample = generateRestirSample(payload.rngState,
                 layeredLobe, worldToTangent, tangentToWorld,
                 normal, intersection.frontFace,
                 intersectionPos, ray.origin);
 
-            outRestirSamples[pid] = lightSample;
+            
             uint rayIdx = atomicAdd(shadowRayCount, 1u);
             shadowPixelMapping[rayIdx] = pid;
             
@@ -325,10 +327,12 @@ void main()
     {
         accumulated += shadeSky(ray.direction, throughput);
 
-        outRestirSamples[pid] = invalidRestirSample();
+        directLightSample = invalidRestirSample();
     }
 
     payload.throughput = packRgb9e5(throughput);
     payload.accumulated = packRgb9e5(accumulated);
     payloads[pid] = payload;
+
+    outRestirSamples[pid] = directLightSample;
 }

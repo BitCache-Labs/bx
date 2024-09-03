@@ -10,8 +10,6 @@ struct RestirSample
 	vec4 x2;
 	float weight;
 	float unoccludedContributionWeight;
-	uint _PADDING0;
-	uint _PADDING1;
 };
 
 struct Reservoir
@@ -23,13 +21,13 @@ struct Reservoir
 RestirSample invalidRestirSample()
 {
 	RestirSample restirSample;
-	restirSample.weight = -1.0;
+	restirSample.weight = 0.0;
 	return restirSample;
 }
 
 bool isRestirSampleValid(RestirSample restirSample)
 {
-	return restirSample.weight != -1.0;
+	return restirSample.weight != 0.0;
 }
 
 void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSample restirSample, float weight)
@@ -44,12 +42,12 @@ void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSampl
 
 #ifdef RESTIR_BINDINGS
 
-layout (BINDING(4, 0), std430) buffer _RestirSamples
+layout (BINDING(4, 0), std430) readonly buffer _RestirSamples
 {
     RestirSample restirSamples[];
 };
 
-layout (BINDING(4, 1), std430) buffer _OutRestirSamples
+layout (BINDING(4, 1), std430) writeonly buffer _OutRestirSamples
 {
     RestirSample outRestirSamples[];
 };
