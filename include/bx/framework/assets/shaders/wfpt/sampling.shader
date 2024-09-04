@@ -96,13 +96,8 @@ RestirSample generateRestirSample(inout uint rngState,
         vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
 
         BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
-        vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0); // 1.0 / lightSample.weight, but don't use pdf?
+        vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0); // 1.0 / lightSample.weight, but don't use pdf
         lightSample.unoccludedContributionWeight = linearToLuma(bsdfContribution);
-        
-        if (i == 0)
-        {
-            reservoir.outputSample = lightSample;
-        }
 
         float weight = (1.0 / (M_AREA + M_BSDF)) * lightSample.unoccludedContributionWeight * lightSample.weight;
         updateReservoir(reservoir, rngState, lightSample, weight);

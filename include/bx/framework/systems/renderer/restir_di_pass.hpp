@@ -36,7 +36,7 @@ public:
 	static void ClearPipelineCache();
 
 	u32 seed = 1337;
-	u32 pixelRadius = 5;
+	u32 pixelRadius = 30;
 
 private:
 	u32 width, height;

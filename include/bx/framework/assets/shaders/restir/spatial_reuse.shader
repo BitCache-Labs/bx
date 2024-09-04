@@ -27,6 +27,8 @@ void main()
     
     RestirSample originalSample = restirSamples[id];
 
+    if (!isRestirSampleValid(originalSample)) // TODO: if we keep this optimize code path with final write
+    {
     Reservoir reservoir = makeReservoir();
     
     #pragma unroll
