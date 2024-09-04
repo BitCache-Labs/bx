@@ -22,6 +22,14 @@ struct SpatialReuseConstants
     u32 pixelRadius;
 };
 
+struct TemporalReuseConstants
+{
+    u32 dispatchSize;
+    u32 _PADDING0;
+    u32 _PADDING1;
+    u32 _PADDING2;
+};
+
 struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipelineHandle>
 {
     SpatialReusePipeline()
@@ -52,6 +60,36 @@ struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipel
 template<>
 std::unique_ptr<SpatialReusePipeline> LazyInit<SpatialReusePipeline, ComputePipelineHandle>::cache = nullptr;
 
+struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePipelineHandle>
+{
+    TemporalReusePipeline()
+    {
+        ShaderCreateInfo shaderCreateInfo{};
+        shaderCreateInfo.name = "Restir Temporal Reuse Shader";
+        shaderCreateInfo.shaderType = ShaderType::COMPUTE;
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/restir/temporal_reuse.shader")));;
+        ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
+
+        PipelineLayoutDescriptor pipelineLayoutDescriptor{};
+        pipelineLayoutDescriptor.bindGroupLayouts = {
+            BindGroupLayoutDescriptor(0, {
+                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
+            }),
+            Restir::GetBindGroupLayout()
+        };
+
+        ComputePipelineCreateInfo pipelineCreateInfo{};
+        pipelineCreateInfo.name = "Restir Temporal Reuse Pipeline";
+        pipelineCreateInfo.layout = pipelineLayoutDescriptor;
+        pipelineCreateInfo.shader = shader;
+        data = Graphics::CreateComputePipeline(pipelineCreateInfo);
+
+        Graphics::DestroyShader(shader);
+    }
+};
+template<>
+std::unique_ptr<TemporalReusePipeline> LazyInit<TemporalReusePipeline, ComputePipelineHandle>::cache = nullptr;
+
 RestirDiPass::RestirDiPass(u32 width, u32 height)
     : width(width), height(height)
 {
@@ -79,6 +117,12 @@ RestirDiPass::RestirDiPass(u32 width, u32 height)
     spatialReuseConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
     spatialReuseConstantsBuffer = Graphics::CreateBuffer(spatialReuseConstantsCreateInfo);
 
+    BufferCreateInfo temporalReuseConstantsCreateInfo{};
+    temporalReuseConstantsCreateInfo.name = "Restir Temporal Reuse Constants Buffer";
+    temporalReuseConstantsCreateInfo.size = sizeof(TemporalReuseConstants);
+    temporalReuseConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
+    temporalReuseConstantsBuffer = Graphics::CreateBuffer(temporalReuseConstantsCreateInfo);
+
     BindGroupCreateInfo spatialReuseBindGroupCreateInfo{};
     spatialReuseBindGroupCreateInfo.name = "Restir Spatial Reuse Bind Group";
     spatialReuseBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(SpatialReusePipeline::Get(), 0);
@@ -86,6 +130,14 @@ RestirDiPass::RestirDiPass(u32 width, u32 height)
         BindGroupEntry(0, BindingResource::Buffer(spatialReuseConstantsBuffer)),
     };
     spatialReuseBindGroup = Graphics::CreateBindGroup(spatialReuseBindGroupCreateInfo);
+
+    BindGroupCreateInfo temporalReuseBindGroupCreateInfo{};
+    temporalReuseBindGroupCreateInfo.name = "Restir Temporal Reuse Bind Group";
+    temporalReuseBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(TemporalReusePipeline::Get(), 0);
+    temporalReuseBindGroupCreateInfo.entries = {
+        BindGroupEntry(0, BindingResource::Buffer(temporalReuseConstantsBuffer)),
+    };
+    temporalReuseBindGroup = Graphics::CreateBindGroup(temporalReuseBindGroupCreateInfo);
 
     restirBindGroup = CreateBindGroup(SpatialReusePipeline::Get(), true);
 }
@@ -97,8 +149,10 @@ RestirDiPass::~RestirDiPass()
     Graphics::DestroyBuffer(samplesHistoryBuffer);
 
     Graphics::DestroyBuffer(spatialReuseConstantsBuffer);
+    Graphics::DestroyBuffer(temporalReuseConstantsBuffer);
 
 	Graphics::DestroyBindGroup(spatialReuseBindGroup);
+    Graphics::DestroyBindGroup(temporalReuseBindGroup);
 }
 
 BindGroupHandle RestirDiPass::CreateBindGroup(ComputePipelineHandle pipeline, b8 flipRestirSamples) const

@@ -46,7 +46,9 @@ private:
 	BufferHandle samplesHistoryBuffer;
 
 	BufferHandle spatialReuseConstantsBuffer;
+	BufferHandle temporalReuseConstantsBuffer;
 
 	BindGroupHandle spatialReuseBindGroup;
+	BindGroupHandle temporalReuseBindGroup;
 	BindGroupHandle restirBindGroup;
 };
