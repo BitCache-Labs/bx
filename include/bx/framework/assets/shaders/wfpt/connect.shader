@@ -51,9 +51,9 @@ void main()
     // float rayDistance = shadowRayDistances[id];
 
     RestirSample lightSample = restirSamples[pid];
-    vec3 origin = lightSample.x1.xyz;
-    vec3 direction = normalize(lightSample.x2.xyz - lightSample.x1.xyz);
-    float tMax = distance(lightSample.x2.xyz, lightSample.x1.xyz);
+    vec3 origin = lightSample.x1;
+    vec3 direction = normalize(lightSample.x2 - lightSample.x1);
+    float tMax = distance(lightSample.x2, lightSample.x1);
 
     Payload payload = payloads[pid];
     vec3 hitNormal = unpackNormalizedXyz10(payload.hitNormal, 0);

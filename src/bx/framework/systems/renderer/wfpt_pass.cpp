@@ -500,7 +500,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         BindGroupHandle shadeSkyGroup = sky.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle shadeRestirGroup = restirDiPass->CreateBindGroup(ShadePipeline::Get(), false);
         
-        BindGroupHandle connectRestirGroup = restirDiPass->CreateBindGroup(ConnectPipeline::Get(), true);
+        BindGroupHandle connectRestirGroup = restirDiPass->CreateBindGroup(ConnectPipeline::Get(), false);
 
         WriteIndirectArgsPass writeIndirectArgs(128);
         writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
@@ -528,7 +528,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         Graphics::EndComputePass(computePass);
 
         restirDiPass->seed = seed;
-        //restirDiPass->Dispatch();
+        restirDiPass->Dispatch();
 
         // TODO: execute final half of shade
         // At least split the di raygen from shade to happen after restir dispatcch

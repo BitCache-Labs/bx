@@ -27,8 +27,7 @@ void main()
     
     RestirSample originalSample = restirSamples[id];
 
-    Reservoir reservoir;
-    reservoir.weightSum = 0.0;
+    Reservoir reservoir = makeReservoir();
     
     #pragma unroll
     for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
@@ -47,7 +46,7 @@ void main()
     
     RestirSample outputSample = reservoir.outputSample;
     outputSample.x1 = originalSample.x1;
-    outputSample.weight = reservoir.weightSum * outputSample.weight;
+    outputSample.weight = (1.0 / outputSample.unoccludedContributionWeight) * reservoir.weightSum;
 
     outRestirSamples[id] = outputSample;
 }
