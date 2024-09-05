@@ -365,7 +365,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     };
     resolveBindGroup = Graphics::CreateBindGroup(resolveBindGroupCreateInfo);
 
-    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height));
+    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, createInfo.tlas));
 }
 
 WfptPass::~WfptPass()

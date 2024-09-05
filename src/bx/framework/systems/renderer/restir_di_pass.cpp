@@ -74,6 +74,7 @@ struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePip
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),
             }),
             Restir::GetBindGroupLayout()
         };
@@ -90,7 +91,7 @@ struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePip
 template<>
 std::unique_ptr<TemporalReusePipeline> LazyInit<TemporalReusePipeline, ComputePipelineHandle>::cache = nullptr;
 
-RestirDiPass::RestirDiPass(u32 width, u32 height)
+RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas)
     : width(width), height(height)
 {
     BufferCreateInfo restirSamplesCreateInfo{};
@@ -136,6 +137,7 @@ RestirDiPass::RestirDiPass(u32 width, u32 height)
     temporalReuseBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(TemporalReusePipeline::Get(), 0);
     temporalReuseBindGroupCreateInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(temporalReuseConstantsBuffer)),
+        BindGroupEntry(1, BindingResource::AccelerationStructure(tlas)),
     };
     temporalReuseBindGroup = Graphics::CreateBindGroup(temporalReuseBindGroupCreateInfo);
 

@@ -30,6 +30,7 @@ void main()
     if (!isRestirSampleValid(originalSample)) // TODO: if we keep this optimize code path with final write
     {
         outRestirSamples[id] = originalSample;
+        restirSamplesHistory[id] = originalSample;
         return;
     }
 
@@ -56,4 +57,5 @@ void main()
     outputSample.weight = (1.0 / outputSample.unoccludedContributionWeight) * reservoir.weightSum;
 
     outRestirSamples[id] = outputSample;
+    restirSamplesHistory[id] = outputSample;
 }
