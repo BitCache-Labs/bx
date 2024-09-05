@@ -56,12 +56,12 @@ void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSampl
 
 #ifdef RESTIR_BINDINGS
 
-layout (BINDING(4, 0), std430) readonly buffer _RestirSamples
+layout (BINDING(4, 0), std430) buffer _RestirSamples
 {
     RestirSample restirSamples[];
 };
 
-layout (BINDING(4, 1), std430) writeonly buffer _OutRestirSamples
+layout (BINDING(4, 1), std430) buffer _OutRestirSamples
 {
     RestirSample outRestirSamples[];
 };

@@ -25,7 +25,7 @@ struct SpatialReuseConstants
 struct TemporalReuseConstants
 {
     u32 dispatchSize;
-    u32 _PADDING0;
+    u32 seed;
     u32 _PADDING1;
     u32 _PADDING2;
 };
@@ -177,9 +177,24 @@ void RestirDiPass::Dispatch()
     spatialReuseConstants.pixelRadius = pixelRadius;
     Graphics::WriteBuffer(spatialReuseConstantsBuffer, 0, &spatialReuseConstants);
 
+    TemporalReuseConstants temporalReuseConstants{};
+    temporalReuseConstants.dispatchSize = width * height;
+    temporalReuseConstants.seed = seed;
+    Graphics::WriteBuffer(temporalReuseConstantsBuffer, 0, &temporalReuseConstants);
+
     ComputePassDescriptor computePassDescriptor{};
-    computePassDescriptor.name = "Restir Spatial Reuse";
+    computePassDescriptor.name = "Restir Temporal Reuse";
     ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
+    {
+        Graphics::SetComputePipeline(TemporalReusePipeline::Get());
+        Graphics::SetBindGroup(0, temporalReuseBindGroup);
+        Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirBindGroup);
+        Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+    }
+    Graphics::EndComputePass(computePass);
+
+    computePassDescriptor.name = "Restir Spatial Reuse";
+    computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
         Graphics::SetComputePipeline(SpatialReusePipeline::Get());
         Graphics::SetBindGroup(0, spatialReuseBindGroup);

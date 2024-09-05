@@ -7,7 +7,7 @@
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uint dispatchSize;
-    uint _PADDING0;
+    uint seed;
     uint _PADDING1;
     uint _PADDING2;
 } constants;
@@ -17,25 +17,31 @@ void main()
 {
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= constants.dispatchSize) return;
-
-    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
     
-    RestirSample originalSample = restirSamples[id];
+    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
 
-    if (!isRestirSampleValid(originalSample)) // TODO: if we keep this optimize code path with final write
+    RestirSample currentSample = restirSamples[id];
+    RestirSample previousSample = restirSamplesHistory[id];
+
+    if (!isRestirSampleValid(currentSample))
     {
-        outRestirSamples[id] = originalSample;
+        restirSamplesHistory[id] = currentSample;
         return;
     }
 
     Reservoir reservoir = makeReservoir();
     
-    // TODO
+    float weight = (1.0 / 2.0) * currentSample.unoccludedContributionWeight * currentSample.weight;
+    updateReservoir(reservoir, rngState, currentSample, weight);
+    
+    weight = (1.0 / 2.0) * previousSample.unoccludedContributionWeight * previousSample.weight;
+    updateReservoir(reservoir, rngState, previousSample, weight);
     
     RestirSample outputSample = reservoir.outputSample;
-    outputSample.x0 = originalSample.x0;
-    outputSample.x1 = originalSample.x1;
+    outputSample.x0 = currentSample.x0;
+    outputSample.x1 = currentSample.x1;
     outputSample.weight = (1.0 / outputSample.unoccludedContributionWeight) * reservoir.weightSum;
-
-    outRestirSamples[id] = outputSample;
+    
+    restirSamples[id] = outputSample;
+    restirSamplesHistory[id] = outputSample;
 }
