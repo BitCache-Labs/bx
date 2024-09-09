@@ -133,11 +133,16 @@ GBufferPass::~GBufferPass()
     Graphics::DestroyTextureView(depthTargetView);
 }
 
+TextureViewHandle GBufferPass::GetColorTargetView() const
+{
+    return colorTargetView;
+}
+
 void GBufferPass::Dispatch(const Camera& camera)
 {
     GBufferConstants constants{};
     constants.viewProj = camera.GetViewProjection();
-    Mat4::Decompose(camera.GetView(), constants.viewPos, Quat{}, Vec3{});
+    Mat4::Decompose(camera.GetView().Inverse(), constants.viewPos, Quat{}, Vec3{});
     Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(GBufferConstants));
 
     RenderPassDescriptor renderPassDescriptor{};

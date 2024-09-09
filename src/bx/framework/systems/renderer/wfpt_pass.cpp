@@ -70,7 +70,7 @@ struct ShadeConstants
     u32 bounce;
     u32 seed;
     b32 russianRoulette;
-    u32 _PADDING0;
+    b32 hybrid;
     u32 _PADDING1;
     u32 _PADDING2;
 };
@@ -230,6 +230,7 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 //BindGroupLayoutEntry(10, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowRayDistances
                 BindGroupLayoutEntry(11, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowRayCount
                 BindGroupLayoutEntry(12, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowPixelMapping
+                BindGroupLayoutEntry(13, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),   // gbuffer
             }),
             BlasDataPool::GetBindGroupLayout(),
             MaterialPool::GetBindGroupLayout(),
@@ -462,6 +463,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         shadeConstants.bounce = bounce;
         shadeConstants.seed = seed;
         shadeConstants.russianRoulette = russianRoulette;
+        shadeConstants.hybrid = hybrid;
 
         BufferCreateInfo shadeConstantsCreateInfo{};
         shadeConstantsCreateInfo.name = "Wfpt Shade Constants Buffer";
@@ -496,7 +498,8 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
             BindGroupEntry(7, BindingResource::Buffer(payloadsBuffer)),
             BindGroupEntry(8, BindingResource::Buffer(intersectionsBuffer)),
             BindGroupEntry(11, BindingResource::Buffer(shadowRayCountBuffer)),
-            BindGroupEntry(12, BindingResource::Buffer(shadowRayPixelMappingBuffer))
+            BindGroupEntry(12, BindingResource::Buffer(shadowRayPixelMappingBuffer)),
+            BindGroupEntry(13, BindingResource::TextureView(gbufferPass->GetColorTargetView()))
         };
         BindGroupHandle shadeBindGroup = Graphics::CreateBindGroup(shadeBindGroupCreateInfo);
         BindGroupHandle shadeBlasDataPoolGroup = blasDataPool.CreateBindGroup(ShadePipeline::Get());
@@ -509,14 +512,17 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         WriteIndirectArgsPass writeIndirectArgs(128);
         writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
 
-        computePassDescriptor.name = "Wfpt Extend";
-        computePass = Graphics::BeginComputePass(computePassDescriptor);
+        if (bounce > 0 || !hybrid)
         {
-            Graphics::SetComputePipeline(ExtendPipeline::Get());
-            Graphics::SetBindGroup(0, extendBindGroup);
-            Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
+            computePassDescriptor.name = "Wfpt Extend";
+            computePass = Graphics::BeginComputePass(computePassDescriptor);
+            {
+                Graphics::SetComputePipeline(ExtendPipeline::Get());
+                Graphics::SetBindGroup(0, extendBindGroup);
+                Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
+            }
+            Graphics::EndComputePass(computePass);
         }
-        Graphics::EndComputePass(computePass);
 
         computePassDescriptor.name = "Wfpt Shade";
         computePass = Graphics::BeginComputePass(computePassDescriptor);

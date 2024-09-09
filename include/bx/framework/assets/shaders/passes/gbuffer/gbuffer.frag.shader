@@ -1,5 +1,4 @@
 #include "[engine]/shaders/Language.shader"
-#include "[engine]/shaders/math.shader"
 #include "[engine]/shaders/packing.shader"
 
 layout (location = 0) in vec4 inPositionWs;
@@ -18,7 +17,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
 
 void main()
 {
-    float oneOverSqrDepth = 1.0 / distanceSqr(constants.viewPos, inPositionWs.xyz);
+    float oneOverSqrDepth = 1.0 / distance(constants.viewPos, inPositionWs.xyz);
     float packedNormal = uintBitsToFloat(packNormalizedXyz10(inNormal, 0).data);
     float packedTexcoord = uintBitsToFloat(packHalf2x16(inTexcoord));
     float blasInstanceIdx = uintBitsToFloat(inBlasInstanceIdx);

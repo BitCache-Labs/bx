@@ -34,6 +34,7 @@ public:
 	u32 seed = 1337;
 	u32 accumulationFrameIdx = 0;
 	b8 russianRoulette = true;
+	b8 hybrid = true;
 
 private:
 	WfptCreateInfo createInfo;

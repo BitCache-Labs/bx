@@ -24,7 +24,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint bounce;
     uint seed;
     bool russianRoulette;
-    uint _PADDING0;
+    bool hybrid;
     uint _PADDING1;
     uint _PADDING2;
 } constants;
@@ -82,6 +82,8 @@ layout(BINDING(0, 12), std430) writeonly buffer _ShadowPixelMapping
 {
     uint shadowPixelMapping[];
 };
+
+layout (BINDING(0, 13), rgba32f) uniform image2D gbuffer;
 
 Sample sampleUniformLight(vec4 random, vec3 p)
 {
@@ -185,6 +187,7 @@ void main()
     Payload payload = payloads[pid];
     Ray ray = unpackRay(rays[id]);
 
+    vec4 hybridGBufferData;
     vec3 throughput = unpackRgb9e5(payload.throughput);
     vec3 accumulated = unpackRgb9e5(payload.accumulated);
     if (constants.bounce == 0)
@@ -192,35 +195,65 @@ void main()
         accumulated = vec3(0.0);
         throughput = vec3(1.0);
         payload.rngState = pcgHash(pid ^ xorShiftU32(constants.seed));
+
+        if (constants.hybrid)
+        {
+            ivec2 gbufferPixel = ivec2(int(pid % constants.width), int(pid / constants.width));
+            hybridGBufferData = imageLoad(gbuffer, gbufferPixel);
+
+            if (hybridGBufferData.r <= 0.0)
+            {
+                intersection.t = T_MISS;
+            }
+            else
+            {
+                intersection.t = 1.0 / hybridGBufferData.r;
+                intersection.t -= intersection.t * 0.001; // TODO: investigate with jan?
+            }
+        }
     }
 
     RestirSample directLightSample;
 
     if (intersection.t != T_MISS)
     {
-        // Query vertex data from global blas data pool
-        BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
-        BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
+        BlasInstance blasInstance;
+        vec3 normal;
+        vec2 texCoord;
 
-        Triangle triangle = blasTriangles[intersection.primitiveIdx + blasAccessor.triangleOffset];
-        PackedVertex vertex0 = blasVertices[triangle.i0 + blasAccessor.vertexOffset];
-        PackedVertex vertex1 = blasVertices[triangle.i1 + blasAccessor.vertexOffset];
-        PackedVertex vertex2 = blasVertices[triangle.i2 + blasAccessor.vertexOffset];
+        if (constants.bounce == 0 && constants.hybrid)
+        {
+            normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(hybridGBufferData.g)), 0);
+            texCoord = unpackHalf2x16(floatBitsToUint(hybridGBufferData.b));
+            intersection.frontFace = true;//TODO
+            intersection.blasInstanceIdx = floatBitsToUint(hybridGBufferData.a);
+            blasInstance = blasInstances[intersection.blasInstanceIdx];
+        }
+        else
+        {
+            blasInstance = blasInstances[intersection.blasInstanceIdx];
+            BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
 
-        vec3 normal0 = unpackNormalizedXyz10(vertex0.normal, 0);
-        vec3 normal1 = unpackNormalizedXyz10(vertex1.normal, 0);
-        vec3 normal2 = unpackNormalizedXyz10(vertex2.normal, 0);
-        vec2 texCoord0 = unpackHalf2x16(vertex0.texCoord);
-        vec2 texCoord1 = unpackHalf2x16(vertex1.texCoord);
-        vec2 texCoord2 = unpackHalf2x16(vertex2.texCoord);
+            Triangle triangle = blasTriangles[intersection.primitiveIdx + blasAccessor.triangleOffset];
+            PackedVertex vertex0 = blasVertices[triangle.i0 + blasAccessor.vertexOffset];
+            PackedVertex vertex1 = blasVertices[triangle.i1 + blasAccessor.vertexOffset];
+            PackedVertex vertex2 = blasVertices[triangle.i2 + blasAccessor.vertexOffset];
 
-        vec3 barycentrics = barycentricsFromUv(intersection.uv);
-        vec3 normal = normalize(normal0 * barycentrics.x
-            + normal1 * barycentrics.y
-            + normal2 * barycentrics.z);
-        vec2 texCoord = texCoord0 * barycentrics.x
-            + texCoord1 * barycentrics.y
-            + texCoord2 * barycentrics.z;
+            vec3 normal0 = unpackNormalizedXyz10(vertex0.normal, 0);
+            vec3 normal1 = unpackNormalizedXyz10(vertex1.normal, 0);
+            vec3 normal2 = unpackNormalizedXyz10(vertex2.normal, 0);
+            vec2 texCoord0 = unpackHalf2x16(vertex0.texCoord);
+            vec2 texCoord1 = unpackHalf2x16(vertex1.texCoord);
+            vec2 texCoord2 = unpackHalf2x16(vertex2.texCoord);
+
+            vec3 barycentrics = barycentricsFromUv(intersection.uv);
+            normal = normalize(normal0 * barycentrics.x
+                + normal1 * barycentrics.y
+                + normal2 * barycentrics.z);
+            texCoord = texCoord0 * barycentrics.x
+                + texCoord1 * barycentrics.y
+                + texCoord2 * barycentrics.z;
+        }
 
         // Correct normal for transform and backface hits
         mat4 invTransTransform = transpose(blasInstance.invTransform);

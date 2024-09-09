@@ -18,6 +18,8 @@ public:
 	GBufferPass(TextureHandle depthTarget);
 	~GBufferPass();
 
+	TextureViewHandle GetColorTargetView() const;
+
 	void Dispatch(const Camera& camera);
 
 	static void ClearPipelineCache();
