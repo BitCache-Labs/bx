@@ -20,7 +20,7 @@ void main()
     float oneOverSqrDepth = 1.0 / distance(constants.viewPos, inPositionWs.xyz);
     float packedNormal = uintBitsToFloat(packNormalizedXyz10(inNormal, 0).data);
     float packedTexcoord = uintBitsToFloat(packHalf2x16(inTexcoord));
-    float blasInstanceIdx = uintBitsToFloat(inBlasInstanceIdx);
+    float blasInstanceIdx = uintBitsToFloat((uint(gl_FrontFacing) << 31) | inBlasInstanceIdx);
 
     outColor = vec4(oneOverSqrDepth, packedNormal, packedTexcoord, blasInstanceIdx);
 }

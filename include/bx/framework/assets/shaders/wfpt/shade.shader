@@ -225,8 +225,9 @@ void main()
         {
             normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(hybridGBufferData.g)), 0);
             texCoord = unpackHalf2x16(floatBitsToUint(hybridGBufferData.b));
-            intersection.frontFace = true;//TODO
-            intersection.blasInstanceIdx = floatBitsToUint(hybridGBufferData.a);
+            uint blasInstanceIdxAndFrontFacing = floatBitsToUint(hybridGBufferData.a);
+            intersection.blasInstanceIdx = (blasInstanceIdxAndFrontFacing << 1) >> 1;
+            intersection.frontFace = (blasInstanceIdxAndFrontFacing >> 31) == 1;
             blasInstance = blasInstances[intersection.blasInstanceIdx];
         }
         else

@@ -10,7 +10,7 @@
 // r: 1 over square depth
 // g: normal as PackedNormalizedXyz10
 // b: texture coordinate as packHalf2x16
-// a: blas instance index
+// a: first bit for front facing, remaining 31 bits for blas instance index
 
 class GBufferPass : NoCopy
 {
