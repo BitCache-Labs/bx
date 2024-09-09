@@ -7,6 +7,7 @@
 #include "bx/framework/components/animator.hpp"
 #include "bx/framework/components/light.hpp"
 
+#include "bx/framework/systems/renderer/gbuffer_pass.hpp"
 #include "bx/framework/systems/renderer/id_pass.hpp"
 #include "bx/framework/systems/renderer/present_pass.hpp"
 #include "bx/framework/systems/renderer/restir_di_pass.hpp"
@@ -59,8 +60,10 @@ void Renderer::UpdateTlas()
     List<BlasInstance> blasInstances{};
 
     EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
-        [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr)
+        [&](Entity entity, const Transform& trx, MeshFilter& mf, const MeshRenderer& mr)
         {
+            mf.m_blasInstanceIndices.clear();
+
             if (mr.GetMaterialCount() == 0)
                 return;
 
@@ -76,7 +79,7 @@ void Renderer::UpdateTlas()
                 Mat4 matrix = trx.GetMatrix() * mesh->GetMatrix();
 
                 u32 materialIdx = m_materialPool->SubmitInstance(material.GetData(), material.GetHandle());
-                m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), matrix.Inverse(), materialIdx, material.GetData().IsEmissive());
+                u32 blasInstanceIdx = m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), matrix.Inverse(), materialIdx, material.GetData().IsEmissive());
 
                 BlasInstance blasInstance{};
                 blasInstance.transform = matrix;
@@ -84,6 +87,8 @@ void Renderer::UpdateTlas()
                 blasInstance.mask = 0xFF;
                 blasInstance.blas = mesh->GetBlas();
                 blasInstances.push_back(blasInstance);
+
+                mf.m_blasInstanceIndices.push_back(blasInstanceIdx);
             }
         });
 
@@ -120,6 +125,14 @@ void Renderer::RecreateRenderTargets()
         if (m_colorTarget) Graphics::DestroyTexture(m_colorTarget);
         m_colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
 
+        TextureCreateInfo depthTargetCreateInfo{};
+        depthTargetCreateInfo.name = "Depth Target";
+        depthTargetCreateInfo.size = Extend3D(w, h, 1);
+        depthTargetCreateInfo.format = TextureFormat::DEPTH24_PLUS_STENCIL8; // TODO: fix non-stencil format!!
+        depthTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        if (m_depthTarget) Graphics::DestroyTexture(m_depthTarget);
+        m_depthTarget = Graphics::CreateTexture(depthTargetCreateInfo);
+
         m_dirtyPasses = true;
     }
 }
@@ -130,6 +143,7 @@ void Renderer::RebuildPasses()
     {
         WfptCreateInfo wfptCreateInfo{};
         wfptCreateInfo.colorTarget = m_colorTarget;
+        wfptCreateInfo.depthTarget = m_depthTarget;
         wfptCreateInfo.tlas = m_tlas;
         m_wfptPass.reset();
         m_wfptPass = std::unique_ptr<WfptPass>(new WfptPass(wfptCreateInfo));
@@ -149,6 +163,7 @@ void Renderer::Initialize()
 
 void Renderer::Shutdown()
 {
+    GBufferPass::ClearPipelineCache();
     IdPass::ClearPipelineCache();
     PresentPass::ClearPipelineCache();
     RestirDiPass::ClearPipelineCache();

@@ -6,10 +6,16 @@
 
 #include "bx/framework/components/camera.hpp"
 
+// Renders multiple features of all objects to color target where
+// r: 1 over square depth
+// g: normal as PackedNormalizedXyz10
+// b: texture coordinate as packHalf2x16
+// a: blas instance index
+
 class GBufferPass : NoCopy
 {
 public:
-	GBufferPass(TextureHandle colorTarget, TextureHandle depthTarget);
+	GBufferPass(TextureHandle depthTarget);
 	~GBufferPass();
 
 	void Dispatch(const Camera& camera);

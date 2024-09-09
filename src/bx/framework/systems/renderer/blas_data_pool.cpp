@@ -94,7 +94,7 @@ BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
     return accessor;
 }
 
-void BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx, b8 isEmissive)
+u32 BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx, b8 isEmissive)
 {
     u32 blasIdx;
     auto accessorIndexIter = blasAccessorIndices.find(resourceHandle);
@@ -122,6 +122,8 @@ void BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandl
         pendingEmissiveInstanceIndices.push_back(pendingInstances.size() - 1);
         pendingEmissiveTriangleCount += mesh.GetIndices().size() / 3;
     }
+
+    return pendingInstances.size() - 1;
 }
 
 void BlasDataPool::Submit()

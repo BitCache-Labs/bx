@@ -9,10 +9,18 @@
 #include "bx/framework/components/mesh_filter.hpp"
 #include "bx/framework/components/mesh_renderer.hpp"
 
+struct GBufferConstants
+{
+    Mat4 viewProj;
+    Vec3 viewPos;
+    u32 _PADDING0;
+};
+
 struct VertexMeshUniform
 {
     Mat4 world = Mat4::Identity();
-    u64 entityId;
+    u32 blasInstanceIdx;
+    u32 _PADDING0;
 };
 
 struct GBufferPipelineArgs
@@ -38,13 +46,13 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
     GBufferPipeline(const GBufferPipelineArgs& args)
     {
         ShaderCreateInfo vertexCreateInfo{};
-        vertexCreateInfo.name = "Id Vertex Shader";
+        vertexCreateInfo.name = "GBuffer Vertex Shader";
         vertexCreateInfo.shaderType = ShaderType::VERTEX;
         vertexCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/gbuffer/gbuffer.vert.shader")));
         ShaderHandle vertexShader = Graphics::CreateShader(vertexCreateInfo);
 
         ShaderCreateInfo fragmentCreateInfo{};
-        fragmentCreateInfo.name = "Id Fragment Shader";
+        fragmentCreateInfo.name = "GBuffer Fragment Shader";
         fragmentCreateInfo.shaderType = ShaderType::FRAGMENT;
         fragmentCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/gbuffer/gbuffer.frag.shader")));
         ShaderHandle fragmentShader = Graphics::CreateShader(fragmentCreateInfo);
@@ -52,7 +60,7 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
-                BindGroupLayoutEntry(0, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),
+                BindGroupLayoutEntry(0, ShaderStageFlags::VERTEX | ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::UniformBuffer()),
                 BindGroupLayoutEntry(1, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer())
             })
         };
@@ -60,7 +68,13 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
         VertexBufferLayout vertexBufferLayout{};
         vertexBufferLayout.stride = sizeof(Mesh::Vertex);
         vertexBufferLayout.attributes = {
-            VertexAttribute(VertexFormat::FLOAT_32X3, 0, 0)
+            VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, position), 0),
+            VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, color), 1),
+            VertexAttribute(VertexFormat::SINT_32X4,  offsetof(Mesh::Vertex, bones), 2),
+            VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, weights), 3),
+            VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, normal), 4),
+            VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, tangent), 5),
+            VertexAttribute(VertexFormat::FLOAT_32X2, offsetof(Mesh::Vertex, uv), 6)
         };
 
         ColorTargetState colorTargetState{};
@@ -69,7 +83,7 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
         TextureFormat depthFormat = Graphics::GetTextureCreateInfo(args.depthTarget).format;
 
         GraphicsPipelineCreateInfo pipelineCreateInfo{};
-        pipelineCreateInfo.name = "Id Pipeline";
+        pipelineCreateInfo.name = "GBuffer Pipeline";
         pipelineCreateInfo.layout = pipelineLayoutDescriptor;
         pipelineCreateInfo.vertexShader = vertexShader;
         pipelineCreateInfo.fragmentShader = fragmentShader;
@@ -87,25 +101,33 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
 template<>
 HashMap<GBufferPipelineArgs, std::unique_ptr<GBufferPipeline>> LazyInitMap<GBufferPipeline, GraphicsPipelineHandle, GBufferPipelineArgs>::cache = {};
 
-GBufferPass::GBufferPass(TextureHandle colorTarget, TextureHandle depthTarget)
-    : colorTarget(colorTarget), depthTarget(depthTarget)
+GBufferPass::GBufferPass(TextureHandle depthTarget)
+    : depthTarget(depthTarget)
 {
-    const TextureCreateInfo& textureCreateInfo = Graphics::GetTextureCreateInfo(colorTarget);
+    const TextureCreateInfo& textureCreateInfo = Graphics::GetTextureCreateInfo(depthTarget);
     width = textureCreateInfo.size.width;
     height = textureCreateInfo.size.height;
+
+    TextureCreateInfo colorTargetCreateInfo{};
+    colorTargetCreateInfo.name = "GBuffer Color Target";
+    colorTargetCreateInfo.size = Extend3D(width, height, 1);
+    colorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
+    colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
+    colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
 
     colorTargetView = Graphics::CreateTextureView(colorTarget);
     depthTargetView = Graphics::CreateTextureView(depthTarget);
 
     BufferCreateInfo constantBufferCreateInfo{};
-    constantBufferCreateInfo.name = "Id Pass Constant Buffer";
-    constantBufferCreateInfo.size = sizeof(Mat4);
+    constantBufferCreateInfo.name = "GBuffer Pass Constant Buffer";
+    constantBufferCreateInfo.size = sizeof(GBufferConstants);
     constantBufferCreateInfo.usageFlags = BufferUsageFlags::COPY_DST | BufferUsageFlags::UNIFORM;
     constantBuffer = Graphics::CreateBuffer(constantBufferCreateInfo);
 }
 
 GBufferPass::~GBufferPass()
 {
+    Graphics::DestroyTexture(colorTarget);
     Graphics::DestroyBuffer(constantBuffer);
     Graphics::DestroyTextureView(colorTargetView);
     Graphics::DestroyTextureView(depthTargetView);
@@ -113,10 +135,13 @@ GBufferPass::~GBufferPass()
 
 void GBufferPass::Dispatch(const Camera& camera)
 {
-    Graphics::WriteBuffer(constantBuffer, 0, &camera.GetViewProjection(), sizeof(Mat4));
+    GBufferConstants constants{};
+    constants.viewProj = camera.GetViewProjection();
+    Mat4::Decompose(camera.GetView(), constants.viewPos, Quat{}, Vec3{});
+    Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(GBufferConstants));
 
     RenderPassDescriptor renderPassDescriptor{};
-    renderPassDescriptor.name = "Id";
+    renderPassDescriptor.name = "GBuffer";
     renderPassDescriptor.colorAttachments = { RenderPassColorAttachment(colorTargetView) };
     renderPassDescriptor.depthStencilAttachment = Optional<RenderPassDepthStencilAttachment>::Some(RenderPassDepthStencilAttachment(depthTargetView));
 
@@ -128,14 +153,15 @@ void GBufferPass::Dispatch(const Camera& camera)
         EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
             [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr)
             {
-                for (const auto& mesh : mf.GetMeshes())
+                for (u32 i = 0; i < mf.GetMeshes().size(); i++)
                 {
+                    const auto& mesh = mf.GetMesh(i);
                     if (!mesh) continue;
                     const auto& meshData = mesh.GetData();
 
                     VertexMeshUniform meshUniform{};
                     meshUniform.world = trx.GetMatrix() * meshData.GetMatrix();
-                    meshUniform.entityId = entity.GetId();
+                    meshUniform.blasInstanceIdx = mf.m_blasInstanceIndices[i];
 
                     BufferCreateInfo meshUniformCreateInfo{};
                     meshUniformCreateInfo.name = "Mesh Uniform";
@@ -145,7 +171,7 @@ void GBufferPass::Dispatch(const Camera& camera)
                     BufferHandle meshUniformBuffer = Graphics::CreateBuffer(meshUniformCreateInfo);
 
                     BindGroupCreateInfo createInfo{};
-                    createInfo.name = "Id Pass BindGroup";
+                    createInfo.name = "GBuffer Pass BindGroup";
                     createInfo.layout = Graphics::GetBindGroupLayout(pipeline, 0);
                     createInfo.entries = {
                         BindGroupEntry(0, BindingResource::Buffer(BufferBinding(constantBuffer))),

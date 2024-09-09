@@ -5,6 +5,7 @@
 #include "bx/framework/systems/renderer/blas_data_pool.hpp"
 #include "bx/framework/systems/renderer/material_pool.hpp"
 #include "bx/framework/systems/renderer/sky.hpp"
+#include "bx/framework/systems/renderer/gbuffer_pass.hpp"
 #include "bx/framework/systems/renderer/restir_di_pass.hpp"
 
 #include "bx/framework/components/transform.hpp"
@@ -365,6 +366,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     };
     resolveBindGroup = Graphics::CreateBindGroup(resolveBindGroupCreateInfo);
 
+    gbufferPass = std::unique_ptr<GBufferPass>(new GBufferPass(createInfo.depthTarget));
     restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, createInfo.tlas));
 }
 
@@ -439,6 +441,8 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
     }
     Graphics::EndComputePass(computePass);
+
+    gbufferPass->Dispatch(camera);
 
     for (u32 bounce = 0; bounce < 1/*maxBounces*/; bounce++)
     {

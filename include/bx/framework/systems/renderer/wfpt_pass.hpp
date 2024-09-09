@@ -10,10 +10,12 @@ class BlasDataPool;
 class MaterialPool;
 class Sky;
 class RestirDiPass;
+class GBufferPass;
 
 struct WfptCreateInfo
 {
 	TextureHandle colorTarget = TextureHandle::null;
+	TextureHandle depthTarget = TextureHandle::null;
 	TlasHandle tlas = TlasHandle::null;
 };
 
@@ -38,6 +40,7 @@ private:
 	TextureViewHandle colorTargetView;
 	u32 width, height;
 
+	std::unique_ptr<GBufferPass> gbufferPass;
 	std::unique_ptr<RestirDiPass> restirDiPass;
 
 	BufferHandle raysBuffer[2];

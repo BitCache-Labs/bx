@@ -45,7 +45,7 @@ public:
 	BlasDataPool();
 	~BlasDataPool();
 
-	void SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx, b8 isEmissive);
+	u32 SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx, b8 isEmissive);
 	void Submit();
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline) const;

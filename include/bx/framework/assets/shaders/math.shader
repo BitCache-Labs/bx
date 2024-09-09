@@ -24,6 +24,12 @@ float safeSqrt(float x)
 	return sqrt(max(0.0, x));
 }
 
+float distanceSqr(vec3 a, vec3 b)
+{
+    vec3 delta = b - a;
+    return dot(delta, delta);
+}
+
 float sqr(float x)
 {
     return x * x;

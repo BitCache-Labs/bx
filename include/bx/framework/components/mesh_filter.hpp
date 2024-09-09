@@ -37,6 +37,8 @@ public:
 		m_meshes.erase(m_meshes.begin() + index);
 	}
 
+	List<u32> m_blasInstanceIndices;
+
 private:
 	template <typename T>
 	friend class Serial;
