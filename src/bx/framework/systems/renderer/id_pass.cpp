@@ -2,51 +2,12 @@
 
 #include "bx/framework/systems/renderer/lazy_init.hpp"
 
+#include "bx/engine/core/file.hpp"
+#include "bx/framework/resources/shader.hpp"
+
 #include "bx/framework/components/transform.hpp"
 #include "bx/framework/components/mesh_filter.hpp"
 #include "bx/framework/components/mesh_renderer.hpp"
-
-const char* ID_PASS_SHADER_SRC = R""""(
-
-#ifdef VERTEX
-
-layout (location = 0) in vec3 Position;
-
-layout (location = 0) flat out uvec2 Frag_EntityID;
-
-layout (binding = 0, std140) uniform ConstantBuffer
-{
-    mat4 ViewProjMtx;
-};
-
-layout (binding = 1, std140) uniform ModelBuffer
-{
-    mat4 WorldMeshMtx;
-    uvec2 EntityID;
-};
-
-void main()
-{
-   gl_Position = ViewProjMtx * WorldMeshMtx * vec4(Position, 1.0);
-   Frag_EntityID = EntityID;
-}
-
-#endif // VERTEX
-
-#ifdef FRAGMENT
-
-layout (location = 0) flat in uvec2 Frag_EntityID;
-
-layout (location = 0) out uvec2 Out_Color;
-
-void main()
-{
-    Out_Color = Frag_EntityID;
-}
-
-#endif // FRAGMENT
-
-)"""";
 
 struct VertexMeshUniform
 {
@@ -79,13 +40,13 @@ struct IdPipeline : public LazyInitMap<IdPipeline, GraphicsPipelineHandle, IdPip
         ShaderCreateInfo vertexCreateInfo{};
         vertexCreateInfo.name = "Id Vertex Shader";
         vertexCreateInfo.shaderType = ShaderType::VERTEX;
-        vertexCreateInfo.src = ID_PASS_SHADER_SRC;
+        vertexCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/id/id.vert.shader")));
         ShaderHandle vertexShader = Graphics::CreateShader(vertexCreateInfo);
 
         ShaderCreateInfo fragmentCreateInfo{};
         fragmentCreateInfo.name = "Id Fragment Shader";
         fragmentCreateInfo.shaderType = ShaderType::FRAGMENT;
-        fragmentCreateInfo.src = ID_PASS_SHADER_SRC;
+        fragmentCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/id/id.frag.shader")));
         ShaderHandle fragmentShader = Graphics::CreateShader(fragmentCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};

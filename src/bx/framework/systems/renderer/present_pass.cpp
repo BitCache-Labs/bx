@@ -1,69 +1,9 @@
 #include "bx/framework/systems/renderer/present_pass.hpp"
 
+#include "bx/engine/core/file.hpp"
+
 #include "bx/framework/systems/renderer/lazy_init.hpp"
 #include "bx/framework/resources/shader.hpp"
-
-const char* PRESENT_SHADER_SRC = R""""(
-#include "[engine]/shaders/Language.shader"
-
-#ifdef VERTEX
-
-layout (location = 0) out vec2 fragTexCoord;
-
-void main()
-{
-    fragTexCoord = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
-    gl_Position = vec4(fragTexCoord * 2.0f + -1.0f, 0.0f, 1.0f);
-
-#ifdef VULKAN
-    fragTexCoord.y = -fragTexCoord.y;
-#endif
-}
-
-#endif // VERTEX
-
-#ifdef FRAGMENT
-
-layout (location = 0) in vec2 fragTexCoord;
-
-layout(location = 0) out vec4 outColor;
-
-layout(binding = 0) uniform sampler2D colorImage;
-
-vec3 aces(vec3 x)
-{
-    const float a = 2.51;
-    const float b = 0.03;
-    const float c = 2.43;
-    const float d = 0.59;
-    const float e = 0.14;
-    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
-}
-
-vec3 gammaCorrect(vec3 x, float gamma)
-{
-    return pow(x, vec3(1.0 / gamma));
-}
-
-void main()
-{
-    vec3 hdrColor = texture(colorImage, fragTexCoord).rgb;
-
-    // acesg -> acescct (matrix mult)
-
-    // 2 luts, 1d & 3d textures
-    // acescct , apply output transform (monitor dependant)
-    
-    
-    vec3 sdrColor = aces(hdrColor);
-    sdrColor = gammaCorrect(sdrColor, 2.2);
-
-    outColor = vec4(sdrColor, 1.0);
-}
-
-#endif // FRAGMENT
-
-)"""";
 
 struct PresentPipeline : public LazyInit<PresentPipeline, GraphicsPipelineHandle>
 {
@@ -72,13 +12,13 @@ struct PresentPipeline : public LazyInit<PresentPipeline, GraphicsPipelineHandle
         ShaderCreateInfo vertexCreateInfo{};
         vertexCreateInfo.name = "Present Vertex Shader";
         vertexCreateInfo.shaderType = ShaderType::VERTEX;
-        vertexCreateInfo.src = ResolveShaderIncludes(PRESENT_SHADER_SRC);
+        vertexCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/present/present.vert.shader")));
         ShaderHandle vertexShader = Graphics::CreateShader(vertexCreateInfo);
 
         ShaderCreateInfo fragmentCreateInfo{};
         fragmentCreateInfo.name = "Present Fragment Shader";
         fragmentCreateInfo.shaderType = ShaderType::FRAGMENT;
-        fragmentCreateInfo.src = ResolveShaderIncludes(PRESENT_SHADER_SRC);
+        fragmentCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/present/present.frag.shader")));
         ShaderHandle fragmentShader = Graphics::CreateShader(fragmentCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
