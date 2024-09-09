@@ -368,7 +368,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     resolveBindGroup = Graphics::CreateBindGroup(resolveBindGroupCreateInfo);
 
     gbufferPass = std::unique_ptr<GBufferPass>(new GBufferPass(createInfo.depthTarget));
-    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, createInfo.tlas));
+    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, createInfo.tlas, gbufferPass->GetColorTargetView()));
 }
 
 WfptPass::~WfptPass()

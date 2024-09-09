@@ -22,7 +22,7 @@ public:
 class RestirDiPass : NoCopy
 {
 public:
-	RestirDiPass(u32 width, u32 height, TlasHandle tlas);
+	RestirDiPass(u32 width, u32 height, TlasHandle tlas, TextureViewHandle gbufferView);
 	~RestirDiPass();
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline, b8 flipRestirSamples) const;

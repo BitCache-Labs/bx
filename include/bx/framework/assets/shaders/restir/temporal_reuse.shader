@@ -51,32 +51,30 @@ void main()
     float visibilityLength = distance(currentSample.x2, currentSample.x1);
     if (traceRay(currentSample.x1, visibilityDir, visibilityLength))
     {
-        currentSample.unoccludedContributionWeight = 0.0;
-        restirSamples[id] = currentSample;
-        return;
+        currentSample.weight = 0.0;
     }
+    restirSamples[id] = currentSample;
+    return;
 
-    if (!isRestirSampleValid(currentSample))
-    {
-        //restirSamples[id] = previousSample;
-        //return;
-    }
 
     Reservoir reservoir = makeReservoir();
 
+    //float currentPdf = currentSample.weight == 0.0 ? 0.0 : 1.0 / currentSample.weight;
+    //float prevPdf = previousSample.weight == 0.0 ? 0.0 : 1.0 / previousSample.weight;
     float currentPdf = currentSample.unoccludedContributionWeight;
     float prevPdf = previousSample.unoccludedContributionWeight;
     
     float weight = currentBalanceHeuristic(currentPdf, prevPdf) * currentSample.unoccludedContributionWeight * currentSample.weight;
     updateReservoir(reservoir, rngState, currentSample, weight);
     
-    //weight = prevBalanceHeuristic(currentPdf, prevPdf) * previousSample.unoccludedContributionWeight * previousSample.weight;
-    //updateReservoir(reservoir, rngState, previousSample, weight);
+    weight = prevBalanceHeuristic(currentPdf, prevPdf) * previousSample.unoccludedContributionWeight * previousSample.weight;
+    updateReservoir(reservoir, rngState, previousSample, weight);
     
     RestirSample outputSample = reservoir.outputSample;
     outputSample.x0 = currentSample.x0;
     outputSample.x1 = currentSample.x1;
-    outputSample.weight = (1.0 / outputSample.unoccludedContributionWeight) * reservoir.weightSum;
+    outputSample.weight = (outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / outputSample.unoccludedContributionWeight) * reservoir.weightSum;
     
     restirSamples[id] = outputSample;
+    //restirSamplesHistory[id] = outputSample;
 }

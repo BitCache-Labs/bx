@@ -44,6 +44,7 @@ struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipel
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
             }),
             Restir::GetBindGroupLayout()
         };
@@ -91,7 +92,7 @@ struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePip
 template<>
 std::unique_ptr<TemporalReusePipeline> LazyInit<TemporalReusePipeline, ComputePipelineHandle>::cache = nullptr;
 
-RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas)
+RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas, TextureViewHandle gbufferView)
     : width(width), height(height)
 {
     BufferCreateInfo restirSamplesCreateInfo{};
@@ -129,6 +130,7 @@ RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas)
     spatialReuseBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(SpatialReusePipeline::Get(), 0);
     spatialReuseBindGroupCreateInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(spatialReuseConstantsBuffer)),
+        BindGroupEntry(1, BindingResource::TextureView(gbufferView)),
     };
     spatialReuseBindGroup = Graphics::CreateBindGroup(spatialReuseBindGroupCreateInfo);
 
