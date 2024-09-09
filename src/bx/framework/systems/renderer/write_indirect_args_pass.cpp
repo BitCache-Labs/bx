@@ -20,7 +20,7 @@ struct WriteIndirectArgsPipeline : public LazyInit<WriteIndirectArgsPipeline, Co
         ShaderCreateInfo shaderCreateInfo{};
         shaderCreateInfo.name = "Write Indirect Args Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/utils/write_indirect_args.shader")));
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/write_indirect_args/write_indirect_args.comp.shader")));
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
