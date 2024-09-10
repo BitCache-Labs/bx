@@ -1,6 +1,6 @@
 #include "[engine]/shaders/Language.shader"
 
-#include "[engine]/shaders/wfpt/payload.shader"
+#include "[engine]/shaders/passes/wfpt/payload.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {

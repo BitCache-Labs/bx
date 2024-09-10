@@ -82,7 +82,7 @@ struct ConnectPipeline : public LazyInit<ConnectPipeline, ComputePipelineHandle>
         ShaderCreateInfo shaderCreateInfo{};
         shaderCreateInfo.name = "Wfpt Connect Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/wfpt/connect.shader")));
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/wfpt/connect.comp.shader")));
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
@@ -117,7 +117,7 @@ struct ExtendPipeline : public LazyInit<ExtendPipeline, ComputePipelineHandle>
         ShaderCreateInfo shaderCreateInfo{};
         shaderCreateInfo.name = "Wfpt Extend Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/wfpt/extend.shader")));
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/wfpt/extend.comp.shader")));
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
@@ -150,7 +150,7 @@ struct RaygenPipeline : public LazyInit<RaygenPipeline, ComputePipelineHandle>
         ShaderCreateInfo shaderCreateInfo{};
         shaderCreateInfo.name = "Wfpt Raygen Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/wfpt/raygen.shader")));
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/wfpt/raygen.comp.shader")));
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
@@ -180,7 +180,7 @@ struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
         ShaderCreateInfo shaderCreateInfo{};
         shaderCreateInfo.name = "Wfpt Resolve Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/wfpt/resolve.shader")));;
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/wfpt/resolve.comp.shader")));;
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
@@ -211,7 +211,7 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
         ShaderCreateInfo shaderCreateInfo{};
         shaderCreateInfo.name = "Wfpt Shade Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/wfpt/shade.shader")));;
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/wfpt/shade.comp.shader")));;
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};

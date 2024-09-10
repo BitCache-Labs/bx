@@ -9,8 +9,8 @@
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 #include "[engine]/shaders/ray_tracing/sky.shader"
 
-#include "[engine]/shaders/wfpt/payload.shader"
-#include "[engine]/shaders/wfpt/sampling.shader"
+#include "[engine]/shaders/passes/wfpt/payload.shader"
+#include "[engine]/shaders/passes/wfpt/sampling.shader"
 #include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"

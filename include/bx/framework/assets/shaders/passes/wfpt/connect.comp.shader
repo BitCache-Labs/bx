@@ -4,7 +4,7 @@
 #define RESTIR_BINDINGS
 
 #include "[engine]/shaders/ray_tracing/ray.shader"
-#include "[engine]/shaders/wfpt/payload.shader"
+#include "[engine]/shaders/passes/wfpt/payload.shader"
 #include "[engine]/shaders/restir/restir.shader"
 
 //layout (BINDING(0, 0), std430) readonly buffer _ShadowRays
