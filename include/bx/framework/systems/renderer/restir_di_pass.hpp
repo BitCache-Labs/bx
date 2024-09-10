@@ -34,6 +34,8 @@ public:
 	u32 seed = 1337;
 	u32 pixelRadius = 30;
 
+	static constexpr u32 SPATIAL_REUSE_PASSES = 1;
+
 private:
 	u32 width, height;
 
@@ -41,10 +43,11 @@ private:
 	BufferHandle outSamplesBuffer;
 	BufferHandle samplesHistoryBuffer;
 
-	BufferHandle spatialReuseConstantsBuffer;
+	BufferHandle spatialReuseConstantsBuffers[SPATIAL_REUSE_PASSES];
 	BufferHandle temporalReuseConstantsBuffer;
 
-	BindGroupHandle spatialReuseBindGroup;
+	BindGroupHandle spatialReuseBindGroups[SPATIAL_REUSE_PASSES];
 	BindGroupHandle temporalReuseBindGroup;
-	BindGroupHandle restirBindGroup;
+	BindGroupHandle restirTemporalBindGroup;
+	BindGroupHandle restirSpatialBindGroups[SPATIAL_REUSE_PASSES];
 };

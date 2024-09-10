@@ -117,7 +117,10 @@ RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas, TextureViewHa
     spatialReuseConstantsCreateInfo.name = "Restir Spatial Reuse Constants Buffer";
     spatialReuseConstantsCreateInfo.size = sizeof(SpatialReuseConstants);
     spatialReuseConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
-    spatialReuseConstantsBuffer = Graphics::CreateBuffer(spatialReuseConstantsCreateInfo);
+    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
+    {
+        spatialReuseConstantsBuffers[i] = Graphics::CreateBuffer(spatialReuseConstantsCreateInfo);
+    }
 
     BufferCreateInfo temporalReuseConstantsCreateInfo{};
     temporalReuseConstantsCreateInfo.name = "Restir Temporal Reuse Constants Buffer";
@@ -128,11 +131,14 @@ RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas, TextureViewHa
     BindGroupCreateInfo spatialReuseBindGroupCreateInfo{};
     spatialReuseBindGroupCreateInfo.name = "Restir Spatial Reuse Bind Group";
     spatialReuseBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(SpatialReusePipeline::Get(), 0);
-    spatialReuseBindGroupCreateInfo.entries = {
-        BindGroupEntry(0, BindingResource::Buffer(spatialReuseConstantsBuffer)),
+    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
+    {
+        spatialReuseBindGroupCreateInfo.entries = {
+        BindGroupEntry(0, BindingResource::Buffer(spatialReuseConstantsBuffers[i])),
         BindGroupEntry(1, BindingResource::TextureView(gbufferView)),
-    };
-    spatialReuseBindGroup = Graphics::CreateBindGroup(spatialReuseBindGroupCreateInfo);
+        };
+        spatialReuseBindGroups[i] = Graphics::CreateBindGroup(spatialReuseBindGroupCreateInfo);
+    }
 
     BindGroupCreateInfo temporalReuseBindGroupCreateInfo{};
     temporalReuseBindGroupCreateInfo.name = "Restir Temporal Reuse Bind Group";
@@ -143,7 +149,11 @@ RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas, TextureViewHa
     };
     temporalReuseBindGroup = Graphics::CreateBindGroup(temporalReuseBindGroupCreateInfo);
 
-    restirBindGroup = CreateBindGroup(SpatialReusePipeline::Get(), true);
+    restirTemporalBindGroup = CreateBindGroup(TemporalReusePipeline::Get(), true);
+    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
+    {
+        restirSpatialBindGroups[i] = CreateBindGroup(SpatialReusePipeline::Get(), i % 2 == 0);
+    }
 }
 
 RestirDiPass::~RestirDiPass()
@@ -152,10 +162,16 @@ RestirDiPass::~RestirDiPass()
     Graphics::DestroyBuffer(outSamplesBuffer);
     Graphics::DestroyBuffer(samplesHistoryBuffer);
 
-    Graphics::DestroyBuffer(spatialReuseConstantsBuffer);
+    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
+    {
+        Graphics::DestroyBuffer(spatialReuseConstantsBuffers[i]);
+    }
     Graphics::DestroyBuffer(temporalReuseConstantsBuffer);
 
-	Graphics::DestroyBindGroup(spatialReuseBindGroup);
+    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
+    {
+        Graphics::DestroyBindGroup(spatialReuseBindGroups[i]);
+    }
     Graphics::DestroyBindGroup(temporalReuseBindGroup);
 }
 
@@ -176,10 +192,13 @@ void RestirDiPass::Dispatch()
 {
     SpatialReuseConstants spatialReuseConstants{};
     spatialReuseConstants.dispatchSize = width * height;
-    spatialReuseConstants.seed = seed;
     spatialReuseConstants.width = width;
     spatialReuseConstants.pixelRadius = pixelRadius;
-    Graphics::WriteBuffer(spatialReuseConstantsBuffer, 0, &spatialReuseConstants);
+    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
+    {
+        spatialReuseConstants.seed = seed ^ (i * 271983);
+        Graphics::WriteBuffer(spatialReuseConstantsBuffers[i], 0, &spatialReuseConstants);
+    }
 
     TemporalReuseConstants temporalReuseConstants{};
     temporalReuseConstants.dispatchSize = width * height;
@@ -192,20 +211,23 @@ void RestirDiPass::Dispatch()
     {
         Graphics::SetComputePipeline(TemporalReusePipeline::Get());
         Graphics::SetBindGroup(0, temporalReuseBindGroup);
-        Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirBindGroup);
+        Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirTemporalBindGroup);
         Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
     }
     Graphics::EndComputePass(computePass);
 
-    computePassDescriptor.name = "Restir Spatial Reuse";
-    computePass = Graphics::BeginComputePass(computePassDescriptor);
+    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
-        Graphics::SetComputePipeline(SpatialReusePipeline::Get());
-        Graphics::SetBindGroup(0, spatialReuseBindGroup);
-        Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirBindGroup);
-        Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+        computePassDescriptor.name = "Restir Spatial Reuse";
+        computePass = Graphics::BeginComputePass(computePassDescriptor);
+        {
+            Graphics::SetComputePipeline(SpatialReusePipeline::Get());
+            Graphics::SetBindGroup(0, spatialReuseBindGroups[i]);
+            Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirSpatialBindGroups[i]);
+            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+        }
+        Graphics::EndComputePass(computePass);
     }
-    Graphics::EndComputePass(computePass);
 }
 
 void RestirDiPass::ClearPipelineCache()
