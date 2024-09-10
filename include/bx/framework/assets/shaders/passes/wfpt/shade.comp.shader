@@ -213,7 +213,7 @@ void main()
         }
     }
 
-    RestirSample directLightSample;
+    Reservoir directLightSample;
 
     if (intersection.t != T_MISS)
     {
@@ -296,7 +296,7 @@ void main()
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         { // Direct illumination
-            directLightSample = generateRestirSample(payload.rngState,
+            directLightSample = ris(payload.rngState,
                 layeredLobe, worldToTangent, tangentToWorld,
                 normal, intersection.frontFace,
                 intersectionPos, ray.origin);
@@ -365,12 +365,12 @@ void main()
     {
         accumulated += shadeSky(ray.direction, throughput);
 
-        directLightSample = makeRestirSample();
+        directLightSample = makeReservoir();
     }
 
     payload.throughput = packRgb9e5(throughput);
     payload.accumulated = packRgb9e5(accumulated);
     payloads[pid] = payload;
 
-    outRestirSamples[pid] = directLightSample;
+    outRestirReservoirs[pid] = directLightSample;
 }

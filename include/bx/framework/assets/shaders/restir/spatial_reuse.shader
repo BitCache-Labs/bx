@@ -40,20 +40,16 @@ void main()
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= constants.dispatchSize) return;
     ivec2 pixel = ivec2(int(id % constants.width), int(id / constants.width));
-
-    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
-
-    RestirSample originalSample = restirSamples[id];
-    vec4 originalNormalAndDepth = getPixelNormalAndDepth(pixel);
     
-    //if (!isRestirSampleValid(originalSample)) // TODO: if we keep this optimize code path with final write
-    //{
-    //    outRestirSamples[id] = originalSample;
-    //    restirSamplesHistory[id] = originalSample;
-    //    return;
-    //}
+    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
+    
+    Reservoir reservoir = restirReservoirs[id];
+    RestirSample originalSample = reservoir.outputSample;
+    vec4 originalNormalAndDepth = getPixelNormalAndDepth(pixel);
 
-    Reservoir reservoir = makeReservoir();
+    //outRestirReservoirs[id] = reservoir;
+    //restirReservoirsHistory[id] = reservoir;
+    //return;
     
     #pragma unroll
     for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
@@ -62,27 +58,24 @@ void main()
         ivec2 offset = ivec2(p * constants.pixelRadius);
         ivec2 candidatePixel = pixel + offset;
         uint flatOffset = offset.y * constants.width + offset.x;
-
+    
         if (candidatePixel.x >= constants.width || flatOffset >= constants.dispatchSize)
         {
             continue;
         }
         
-        RestirSample restirSample = restirSamples[id + flatOffset];
+        Reservoir candidateReservoir = restirReservoirs[id + flatOffset];
         vec4 otherNormalAndDepth = getPixelNormalAndDepth(pixel + offset);
-
-        if (isRestirSampleValid(restirSample) && validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
+    
+        if (isRestirSampleValid(candidateReservoir.outputSample) && validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
         {
-            float weight = (1.0 / NUM_SPATIAL_SAMPLES) * restirSample.unoccludedContributionWeight * restirSample.weight;
-            updateReservoir(reservoir, rngState, restirSample, weight);
+            reservoir = combineReservoirs(rngState, reservoir, candidateReservoir);
         }
     }
     
-    RestirSample outputSample = reservoir.outputSample;
-    outputSample.x0 = originalSample.x0;
-    outputSample.x1 = originalSample.x1;
-    outputSample.weight = (outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / outputSample.unoccludedContributionWeight) * reservoir.weightSum;
-
-    outRestirSamples[id] = outputSample;
-    restirSamplesHistory[id] = outputSample;
+    reservoir.outputSample.x0 = originalSample.x0;
+    reservoir.outputSample.x1 = originalSample.x1;
+    
+    outRestirReservoirs[id] = reservoir;
+    restirReservoirsHistory[id] = reservoir;
 }

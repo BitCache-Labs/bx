@@ -14,6 +14,15 @@ public:
 		Vec4 x2;
 	};
 
+	struct Reservoir
+	{
+		RestirSample sample;
+		f32 weightSum;
+		f32 weight;
+		u32 _PADDING0;
+		u32 _PADDING1;
+	};
+
 public:
 	static BindGroupLayoutDescriptor GetBindGroupLayout();
 	constexpr static u32 BIND_GROUP_SET = 4;

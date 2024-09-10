@@ -50,7 +50,8 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
 
             float cosOut = abs(dot(triangleNormal, -directionToLight));
 
-            float pdf = 1.0 / (triangleLightSolidAngle(cosOut, area, distanceToLight) * float(emissiveTriangleCount));
+            float pdf = 1.0 / (triangleLightSolidAngle(cosOut, area, distanceToLight));
+            pdf *= 1.0 / float(emissiveTriangleCount);
             pdf *= (1.0 - sunPickProbability);
 
             RestirSample lightSample;
@@ -73,13 +74,12 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
     return lightSample;
 }
 
-RestirSample generateRestirSample(inout uint rngState,
+Reservoir ris(inout uint rngState,
     LayeredLobe layeredLobe, mat3 worldToTangent, mat3 tangentToWorld,
     vec3 normal, bool frontFace,
     vec3 x1, vec3 x0)
 {
     const uint M_AREA = 32;
-    const uint M_BSDF = 0;
 
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
@@ -96,42 +96,16 @@ RestirSample generateRestirSample(inout uint rngState,
         vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
 
         BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
-        vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0); // 1.0 / lightSample.weight, but don't use pdf
+        vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
         lightSample.unoccludedContributionWeight = linearToLuma(bsdfContribution);
 
-        float weight = (1.0 / (M_AREA + M_BSDF)) * lightSample.unoccludedContributionWeight * lightSample.weight;
+        float weight = lightSample.unoccludedContributionWeight * lightSample.weight;
         updateReservoir(reservoir, rngState, lightSample, weight);
 	}
 
-    //#pragma unroll
-	//for (uint i = 0; i < M_BSDF; i++)
-	//{
-    //    vec3 wOutWorldSpace = normalize(x1 - x0);
-    //    vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
-    //
-    //    BsdfSample bsdfSample = sampleLayeredBsdf(layeredLobe, randomUniformFloat3(rngState), wOutTangentSpace, frontFace);
-    //    //RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
-    //
-    //    vec3 wInWorldSpace = normalize(tangentToWorld * bsdfSample.wInTangentSpace);
-    //
-    //    RestirSample lightSample;
-    //    lightSample.path.x0 = x0;
-    //    lightSample.path.x1 = x1;
-    //    lightSample.path.x2 = x1 + wInWorldSpace * 1000.0;
-    //    lightSample.weight = 1.0 / bsdfSample.pdf;
-    //
-    //    BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, bsdfSample.wInTangentSpace, frontFace);
-    //    vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0 / lightSample.weight);
-    //    float unoccludedContributionWeight = linearToLuma(bsdfContribution);
-    //
-    //    float weight = (1.0 / (M_AREA + M_BSDF)) * unoccludedContributionWeight * lightSample.weight;
-    //    updateReservoir(reservoir, rngState, lightSample, weight);
-	//}
+    reservoir.weight = (1.0 / reservoir.outputSample.unoccludedContributionWeight) * ((1.0 / M_AREA) * reservoir.weightSum);
 
-    RestirSample outputSample = reservoir.outputSample;
-    outputSample.weight = (1.0 / outputSample.unoccludedContributionWeight) * reservoir.weightSum;
-
-    return outputSample;
+    return reservoir;
 }
 
 #endif // WFPT_SAMPLING_H

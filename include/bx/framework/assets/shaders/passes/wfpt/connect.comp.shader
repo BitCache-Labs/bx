@@ -50,7 +50,8 @@ void main()
     // Ray ray = unpackRay(shadowRays[id]);
     // float rayDistance = shadowRayDistances[id];
 
-    RestirSample lightSample = restirSamples[pid];
+    Reservoir lightReservoir = restirReservoirs[pid];
+    RestirSample lightSample = lightReservoir.outputSample;
     vec3 origin = lightSample.x1;
     vec3 direction = normalize(lightSample.x2 - lightSample.x1);
     float tMax = distance(lightSample.x2, lightSample.x1);
@@ -67,7 +68,7 @@ void main()
             
             vec3 emission = vec3(4.0);//vec3(0.6, 0.6, 0.5); // TODO: sun sampling
             
-            vec3 lightingContribution = (throughput * emission) * lightSample.weight;
+            vec3 lightingContribution = (throughput * emission) * lightReservoir.weight;
             
             accumulated += lightingContribution;
             

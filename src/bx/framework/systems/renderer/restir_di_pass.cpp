@@ -97,19 +97,19 @@ RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas, TextureViewHa
 {
     BufferCreateInfo restirSamplesCreateInfo{};
     restirSamplesCreateInfo.name = "Restir Samples Buffer";
-    restirSamplesCreateInfo.size = width * height * sizeof(Restir::RestirSample);
+    restirSamplesCreateInfo.size = width * height * sizeof(Restir::Reservoir);
     restirSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     samplesBuffer = Graphics::CreateBuffer(restirSamplesCreateInfo);
 
     BufferCreateInfo restirOutSamplesCreateInfo{};
     restirOutSamplesCreateInfo.name = "Restir Out Samples Buffer";
-    restirOutSamplesCreateInfo.size = width * height * sizeof(Restir::RestirSample);
+    restirOutSamplesCreateInfo.size = width * height * sizeof(Restir::Reservoir);
     restirOutSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     outSamplesBuffer = Graphics::CreateBuffer(restirOutSamplesCreateInfo);
 
     BufferCreateInfo restirSamplesHistoryCreateInfo{};
     restirSamplesHistoryCreateInfo.name = "Restir Samples History Buffer";
-    restirSamplesHistoryCreateInfo.size = width * height * sizeof(Restir::RestirSample);
+    restirSamplesHistoryCreateInfo.size = width * height * sizeof(Restir::Reservoir);
     restirSamplesHistoryCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     samplesHistoryBuffer = Graphics::CreateBuffer(restirSamplesHistoryCreateInfo);
 

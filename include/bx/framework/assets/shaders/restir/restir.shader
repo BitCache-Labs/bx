@@ -29,6 +29,9 @@ struct Reservoir
 {
 	RestirSample outputSample;
 	float weightSum;
+	float weight;
+	uint sampleCount;
+	uint _PADDING1;
 };
 
 Reservoir makeReservoir()
@@ -36,6 +39,8 @@ Reservoir makeReservoir()
 	Reservoir reservoir;
 	reservoir.outputSample = makeRestirSample();
 	reservoir.weightSum = 0.0;
+	reservoir.weight = 0.0;
+	reservoir.sampleCount = 0;
 	return reservoir;
 }
 
@@ -47,6 +52,7 @@ bool isRestirSampleValid(RestirSample restirSample)
 void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSample restirSample, float weight)
 {
 	reservoir.weightSum += weight;
+	reservoir.sampleCount += 1;
 
 	if (randomUniformFloat(rngState) < (weight / reservoir.weightSum))
 	{
@@ -54,21 +60,35 @@ void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSampl
 	}
 }
 
+Reservoir combineReservoirs(inout uint rngState, Reservoir a, Reservoir b)
+{
+	Reservoir result = makeReservoir();
+	updateReservoir(result, rngState, a.outputSample, a.outputSample.unoccludedContributionWeight * a.weight * a.sampleCount);
+	updateReservoir(result, rngState, b.outputSample, b.outputSample.unoccludedContributionWeight * b.weight * b.sampleCount);
+	result.sampleCount = a.sampleCount + b.sampleCount;
+
+	result.weight = (result.outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / result.outputSample.unoccludedContributionWeight);
+	//result.weight = 1.0 / result.outputSample.unoccludedContributionWeight;
+	result.weight *= ((1.0 / result.sampleCount) * result.weightSum);
+	
+	return result;
+}
+
 #ifdef RESTIR_BINDINGS
 
-layout (BINDING(4, 0), std430) buffer _RestirSamples
+layout (BINDING(4, 0), std430) buffer _RestirReservoirs
 {
-    RestirSample restirSamples[];
+    Reservoir restirReservoirs[];
 };
 
-layout (BINDING(4, 1), std430) buffer _OutRestirSamples
+layout (BINDING(4, 1), std430) buffer _OutRestirReservoirs
 {
-    RestirSample outRestirSamples[];
+    Reservoir outRestirReservoirs[];
 };
 
-layout (BINDING(4, 2), std430) buffer _RestirSamplesHistory
+layout (BINDING(4, 2), std430) buffer _RestirReservoirsHistory
 {
-    RestirSample restirSamplesHistory[];
+    Reservoir restirReservoirsHistory[];
 };
 
 #endif // RESTIR_BINDINGS
