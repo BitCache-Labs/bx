@@ -319,6 +319,10 @@ void SceneView::Present(bool& show)
     ImGui::Text("PT Accumulate: ");
     ImGui::SameLine();
     ImGui::Checkbox("##PTAccumulate", &SystemManager::GetSystem<Renderer>().accumulate);
+
+    ImGui::Text("PT Hybrid: ");
+    ImGui::SameLine();
+    ImGui::Checkbox("##PTHybrid", &SystemManager::GetSystem<Renderer>().hybrid);
     
     bool sceneActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || ImGui::IsWindowHovered();
     if (sceneActive)
