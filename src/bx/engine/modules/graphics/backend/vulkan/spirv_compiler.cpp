@@ -149,7 +149,7 @@ namespace Vk
         input.language = GLSLANG_SOURCE_GLSL;
         input.stage = stage;
         input.client = GLSLANG_CLIENT_VULKAN;
-        input.client_version = GLSLANG_TARGET_VULKAN_1_0;
+        input.client_version = GLSLANG_TARGET_VULKAN_1_2;
         input.target_language = GLSLANG_TARGET_SPV;
         input.target_language_version = GLSLANG_TARGET_SPV_1_4;
         input.code = src.c_str();
@@ -157,7 +157,7 @@ namespace Vk
         input.default_profile = GLSLANG_CORE_PROFILE;
         input.force_default_version_and_profile = false;
         input.forward_compatible = false;
-        input.messages = GLSLANG_MSG_DEFAULT_BIT;
+        input.messages = GLSLANG_MSG_HLSL_OFFSETS_BIT; // https://manpages.debian.org/testing/glslang-tools/glslangValidator.1.en.html
         input.resource = reinterpret_cast<const glslang_resource_t*>(&DefaultTBuiltInResource);
 
         glslang_shader_t* shader = glslang_shader_create(&input);

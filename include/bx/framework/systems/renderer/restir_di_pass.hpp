@@ -19,8 +19,8 @@ public:
 		RestirSample sample;
 		f32 weightSum;
 		f32 weight;
+		u32 sampleCount;
 		u32 _PADDING0;
-		u32 _PADDING1;
 	};
 
 public:

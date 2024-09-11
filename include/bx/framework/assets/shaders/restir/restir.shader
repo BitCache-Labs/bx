@@ -31,7 +31,7 @@ struct Reservoir
 	float weightSum;
 	float weight;
 	uint sampleCount;
-	uint _PADDING1;
+	uint _PADDING0;
 };
 
 Reservoir makeReservoir()
@@ -41,6 +41,7 @@ Reservoir makeReservoir()
 	reservoir.weightSum = 0.0;
 	reservoir.weight = 0.0;
 	reservoir.sampleCount = 0;
+	reservoir._PADDING0 = 0;
 	return reservoir;
 }
 
