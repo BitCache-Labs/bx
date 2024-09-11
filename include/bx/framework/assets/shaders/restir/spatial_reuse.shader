@@ -66,6 +66,7 @@ void main()
             Reservoir candidateReservoir = restirReservoirs[id + flatOffset];
             vec4 otherNormalAndDepth = getPixelNormalAndDepth(pixel + offset);
         
+            // TODO: double check gbuffers? hybrid seems broken on some walls
             //if (validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
             if (isReservoirValid(candidateReservoir))
             {

@@ -539,12 +539,6 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
 
         restirDiPass->seed = seed;
         restirDiPass->Dispatch();
-
-        // TODO: execute final half of shade
-        // At least split the di raygen from shade to happen after restir dispatcch
-
-        // TODO: add restir buffers to shade bindgroup
-        // TODO: add restir buffers to restir bindgroup in restir di pass
         
         writeIndirectArgs.Dispatch(indirectArgsBuffer, shadowRayCountBuffer);
 
