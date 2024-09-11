@@ -63,13 +63,14 @@ void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSampl
 
 Reservoir combineReservoirs(inout uint rngState, Reservoir a, Reservoir b)
 {
+	if (b.weight == 0.0) return a;
+
 	Reservoir result = makeReservoir();
 	updateReservoir(result, rngState, a.outputSample, a.outputSample.unoccludedContributionWeight * a.weight * a.sampleCount);
 	updateReservoir(result, rngState, b.outputSample, b.outputSample.unoccludedContributionWeight * b.weight * b.sampleCount);
 	result.sampleCount = a.sampleCount + b.sampleCount;
 
 	result.weight = (result.outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / result.outputSample.unoccludedContributionWeight);
-	//result.weight = 1.0 / result.outputSample.unoccludedContributionWeight;
 	result.weight *= ((1.0 / result.sampleCount) * result.weightSum);
 	
 	return result;

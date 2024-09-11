@@ -213,8 +213,6 @@ void main()
         }
     }
 
-    Reservoir directLightSample;
-
     if (intersection.t != T_MISS)
     {
         BlasInstance blasInstance;
@@ -296,10 +294,11 @@ void main()
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         { // Direct illumination
-            directLightSample = ris(payload.rngState,
+            Reservoir directLightSample = ris(payload.rngState,
                 layeredLobe, worldToTangent, tangentToWorld,
                 normal, intersection.frontFace,
                 intersectionPos, ray.origin);
+            outRestirReservoirs[pid] = directLightSample;
 
             uint rayIdx = atomicAdd(shadowRayCount, 1u);
             shadowPixelMapping[rayIdx] = pid;
@@ -364,13 +363,9 @@ void main()
     else
     {
         accumulated += shadeSky(ray.direction, throughput);
-
-        directLightSample = makeReservoir();
     }
 
     payload.throughput = packRgb9e5(throughput);
     payload.accumulated = packRgb9e5(accumulated);
     payloads[pid] = payload;
-
-    outRestirReservoirs[pid] = directLightSample;
 }

@@ -26,6 +26,17 @@ bool traceRay(vec3 origin, vec3 direction, float tMax)
     return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
 }
 
+void applyVisibilityCheck(inout Reservoir reservoir)
+{
+    RestirSample currentSample = reservoir.outputSample;
+    vec3 visibilityDir = normalize(currentSample.x2 - currentSample.x1);
+    float visibilityLength = distance(currentSample.x2, currentSample.x1);
+    if (traceRay(currentSample.x1, visibilityDir, visibilityLength))
+    {
+        reservoir.weight = 0.0;
+    }
+}
+
 float currentBalanceHeuristic(float pdfCurrent, float pdfPrev)
 {
     return (pdfCurrent) / (MIS_HISTORY_FACTOR * pdfPrev + pdfCurrent);
@@ -45,20 +56,26 @@ void main()
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
     
     Reservoir currentReservoir = restirReservoirs[id];
+    RestirSample currentSample = currentReservoir.outputSample;
     Reservoir previousReservoir = restirReservoirsHistory[id];
     
-    RestirSample currentSample = currentReservoir.outputSample;
-    vec3 visibilityDir = normalize(currentSample.x2 - currentSample.x1);
-    float visibilityLength = distance(currentSample.x2, currentSample.x1);
-    if (traceRay(currentSample.x1, visibilityDir, visibilityLength))
+    applyVisibilityCheck(currentReservoir);
+    //applyVisibilityCheck(previousReservoir); // TODO: once every x frames?
+
+    //if (previousReservoir.weight != 0.0)
     {
-        currentReservoir.weight = 0.0;
+        previousReservoir.sampleCount = min(previousReservoir.sampleCount, currentReservoir.sampleCount * 8);
+
+        Reservoir outputReservoir = combineReservoirs(rngState, currentReservoir, previousReservoir);
+        outputReservoir.outputSample.x0 = currentSample.x0;
+        outputReservoir.outputSample.x1 = currentSample.x1;
+        //restirReservoirs[id] = currentReservoir;// outputReservoir;
+        restirReservoirs[id] = outputReservoir;// outputReservoir;
     }
-    Reservoir outputReservoir = combineReservoirs(rngState, currentReservoir, previousReservoir);
-    outputReservoir.outputSample.x0 = currentSample.x0;
-    outputReservoir.outputSample.x1 = currentSample.x1;
-    restirReservoirs[id] = currentReservoir;// outputReservoir;
-    return;
+    //else
+    //{
+    //    restirReservoirs[id] = currentReservoir;
+    //}
     //
     //
     //Reservoir reservoir = makeReservoir();

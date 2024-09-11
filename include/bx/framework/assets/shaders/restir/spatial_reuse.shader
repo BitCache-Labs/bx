@@ -47,9 +47,9 @@ void main()
     RestirSample originalSample = reservoir.outputSample;
     vec4 originalNormalAndDepth = getPixelNormalAndDepth(pixel);
 
-    //outRestirReservoirs[id] = reservoir;
-    //restirReservoirsHistory[id] = reservoir;
-    //return;
+    outRestirReservoirs[id] = reservoir;
+    restirReservoirsHistory[id] = reservoir;
+    return;
     
     #pragma unroll
     for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
@@ -67,7 +67,7 @@ void main()
         Reservoir candidateReservoir = restirReservoirs[id + flatOffset];
         vec4 otherNormalAndDepth = getPixelNormalAndDepth(pixel + offset);
     
-        if (isRestirSampleValid(candidateReservoir.outputSample) && validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
+        if (validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
         {
             reservoir = combineReservoirs(rngState, reservoir, candidateReservoir);
         }
