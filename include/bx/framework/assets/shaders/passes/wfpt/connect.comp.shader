@@ -59,6 +59,12 @@ void main()
     Payload payload = payloads[pid];
     vec3 hitNormal = unpackNormalizedXyz10(payload.hitNormal, 0);
 
+    if (!isReservoirValid(lightReservoir)) // TODO: remove
+    {
+        payloads[pid].accumulated = packRgb9e5(vec3(1.0, 0.0, 1.0));
+        return;
+    }
+
     if (dot(direction, hitNormal) > 0.0)
     {
         if (!shadowRayHit(origin + direction * RT_EPSILON, direction, tMax))

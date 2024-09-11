@@ -363,6 +363,7 @@ void main()
     else
     {
         accumulated += shadeSky(ray.direction, throughput);
+        outRestirReservoirs[pid] = makeInvalidReservoir();
     }
 
     payload.throughput = packRgb9e5(throughput);

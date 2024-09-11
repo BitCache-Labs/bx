@@ -29,6 +29,7 @@ vec4 getPixelNormalAndDepth(ivec2 pixel)
 
 bool validatePixelSimilarity(vec4 normalAndDepth, vec4 otherNormalAndDepth)
 {
+    return true;
     bool similairNormals = (1.0 - abs(dot(normalAndDepth.xyz, otherNormalAndDepth.xyz))) < 0.2;
     bool similairDepth = abs(1.0 - (normalAndDepth.w / otherNormalAndDepth.w)) < 0.1;
     return similairNormals && similairDepth;
@@ -47,34 +48,35 @@ void main()
     RestirSample originalSample = reservoir.outputSample;
     vec4 originalNormalAndDepth = getPixelNormalAndDepth(pixel);
 
-    outRestirReservoirs[id] = reservoir;
-    restirReservoirsHistory[id] = reservoir;
-    return;
-    
-    #pragma unroll
-    for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
+    if (isReservoirValid(reservoir))
     {
-        vec2 p = getUniformDiskSample(randomUniformFloat2(rngState));
-        ivec2 offset = ivec2(p * constants.pixelRadius);
-        ivec2 candidatePixel = pixel + offset;
-        uint flatOffset = offset.y * constants.width + offset.x;
-    
-        if (candidatePixel.x >= constants.width || flatOffset >= constants.dispatchSize)
+        #pragma unroll
+        for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
         {
-            continue;
+            vec2 p = getUniformDiskSample(randomUniformFloat2(rngState));
+            ivec2 offset = ivec2(p * constants.pixelRadius);
+            ivec2 candidatePixel = pixel + offset;
+            uint flatOffset = offset.y * constants.width + offset.x;
+        
+            if (candidatePixel.x >= constants.width || flatOffset >= constants.dispatchSize)
+            {
+                continue;
+            }
+            
+            Reservoir candidateReservoir = restirReservoirs[id + flatOffset];
+            vec4 otherNormalAndDepth = getPixelNormalAndDepth(pixel + offset);
+        
+            //if (validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
+            if (isReservoirValid(candidateReservoir))
+            {
+                reservoir = combineReservoirs(rngState, reservoir, candidateReservoir);
+                reservoir.sampleCount = min(reservoir.sampleCount, 1024);
+            }
         }
         
-        Reservoir candidateReservoir = restirReservoirs[id + flatOffset];
-        vec4 otherNormalAndDepth = getPixelNormalAndDepth(pixel + offset);
-    
-        if (validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
-        {
-            reservoir = combineReservoirs(rngState, reservoir, candidateReservoir);
-        }
+        reservoir.outputSample.x0 = originalSample.x0;
+        reservoir.outputSample.x1 = originalSample.x1;
     }
-    
-    reservoir.outputSample.x0 = originalSample.x0;
-    reservoir.outputSample.x1 = originalSample.x1;
     
     outRestirReservoirs[id] = reservoir;
     restirReservoirsHistory[id] = reservoir;

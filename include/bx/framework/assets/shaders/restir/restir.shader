@@ -2,6 +2,7 @@
 #define RESTIR_H
 
 #include "[engine]/shaders/random.shader"
+#include "[engine]/shaders/math.shader"
 
 struct RestirSample
 {
@@ -45,9 +46,16 @@ Reservoir makeReservoir()
 	return reservoir;
 }
 
-bool isRestirSampleValid(RestirSample restirSample)
+Reservoir makeInvalidReservoir()
 {
-	return restirSample.weight != 0.0;
+	Reservoir reservoir = makeReservoir();
+	reservoir.sampleCount = U32_MAX;
+	return reservoir;
+}
+
+bool isReservoirValid(Reservoir reservoir)
+{
+	return reservoir.sampleCount != U32_MAX;
 }
 
 void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSample restirSample, float weight)
@@ -63,15 +71,29 @@ void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSampl
 
 Reservoir combineReservoirs(inout uint rngState, Reservoir a, Reservoir b)
 {
-	if (b.weight == 0.0) return a;
+	if (!isReservoirValid(a) && isReservoirValid(b)) return b;
+	if (!isReservoirValid(b) && isReservoirValid(a)) return a;
+	if (!isReservoirValid(a) && !isReservoirValid(b)) return makeReservoir(); // TODO: remove this
 
 	Reservoir result = makeReservoir();
 	updateReservoir(result, rngState, a.outputSample, a.outputSample.unoccludedContributionWeight * a.weight * a.sampleCount);
 	updateReservoir(result, rngState, b.outputSample, b.outputSample.unoccludedContributionWeight * b.weight * b.sampleCount);
 	result.sampleCount = a.sampleCount + b.sampleCount;
 
-	result.weight = (result.outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / result.outputSample.unoccludedContributionWeight);
-	result.weight *= ((1.0 / result.sampleCount) * result.weightSum);
+	if (result.outputSample.unoccludedContributionWeight == 0.0 || result.sampleCount == 0)
+		result.weight = 0.0;
+	else
+		result.weight = (1.0 / result.outputSample.unoccludedContributionWeight) * ((1.0 / result.sampleCount) * result.weightSum);
+	//result.weight = (result.outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / result.outputSample.unoccludedContributionWeight);
+	//result.weight *= ((result.sampleCount == 0) ? 0.0 : (1.0 / result.sampleCount)) * result.weightSum;
+
+	//if (isnan(result.weight))
+	//{
+	//	result.weight = 0.0;
+	//	result.sampleCount = 0;
+	//	result.weightSum = 0.0;
+	//}
+	//result.weight = fixNan(result.weight);
 	
 	return result;
 }

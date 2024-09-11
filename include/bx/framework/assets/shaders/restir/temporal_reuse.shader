@@ -6,8 +6,6 @@
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/restir/restir.shader"
 
-const float MIS_HISTORY_FACTOR = 1.0;
-
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uint dispatchSize;
@@ -37,16 +35,6 @@ void applyVisibilityCheck(inout Reservoir reservoir)
     }
 }
 
-float currentBalanceHeuristic(float pdfCurrent, float pdfPrev)
-{
-    return (pdfCurrent) / (MIS_HISTORY_FACTOR * pdfPrev + pdfCurrent);
-}
-
-float prevBalanceHeuristic(float pdfCurrent, float pdfPrev)
-{
-    return (MIS_HISTORY_FACTOR * pdfPrev) / (MIS_HISTORY_FACTOR * pdfPrev + pdfCurrent);
-}
-
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
@@ -59,43 +47,27 @@ void main()
     RestirSample currentSample = currentReservoir.outputSample;
     Reservoir previousReservoir = restirReservoirsHistory[id];
     
-    applyVisibilityCheck(currentReservoir);
-    //applyVisibilityCheck(previousReservoir); // TODO: once every x frames?
+    if (isReservoirValid(currentReservoir))
+    {
+        applyVisibilityCheck(currentReservoir);
+    }
 
-    //if (previousReservoir.weight != 0.0)
+    // TODO: double check if these branches are required?
+    if (!isReservoirValid(currentReservoir) && isReservoirValid(previousReservoir))
+    {
+        restirReservoirs[id] = previousReservoir;
+    }
+    else if (isReservoirValid(currentReservoir) && !isReservoirValid(previousReservoir))
+    {
+        restirReservoirs[id] = currentReservoir;
+    }
+    else if (isReservoirValid(previousReservoir))
     {
         previousReservoir.sampleCount = min(previousReservoir.sampleCount, currentReservoir.sampleCount * 8);
 
         Reservoir outputReservoir = combineReservoirs(rngState, currentReservoir, previousReservoir);
         outputReservoir.outputSample.x0 = currentSample.x0;
         outputReservoir.outputSample.x1 = currentSample.x1;
-        //restirReservoirs[id] = currentReservoir;// outputReservoir;
-        restirReservoirs[id] = outputReservoir;// outputReservoir;
+        restirReservoirs[id] = outputReservoir;
     }
-    //else
-    //{
-    //    restirReservoirs[id] = currentReservoir;
-    //}
-    //
-    //
-    //Reservoir reservoir = makeReservoir();
-    //
-    ////float currentPdf = currentSample.weight == 0.0 ? 0.0 : 1.0 / currentSample.weight;
-    ////float prevPdf = previousSample.weight == 0.0 ? 0.0 : 1.0 / previousSample.weight;
-    //float currentPdf = currentSample.unoccludedContributionWeight;
-    //float prevPdf = previousSample.unoccludedContributionWeight;
-    //
-    //float weight = currentBalanceHeuristic(currentPdf, prevPdf) * currentSample.unoccludedContributionWeight * currentSample.weight;
-    //updateReservoir(reservoir, rngState, currentSample, weight);
-    //
-    //weight = prevBalanceHeuristic(currentPdf, prevPdf) * previousSample.unoccludedContributionWeight * previousSample.weight;
-    //updateReservoir(reservoir, rngState, previousSample, weight);
-    //
-    //RestirSample outputSample = reservoir.outputSample;
-    //outputSample.x0 = currentSample.x0;
-    //outputSample.x1 = currentSample.x1;
-    //outputSample.weight = (outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / outputSample.unoccludedContributionWeight) * reservoir.weightSum;
-    //
-    //restirSamples[id] = outputSample;
-    ////restirSamplesHistory[id] = outputSample;
 }

@@ -58,7 +58,7 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
             lightSample._PADDING0 = 0;// Remove
             lightSample.x1 = p;
             lightSample.x2 = samplePosition;
-            lightSample.weight = 1.0 / pdf;
+            lightSample.weight = fixNan(1.0 / pdf);
             return lightSample;
         }
         else
@@ -99,14 +99,17 @@ Reservoir ris(inout uint rngState,
         {
             BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
             vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
-            lightSample.unoccludedContributionWeight = linearToLuma(bsdfContribution);
+            lightSample.unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution));
         }
 
         float weight = lightSample.unoccludedContributionWeight * lightSample.weight;
         updateReservoir(reservoir, rngState, lightSample, weight);
 	}
     
-    reservoir.weight = (1.0 / reservoir.outputSample.unoccludedContributionWeight) * ((1.0 / reservoir.sampleCount) * reservoir.weightSum);
+    reservoir.weight = (reservoir.outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / reservoir.outputSample.unoccludedContributionWeight);
+    reservoir.weight *= ((reservoir.sampleCount == 0) ? 0.0 : (1.0 / reservoir.sampleCount)) * reservoir.weightSum;
+
+    reservoir.weight = fixNan(reservoir.weight);
 
     return reservoir;
 }

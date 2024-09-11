@@ -10,8 +10,8 @@ const float HALF_PI = 0.5 * PI;
 
 const float F32_MIN = -3.40282347E+38;
 const float F32_MAX = 3.40282347E+38;
-const float U32_MAX = 4294967295u;
-const float U16_MAX = 65535u;
+const uint U32_MAX = 4294967295u;
+const uint U16_MAX = 65535u;
 
 const float GOLDEN_RATIO = 1.6180339887498948482;
 
@@ -37,7 +37,22 @@ float sqr(float x)
 
 bool isNan(float x)
 {
-	return x != x;
+    return isnan(x);
+}
+
+bool isNan(vec3 x)
+{
+    return isNan(x.x) || isNan(x.y) || isNan(x.z);
+}
+
+vec3 fixNan(vec3 x)
+{
+    return isNan(x) ? vec3(0.0) : x;
+}
+
+float fixNan(float x)
+{
+    return isNan(x) ? 0.0 : x;
 }
 
 uint divCeil(uint x, uint y)
