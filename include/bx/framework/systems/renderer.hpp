@@ -19,7 +19,7 @@ public:
 	TextureHandle GetEditorCameraColorTarget();
 
 	b8 accumulate = false;
-	b8 hybrid = true;
+	b8 hybrid = false;
 
 private:
 	friend class SceneView;

@@ -74,17 +74,6 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
     return lightSample;
 }
 
-void _updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSample restirSample, float weight)
-{
-	reservoir.weightSum += weight;
-	reservoir.sampleCount += 1;
-
-	if (randomUniformFloat(rngState) < (weight / reservoir.weightSum))
-	{
-		reservoir.outputSample = restirSample;
-	}
-}
-
 Reservoir ris(inout uint rngState,
     LayeredLobe layeredLobe, mat3 worldToTangent, mat3 tangentToWorld,
     vec3 normal, bool frontFace,
@@ -97,33 +86,27 @@ Reservoir ris(inout uint rngState,
 
 	Reservoir reservoir = makeReservoir();
 
-    //#pragma unroll
-	//for (uint i = 0; i < M_AREA; i++)
-	//{
-    //    RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
-    //    lightSample.x0 = x0;
-    //
-    //    vec3 wInWorldSpace = normalize(lightSample.x2 - lightSample.x1);
-    //    vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
-    //
-    //    BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
-    //    vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
-    //    lightSample.unoccludedContributionWeight = linearToLuma(bsdfContribution);
-    //
-    //    float weight = lightSample.weight; // lightSample.unoccludedContributionWeight * 
-    //    updateReservoir(reservoir, rngState, lightSample, weight);
-	//}
-    //
-    //reservoir.weight = (1.0 / reservoir.outputSample.unoccludedContributionWeight) * ((1.0 / M_AREA) * reservoir.weightSum);
-    //reservoir.sampleCount += 32;
-
-    for (uint i = 0; i < M_AREA; i++)
+    #pragma unroll
+	for (uint i = 0; i < M_AREA; i++)
 	{
         RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
-        float weight = lightSample.weight;
-        _updateReservoir(reservoir, rngState, lightSample, weight);
-        //reservoir.sampleCount += 1;
-    }
+        lightSample.x0 = x0;
+    
+        vec3 wInWorldSpace = normalize(lightSample.x2 - lightSample.x1);
+        vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
+    
+        if (dot(wInWorldSpace, normal) > 0.0)
+        {
+            BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
+            vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
+            lightSample.unoccludedContributionWeight = linearToLuma(bsdfContribution);
+        }
+
+        float weight = lightSample.unoccludedContributionWeight * lightSample.weight;
+        updateReservoir(reservoir, rngState, lightSample, weight);
+	}
+    
+    reservoir.weight = (1.0 / reservoir.outputSample.unoccludedContributionWeight) * ((1.0 / reservoir.sampleCount) * reservoir.weightSum);
 
     return reservoir;
 }

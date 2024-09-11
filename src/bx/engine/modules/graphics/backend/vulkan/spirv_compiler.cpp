@@ -125,6 +125,11 @@ static const TBuiltInResource DefaultTBuiltInResource =
     }
 };
 
+inline glslang_messages_t operator|(glslang_messages_t a, glslang_messages_t b)
+{
+    return static_cast<glslang_messages_t>(static_cast<int>(a) | static_cast<int>(b));
+}
+
 namespace Vk
 {
     SpirVCompiler& SpirVCompiler::Instance()
@@ -157,7 +162,7 @@ namespace Vk
         input.default_profile = GLSLANG_CORE_PROFILE;
         input.force_default_version_and_profile = false;
         input.forward_compatible = false;
-        input.messages = GLSLANG_MSG_HLSL_OFFSETS_BIT; // https://manpages.debian.org/testing/glslang-tools/glslangValidator.1.en.html
+        input.messages = GLSLANG_MSG_HLSL_OFFSETS_BIT | GLSLANG_MSG_VULKAN_RULES_BIT | GLSLANG_MSG_SPV_RULES_BIT;
         input.resource = reinterpret_cast<const glslang_resource_t*>(&DefaultTBuiltInResource);
 
         glslang_shader_t* shader = glslang_shader_create(&input);

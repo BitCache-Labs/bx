@@ -1,8 +1,6 @@
 #ifndef LANGUAGE_H
 #define LANGUAGE_H
 
-#pragma optimize (off)
-
 #define MAX_BINDINGS_PER_SET 32
 
 #ifdef OPENGL

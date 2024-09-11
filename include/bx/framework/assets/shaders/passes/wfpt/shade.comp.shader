@@ -196,7 +196,7 @@ void main()
         throughput = vec3(1.0);
         payload.rngState = pcgHash(pid ^ xorShiftU32(constants.seed));
 
-        if (constants.hybrid)
+        if (false)// (constants.hybrid)
         {
             ivec2 gbufferPixel = ivec2(int(pid % constants.width), int(pid / constants.width));
             hybridGBufferData = imageLoad(gbuffer, gbufferPixel);
@@ -221,7 +221,7 @@ void main()
         vec3 normal;
         vec2 texCoord;
 
-        if (constants.bounce == 0 && constants.hybrid)
+        if (false)// (constants.bounce == 0 && constants.hybrid)
         {
             normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(hybridGBufferData.g)), 0);
             texCoord = unpackHalf2x16(floatBitsToUint(hybridGBufferData.b));
