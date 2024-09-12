@@ -61,3 +61,15 @@
 [submodule "extern/free-fonts"]
 	path = extern/free-fonts
 	url = https://github.com/jenskutilek/free-fonts.git
+[submodule "extern/bx-graphics-opengl"]
+	path = extern/bx-graphics-opengl
+	url = https://github.com/BitCache-Labs/bx-graphics-opengl.git
+[submodule "extern/bx-window-glfw"]
+	path = extern/bx-window-glfw
+	url = https://github.com/BitCache-Labs/bx-window-glfw.git
+[submodule "extern/bx-audio-portaudio"]
+	path = extern/bx-audio-portaudio
+	url = https://github.com/BitCache-Labs/bx-audio-portaudio.git
+[submodule "extern/bx-physics-bullet3"]
+	path = extern/bx-physics-bullet3
+	url = https://github.com/BitCache-Labs/bx-physics-bullet3.git
