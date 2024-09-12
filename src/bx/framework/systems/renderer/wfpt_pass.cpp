@@ -538,6 +538,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         Graphics::EndComputePass(computePass);
 
         restirDiPass->seed = seed;
+
         restirDiPass->Dispatch();
         
         writeIndirectArgs.Dispatch(indirectArgsBuffer, shadowRayCountBuffer);

@@ -171,7 +171,8 @@ void shootRay(vec3 origin, vec3 direction, uint pid)
 vec3 shadeSky(vec3 direction, vec3 throughput)
 {
     float a = (direction.y + 1.0) * 0.5;
-    vec3 color = vec3(0.0);//(1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
+    //vec3 color = vec3(0.0);
+    vec3 color = (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
 
     return color * throughput;
 }
@@ -196,7 +197,7 @@ void main()
         throughput = vec3(1.0);
         payload.rngState = pcgHash(pid ^ xorShiftU32(constants.seed));
 
-        if (false)// (constants.hybrid)
+        if (constants.hybrid)
         {
             ivec2 gbufferPixel = ivec2(int(pid % constants.width), int(pid / constants.width));
             hybridGBufferData = imageLoad(gbuffer, gbufferPixel);
@@ -219,7 +220,7 @@ void main()
         vec3 normal;
         vec2 texCoord;
 
-        if (false)// (constants.bounce == 0 && constants.hybrid)
+        if (constants.bounce == 0 && constants.hybrid)
         {
             normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(hybridGBufferData.g)), 0);
             texCoord = unpackHalf2x16(floatBitsToUint(hybridGBufferData.b));
