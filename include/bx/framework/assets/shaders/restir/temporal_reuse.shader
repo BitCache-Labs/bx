@@ -63,7 +63,7 @@ void main()
     }
     else if (isReservoirValid(previousReservoir))
     {
-        previousReservoir.sampleCount = min(previousReservoir.sampleCount, currentReservoir.sampleCount * 8);
+        previousReservoir.sampleCount = min(previousReservoir.sampleCount, currentReservoir.sampleCount * 15);
 
         Reservoir outputReservoir = combineReservoirs(rngState, currentReservoir, previousReservoir);
         outputReservoir.outputSample.x0 = currentSample.x0;

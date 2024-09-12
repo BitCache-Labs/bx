@@ -3,6 +3,7 @@
 #define RESTIR_BINDINGS
 
 #include "[engine]/shaders/restir/restir.shader"
+#include "[engine]/shaders/restir/jacobian.shader"
 
 #include "[engine]/shaders/packing.shader"
 #include "[engine]/shaders/sampling.shader"
@@ -67,11 +68,10 @@ void main()
             vec4 otherNormalAndDepth = getPixelNormalAndDepth(pixel + offset);
         
             // TODO: double check gbuffers? hybrid seems broken on some walls
-            //if (validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
-            if (isReservoirValid(candidateReservoir))
+            if (isReservoirValid(candidateReservoir) && validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
             {
                 reservoir = combineReservoirs(rngState, reservoir, candidateReservoir);
-                reservoir.sampleCount = min(reservoir.sampleCount, 1024);
+                reservoir.sampleCount = min(reservoir.sampleCount, 1024 * 64);
             }
         }
         
