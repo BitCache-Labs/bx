@@ -59,6 +59,7 @@ struct GraphicsBackendState : NoCopy
 
     BufferHandle emptyBuffer = BufferHandle::null;
     TextureHandle emptyTexture = TextureHandle::null;
+    TextureViewHandle emptyTextureView = TextureViewHandle::null;
 
     TextureHandle swapchainColorTarget = TextureHandle::null;
     TextureViewHandle swapchainColorTargetView = TextureViewHandle::null;
@@ -82,6 +83,8 @@ b8 Graphics::Initialize()
     textureCreateInfo.name = "Empty Texture";
     textureCreateInfo.size = Extend3D(1, 1, 1);
     textureCreateInfo.usageFlags = TextureUsageFlags::COPY_SRC | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
+    s->emptyTexture = Graphics::CreateTexture(textureCreateInfo);
+    s->emptyTextureView = Graphics::CreateTextureView(s->emptyTexture);
 
     glCreateFramebuffers(1, &s->framebuffer);
     glCreateFramebuffers(1, &s->readbackFramebuffer);
@@ -170,6 +173,11 @@ const BufferHandle& Graphics::EmptyBuffer()
 const TextureHandle& Graphics::EmptyTexture()
 {
     return s->emptyTexture;
+}
+
+const TextureViewHandle& Graphics::EmptyTextureView()
+{
+    return s->emptyTextureView;
 }
 
 TextureHandle Graphics::GetSwapchainColorTarget()
