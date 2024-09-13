@@ -14,66 +14,6 @@ option (BX_BUILD_EDITOR "Build as editor binaries" OFF)
 option (BX_INSTALL "Install binaries" OFF)
 #option (BUILD_TESTS "Build the test binaries" ON)
 
-# Define options for window backend
-set (BX_WINDOW_BACKEND "GLFW" CACHE STRING "Choose the window backend: GLFW")
-set_property (CACHE BX_WINDOW_BACKEND PROPERTY STRINGS "GLFW")
-message ("BX window backend: ${BX_WINDOW_BACKEND}")
-
-if (BX_WINDOW_BACKEND STREQUAL "GLFW")
-    message(STATUS "Using GLFW as the window backend")
-    add_compile_definitions (BX_WINDOW_GLFW_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown window backend: ${BX_WINDOW_BACKEND}")
-endif ()
-
-# Define options for graphics backend
-set (BX_GRAPHICS_BACKEND "OpenGL" CACHE STRING "Choose the graphics backend: OpenGL, OpenGLES, Vulkan")
-set_property (CACHE BX_GRAPHICS_BACKEND PROPERTY STRINGS "OpenGL" "OpenGLES" "Vulkan")
-message ("BX graphics backend: ${BX_GRAPHICS_BACKEND}")
-
-if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
-    message(STATUS "Using OpenGL as the graphics backend")
-    add_compile_definitions (BX_GRAPHICS_OPENGL_BACKEND)
-
-elseif (BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
-    message(STATUS "Using OpenGLES as the graphics backend")
-    add_compile_definitions (BX_GRAPHICS_OPENGLES_BACKEND)
-
-elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
-    message(STATUS "Using Vulkan as the graphics backend")
-    add_compile_definitions (BX_GRAPHICS_VULKAN_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown graphics backend: ${GRAPHICS_BACKEND}")
-endif ()
-
-# Define options for physics backend
-set (BX_PHYSICS_BACKEND "Bullet" CACHE STRING "Choose the physics backend: Bullet")
-set_property (CACHE BX_PHYSICS_BACKEND PROPERTY STRINGS "Bullet")
-message ("BX physics backend: ${BX_PHYSICS_BACKEND}")
-
-if (BX_PHYSICS_BACKEND STREQUAL "Bullet")
-    message(STATUS "Using Bullet as the physics backend")
-    add_compile_definitions (BX_PHYSICS_BULLET_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown physics backend: ${WINDOW_BACKEND}")
-endif ()
-
-# Define options for audio backend
-set (BX_AUDIO_BACKEND "PortAudio" CACHE STRING "Choose the audio backend: PortAudio")
-set_property (CACHE BX_AUDIO_BACKEND PROPERTY STRINGS "PortAudio")
-message ("BX audio backend: ${BX_AUDIO_BACKEND}")
-
-if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
-    message(STATUS "Using PortAudio as the audio backend")
-    add_compile_definitions (BX_AUDIO_PORTAUDIO_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown audio backend: ${WINDOW_BACKEND}")
-endif ()
-
 # TODO: Use Platform.hpp for the future
 message ("CMake system name: ${CMAKE_SYSTEM_NAME}")
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -92,6 +32,66 @@ else ()
     add_compile_definitions (BX_RELEASE_BUILD)
 endif ()
 # ---------------------------------------
+
+# TODO: Perhaps these are better suited to be here instead of bx-framework so bx can still be used
+## Define options for window backend
+#set (BX_WINDOW_BACKEND "GLFW" CACHE STRING "Choose the window backend: GLFW")
+#set_property (CACHE BX_WINDOW_BACKEND PROPERTY STRINGS "GLFW" "Custom")
+#message ("BX window backend: ${BX_WINDOW_BACKEND}")
+#
+#if (BX_WINDOW_BACKEND STREQUAL "GLFW")
+#    message(STATUS "Using GLFW as the window backend")
+#    add_compile_definitions (BX_WINDOW_GLFW_BACKEND)
+#
+#elseif (BX_WINDOW_BACKEND STREQUAL "Custom")
+#    message(STATUS "Using a custom window backend")
+#    add_compile_definitions (BX_WINDOW_CUSTOM_BACKEND)
+#
+#else ()
+#    message(FATAL_ERROR "Unknown window backend: ${BX_WINDOW_BACKEND}")
+#endif ()
+#
+## Define options for graphics backend
+#set (BX_GRAPHICS_BACKEND "OpenGL" CACHE STRING "Choose the graphics backend: OpenGL, OpenGLES, Vulkan")
+#set_property (CACHE BX_GRAPHICS_BACKEND PROPERTY STRINGS "OpenGL" "OpenGLES" "Vulkan" "Custom")
+#message ("BX graphics backend: ${BX_GRAPHICS_BACKEND}")
+#
+#if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
+#    message(STATUS "Using OpenGL as the graphics backend")
+#    add_compile_definitions (BX_GRAPHICS_OPENGL_BACKEND)
+#
+#elseif (BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
+#    message(STATUS "Using OpenGLES as the graphics backend")
+#    add_compile_definitions (BX_GRAPHICS_OPENGLES_BACKEND)
+#
+#elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
+#    message(STATUS "Using Vulkan as the graphics backend")
+#    add_compile_definitions (BX_GRAPHICS_VULKAN_BACKEND)
+#
+#elseif (BX_GRAPHICS_BACKEND STREQUAL "Custom")
+#    message(STATUS "Using a custom graphics backend")
+#    add_compile_definitions (BX_GRAPHICS_CUSTOM_BACKEND)
+#
+#else ()
+#    message(FATAL_ERROR "Unknown graphics backend: ${GRAPHICS_BACKEND}")
+#endif ()
+#
+## Define options for audio backend
+#set (BX_AUDIO_BACKEND "PortAudio" CACHE STRING "Choose the audio backend: PortAudio")
+#set_property (CACHE BX_AUDIO_BACKEND PROPERTY STRINGS "PortAudio" "Custom")
+#message ("BX audio backend: ${BX_AUDIO_BACKEND}")
+#
+#if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
+#    message(STATUS "Using PortAudio as the audio backend")
+#    add_compile_definitions (BX_AUDIO_PORTAUDIO_BACKEND)
+#
+#elseif (BX_AUDIO_BACKEND STREQUAL "Custom")
+#    message(STATUS "Using a custom audio backend")
+#    add_compile_definitions (BX_AUDIO_CUSTOM_BACKEND)
+#
+#else ()
+#    message(FATAL_ERROR "Unknown audio backend: ${WINDOW_BACKEND}")
+#endif ()
 
 if (BX_INSTALL)
 	set (PROJECT_PATH_DIR ".")
@@ -113,158 +113,121 @@ add_subdirectory (wren)
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Setup common engine sources
-set (BX_SRCS
-	"src/bx/engine/core/data.cpp"
-	"src/bx/engine/core/ecs.cpp"
-	"src/bx/engine/core/file.cpp"
-	"src/bx/engine/core/input.cpp"
-	"src/bx/engine/core/log.cpp"
-	"src/bx/engine/core/math.cpp"
-	"src/bx/engine/core/memory.cpp"
-	"src/bx/engine/core/module.cpp"
-	"src/bx/engine/core/object.cpp"
-	"src/bx/engine/core/profiler.cpp"
-	"src/bx/engine/core/resource.cpp"
-	"src/bx/engine/core/thread.cpp"
-	"src/bx/engine/core/time.cpp"
-	"src/bx/engine/core/uuid.cpp"
 
-	"src/bx/engine/modules/audio.cpp"
-	"src/bx/engine/modules/graphics.cpp"
-	"src/bx/engine/modules/physics.cpp"
-	"src/bx/engine/modules/script.cpp"
-	"src/bx/engine/modules/window.cpp"
-	"src/bx/engine/modules/imgui.cpp"
-	
-	"src/bx/framework/components/animator.cpp"
-	"src/bx/framework/components/attributes.cpp"
-	"src/bx/framework/components/audio_listener.cpp"
-	"src/bx/framework/components/audio_source.cpp"
-	"src/bx/framework/components/camera.cpp"
-	"src/bx/framework/components/character_controller.cpp"
-	"src/bx/framework/components/collider.cpp"
-	"src/bx/framework/components/light.cpp"
-	"src/bx/framework/components/mesh_filter.cpp"
-	"src/bx/framework/components/mesh_renderer.cpp"
-	"src/bx/framework/components/rigidbody.cpp"
-	"src/bx/framework/components/spline.cpp"
-	"src/bx/framework/components/transform.cpp"
-	"src/bx/framework/resources/animation.cpp"
-	"src/bx/framework/resources/material.cpp"
-	"src/bx/framework/resources/mesh.cpp"
-	"src/bx/framework/resources/shader.cpp"
-	"src/bx/framework/resources/skeleton.cpp"
-	"src/bx/framework/resources/texture.cpp"
-	"src/bx/framework/systems/renderer.cpp"
-	"src/bx/framework/systems/dynamics.cpp"
-	"src/bx/framework/systems/acoustics.cpp"
-	"src/bx/framework/gameobject.cpp"
+
+# Setup bx-core library
+set (BX_CORE_SRCS
+	"src/bx/core/data.cpp"
+	"src/bx/core/file.cpp"
+	"src/bx/core/input.cpp"
+	"src/bx/core/log.cpp"
+	"src/bx/core/memory.cpp"
+	"src/bx/core/module.cpp"
+	"src/bx/core/object.cpp"
+	"src/bx/core/profiler.cpp"
+	"src/bx/core/resource.cpp"
+	"src/bx/core/time.cpp"
+	"src/bx/core/uuid.cpp"
+
+	# TODO: These should be in bx-platform-common
+	"src/bx/core/platform/file.cpp"
+	"src/bx/core/platform/thread.cpp"
+
+	# TODO: Check if this is still necessary
+	"src/bx/core/platform/audio.cpp"
+	"src/bx/core/platform/graphics.cpp"
+	"src/bx/core/platform/imgui.cpp"
+	"src/bx/core/platform/thread.cpp"
+	"src/bx/core/platform/window.cpp"
 )
 
-set (BX_LIBS ctti wnaabi cereal fmt glm wren imgui file_embed)
+set (BX_CORE_LIBS cereal fmt file_embed)
 
-# Setup window backend
-if (BX_WINDOW_BACKEND STREQUAL "GLFW")
-	set (BX_SRCS ${BX_SRCS}
-		"src/bx/engine/modules/window/backend/window_glfw.cpp"
-	)
+add_library (bx-core STATIC ${BX_CORE_SRCS})
+target_link_libraries (bx-core ${BX_CORE_LIBS})
+target_include_directories (bx-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-    set (BX_LIBS ${BX_LIBS} glfw imgui_glfw)
-endif()
 
-# Setup graphics backend
-if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
-	set (BX_SRCS ${BX_SRCS}
-		"src/bx/engine/modules/graphics/backend/graphics_opengl.cpp"
-	)
 
-    set (BX_LIBS ${BX_LIBS} glad imgui_opengl3)
+# Setup bx-ecs library
+set (BX_ECS_SRCS
+	"src/bx/ecs/ecs.cpp"
+)
 
-elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
-	set (BX_SRCS ${BX_SRCS}
-		"src/bx/engine/modules/graphics/backend/graphics_vulkan.cpp"
-	)
+set (BX_ECS_LIBS bx-core)
 
-    set (BX_LIBS ${BX_LIBS} vulkan glslang SPIRV)
-endif ()
+add_library (bx-ecs STATIC ${BX_ECS_SRCS})
+target_link_libraries (bx-ecs ${BX_ECS_LIBS})
+target_include_directories (bx-ecs PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Setup physics backend
-if (BX_PHYSICS_BACKEND STREQUAL "Bullet")
-	set (BX_SRCS ${BX_SRCS}
-		"src/bx/engine/modules/physics/backend/physics_bullet.cpp"
-	)
 
-    set (BX_LIBS ${BX_LIBS} bullet3) #box2d
-endif ()
 
-# Setup audio backend
-if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
-	set (BX_SRCS ${BX_SRCS}
-		"src/bx/engine/modules/audio/backend/audio_portaudio.cpp"
-	)
+# Setup bx-math library
+set (BX_MATH_SRCS
+	"src/bx/math/math.cpp"
+)
 
-    set (BX_LIBS ${BX_LIBS} PortAudio)
-endif ()
+set (BX_MATH_LIBS bx-core glm)
 
-# Setup editor sources
+add_library (bx-math STATIC ${BX_MATH_SRCS})
+target_link_libraries (bx-math ${BX_MATH_LIBS})
+target_include_directories (bx-math PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+
+# Setup bx-script library
+set (BX_SCRIPT_SRCS
+	"src/bx/script/script.cpp"
+)
+
+set (BX_SCRIPT_LIBS bx-core wren)
+
+add_library (bx-script STATIC ${BX_SCRIPT_SRCS})
+target_link_libraries (bx-script ${BX_SCRIPT_LIBS})
+target_include_directories (bx-script PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+
+# Setup bx stack library
+add_library (bx STATIC)
+target_link_libraries (bx bx-core bx-ecs bx-math bx-script)
+
+
+
+# Setup bx-editor library
 if (BX_BUILD_EDITOR)
-	set (BX_SRCS ${BX_SRCS}
-		"src/bx/editor/core/asset_importer.cpp"
-		"src/bx/editor/core/assets.cpp"
-		"src/bx/editor/core/command.cpp"
-		"src/bx/editor/core/selection.cpp"
+	set (BX_EDITOR_SRCS
 		"src/bx/editor/core/toolbar.cpp"
-		"src/bx/editor/core/view.cpp"
-
-		"src/bx/editor/gizmos/spline_gizmo.cpp"
-		"src/bx/editor/gizmos/transform_gizmo.cpp"
-
-		"src/bx/editor/views/assets_view.cpp"
-		"src/bx/editor/views/console_view.cpp"
-		"src/bx/editor/views/data_view.cpp"
-		"src/bx/editor/views/entity_view.cpp"
-		"src/bx/editor/views/gameobject_view.cpp"
-		"src/bx/editor/views/inspector_view.cpp"
-		"src/bx/editor/views/profiler_view.cpp"
-		"src/bx/editor/views/scene_view.cpp"
-		"src/bx/editor/views/settings_view.cpp"
 	)
 
-	set (BX_LIBS ${BX_LIBS} stb assimp implot ImGuizmo IconFontCppHeaders FontAwesome FreeFonts)
+	set (BX_EDITOR_LIBS bx-core imgui IconFontCppHeaders FontAwesome FreeFonts)#stb assimp implot ImGuizmo IconFontCppHeaders FontAwesome FreeFonts)
 
-	# Add editor runtime
-	set (BX_SRCS ${BX_SRCS} "src/bx/runtime/editor_runtime.cpp")
+	add_library (bx-editor STATIC ${BX_EDITOR_SRCS})
+	target_link_libraries (bx-editor ${BX_EDITOR_LIBS})
+	target_include_directories (bx-editor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-else ()
-	
-	# Add game runtime
-	set (BX_SRCS ${BX_SRCS} "src/bx/runtime/game_runtime.cpp")
+	target_link_libraries (bx bx-editor)
 endif ()
 
-# Create bx lib
-add_library (bx STATIC ${BX_SRCS})
-target_link_libraries (bx ${BX_LIBS})
-target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-if (MSVC)
-	target_compile_options(bx PUBLIC "/ZI")
-	target_link_options(bx PUBLIC "/INCREMENTAL")
-endif ()
-
-if (BX_INSTALL)
-	# Copy game contents to install dir
-	install(DIRECTORY ${CMAKE_SOURCE_DIR}/game DESTINATION bin)
-
-	# Package game in zip file of the installed files
-	#add_custom_target(install_and_package
-	#    COMMAND ${CMAKE_COMMAND} --install . --prefix ${CMAKE_INSTALL_PREFIX}
-	#    COMMAND ${CMAKE_COMMAND} -E tar cfv "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.zip" --format=zip -- "${CMAKE_INSTALL_PREFIX}/."
-	#    COMMENT "Creating distributable zip file"
-	#)
-
-	# Hide the console on installed builds
-	if (MSVC)
-		target_link_options(bx INTERFACE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
-	endif ()
-endif ()
+# TODO: Clean this up
+#if (MSVC)
+#	target_compile_options(bx PUBLIC "/ZI")
+#	target_link_options(bx PUBLIC "/INCREMENTAL")
+#endif ()
+#
+#if (BX_INSTALL)
+#	# Copy game contents to install dir
+#	install(DIRECTORY ${CMAKE_SOURCE_DIR}/game DESTINATION bin)
+#
+#	# Package game in zip file of the installed files
+#	#add_custom_target(install_and_package
+#	#    COMMAND ${CMAKE_COMMAND} --install . --prefix ${CMAKE_INSTALL_PREFIX}
+#	#    COMMAND ${CMAKE_COMMAND} -E tar cfv "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.zip" --format=zip -- "${CMAKE_INSTALL_PREFIX}/."
+#	#    COMMENT "Creating distributable zip file"
+#	#)
+#
+#	# Hide the console on installed builds
+#	if (MSVC)
+#		target_link_options(bx INTERFACE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
+#	endif ()
+#endif ()
