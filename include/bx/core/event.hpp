@@ -1,9 +1,9 @@
 #pragma once
 
-#include "bx/engine/core/memory.hpp"
-#include "bx/engine/core/guard.hpp"
-#include "bx/engine/containers/list.hpp"
-#include "bx/engine/containers/hash_map.hpp"
+#include "bx/core/memory.hpp"
+#include "bx/core/guard.hpp"
+#include "bx/core/containers/list.hpp"
+#include "bx/core/containers/hash_map.hpp"
 
 #include <functional>
 #include <memory>

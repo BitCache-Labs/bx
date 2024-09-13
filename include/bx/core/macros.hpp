@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bx/engine/core/byte_types.hpp"
-#include "bx/engine/core/log.hpp"
+#include "bx/core/byte_types.hpp"
+#include "bx/core/log.hpp"
 
 #include <cstdlib>
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bx/engine/core/byte_types.hpp"
-#include "bx/engine/core/macros.hpp"
-#include "bx/engine/containers/list.hpp"
+#include "bx/core/byte_types.hpp"
+#include "bx/core/macros.hpp"
+#include "bx/core/containers/list.hpp"
 
 // TODO: THIS WAS MADE FOR THE ECS IT'S OLD
 // DON'T USE FOR OTHER STUFF UNTIL IT'S READY!

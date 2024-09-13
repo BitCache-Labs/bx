@@ -1,9 +1,9 @@
 #pragma once
 
-#include "bx/engine/core/byte_types.hpp"
-#include "bx/engine/core/macros.hpp"
-#include "bx/engine/containers/list.hpp"
-#include "bx/engine/containers/hash_map.hpp"
+#include "bx/core/byte_types.hpp"
+#include "bx/core/macros.hpp"
+#include "bx/core/containers/list.hpp"
+#include "bx/core/containers/hash_map.hpp"
 
 #include <functional>
 

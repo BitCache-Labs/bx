@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bx/engine/core/type.hpp"
+#include "bx/core/type.hpp"
 
 // TODO: remove this class
 class Screen

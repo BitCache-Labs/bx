@@ -1,12 +1,12 @@
 #pragma once
 
-#include "bx/engine/core/byte_types.hpp"
-#include "bx/engine/core/meta.hpp"
-#include "bx/engine/core/hash.hpp"
-#include "bx/engine/core/macros.hpp"
-#include "bx/engine/containers/string.hpp"
+#include "bx/core/byte_types.hpp"
+#include "bx/core/meta/meta.hpp"
+#include "bx/core/hash.hpp"
+#include "bx/core/macros.hpp"
+#include "bx/core/containers/string.hpp"
 
-#include <wnaabi/type_info.hpp>
+//#include <wnaabi/type_info.hpp>
 
 using TypeId = SizeType;
 constexpr TypeId INVALID_TYPEID = -1;
@@ -27,8 +27,8 @@ private:
 
 	static String ClassName()
 	{
-		//return BX_FUNCTION;
-		return wnaabi::type_info<TType>::name_tokens(wnaabi::runtime_visitors::stringify_t{}).str;
+		return BX_FUNCTION;
+		//return wnaabi::type_info<TType>::name_tokens(wnaabi::runtime_visitors::stringify_t{}).str;
 	}
 };
 
@@ -49,7 +49,7 @@ public:
 
 // Enum -----------------------------------------------
 
-#include "bx/engine/containers/list.hpp"
+#include "bx/core/containers/list.hpp"
 
 //#include <cereal/cereal.hpp>
 namespace cereal { class access; }

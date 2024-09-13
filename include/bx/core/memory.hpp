@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bx/engine/core/byte_types.hpp"
+#include "bx/core/byte_types.hpp"
 
 #include <new>
 #include <cstddef>

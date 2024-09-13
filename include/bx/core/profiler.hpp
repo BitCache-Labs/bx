@@ -1,10 +1,10 @@
 #pragma once
 
-#include "bx/engine/core/byte_types.hpp"
-#include "bx/engine/core/time.hpp"
-#include "bx/engine/containers/string.hpp"
-#include "bx/engine/containers/list.hpp"
-#include "bx/engine/containers/hash_map.hpp"
+#include "bx/core/byte_types.hpp"
+#include "bx/core/time.hpp"
+#include "bx/core/containers/string.hpp"
+#include "bx/core/containers/list.hpp"
+#include "bx/core/containers/hash_map.hpp"
 
 #ifndef _MSC_VER
 //https://stackoverflow.com/questions/23230003/something-between-func-and-pretty-function

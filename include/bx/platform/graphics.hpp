@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bx/engine/core/math.hpp"
-#include "bx/engine/core/type.hpp"
-#include "bx/engine/core/macros.hpp"
+#include <bx/core/math/math.hpp>
+#include <bx/core/type.hpp>
+#include <bx/core/macros.hpp>
 
 using GraphicsHandle = u64;
 constexpr GraphicsHandle INVALID_GRAPHICS_HANDLE = -1;

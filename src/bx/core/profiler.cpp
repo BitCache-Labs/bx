@@ -1,5 +1,5 @@
-#include "bx/engine/core/profiler.hpp"
-#include "bx/engine/core/math.hpp"
+#include "bx/core/profiler.hpp"
+#include "bx/core/math/math.hpp"
 
 #include <deque>
 

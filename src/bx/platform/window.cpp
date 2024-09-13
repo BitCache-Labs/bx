@@ -1,8 +1,7 @@
-#include "bx/engine/modules/window.hpp"
+#include "bx/platform/window.hpp"
 
-#include "bx/engine/core/log.hpp"
-#include "bx/engine/core/data.hpp"
-#include "bx/engine/core/profiler.hpp"
+#include <bx/core/log.hpp>
+#include <bx/core/profiler.hpp>
 
 #include <stdlib.h>
 
@@ -22,11 +21,11 @@ int Screen::GetHeight()
 void Screen::SetWidth(int width)
 {
 	screenWidth = width;
-	Data::SetInt("Width", width, DataTarget::SYSTEM);
+	//Data::SetInt("Width", width, DataTarget::SYSTEM);
 }
 
 void Screen::SetHeight(int height)
 {
 	screenHeight = height;
-	Data::SetInt("Height", height, DataTarget::SYSTEM);
+	//Data::SetInt("Height", height, DataTarget::SYSTEM);
 }

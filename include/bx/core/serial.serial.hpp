@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bx/engine/core/serial.hpp"
-#include "bx/engine/core/type.hpp"
+#include "bx/core/serial.hpp"
+#include "bx/core/type.hpp"
 
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/portable_binary.hpp>

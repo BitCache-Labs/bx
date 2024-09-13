@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bx/engine/containers/hash_map.hpp"
+#include "bx/core/containers/hash_map.hpp"
 
 #ifndef MEMORY_CUSTOM_CONTAINERS
 

@@ -1,4 +1,4 @@
-#include "bx/engine/core/uuid.hpp"
+#include "bx/core/uuid.hpp"
 
 #include <ctime>
 #include <cstdint>

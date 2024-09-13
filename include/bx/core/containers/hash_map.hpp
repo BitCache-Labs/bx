@@ -2,7 +2,7 @@
 
 #ifndef MEMORY_CUSTOM_CONTAINERS
 
-#include "bx/engine/core/hash.hpp"
+#include "bx/core/hash.hpp"
 
 #include <unordered_map>
 
