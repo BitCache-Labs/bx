@@ -19,7 +19,7 @@ struct SpatialReuseConstants
     u32 dispatchSize;
     u32 seed;
     u32 width;
-    u32 pixelRadius;
+    u32 spatialIndex;
 };
 
 struct TemporalReuseConstants
@@ -193,10 +193,10 @@ void RestirDiPass::Dispatch()
     SpatialReuseConstants spatialReuseConstants{};
     spatialReuseConstants.dispatchSize = width * height;
     spatialReuseConstants.width = width;
-    spatialReuseConstants.pixelRadius = pixelRadius;
+    spatialReuseConstants.seed = seed;
     for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
-        spatialReuseConstants.seed = seed ^ (i * 271983);
+        spatialReuseConstants.spatialIndex = i;
         Graphics::WriteBuffer(spatialReuseConstantsBuffers[i], 0, &spatialReuseConstants);
     }
 

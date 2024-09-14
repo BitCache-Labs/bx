@@ -16,7 +16,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint dispatchSize;
     uint seed;
     uint width;
-    uint pixelRadius;
+    uint spatialIndex;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D gbuffer;
@@ -51,14 +51,25 @@ void main()
 
     if (isReservoirValid(reservoir))
     {
+        float screenRadius = constants.width / 30.0;
+        float radius = screenRadius; // TODO: use validity
+
+        float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 2 + constants.spatialIndex) * 0.5;
+
+        ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 3) : (pixel >> 2);
+        uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 2 + constants.spatialIndex));
+        float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
+
         #pragma unroll
         for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
         {
-            vec2 p = getUniformDiskSample(randomUniformFloat2(rngState));
-            ivec2 offset = ivec2(p * constants.pixelRadius);
+            float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
+            float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
+
+            ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
+            
             ivec2 candidatePixel = pixel + offset;
             uint flatOffset = offset.y * constants.width + offset.x;
-        
             if (candidatePixel.x >= constants.width || flatOffset >= constants.dispatchSize)
             {
                 continue;
@@ -67,7 +78,6 @@ void main()
             Reservoir candidateReservoir = restirReservoirs[id + flatOffset];
             vec4 otherNormalAndDepth = getPixelNormalAndDepth(pixel + offset);
         
-            // TODO: double check gbuffers? hybrid seems broken on some walls
             if (isReservoirValid(candidateReservoir) && validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
             {
                 reservoir = combineReservoirs(rngState, reservoir, candidateReservoir);

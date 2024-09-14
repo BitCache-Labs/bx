@@ -14,6 +14,7 @@ const uint U32_MAX = 4294967295u;
 const uint U16_MAX = 65535u;
 
 const float GOLDEN_RATIO = 1.6180339887498948482;
+const float GOLDEN_ANGLE = 2.39996322972865332;
 
 const vec3 RIGHT = vec3(1.0, 0.0, 0.0);
 const vec3 UP = vec3(0.0, 1.0, 0.0);

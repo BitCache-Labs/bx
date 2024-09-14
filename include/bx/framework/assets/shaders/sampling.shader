@@ -91,7 +91,7 @@ vec3 perturbDirectionVector(vec2 uv, vec3 direction, float angle)
 // https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/
 float interleavedGradientNoise(vec2 pos)
 {
-    return frac(52.9829189 * frac(0.06711056 * pos.x + 0.00583715 * pos.y));
+    return fract(52.9829189 * fract(0.06711056 * pos.x + 0.00583715 * pos.y));
 }
 
 // https://blog.demofox.org/2022/01/01/interleaved-gradient-noise-a-different-kind-of-low-discrepancy-sequence/

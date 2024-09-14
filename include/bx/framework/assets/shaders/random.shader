@@ -18,6 +18,20 @@ uint pcgHash(uint x)
     return (word >> 22u) ^ word;
 }
 
+// Combine hash, taken from Kajiya
+uint hashCombine(uint x, uint y)
+{
+    const uint M = 1664525u, C = 1013904223u;
+    uint seed = (x * M + y + C) * M;
+
+    // Tempering (from Matsumoto)
+    seed ^= (seed >> 11u);
+    seed ^= (seed << 7u) & 0x9d2c5680u;
+    seed ^= (seed << 15u) & 0xefc60000u;
+    seed ^= (seed >> 18u);
+    return seed;
+}
+
 uint xorShiftU32(uint x)
 {
 	uint s = x ^ (x << 13);
