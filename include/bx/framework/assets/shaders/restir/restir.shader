@@ -66,6 +66,7 @@ void updateReservoir(inout Reservoir reservoir, inout uint rngState, RestirSampl
 	if (randomUniformFloat(rngState) < (weight / reservoir.weightSum))
 	{
 		reservoir.outputSample = restirSample;
+		//reservoir.selectedSelectionWeight = reservoir.
 	}
 }
 

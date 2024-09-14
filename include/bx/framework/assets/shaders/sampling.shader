@@ -88,4 +88,19 @@ vec3 perturbDirectionVector(vec2 uv, vec3 direction, float angle)
     return bitangent * x + tangent * y + direction * z;
 }
 
+// https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/
+float interleavedGradientNoise(vec2 pos)
+{
+    return frac(52.9829189 * frac(0.06711056 * pos.x + 0.00583715 * pos.y));
+}
+
+// https://blog.demofox.org/2022/01/01/interleaved-gradient-noise-a-different-kind-of-low-discrepancy-sequence/
+float interleavedGradientNoiseAnimated(uvec2 pos, uint frame)
+{
+    uint id = frame % 64;
+    float x = float(pos.x) + 5.588238 * float(id);
+    float y = float(pos.y) + 5.588238 * float(id);
+    return interleavedGradientNoise(vec2(x, y));
+}
+
 #endif // SAMPLING_H
