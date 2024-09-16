@@ -1,5 +1,5 @@
 #pragma once
 
-#include "bx/engine/core/type.hpp"
+#include "bx/core/type.hpp"
 
-#include "bx/engine/core/serial.serial.hpp"
+#include "bx/core/serial.serial.hpp"

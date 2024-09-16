@@ -92,11 +92,15 @@ void ImGuiImpl::Reload()
 
 void ImGuiImpl::Shutdown()
 {
+    Shutdown_Graphics();
+    Shutdown_Window();
     ImGui::DestroyContext();
 }
 
 void ImGuiImpl::NewFrame()
 {
+    NewFrame_Window();
+    NewFrame_Graphics();
     ImGui::NewFrame();
 }
 

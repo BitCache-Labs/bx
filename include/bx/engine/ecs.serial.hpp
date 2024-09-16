@@ -1,9 +1,9 @@
 #pragma once
 
-#include "bx/engine/core/ecs.hpp"
+#include "bx/engine/ecs.hpp"
 
-#include "bx/engine/core/serial.serial.hpp"
-#include "bx/engine/containers/list.serial.hpp"
+#include <bx/core/serial.serial.hpp>
+#include <bx/core/containers/list.serial.hpp>
 
 template <>
 class Serial<Entity>

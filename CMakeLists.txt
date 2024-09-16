@@ -134,6 +134,11 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 
 
+# Setup bx stack library
+add_library (bx STATIC)
+
+
+
 # Setup bx-core library
 set (BX_CORE_SRCS
 	"src/bx/core/log.cpp"
@@ -151,6 +156,8 @@ add_library (bx-core STATIC ${BX_CORE_SRCS})
 target_link_libraries (bx-core ${BX_CORE_LIBS})
 target_include_directories (bx-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+target_link_libraries (bx bx-core)
+
 
 
 # Setup bx-platform library
@@ -166,26 +173,46 @@ set (BX_PLATFORM_LIBS bx-core imgui)
 
 add_library (bx-platform STATIC ${BX_PLATFORM_SRCS})
 target_link_libraries (bx-platform ${BX_PLATFORM_LIBS})
-target_include_directories (bx-platform INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories (bx-platform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries (bx bx-platform)
 
 # Setup platform backend
 if (BX_PLATFORM_BACKEND STREQUAL "Default")
     target_link_libraries(bx-platform-common PRIVATE bx-platform)
+
+	target_link_libraries (bx bx-platform-common)
 endif()
 
 # Setup window backend
 if (BX_WINDOW_BACKEND STREQUAL "GLFW")
-    target_link_libraries(bx-platform-glfw PRIVATE bx-platform)
+	# ImGui GLFW (TODO: temporary solution until a fully custom solution is made)
+	add_library (imgui_glfw STATIC "extern/imgui/backends/imgui_impl_glfw.cpp")
+	target_link_libraries(imgui_glfw imgui glfw)
+	target_include_directories (imgui_glfw PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+
+    target_link_libraries(bx-platform-glfw PRIVATE bx-platform imgui_glfw)
+
+	target_link_libraries (bx bx-platform-glfw)
 endif()
 
 # Setup graphics backend
 if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
-	target_link_libraries(bx-platform-opengl PRIVATE bx-platform)
+	# ImGui OpenGL3 (TODO: temporary solution until a fully custom solution is made)
+	add_library (imgui_opengl3 STATIC "extern/imgui/backends/imgui_impl_opengl3.cpp")
+	target_link_libraries(imgui_opengl3 imgui)
+	target_include_directories (imgui_opengl3 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+
+	target_link_libraries(bx-platform-opengl PRIVATE bx-platform imgui_opengl3)
+
+	target_link_libraries (bx bx-platform-opengl)
 endif ()
 
 # Setup audio backend
 if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
 	target_link_libraries(bx-platform-portaudio PRIVATE bx-platform)
+
+	target_link_libraries (bx bx-platform-portaudio)
 endif ()
 
 
@@ -206,6 +233,8 @@ add_library (bx-engine STATIC ${BX_ENGINE_SRCS})
 target_link_libraries (bx-engine ${BX_ENGINE_LIBS})
 target_include_directories (bx-engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+target_link_libraries (bx bx-engine)
+
 # Setup bx-editor library
 if (BX_BUILD_EDITOR)
 	set (BX_EDITOR_SRCS
@@ -220,12 +249,6 @@ if (BX_BUILD_EDITOR)
 
 	target_link_libraries (bx bx-editor)
 endif ()
-
-
-
-# Setup bx stack library
-add_library (bx STATIC)
-target_link_libraries (bx bx-core bx-platform bx-ecs bx-math bx-engine bx-script)
 
 
 

@@ -2,6 +2,8 @@
 
 #include "bx/core/type.hpp"
 
+typedef void (*WindowGLProc)(void);
+
 // TODO: remove this class
 class Screen
 {
@@ -20,6 +22,8 @@ class Window
 public:
 	static void GetSize(int* width, int* height);
 	static void SetCursorMode(CursorMode mode);
+
+	static WindowGLProc GetProcAddress(const char* name);
 
 private:
 	friend class Runtime;

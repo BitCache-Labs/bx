@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bx/engine/core/type.hpp"
-#include "bx/engine/core/math.hpp"
+#include <bx/core/type.hpp>
+#include <bx/core/math/math.hpp>
 
 using AudioHandle = u64;
 constexpr AudioHandle AUDIO_INVALID_HANDLE = -1;

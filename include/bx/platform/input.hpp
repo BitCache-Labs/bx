@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bx/engine/core/type.hpp"
+#include <bx/core/type.hpp>
 
 // TODO: Move this to window module
 // TODO: Review this code, needs it's own backend cpp file for GLFW, and similar/merged logic to the Window module

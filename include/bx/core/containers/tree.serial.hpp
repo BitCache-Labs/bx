@@ -1,10 +1,10 @@
 #pragma once
 
-#include "bx/engine/containers/tree.hpp"
+#include "bx/core/containers/tree.hpp"
 
-#include "bx/engine/core/serial.serial.hpp"
-#include "bx/engine/containers/list.serial.hpp"
-#include "bx/engine/containers/hash_map.serial.hpp"
+#include "bx/core/serial.serial.hpp"
+#include "bx/core/containers/list.serial.hpp"
+#include "bx/core/containers/hash_map.serial.hpp"
 
 template<class Archive, typename T>
 void serialize(Archive& ar, TreeNode<T>& data)
