@@ -39,56 +39,56 @@ bool validatePixelSimilarity(vec4 normalAndDepth, vec4 otherNormalAndDepth)
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-    uint id = uint(gl_GlobalInvocationID.x);
-    if (id >= constants.dispatchSize) return;
-    ivec2 pixel = ivec2(int(id % constants.width), int(id / constants.width));
-    
-    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
-    
-    Reservoir reservoir = restirReservoirs[id];
-    RestirSample originalSample = reservoir.outputSample;
-    vec4 originalNormalAndDepth = getPixelNormalAndDepth(pixel);
-
-    if (isReservoirValid(reservoir))
-    {
-        float screenRadius = constants.width / 30.0;
-        float radius = screenRadius; // TODO: use validity
-
-        float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 2 + constants.spatialIndex) * 0.5;
-
-        ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 3) : (pixel >> 2);
-        uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 2 + constants.spatialIndex));
-        float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
-
-        #pragma unroll
-        for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
-        {
-            float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
-            float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
-
-            ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
-            
-            ivec2 candidatePixel = pixel + offset;
-            uint flatOffset = offset.y * constants.width + offset.x;
-            if (candidatePixel.x >= constants.width || flatOffset >= constants.dispatchSize)
-            {
-                continue;
-            }
-            
-            Reservoir candidateReservoir = restirReservoirs[id + flatOffset];
-            vec4 otherNormalAndDepth = getPixelNormalAndDepth(pixel + offset);
-        
-            if (isReservoirValid(candidateReservoir) && validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
-            {
-                reservoir = combineReservoirs(rngState, reservoir, candidateReservoir);
-                reservoir.sampleCount = min(reservoir.sampleCount, 1024 * 64);
-            }
-        }
-        
-        reservoir.outputSample.x0 = originalSample.x0;
-        reservoir.outputSample.x1 = originalSample.x1;
-    }
-    
-    outRestirReservoirs[id] = reservoir;
-    restirReservoirsHistory[id] = reservoir;
+    //uint id = uint(gl_GlobalInvocationID.x);
+    //if (id >= constants.dispatchSize) return;
+    //ivec2 pixel = ivec2(int(id % constants.width), int(id / constants.width));
+    //
+    //uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
+    //
+    //Reservoir reservoir = restirReservoirs[id];
+    //RestirSample originalSample = reservoir.outputSample;
+    //vec4 originalNormalAndDepth = getPixelNormalAndDepth(pixel);
+    //
+    //if (isReservoirValid(reservoir))
+    //{
+    //    float screenRadius = constants.width / 30.0;
+    //    float radius = screenRadius; // TODO: use validity
+    //
+    //    float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 2 + constants.spatialIndex) * 0.5;
+    //
+    //    ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 3) : (pixel >> 2);
+    //    uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 2 + constants.spatialIndex));
+    //    float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
+    //
+    //    #pragma unroll
+    //    for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
+    //    {
+    //        float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
+    //        float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
+    //
+    //        ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
+    //        
+    //        ivec2 candidatePixel = pixel + offset;
+    //        uint flatOffset = offset.y * constants.width + offset.x;
+    //        if (candidatePixel.x >= constants.width || flatOffset >= constants.dispatchSize)
+    //        {
+    //            continue;
+    //        }
+    //        
+    //        Reservoir candidateReservoir = restirReservoirs[id + flatOffset];
+    //        vec4 otherNormalAndDepth = getPixelNormalAndDepth(pixel + offset);
+    //    
+    //        if (isReservoirValid(candidateReservoir) && validatePixelSimilarity(originalNormalAndDepth, otherNormalAndDepth))
+    //        {
+    //            reservoir = combineReservoirs(rngState, reservoir, candidateReservoir);
+    //            reservoir.sampleCount = min(reservoir.sampleCount, 1024 * 64);
+    //        }
+    //    }
+    //    
+    //    reservoir.outputSample.x0 = originalSample.x0;
+    //    reservoir.outputSample.x1 = originalSample.x1;
+    //}
+    //
+    //outRestirReservoirs[id] = reservoir;
+    //restirReservoirsHistory[id] = reservoir;
 }

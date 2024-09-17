@@ -24,50 +24,50 @@ bool traceRay(vec3 origin, vec3 direction, float tMax)
     return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
 }
 
-void applyVisibilityCheck(inout Reservoir reservoir)
-{
-    RestirSample currentSample = reservoir.outputSample;
-    vec3 visibilityDir = normalize(currentSample.x2 - currentSample.x1);
-    float visibilityLength = distance(currentSample.x2, currentSample.x1);
-    if (traceRay(currentSample.x1, visibilityDir, visibilityLength))
-    {
-        reservoir.weight = 0.0;
-    }
-}
+//void applyVisibilityCheck(inout Reservoir reservoir)
+//{
+//    RestirSample currentSample = reservoir.outputSample;
+//    vec3 visibilityDir = normalize(currentSample.x2 - currentSample.x1);
+//    float visibilityLength = distance(currentSample.x2, currentSample.x1);
+//    if (traceRay(currentSample.x1, visibilityDir, visibilityLength))
+//    {
+//        reservoir.weight = 0.0;
+//    }
+//}
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-    uint id = uint(gl_GlobalInvocationID.x);
-    if (id >= constants.dispatchSize) return;
-    
-    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
-    
-    Reservoir currentReservoir = restirReservoirs[id];
-    RestirSample currentSample = currentReservoir.outputSample;
-    Reservoir previousReservoir = restirReservoirsHistory[id];
-    
-    if (isReservoirValid(currentReservoir))
-    {
-        applyVisibilityCheck(currentReservoir);
-    }
-
-    // TODO: double check if these branches are required?
-    if (!isReservoirValid(currentReservoir) && isReservoirValid(previousReservoir))
-    {
-        restirReservoirs[id] = previousReservoir;
-    }
-    else if (isReservoirValid(currentReservoir) && !isReservoirValid(previousReservoir))
-    {
-        restirReservoirs[id] = currentReservoir;
-    }
-    else if (isReservoirValid(previousReservoir))
-    {
-        previousReservoir.sampleCount = min(previousReservoir.sampleCount, currentReservoir.sampleCount * 15);
-
-        Reservoir outputReservoir = combineReservoirs(rngState, currentReservoir, previousReservoir);
-        outputReservoir.outputSample.x0 = currentSample.x0;
-        outputReservoir.outputSample.x1 = currentSample.x1;
-        restirReservoirs[id] = outputReservoir;
-    }
+    //uint id = uint(gl_GlobalInvocationID.x);
+    //if (id >= constants.dispatchSize) return;
+    //
+    //uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
+    //
+    //Reservoir currentReservoir = restirReservoirs[id];
+    //RestirSample currentSample = currentReservoir.outputSample;
+    //Reservoir previousReservoir = restirReservoirsHistory[id];
+    //
+    //if (isReservoirValid(currentReservoir))
+    //{
+    //    applyVisibilityCheck(currentReservoir);
+    //}
+    //
+    //// TODO: double check if these branches are required?
+    //if (!isReservoirValid(currentReservoir) && isReservoirValid(previousReservoir))
+    //{
+    //    restirReservoirs[id] = previousReservoir;
+    //}
+    //else if (isReservoirValid(currentReservoir) && !isReservoirValid(previousReservoir))
+    //{
+    //    restirReservoirs[id] = currentReservoir;
+    //}
+    //else if (isReservoirValid(previousReservoir))
+    //{
+    //    previousReservoir.sampleCount = min(previousReservoir.sampleCount, currentReservoir.sampleCount * 15);
+    //
+    //    Reservoir outputReservoir = combineReservoirs(rngState, currentReservoir, previousReservoir);
+    //    outputReservoir.outputSample.x0 = currentSample.x0;
+    //    outputReservoir.outputSample.x1 = currentSample.x1;
+    //    restirReservoirs[id] = outputReservoir;
+    //}
 }

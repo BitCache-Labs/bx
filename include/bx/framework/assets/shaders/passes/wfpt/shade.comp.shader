@@ -66,10 +66,10 @@ layout (BINDING(0, 8), std430) readonly buffer _Intersections
     Intersection intersections[];
 };
 
-//layout (BINDING(0, 9), std430) writeonly buffer _ShadowRays
-//{
-//    PackedRay shadowRays[];
-//};
+layout (BINDING(0, 9), std430) writeonly buffer _ShadowRayOrigins
+{
+    vec4 shadowRayOrigins[];
+};
 //layout(BINDING(0, 10), std430) writeonly buffer _ShadowRayDistances
 //{
 //    float shadowRayDistances[];
@@ -85,66 +85,6 @@ layout(BINDING(0, 12), std430) writeonly buffer _ShadowPixelMapping
 
 layout (BINDING(0, 13), rgba32f) uniform image2D gbuffer;
 
-Sample sampleUniformLight(vec4 random, vec3 p)
-{
-    uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
-
-    float sunPickProbability = 0.0;//emissiveTriangleCount == 0 ? 1.0 : 0.5;
-    if (random.x < sunPickProbability)
-    {
-        Sample lightSample;
-        lightSample.directionToLight = sampleSunDirection(random.yz);
-        lightSample.distanceToLight = 10000.0;
-        lightSample.pdf = sunPickProbability;//sunPickProbability * (1.0 / sunSolidAngle());
-        return lightSample;
-    }
-
-    uint instanceCount = blasDataConstants.emissiveInstanceCount;
-    uint pickedTriangleIdx = uint(random.y * float(emissiveTriangleCount));
-
-    uint offset = 0;
-    for (uint i = 0; i < instanceCount; i++)
-    {
-        BlasInstance instance = blasInstances[blasEmissiveInstanceIndices[i]];
-        BlasAccessor blas = blasAccessors[instance.blasIdx];
-
-        if (pickedTriangleIdx < blas.triangleCount + offset)
-        {
-            uint triangleIndex = pickedTriangleIdx - offset;
-            uint triangleOffset = blas.triangleOffset;
-            uint vertexOffset = blas.vertexOffset;
-
-            Triangle triangle = transformedTriangle(blasTriangles[triangleIndex + triangleOffset], inverse(instance.invTransform));
-            vec3 edge1 = triangle.p1 - triangle.p0;
-            vec3 edge2 = triangle.p2 - triangle.p0;
-            vec3 triangleNormal = normalize(cross(edge1, edge2));
-            // TODO: optimize
-            vec3 barycentrics = barycentricsFromUv(random.zw);
-            vec3 samplePosition = triangle.p0 * barycentrics.x + triangle.p1 * barycentrics.y + triangle.p2 * barycentrics.z;
-
-            vec3 directionToLight = samplePosition - p;
-            float distanceToLight = length(directionToLight);
-            directionToLight = normalize(directionToLight);
-
-            float cosOut = abs(dot(triangleNormal, -directionToLight));
-            float area = calculateTriangleAreaFromEdges(edge1, edge2);
-
-            float pdf = 1.0 / (triangleLightSolidAngle(cosOut, area, distanceToLight) * float(emissiveTriangleCount));
-            pdf *= (1.0 - sunPickProbability);
-
-            Sample lightSample;
-            lightSample.directionToLight = directionToLight;
-            lightSample.distanceToLight = distanceToLight;
-            lightSample.pdf = pdf;
-            return lightSample;
-        }
-        else
-        {
-            offset += blas.triangleCount;
-        }
-    }
-}
-
 void shootRay(vec3 origin, vec3 direction, uint pid)
 {
     Ray ray;
@@ -156,23 +96,11 @@ void shootRay(vec3 origin, vec3 direction, uint pid)
     outPixelMapping[rayIdx] = pid;
 }
 
-//void shootShadowRay(vec3 origin, vec3 direction, float tMax, uint pid)
-//{
-//    Ray ray;
-//    ray.origin = origin;
-//    ray.direction = direction;
-//
-//    uint rayIdx = atomicAdd(shadowRayCount, 1u);
-//    shadowRays[rayIdx] = packRay(ray);
-//    shadowRayDistances[rayIdx] = tMax;
-//    shadowPixelMapping[rayIdx] = pid;
-//}
-
 vec3 shadeSky(vec3 direction, vec3 throughput)
 {
     float a = (direction.y + 1.0) * 0.5;
-    //vec3 color = vec3(0.0);
-    vec3 color = (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
+    vec3 color = vec3(0.0);
+    //vec3 color = (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
 
     return color * throughput;
 }
@@ -295,49 +223,17 @@ void main()
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         { // Direct illumination
-            Reservoir directLightSample = ris(payload.rngState,
+            RisResult risResult = ris(payload.rngState,
                 layeredLobe, worldToTangent, tangentToWorld,
                 normal, intersection.frontFace,
                 intersectionPos, ray.origin);
-            outRestirReservoirs[pid] = directLightSample;
+
+            outRestirReservoirs[pid] = Reservoir_toPacked(risResult.reservoir);
+            outRestirReservoirData[pid] = ReservoirData_toPacked(risResult.reservoirData);
+            shadowRayOrigins[pid] = vec4(intersectionPos, 0.0);
 
             uint rayIdx = atomicAdd(shadowRayCount, 1u);
             shadowPixelMapping[rayIdx] = pid;
-            
-
-//#if 1
-//            RestirSample lightSample = generateRestirSample(payload.rngState,
-//                layeredLobe, worldToTangent, tangentToWorld,
-//                normal, intersection.frontFace,
-//                intersectionPos, ray.origin);
-//
-//            vec3 directionToLight = normalize(lightSample.path.x2 - lightSample.path.x1);
-//            float distanceToLight = distance(lightSample.path.x2, lightSample.path.x1);
-//
-//            if (dot(directionToLight, normal) > 0.0)
-//            {
-//                vec3 origin = intersectionPos;
-//                vec3 direction = directionToLight;
-//                origin += direction * RT_EPSILON;
-//                
-//                payload.directIlluminationPdf = 1.0 / lightSample.weight;
-//                
-//                shootShadowRay(origin, direction, distanceToLight, pid);
-//            }
-//#else
-//            Sample lightSample = sampleUniformLight(randomUniformFloat4(payload.rngState), intersectionPos);
-//            
-//            if (dot(lightSample.directionToLight, normal) > 0.0)
-//            {
-//                vec3 origin = intersectionPos;
-//                vec3 direction = lightSample.directionToLight;
-//                origin += direction * RT_EPSILON;
-//                
-//                payload.directIlluminationPdf = lightSample.pdf;
-//                
-//                shootShadowRay(origin, direction, lightSample.distanceToLight, pid);
-//            }
-//#endif
         }
 
         // Indirect illumination
@@ -364,7 +260,7 @@ void main()
     else
     {
         accumulated += shadeSky(ray.direction, throughput);
-        outRestirReservoirs[pid] = makeInvalidReservoir();
+        //outRestirReservoirs[pid] = makeInvalidReservoir();
     }
 
     payload.throughput = packRgb9e5(throughput);

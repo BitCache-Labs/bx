@@ -8,9 +8,12 @@
 BindGroupLayoutDescriptor Restir::GetBindGroupLayout()
 {
     return BindGroupLayoutDescriptor(BIND_GROUP_SET, {
-            BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),
+            BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),
             BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),
             BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),
+            BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),
+            BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),
+            BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),
         });
 }
 
@@ -96,22 +99,40 @@ RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas, TextureViewHa
     : width(width), height(height)
 {
     BufferCreateInfo restirSamplesCreateInfo{};
-    restirSamplesCreateInfo.name = "Restir Samples Buffer";
-    restirSamplesCreateInfo.size = width * height * sizeof(Restir::Reservoir);
+    restirSamplesCreateInfo.name = "Restir Reservoirs Buffer";
+    restirSamplesCreateInfo.size = width * height * sizeof(Restir::PackedReservoir);
     restirSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
-    samplesBuffer = Graphics::CreateBuffer(restirSamplesCreateInfo);
+    reservoirsBuffer = Graphics::CreateBuffer(restirSamplesCreateInfo);
 
     BufferCreateInfo restirOutSamplesCreateInfo{};
-    restirOutSamplesCreateInfo.name = "Restir Out Samples Buffer";
-    restirOutSamplesCreateInfo.size = width * height * sizeof(Restir::Reservoir);
+    restirOutSamplesCreateInfo.name = "Restir Out Reservoirs Buffer";
+    restirOutSamplesCreateInfo.size = width * height * sizeof(Restir::PackedReservoir);
     restirOutSamplesCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
-    outSamplesBuffer = Graphics::CreateBuffer(restirOutSamplesCreateInfo);
+    outReservoirsBuffer = Graphics::CreateBuffer(restirOutSamplesCreateInfo);
 
     BufferCreateInfo restirSamplesHistoryCreateInfo{};
-    restirSamplesHistoryCreateInfo.name = "Restir Samples History Buffer";
-    restirSamplesHistoryCreateInfo.size = width * height * sizeof(Restir::Reservoir);
+    restirSamplesHistoryCreateInfo.name = "Restir Reservoirs History Buffer";
+    restirSamplesHistoryCreateInfo.size = width * height * sizeof(Restir::PackedReservoir);
     restirSamplesHistoryCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
-    samplesHistoryBuffer = Graphics::CreateBuffer(restirSamplesHistoryCreateInfo);
+    reservoirsHistoryBuffer = Graphics::CreateBuffer(restirSamplesHistoryCreateInfo);
+
+    BufferCreateInfo restirReservoirDataCreateInfo{};
+    restirReservoirDataCreateInfo.name = "Restir Reservoir Data Buffer";
+    restirReservoirDataCreateInfo.size = width * height * sizeof(Restir::PackedReservoirData);
+    restirReservoirDataCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
+    reservoirDataBuffer = Graphics::CreateBuffer(restirReservoirDataCreateInfo);
+
+    BufferCreateInfo restirOutReservoirDataCreateInfo{};
+    restirOutReservoirDataCreateInfo.name = "Restir Out Reservoir Data Buffer";
+    restirOutReservoirDataCreateInfo.size = width * height * sizeof(Restir::PackedReservoirData);
+    restirOutReservoirDataCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
+    outReservoirDataBuffer = Graphics::CreateBuffer(restirOutReservoirDataCreateInfo);
+
+    BufferCreateInfo restirReservoirDataHistoryCreateInfo{};
+    restirReservoirDataHistoryCreateInfo.name = "Restir Reservoir Data History Buffer";
+    restirReservoirDataHistoryCreateInfo.size = width * height * sizeof(Restir::PackedReservoirData);
+    restirReservoirDataHistoryCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
+    reservoirDataHistoryBuffer = Graphics::CreateBuffer(restirReservoirDataHistoryCreateInfo);
 
     BufferCreateInfo spatialReuseConstantsCreateInfo{};
     spatialReuseConstantsCreateInfo.name = "Restir Spatial Reuse Constants Buffer";
@@ -158,20 +179,20 @@ RestirDiPass::RestirDiPass(u32 width, u32 height, TlasHandle tlas, TextureViewHa
 
 RestirDiPass::~RestirDiPass()
 {
-    Graphics::DestroyBuffer(samplesBuffer);
-    Graphics::DestroyBuffer(outSamplesBuffer);
-    Graphics::DestroyBuffer(samplesHistoryBuffer);
+    Graphics::DestroyBuffer(reservoirsBuffer);
+    Graphics::DestroyBuffer(outReservoirsBuffer);
+    Graphics::DestroyBuffer(reservoirsHistoryBuffer);
+    Graphics::DestroyBuffer(reservoirDataBuffer);
+    Graphics::DestroyBuffer(outReservoirDataBuffer);
+    Graphics::DestroyBuffer(reservoirDataHistoryBuffer);
 
     for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
         Graphics::DestroyBuffer(spatialReuseConstantsBuffers[i]);
-    }
-    Graphics::DestroyBuffer(temporalReuseConstantsBuffer);
-
-    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
-    {
         Graphics::DestroyBindGroup(spatialReuseBindGroups[i]);
     }
+    
+    Graphics::DestroyBuffer(temporalReuseConstantsBuffer);
     Graphics::DestroyBindGroup(temporalReuseBindGroup);
 }
 
@@ -181,9 +202,12 @@ BindGroupHandle RestirDiPass::CreateBindGroup(ComputePipelineHandle pipeline, b8
     createInfo.name = "Restir Bind Group";
     createInfo.layout = Graphics::GetBindGroupLayout(pipeline, Restir::BIND_GROUP_SET);
     createInfo.entries = {
-        BindGroupEntry(0, BindingResource::Buffer(!flipRestirSamples ? samplesBuffer : outSamplesBuffer)),
-        BindGroupEntry(1, BindingResource::Buffer(!flipRestirSamples ? outSamplesBuffer : samplesBuffer)),
-        BindGroupEntry(2, BindingResource::Buffer(samplesHistoryBuffer))
+        BindGroupEntry(0, BindingResource::Buffer(!flipRestirSamples ? reservoirsBuffer : outReservoirsBuffer)),
+        BindGroupEntry(1, BindingResource::Buffer(!flipRestirSamples ? outReservoirsBuffer : reservoirsBuffer)),
+        BindGroupEntry(2, BindingResource::Buffer(reservoirsHistoryBuffer)),
+        BindGroupEntry(3, BindingResource::Buffer(!flipRestirSamples ? reservoirDataBuffer : outReservoirDataBuffer)),
+        BindGroupEntry(4, BindingResource::Buffer(!flipRestirSamples ? outReservoirDataBuffer : reservoirDataBuffer)),
+        BindGroupEntry(5, BindingResource::Buffer(reservoirDataHistoryBuffer))
     };
     return Graphics::CreateBindGroup(createInfo);
 }
@@ -216,7 +240,7 @@ void RestirDiPass::Dispatch()
     }
     Graphics::EndComputePass(computePass);
 
-    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
+    /*for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
         computePassDescriptor.name = "Restir Spatial Reuse";
         computePass = Graphics::BeginComputePass(computePassDescriptor);
@@ -227,7 +251,7 @@ void RestirDiPass::Dispatch()
             Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
         }
         Graphics::EndComputePass(computePass);
-    }
+    }*/
 }
 
 void RestirDiPass::ClearPipelineCache()

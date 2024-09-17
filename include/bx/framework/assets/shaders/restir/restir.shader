@@ -125,17 +125,32 @@ ReservoirData ReservoirData_fromPacked(uvec2 packed)
 
 layout (BINDING(4, 0), std430) buffer _RestirReservoirs
 {
-    Reservoir restirReservoirs[];
+    uint restirReservoirs[];
 };
 
 layout (BINDING(4, 1), std430) buffer _OutRestirReservoirs
 {
-    Reservoir outRestirReservoirs[];
+    uint outRestirReservoirs[];
 };
 
 layout (BINDING(4, 2), std430) buffer _RestirReservoirsHistory
 {
-    Reservoir restirReservoirsHistory[];
+    uint restirReservoirsHistory[];
+};
+
+layout (BINDING(4, 3), std430) buffer _RestirReservoirData
+{
+    uvec2 restirReservoirData[];
+};
+
+layout (BINDING(4, 4), std430) buffer _OutRestirReservoirData
+{
+    uvec2 outRestirReservoirData[];
+};
+
+layout (BINDING(4, 5), std430) buffer _RestirReservoirDataHistory
+{
+    uvec2 restirReservoirDataHistory[];
 };
 
 #endif // RESTIR_BINDINGS

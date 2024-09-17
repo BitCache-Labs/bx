@@ -7,20 +7,15 @@
 class Restir : NoCopy
 {
 public:
-	struct RestirSample // TODO: proper layout?
+	struct PackedReservoir
 	{
-		Vec4 x0;
-		Vec4 x1;
-		Vec4 x2;
+		u32 data;
 	};
 
-	struct Reservoir
+	struct PackedReservoirData
 	{
-		RestirSample sample;
-		f32 weightSum;
-		f32 weight;
-		u32 sampleCount;
-		u32 _PADDING0;
+		u32 sampleDirection;
+		f32 hitT;
 	};
 
 public:
@@ -48,9 +43,12 @@ public:
 private:
 	u32 width, height;
 
-	BufferHandle samplesBuffer;
-	BufferHandle outSamplesBuffer;
-	BufferHandle samplesHistoryBuffer;
+	BufferHandle reservoirsBuffer;
+	BufferHandle outReservoirsBuffer;
+	BufferHandle reservoirsHistoryBuffer;
+	BufferHandle reservoirDataBuffer;
+	BufferHandle outReservoirDataBuffer;
+	BufferHandle reservoirDataHistoryBuffer;
 
 	BufferHandle spatialReuseConstantsBuffers[SPATIAL_REUSE_PASSES];
 	BufferHandle temporalReuseConstantsBuffer;

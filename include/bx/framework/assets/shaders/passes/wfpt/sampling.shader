@@ -7,17 +7,30 @@
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/color_helpers.shader"
 
-RestirSample _sampleUniformLight(vec4 random, vec3 p)
+struct LightSample
+{
+    vec3 sampleDirection;
+    float hitT;
+    float pdf;
+};
+
+struct RisResult
+{
+    ReservoirData reservoirData;
+    Reservoir reservoir;
+};
+
+LightSample _sampleUniformLight(vec4 random, vec3 p)
 {
     uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
 
     float sunPickProbability = 0.0;//emissiveTriangleCount == 0 ? 1.0 : 0.5;
     if (random.x < sunPickProbability)
     {
-        RestirSample lightSample;
-        lightSample.x1 = p;
-        lightSample.x2 = p + sampleSunDirection(random.yz) * 1000.0;
-        lightSample.weight = 1.0 / sunPickProbability;//sunPickProbability * (1.0 / sunSolidAngle());
+        LightSample lightSample;
+        lightSample.sampleDirection = sampleSunDirection(random.yz);
+        lightSample.hitT = 10000.0;
+        lightSample.pdf = sunPickProbability;//sunPickProbability * (1.0 / sunSolidAngle());
         return lightSample;
     }
 
@@ -54,11 +67,10 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
             pdf *= 1.0 / float(emissiveTriangleCount);
             pdf *= (1.0 - sunPickProbability);
 
-            RestirSample lightSample;
-            lightSample._PADDING0 = 0;// Remove
-            lightSample.x1 = p;
-            lightSample.x2 = samplePosition;
-            lightSample.weight = fixNan(1.0 / pdf);
+            LightSample lightSample;
+            lightSample.sampleDirection = directionToLight;
+            lightSample.hitT = distanceToLight;
+            lightSample.pdf = pdf;
             return lightSample;
         }
         else
@@ -67,51 +79,65 @@ RestirSample _sampleUniformLight(vec4 random, vec3 p)
         }
     }
 
-    RestirSample lightSample;
-    lightSample.x1 = vec3(-1.0);
-    lightSample.x2 = vec3(-1.0);
-    lightSample.weight = -1.0;
-    return lightSample;
+    return LightSample(vec3(0.0), 0.0, 0.0);
 }
 
-Reservoir ris(inout uint rngState,
+RisResult ris(inout uint rngState,
     LayeredLobe layeredLobe, mat3 worldToTangent, mat3 tangentToWorld,
     vec3 normal, bool frontFace,
     vec3 x1, vec3 x0)
 {
+#if 1
+    LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
+
+    ReservoirData reservoirData;
+    reservoirData.sampleDirection = lightSample.sampleDirection;
+    reservoirData.hitT = lightSample.hitT;
+    Reservoir reservoir = Reservoir_default();
+    reservoir.contributionWeight = 1.0 / lightSample.pdf;
+    return RisResult(reservoirData, reservoir);
+#else
+
     const uint M_AREA = 32;
 
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
 
-	Reservoir reservoir = makeReservoir();
+	ReservoirData reservoirData;
+    Reservoir reservoir = Reservoir_default();
 
     #pragma unroll
 	for (uint i = 0; i < M_AREA; i++)
 	{
-        RestirSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
-        lightSample.x0 = x0;
+        LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
     
-        vec3 wInWorldSpace = normalize(lightSample.x2 - lightSample.x1);
+        vec3 wInWorldSpace = lightSample.sampleDirection;
         vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
     
+        float unoccludedContributionWeight = 0.0;
         if (dot(wInWorldSpace, normal) > 0.0)
         {
             BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
             vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
-            lightSample.unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution));
+            unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution));
         }
 
-        float weight = lightSample.unoccludedContributionWeight * lightSample.weight;
-        updateReservoir(reservoir, rngState, lightSample, weight);
+        float contributionWeight = 1.0 / lightSample.pdf;
+        float weight = unoccludedContributionWeight * contributionWeight;
+        if (Reservoir_update(reservoir, weight, rngState))
+        {
+            reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT);
+            reservoir.contributionWeight = contributionWeight;
+        }
 	}
     
-    reservoir.weight = (reservoir.outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / reservoir.outputSample.unoccludedContributionWeight);
-    reservoir.weight *= ((reservoir.sampleCount == 0) ? 0.0 : (1.0 / reservoir.sampleCount)) * reservoir.weightSum;
+    //reservoir.weight = (reservoir.outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / reservoir.outputSample.unoccludedContributionWeight);
+    //reservoir.weight *= ((reservoir.sampleCount == 0) ? 0.0 : (1.0 / reservoir.sampleCount)) * reservoir.weightSum;
+    //
+    //reservoir.weight = fixNan(reservoir.weight);
 
-    reservoir.weight = fixNan(reservoir.weight);
-
-    return reservoir;
+    return RisResult(reservoirData, reservoir);
+#endif
 }
 
 #endif // WFPT_SAMPLING_H

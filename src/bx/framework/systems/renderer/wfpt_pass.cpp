@@ -88,7 +88,7 @@ struct ConnectPipeline : public LazyInit<ConnectPipeline, ComputePipelineHandle>
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
-                //BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowRays
+                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowRayOrigins
                 //BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowRayDistances
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowRayCount
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // payloads
@@ -226,7 +226,7 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // outPixelMapping
                 BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // payloads
                 BindGroupLayoutEntry(8, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // intersections
-                //BindGroupLayoutEntry(9, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // shadowRays
+                BindGroupLayoutEntry(9, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // shadowRayOrigins
                 //BindGroupLayoutEntry(10, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowRayDistances
                 BindGroupLayoutEntry(11, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowRayCount
                 BindGroupLayoutEntry(12, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),   // shadowPixelMapping
@@ -293,6 +293,12 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
         pixelMappingBuffer[i] = Graphics::CreateBuffer(pixelMappingCreateInfo);
     }
 
+    BufferCreateInfo shadowRayOriginsCreateInfo{};
+    shadowRayOriginsCreateInfo.name = "Wfpt Shadow Ray Origins Buffer";
+    shadowRayOriginsCreateInfo.size = width * height * sizeof(Vec4);
+    shadowRayOriginsCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
+    shadowRayOriginsBuffer = Graphics::CreateBuffer(shadowRayOriginsCreateInfo);
+
     BufferCreateInfo shadowRayCountCreateInfo{};
     shadowRayCountCreateInfo.name = "Wfpt Shadow Ray Count Buffer";
     shadowRayCountCreateInfo.size = sizeof(u32);
@@ -339,7 +345,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     connectBindGroupCreateInfo.name = "Wfpt Connect Bind Group";
     connectBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(ConnectPipeline::Get(), 0);
     connectBindGroupCreateInfo.entries = {
-        //BindGroupEntry(0, BindingResource::Buffer(shadowRaysBuffer)),
+        BindGroupEntry(0, BindingResource::Buffer(shadowRayOriginsBuffer)),
         //BindGroupEntry(1, BindingResource::Buffer(shadowRayDistancesBuffer)),
         BindGroupEntry(2, BindingResource::Buffer(shadowRayCountBuffer)),
         BindGroupEntry(3, BindingResource::Buffer(payloadsBuffer)),
@@ -385,6 +391,7 @@ WfptPass::~WfptPass()
     }
     
     Graphics::DestroyBuffer(identityPixelMappingBuffer);
+    Graphics::DestroyBuffer(shadowRayOriginsBuffer);
     Graphics::DestroyBuffer(shadowRayCountBuffer);
     Graphics::DestroyBuffer(shadowRayPixelMappingBuffer);
     Graphics::DestroyBuffer(intersectionsBuffer);
@@ -497,6 +504,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
             BindGroupEntry(6, BindingResource::Buffer(outPixelMapping)),
             BindGroupEntry(7, BindingResource::Buffer(payloadsBuffer)),
             BindGroupEntry(8, BindingResource::Buffer(intersectionsBuffer)),
+            BindGroupEntry(9, BindingResource::Buffer(shadowRayOriginsBuffer)),
             BindGroupEntry(11, BindingResource::Buffer(shadowRayCountBuffer)),
             BindGroupEntry(12, BindingResource::Buffer(shadowRayPixelMappingBuffer)),
             BindGroupEntry(13, BindingResource::TextureView(gbufferPass->GetColorTargetView()))
@@ -539,7 +547,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
 
         restirDiPass->seed = seed;
 
-        restirDiPass->Dispatch();
+        //restirDiPass->Dispatch();
         
         writeIndirectArgs.Dispatch(indirectArgsBuffer, shadowRayCountBuffer);
 

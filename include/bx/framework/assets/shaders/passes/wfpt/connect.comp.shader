@@ -15,6 +15,10 @@
 //{
 //    float shadowRayDistances[];
 //};
+layout (BINDING(0, 0), std430) readonly buffer _ShadowRayOrigins
+{
+    vec4 shadowRayOrigins[];
+};
 layout(BINDING(0, 2)) readonly buffer _ShadowRayCount
 {
     uint shadowRayCount;
@@ -50,20 +54,21 @@ void main()
     // Ray ray = unpackRay(shadowRays[id]);
     // float rayDistance = shadowRayDistances[id];
 
-    Reservoir lightReservoir = restirReservoirs[pid];
-    RestirSample lightSample = lightReservoir.outputSample;
-    vec3 origin = lightSample.x1;
-    vec3 direction = normalize(lightSample.x2 - lightSample.x1);
-    float tMax = distance(lightSample.x2, lightSample.x1);
+    Reservoir reservoir = Reservoir_reconstructBiased(restirReservoirs[pid]);
+    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[pid]);
+    //RestirSample lightSample = lightReservoir.outputSample;
+    vec3 origin = shadowRayOrigins[pid].xyz;
+    vec3 direction = reservoirData.sampleDirection;
+    float tMax = reservoirData.hitT;
 
     Payload payload = payloads[pid];
     vec3 hitNormal = unpackNormalizedXyz10(payload.hitNormal, 0);
 
-    if (!isReservoirValid(lightReservoir)) // TODO: remove
-    {
-        payloads[pid].accumulated = packRgb9e5(vec3(1.0, 0.0, 1.0));
-        return;
-    }
+    //if (!isReservoirValid(lightReservoir)) // TODO: remove
+    //{
+    //    payloads[pid].accumulated = packRgb9e5(vec3(1.0, 0.0, 1.0));
+    //    return;
+    //}
 
     if (dot(direction, hitNormal) > 0.0)
     {
@@ -74,7 +79,7 @@ void main()
             
             vec3 emission = vec3(4.0);//vec3(0.6, 0.6, 0.5); // TODO: sun sampling
             
-            vec3 lightingContribution = (throughput * emission) * lightReservoir.weight;
+            vec3 lightingContribution = (throughput * emission) * reservoir.contributionWeight;
             
             accumulated += lightingContribution;
             

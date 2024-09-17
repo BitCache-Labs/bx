@@ -48,6 +48,7 @@ private:
 	BufferHandle pixelMappingBuffer[2];
 	BufferHandle identityPixelMappingBuffer;
 	BufferHandle rayCountBuffer[2];
+	BufferHandle shadowRayOriginsBuffer;
 	BufferHandle shadowRayCountBuffer;
 	BufferHandle shadowRayPixelMappingBuffer;
 	BufferHandle intersectionsBuffer;
