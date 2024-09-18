@@ -87,7 +87,7 @@ RisResult ris(inout uint rngState,
     vec3 normal, bool frontFace,
     vec3 x1, vec3 x0)
 {
-#if 1
+#if 0
     LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
 
     ReservoirData reservoirData;
@@ -130,11 +130,8 @@ RisResult ris(inout uint rngState,
             reservoir.contributionWeight = contributionWeight;
         }
 	}
-    
-    //reservoir.weight = (reservoir.outputSample.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / reservoir.outputSample.unoccludedContributionWeight);
-    //reservoir.weight *= ((reservoir.sampleCount == 0) ? 0.0 : (1.0 / reservoir.sampleCount)) * reservoir.weightSum;
-    //
-    //reservoir.weight = fixNan(reservoir.weight);
+
+    reservoir.contributionWeight = reservoir.weightSum / max(1e-8, reservoir.sampleCount * reservoir.contributionWeight);
 
     return RisResult(reservoirData, reservoir);
 #endif
