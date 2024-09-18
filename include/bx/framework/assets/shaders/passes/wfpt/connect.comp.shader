@@ -7,14 +7,6 @@
 #include "[engine]/shaders/passes/wfpt/payload.shader"
 #include "[engine]/shaders/restir/restir.shader"
 
-//layout (BINDING(0, 0), std430) readonly buffer _ShadowRays
-//{
-//    PackedRay shadowRays[];
-//};
-//layout (BINDING(0, 1), std430) readonly buffer _ShadowRayDistances
-//{
-//    float shadowRayDistances[];
-//};
 layout (BINDING(0, 0), std430) readonly buffer _ShadowRayOrigins
 {
     vec4 shadowRayOrigins[];
@@ -51,12 +43,8 @@ void main()
     if (id >= shadowRayCount) return;
     uint pid = shadowPixelMapping[id];
 
-    // Ray ray = unpackRay(shadowRays[id]);
-    // float rayDistance = shadowRayDistances[id];
-
     Reservoir reservoir = Reservoir_reconstructBiased(restirReservoirs[pid]);
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[pid]);
-    //RestirSample lightSample = lightReservoir.outputSample;
     vec3 origin = shadowRayOrigins[pid].xyz;
     vec3 direction = reservoirData.sampleDirection;
     float tMax = reservoirData.hitT;

@@ -413,6 +413,7 @@ void WfptPass::SetTlas(TlasHandle tlas)
     connectBindGroupCreateInfo.name = "Wfpt Connect Bind Group";
     connectBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(ConnectPipeline::Get(), 0);
     connectBindGroupCreateInfo.entries = {
+        BindGroupEntry(0, BindingResource::Buffer(shadowRayOriginsBuffer)),
         BindGroupEntry(2, BindingResource::Buffer(shadowRayCountBuffer)),
         BindGroupEntry(3, BindingResource::Buffer(payloadsBuffer)),
         BindGroupEntry(4, BindingResource::Buffer(shadowRayPixelMappingBuffer)),
