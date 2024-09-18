@@ -105,6 +105,7 @@ RisResult ris(inout uint rngState,
 
 	ReservoirData reservoirData;
     Reservoir reservoir = Reservoir_default();
+    float outputUnoccludedContributionWeight = 0.0;
 
     #pragma unroll
 	for (uint i = 0; i < M_AREA; i++)
@@ -128,10 +129,11 @@ RisResult ris(inout uint rngState,
         {
             reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT);
             reservoir.contributionWeight = contributionWeight;
+            outputUnoccludedContributionWeight = unoccludedContributionWeight;
         }
 	}
 
-    reservoir.contributionWeight = reservoir.weightSum / max(1e-8, reservoir.sampleCount * reservoir.contributionWeight);
+    reservoir.contributionWeight = reservoir.weightSum / max(1e-8, reservoir.sampleCount * outputUnoccludedContributionWeight);
 
     return RisResult(reservoirData, reservoir);
 #endif
