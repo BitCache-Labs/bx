@@ -35,6 +35,7 @@ public:
 	u32 accumulationFrameIdx = 0;
 	b8 russianRoulette = true;
 	b8 hybrid = true;
+	b8 unbiased = false;
 
 private:
 	WfptCreateInfo createInfo;

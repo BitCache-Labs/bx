@@ -39,6 +39,7 @@ public:
 
 	u32 seed = 1337;
 	u32 pixelRadius = 30;
+	b8 unbiased = false;
 
 	static constexpr u32 SPATIAL_REUSE_PASSES = 2;
 

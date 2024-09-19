@@ -27,11 +27,14 @@ struct SpatialReuseConstants
 
 struct TemporalReuseConstants
 {
-    Mat4 prevClipToWorld;
-    u32 dispatchSize;
-    u32 seed;
+    Mat4 invView;
+    Mat4 invProj;
+    Mat4 prevInvView;
+    Mat4 prevInvProj;
     u32 width;
     u32 height;
+    b32 unbiased;
+    u32 seed;
 };
 
 struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipelineHandle>
@@ -204,11 +207,14 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     }
 
     TemporalReuseConstants temporalReuseConstants{};
-    temporalReuseConstants.prevClipToWorld = camera.GetPrevViewProjection().Inverse();
-    temporalReuseConstants.dispatchSize = width * height;
-    temporalReuseConstants.seed = seed;
+    temporalReuseConstants.invView = camera.GetInvView();
+    temporalReuseConstants.invProj = camera.GetInvProjection();
+    temporalReuseConstants.prevInvView = camera.GetPrevInvView();
+    temporalReuseConstants.prevInvProj = camera.GetPrevInvProjection();
     temporalReuseConstants.width = width;
     temporalReuseConstants.height = height;
+    temporalReuseConstants.unbiased = unbiased;
+    temporalReuseConstants.seed = seed;
     Graphics::WriteBuffer(temporalReuseConstantsBuffer, 0, &temporalReuseConstants);
 
     BindGroupCreateInfo temporalReuseBindGroupCreateInfo{};

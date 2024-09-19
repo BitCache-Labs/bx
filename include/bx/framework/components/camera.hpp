@@ -22,6 +22,7 @@ public:
 
 	inline const Mat4& GetProjection() const { return m_projection; }
 	inline const Mat4& GetInvProjection() const { return m_invProjection; }
+	inline const Mat4& GetPrevInvProjection() const { return m_prevInvProjection; }
 
 	inline void SetProjection(const Mat4& projection)
 	{
@@ -33,16 +34,17 @@ public:
 
 	inline const Mat4& GetView() const { return m_view; }
 	inline const Mat4& GetInvView() const { return m_invView; }
+	inline const Mat4& GetPrevInvView() const { return m_prevInvView; }
 
 	inline void SetView(const Mat4& view)
 	{
 		m_view = view;
+		m_prevInvView = m_invView;
 		m_invView = m_view.Inverse();
 
 		m_dirty = true;
 	}
 
-	inline const Mat4& GetPrevViewProjection() const { return m_prevViewProj; }
 	inline const Mat4& GetViewProjection() const { return m_viewProj; }
 	inline const Mat4& GetInvViewProjection() const { return m_invViewProj; }
 
@@ -52,9 +54,9 @@ public:
 			return;
 
 		m_projection = Mat4::Perspective(m_fov, m_aspect, m_zNear, m_zFar);
+		m_prevInvProjection = m_invProjection;
 		m_invProjection = m_projection.Inverse();
 
-		m_prevViewProj = m_viewProj;
 		m_viewProj = m_projection * m_view;
 		m_invViewProj = m_viewProj.Inverse();
 	}
@@ -75,11 +77,12 @@ private:
 
 	Mat4 m_view = Mat4::Identity();
 	Mat4 m_invView = Mat4::Identity();
+	Mat4 m_prevInvView = Mat4::Identity();
 
 	Mat4 m_projection = Mat4::Identity();
 	Mat4 m_invProjection = Mat4::Identity();
+	Mat4 m_prevInvProjection = Mat4::Identity();
 
-	Mat4 m_prevViewProj = Mat4::Identity();
 	Mat4 m_viewProj = Mat4::Identity();
 	Mat4 m_invViewProj = Mat4::Identity();
 };

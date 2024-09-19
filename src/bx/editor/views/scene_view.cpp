@@ -323,6 +323,10 @@ void SceneView::Present(bool& show)
     ImGui::Text("PT Hybrid: ");
     ImGui::SameLine();
     ImGui::Checkbox("##PTHybrid", &SystemManager::GetSystem<Renderer>().hybrid);
+
+    ImGui::Text("PT Unbiased: ");
+    ImGui::SameLine();
+    ImGui::Checkbox("##PTUnbiased", &SystemManager::GetSystem<Renderer>().unbiased);
     
     bool sceneActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || ImGui::IsWindowHovered();
     if (sceneActive)
