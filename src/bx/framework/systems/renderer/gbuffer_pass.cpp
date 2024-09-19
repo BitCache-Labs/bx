@@ -109,13 +109,17 @@ GBufferPass::GBufferPass(TextureHandle depthTarget)
     height = textureCreateInfo.size.height;
 
     TextureCreateInfo colorTargetCreateInfo{};
-    colorTargetCreateInfo.name = "GBuffer Color Target";
+    
     colorTargetCreateInfo.size = Extend3D(width, height, 1);
     colorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
-    colorTarget = Graphics::CreateTexture(colorTargetCreateInfo);
-
-    colorTargetView = Graphics::CreateTextureView(colorTarget);
+    for (u32 i = 0; i < 2; i++)
+    {
+        colorTargetCreateInfo.name = Log::Format("GBuffer Color Target {}", i);
+        colorTarget[i] = Graphics::CreateTexture(colorTargetCreateInfo);
+        colorTargetView[i] = Graphics::CreateTextureView(colorTarget[i]);
+    }
+    
     depthTargetView = Graphics::CreateTextureView(depthTarget);
 
     BufferCreateInfo constantBufferCreateInfo{};
@@ -127,15 +131,24 @@ GBufferPass::GBufferPass(TextureHandle depthTarget)
 
 GBufferPass::~GBufferPass()
 {
-    Graphics::DestroyTexture(colorTarget);
+    for (u32 i = 0; i < 2; i++)
+    {
+        Graphics::DestroyTexture(colorTarget[i]);
+        Graphics::DestroyTextureView(colorTargetView[i]);
+    }
+
     Graphics::DestroyBuffer(constantBuffer);
-    Graphics::DestroyTextureView(colorTargetView);
     Graphics::DestroyTextureView(depthTargetView);
 }
 
 TextureViewHandle GBufferPass::GetColorTargetView() const
 {
-    return colorTargetView;
+    return colorTargetView[frameIdx % 2 == 0];
+}
+
+TextureViewHandle GBufferPass::GetColorTargetHistoryView() const
+{
+    return colorTargetView[frameIdx % 2 != 0];
 }
 
 void GBufferPass::Dispatch(const Camera& camera)
@@ -147,12 +160,12 @@ void GBufferPass::Dispatch(const Camera& camera)
 
     RenderPassDescriptor renderPassDescriptor{};
     renderPassDescriptor.name = "GBuffer";
-    renderPassDescriptor.colorAttachments = { RenderPassColorAttachment(colorTargetView) };
+    renderPassDescriptor.colorAttachments = { RenderPassColorAttachment(colorTargetView[frameIdx % 2 == 0])};
     renderPassDescriptor.depthStencilAttachment = Optional<RenderPassDepthStencilAttachment>::Some(RenderPassDepthStencilAttachment(depthTargetView));
 
     RenderPassHandle renderPass = Graphics::BeginRenderPass(renderPassDescriptor);
     {
-        GraphicsPipelineHandle pipeline = GBufferPipeline::Get({ colorTarget, depthTarget });
+        GraphicsPipelineHandle pipeline = GBufferPipeline::Get({ colorTarget[frameIdx % 2 == 0], depthTarget});
         Graphics::SetGraphicsPipeline(pipeline);
 
         EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
@@ -195,6 +208,11 @@ void GBufferPass::Dispatch(const Camera& camera)
             });
     }
     Graphics::EndRenderPass(renderPass);
+}
+
+void GBufferPass::NextFrame()
+{
+    frameIdx++;
 }
 
 void GBufferPass::ClearPipelineCache()

@@ -4,6 +4,8 @@
 
 #include "bx/engine/modules/graphics.hpp"
 
+#include "bx/framework/components/camera.hpp"
+
 class Restir : NoCopy
 {
 public:
@@ -26,12 +28,12 @@ public:
 class RestirDiPass : NoCopy
 {
 public:
-	RestirDiPass(u32 width, u32 height, TlasHandle tlas, TextureViewHandle gbufferView);
+	RestirDiPass(u32 width, u32 height);
 	~RestirDiPass();
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline, b8 flipRestirSamples) const;
 
-	void Dispatch();
+	void Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView);
 
 	static void ClearPipelineCache();
 
@@ -53,8 +55,6 @@ private:
 	BufferHandle spatialReuseConstantsBuffers[SPATIAL_REUSE_PASSES];
 	BufferHandle temporalReuseConstantsBuffer;
 
-	BindGroupHandle spatialReuseBindGroups[SPATIAL_REUSE_PASSES];
-	BindGroupHandle temporalReuseBindGroup;
 	BindGroupHandle restirTemporalBindGroup;
 	BindGroupHandle restirSpatialBindGroups[SPATIAL_REUSE_PASSES];
 };

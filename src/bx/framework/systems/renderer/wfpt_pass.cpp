@@ -374,7 +374,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     resolveBindGroup = Graphics::CreateBindGroup(resolveBindGroupCreateInfo);
 
     gbufferPass = std::unique_ptr<GBufferPass>(new GBufferPass(createInfo.depthTarget));
-    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, createInfo.tlas, gbufferPass->GetColorTargetView()));
+    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height));
 }
 
 WfptPass::~WfptPass()
@@ -516,7 +516,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         BindGroupHandle shadeSkyGroup = sky.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle shadeRestirGroup = restirDiPass->CreateBindGroup(ShadePipeline::Get(), false);
         
-        BindGroupHandle connectRestirGroup = restirDiPass->CreateBindGroup(ConnectPipeline::Get(), RestirDiPass::SPATIAL_REUSE_PASSES % 2 == 0);
+        BindGroupHandle connectRestirGroup = restirDiPass->CreateBindGroup(ConnectPipeline::Get(), true);// RestirDiPass::SPATIAL_REUSE_PASSES % 2 == 0);
 
         WriteIndirectArgsPass writeIndirectArgs(128);
         writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
@@ -547,8 +547,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         Graphics::EndComputePass(computePass);
 
         restirDiPass->seed = seed;
-
-        //restirDiPass->Dispatch();
+        //restirDiPass->Dispatch(camera, createInfo.tlas, gbufferPass->GetColorTargetView(), gbufferPass->GetColorTargetHistoryView());
         
         writeIndirectArgs.Dispatch(indirectArgsBuffer, shadowRayCountBuffer);
 
@@ -580,6 +579,8 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
     }
     Graphics::EndComputePass(computePass);
+
+    gbufferPass->NextFrame();
 }
 
 void WfptPass::ClearPipelineCache()

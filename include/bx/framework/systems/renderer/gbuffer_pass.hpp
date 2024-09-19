@@ -7,7 +7,7 @@
 #include "bx/framework/components/camera.hpp"
 
 // Renders multiple features of all objects to color target where
-// r: 1 over square depth
+// r: 1 over square depth (can be used to reconstruct ws position)
 // g: normal as PackedNormalizedXyz10
 // b: texture coordinate as packHalf2x16
 // a: first bit for front facing, remaining 31 bits for blas instance index
@@ -19,17 +19,20 @@ public:
 	~GBufferPass();
 
 	TextureViewHandle GetColorTargetView() const;
+	TextureViewHandle GetColorTargetHistoryView() const;
 
 	void Dispatch(const Camera& camera);
+	void NextFrame();
 
 	static void ClearPipelineCache();
 
 private:
 	BufferHandle constantBuffer;
 
-	TextureHandle colorTarget;
+	TextureHandle colorTarget[2];
 	TextureHandle depthTarget;
-	TextureViewHandle colorTargetView;
+	TextureViewHandle colorTargetView[2];
 	TextureViewHandle depthTargetView;
 	u32 width, height;
+	u32 frameIdx;
 };
