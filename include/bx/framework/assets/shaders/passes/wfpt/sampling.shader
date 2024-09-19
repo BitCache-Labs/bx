@@ -103,15 +103,16 @@ RisResult ris(inout uint rngState,
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
 
-	ReservoirData reservoirData;
+    ReservoirData reservoirData;
     Reservoir reservoir = Reservoir_default();
-    float outputUnoccludedContributionWeight = 0.0;
-
+    ReservoirStreamData streamData = ReservoirStreamData_default();
+	
     #pragma unroll
 	for (uint i = 0; i < M_AREA; i++)
 	{
         LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
-    
+        float contributionWeight = 1.0 / lightSample.pdf;
+
         vec3 wInWorldSpace = lightSample.sampleDirection;
         vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
     
@@ -123,17 +124,16 @@ RisResult ris(inout uint rngState,
             unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution));
         }
 
-        float contributionWeight = 1.0 / lightSample.pdf;
-        float weight = unoccludedContributionWeight * contributionWeight;
-        if (Reservoir_update(reservoir, weight, rngState))
+        Reservoir sampleReservoir = Reservoir(1.0, contributionWeight, contributionWeight);
+
+        if (Reservoir_mergeReservoirWithStream(reservoir, streamData, sampleReservoir,
+            1.0, 1.0, unoccludedContributionWeight, rngState))
         {
             reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT);
-            reservoir.contributionWeight = contributionWeight;
-            outputUnoccludedContributionWeight = unoccludedContributionWeight;
         }
 	}
 
-    reservoir.contributionWeight = reservoir.weightSum / max(1e-8, reservoir.sampleCount * outputUnoccludedContributionWeight);
+    Reservoir_finishStream(reservoir, streamData);
 
     return RisResult(reservoirData, reservoir);
 #endif
