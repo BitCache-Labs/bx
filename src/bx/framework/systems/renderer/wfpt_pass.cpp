@@ -95,6 +95,8 @@ struct ConnectPipeline : public LazyInit<ConnectPipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // shadowPixelMapping
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()), // scene
             }),
+            BlasDataPool::GetBindGroupLayout(),
+            Sky::GetBindGroupLayout(),
             Restir::GetBindGroupLayout(),
         };
 
@@ -516,6 +518,8 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         BindGroupHandle shadeSkyGroup = sky.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle shadeRestirGroup = restirDiPass->CreateBindGroup(ShadePipeline::Get(), false);
         
+        BindGroupHandle connectBlasDataPoolGroup = blasDataPool.CreateBindGroup(ConnectPipeline::Get());
+        BindGroupHandle connectSkyGroup = sky.CreateBindGroup(ConnectPipeline::Get());
         BindGroupHandle connectRestirGroup = restirDiPass->CreateBindGroup(ConnectPipeline::Get(), true);// RestirDiPass::SPATIAL_REUSE_PASSES % 2 == 0);
 
         WriteIndirectArgsPass writeIndirectArgs(128);
@@ -557,6 +561,8 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         {
             Graphics::SetComputePipeline(ConnectPipeline::Get());
             Graphics::SetBindGroup(0, connectBindGroup);
+            Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, connectBlasDataPoolGroup);
+            Graphics::SetBindGroup(Sky::BIND_GROUP_SET, connectSkyGroup);
             Graphics::SetBindGroup(Restir::BIND_GROUP_SET, connectRestirGroup);
             Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
         }

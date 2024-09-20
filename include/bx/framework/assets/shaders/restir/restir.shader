@@ -4,25 +4,52 @@
 #include "[engine]/shaders/reservoir.shader"
 #include "[engine]/shaders/packing.shader"
 
+const uint JACOBIAN_CUTOFF = 8;
+
 struct ReservoirData
 {
     vec3 sampleDirection;
     float hitT;
+    uint triangleLightSource;
+    uint blasInstance;
+    vec2 hitUv;
+    float contributionWeightFactor;
 };
 
-uvec2 ReservoirData_toPacked(ReservoirData self)
+struct PackedReservoirData
 {
-    return uvec2(
-        packNormalizedXyz10(self.sampleDirection, 0).data,
-        floatBitsToUint(self.hitT)
+    PackedNormalizedXyz10 packedSampleDirection;
+    float hitT;
+    uint triangleLightSource;
+    uint blasInstance;
+    uint packedHitUv;
+    float contributionWeightFactor;
+    uint _PADDING0;
+    uint _PADDING1;
+};
+
+PackedReservoirData ReservoirData_toPacked(ReservoirData self)
+{
+    return PackedReservoirData(
+        packNormalizedXyz10(self.sampleDirection, 0),
+        self.hitT,
+        self.triangleLightSource,
+        self.blasInstance,
+        packHalf2x16(self.hitUv),
+        self.contributionWeightFactor,
+        0, 0
     );
 }
 
-ReservoirData ReservoirData_fromPacked(uvec2 packed)
+ReservoirData ReservoirData_fromPacked(PackedReservoirData packed)
 {
     return ReservoirData(
-        unpackNormalizedXyz10(PackedNormalizedXyz10(packed.x), 0),
-        uintBitsToFloat(packed.y)
+        unpackNormalizedXyz10(packed.packedSampleDirection, 0),
+        packed.hitT,
+        packed.triangleLightSource,
+        packed.blasInstance,
+        unpackHalf2x16(packed.packedHitUv),
+        packed.contributionWeightFactor
     );
 }
 
@@ -140,17 +167,17 @@ layout (BINDING(4, 2), std430) buffer _RestirReservoirsHistory
 
 layout (BINDING(4, 3), std430) buffer _RestirReservoirData
 {
-    uvec2 restirReservoirData[];
+    PackedReservoirData restirReservoirData[];
 };
 
 layout (BINDING(4, 4), std430) buffer _OutRestirReservoirData
 {
-    uvec2 outRestirReservoirData[];
+    PackedReservoirData outRestirReservoirData[];
 };
 
 layout (BINDING(4, 5), std430) buffer _RestirReservoirDataHistory
 {
-    uvec2 restirReservoirDataHistory[];
+    PackedReservoirData restirReservoirDataHistory[];
 };
 
 #endif // RESTIR_BINDINGS

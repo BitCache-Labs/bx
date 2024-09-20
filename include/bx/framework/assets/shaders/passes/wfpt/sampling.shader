@@ -5,6 +5,7 @@
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 #include "[engine]/shaders/restir/restir.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
+#include "[engine]/shaders/ray_tracing/material/layered_lobe.shader"
 #include "[engine]/shaders/color_helpers.shader"
 
 struct LightSample
@@ -12,6 +13,9 @@ struct LightSample
     vec3 sampleDirection;
     float hitT;
     float pdf;
+    uint triangle;
+    uint blasInstance;
+    vec2 uv;
 };
 
 struct RisResult
@@ -19,6 +23,31 @@ struct RisResult
     ReservoirData reservoirData;
     Reservoir reservoir;
 };
+
+LightSample sampleTriangleLight(uint triangleIndex, vec2 uv, mat4 transform, vec3 p, float sunPickProbability)
+{
+    uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
+
+    Triangle triangle = transformedTriangle(blasTriangles[triangleIndex], transform);
+    vec3 edge1 = triangle.p1 - triangle.p0;
+    vec3 edge2 = triangle.p2 - triangle.p0;
+    float area = calculateTriangleAreaFromEdges(edge1, edge2);
+    vec3 triangleNormal = normalize(cross(edge1, edge2));
+    vec3 barycentrics = barycentricsFromUv(uv);
+    vec3 samplePosition = triangle.p0 * barycentrics.x + triangle.p1 * barycentrics.y + triangle.p2 * barycentrics.z;
+
+    vec3 directionToLight = samplePosition - p;
+    float distanceToLight = length(directionToLight);
+    directionToLight = normalize(directionToLight);
+
+    float cosOut = abs(dot(triangleNormal, -directionToLight));
+
+    float pdf = 1.0 / (triangleLightSolidAngle(cosOut, area, distanceToLight));
+    pdf *= 1.0 / float(emissiveTriangleCount);
+    pdf *= (1.0 - sunPickProbability);
+
+    return LightSample(directionToLight, distanceToLight, pdf, 0, 0, uv);
+}
 
 LightSample _sampleUniformLight(vec4 random, vec3 p)
 {
@@ -31,6 +60,7 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
         lightSample.sampleDirection = sampleSunDirection(random.yz);
         lightSample.hitT = 10000.0;
         lightSample.pdf = sunPickProbability;//sunPickProbability * (1.0 / sunSolidAngle());
+        lightSample.triangle = U32_MAX;
         return lightSample;
     }
 
@@ -47,30 +77,11 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
         {
             uint triangleIndex = pickedTriangleIdx - offset;
             uint triangleOffset = blas.triangleOffset;
-            uint vertexOffset = blas.vertexOffset;
+            triangleIndex += triangleOffset;
 
-            Triangle triangle = transformedTriangle(blasTriangles[triangleIndex + triangleOffset], inverse(instance.invTransform));
-            vec3 edge1 = triangle.p1 - triangle.p0;
-            vec3 edge2 = triangle.p2 - triangle.p0;
-            float area = calculateTriangleAreaFromEdges(edge1, edge2);
-            vec3 triangleNormal = normalize(cross(edge1, edge2));
-            vec3 barycentrics = barycentricsFromUv(random.zw);
-            vec3 samplePosition = triangle.p0 * barycentrics.x + triangle.p1 * barycentrics.y + triangle.p2 * barycentrics.z;
-
-            vec3 directionToLight = samplePosition - p;
-            float distanceToLight = length(directionToLight);
-            directionToLight = normalize(directionToLight);
-
-            float cosOut = abs(dot(triangleNormal, -directionToLight));
-
-            float pdf = 1.0 / (triangleLightSolidAngle(cosOut, area, distanceToLight));
-            pdf *= 1.0 / float(emissiveTriangleCount);
-            pdf *= (1.0 - sunPickProbability);
-
-            LightSample lightSample;
-            lightSample.sampleDirection = directionToLight;
-            lightSample.hitT = distanceToLight;
-            lightSample.pdf = pdf;
+            LightSample lightSample = sampleTriangleLight(triangleIndex, random.zw, inverse(instance.invTransform), p, sunPickProbability);
+            lightSample.triangle = triangleIndex;
+            lightSample.blasInstance = blasEmissiveInstanceIndices[i];
             return lightSample;
         }
         else
@@ -79,7 +90,7 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
         }
     }
 
-    return LightSample(vec3(0.0), 0.0, 0.0);
+    return LightSample(vec3(0.0), 0.0, 0.0, 0, 0, vec2(0.0));
 }
 
 RisResult ris(inout uint rngState,
@@ -90,11 +101,10 @@ RisResult ris(inout uint rngState,
 #if 0
     LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
 
-    ReservoirData reservoirData;
-    reservoirData.sampleDirection = lightSample.sampleDirection;
-    reservoirData.hitT = lightSample.hitT;
+    ReservoirData reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle, lightSample.blasInstance, lightSample.uv, 1.0);
     Reservoir reservoir = Reservoir_default();
     reservoir.contributionWeight = 1.0 / lightSample.pdf;
+    reservoir.sampleCount = 1.0;
     return RisResult(reservoirData, reservoir);
 #else
 
@@ -103,7 +113,7 @@ RisResult ris(inout uint rngState,
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
 
-    ReservoirData reservoirData;
+    ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0), 1.0);
     Reservoir reservoir = Reservoir_default();
     ReservoirStreamData streamData = ReservoirStreamData_default();
 	
@@ -117,7 +127,7 @@ RisResult ris(inout uint rngState,
         vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
     
         float unoccludedContributionWeight = 0.0;
-        if (dot(wInWorldSpace, normal) > 0.0)
+        if (dot(wInWorldSpace, normal) > 0.0 || true)
         {
             BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
             vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
@@ -129,11 +139,23 @@ RisResult ris(inout uint rngState,
         if (Reservoir_mergeReservoirWithStream(reservoir, streamData, sampleReservoir,
             1.0, 1.0, unoccludedContributionWeight, rngState))
         {
-            reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT);
+            reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle, lightSample.blasInstance, lightSample.uv, 1.0);
         }
 	}
 
     Reservoir_finishStream(reservoir, streamData);
+    reservoirData.contributionWeightFactor = streamData.contributionWeightFactor;
+
+    //if (reservoirData.hitT == 0.0)
+    //{
+    //    LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
+    //
+    //    ReservoirData reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle, lightSample.blasInstance, lightSample.uv);
+    //    reservoir = Reservoir_default();
+    //    reservoir.contributionWeight = 1.0 / lightSample.pdf;
+    //    reservoir.sampleCount = 1.0;
+    //    return RisResult(reservoirData, reservoir);
+    //}
 
     return RisResult(reservoirData, reservoir);
 #endif

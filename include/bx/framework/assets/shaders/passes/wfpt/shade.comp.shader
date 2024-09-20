@@ -8,6 +8,7 @@
 #include "[engine]/shaders/ray_tracing/material.shader"
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 #include "[engine]/shaders/ray_tracing/sky.shader"
+#include "[engine]/shaders/restir/restir.shader"
 
 #include "[engine]/shaders/passes/wfpt/payload.shader"
 #include "[engine]/shaders/passes/wfpt/sampling.shader"
@@ -15,7 +16,6 @@
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/ray_tracing/sample.shader"
-#include "[engine]/shaders/restir/restir.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -227,7 +227,7 @@ void main()
                 layeredLobe, worldToTangent, tangentToWorld,
                 normal, intersection.frontFace,
                 intersectionPos, ray.origin);
-
+            
             outRestirReservoirs[pid] = Reservoir_toPacked(risResult.reservoir);
             outRestirReservoirData[pid] = ReservoirData_toPacked(risResult.reservoirData);
             shadowRayOrigins[pid] = vec4(intersectionPos, 0.0);

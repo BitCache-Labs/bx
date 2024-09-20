@@ -16,8 +16,14 @@ public:
 
 	struct PackedReservoirData
 	{
-		u32 sampleDirection;
+		PackedNormalizedXyz10 packedSampleDirection;
 		f32 hitT;
+		u32 triangleLightSource;
+		u32 blasInstance;
+		u32 packedHitUv;
+		u32 _PADDING0;
+		u32 _PADDING1;
+		u32 _PADDING2;
 	};
 
 public:
@@ -38,7 +44,7 @@ public:
 	static void ClearPipelineCache();
 
 	u32 seed = 1337;
-	u32 pixelRadius = 30;
+	u32 pixelRadius = 30; // TODO: remove
 	b8 unbiased = false;
 
 	static constexpr u32 SPATIAL_REUSE_PASSES = 2;

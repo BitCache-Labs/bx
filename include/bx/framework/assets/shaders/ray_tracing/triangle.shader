@@ -1,6 +1,8 @@
 #ifndef TRIANGLE_H
 #define TRIANGLE_H
 
+#include "[engine]/shaders/math.shader"
+
 struct Triangle
 {
 	vec3 p0;

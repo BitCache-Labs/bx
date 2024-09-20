@@ -5,7 +5,7 @@
 
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/restir/restir.shader"
-#include "[engine]/shaders/restir/jacobian.shader"
+#include "[engine]/shaders/sampling.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -80,12 +80,20 @@ void main()
 
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
     
-    vec3 centerOrigin = getPositionWs(pixel, getPixelNormalAndDepth(pixel).w);
-    // early out if center depth is sky
+    vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
+
+    //restirReservoirs[id] = packRgb9e5(centerNormalAndDepth.xyz * 0.5 + 0.5).data; return;
+
+    if (centerNormalAndDepth.w == 0.0)
+    {
+        return;
+    }
+    vec3 centerOrigin = getPositionWs(pixel, centerNormalAndDepth.w);
 
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
     Reservoir reservoir = Reservoir_default();
     ReservoirStreamData streamData = ReservoirStreamData_default();
+    streamData.contributionWeightFactor = reservoirData.contributionWeightFactor;
 
     if (traceValidationRay(centerOrigin, reservoirData.sampleDirection, reservoirData.hitT))
     {
@@ -95,10 +103,20 @@ void main()
     Reservoir sampledReservoir = Reservoir_reconstructBiased(restirReservoirs[id]);
     Reservoir_mergeReservoirWithStream(reservoir, streamData, sampledReservoir,
         1.0, 1.0, 1.0, rngState);
+    
+    float screenRadius = constants.resolution.x / 30.0;
+    float radius = screenRadius;
+    float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + 3) * 0.5;
+    ivec2 pixelSeed = (pixel >> 3);
+    uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + 3));
+    float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
 
     for (uint i = 0; i < 1; i++)
     {
-        ivec2 offset = ivec2(0, 0);
+        //float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
+        //float currentRadius = pow(float(i) / NUM_TEMPORAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
+
+        ivec2 offset = ivec2(0);//ivec2(currentRadius * vec2(cos(angle), sin(angle)));
         uint flatOffset = offset.y * constants.resolution.x + offset.x;
         ivec2 samplePixel = pixel + offset;
         uint sampleId = id + flatOffset;
@@ -121,9 +139,7 @@ void main()
         vec3 sampleRayHitWs = samplePositionWs + sampleRelativeHitPos;
         vec3 centerToSampleRelativePos = sampleRayHitWs - centerOrigin;
         vec3 centerOriginToSampleHit = normalize(centerToSampleRelativePos);
-    
-        // check validity similarity
-    
+
         if (constants.unbiased)
         {
             if (traceValidationRay(centerOrigin, centerOriginToSampleHit, length(centerToSampleRelativePos)))
@@ -138,13 +154,8 @@ void main()
             continue;
         }
 
-        float sampleHitTSqr = sampledReservoirData.hitT * sampledReservoirData.hitT;
-        float correctedHitTSqr = dot(centerToSampleRelativePos, centerToSampleRelativePos);
-        jacobian = jacobianDiffuse(sampleNormalAndDepthHistory.xyz, -sampledReservoirData.sampleDirection,
-            -centerOriginToSampleHit, sampleHitTSqr, correctedHitTSqr);
-
         if (Reservoir_mergeReservoirWithStream(reservoir, streamData, sampledReservoir,
-            visibility, jacobian, 1.0, rngState))
+            visibility, 1.0, 1.0, rngState))
         {
             reservoirData.sampleDirection = centerOriginToSampleHit;
             reservoirData.hitT = length(centerToSampleRelativePos);
@@ -152,12 +163,10 @@ void main()
     }
 
     Reservoir_finishStream(reservoir, streamData);
+    reservoirData.contributionWeightFactor = streamData.contributionWeightFactor;
+
     Reservoir_clampContributionWeight(reservoir, 10.0);
 
     restirReservoirs[id] = Reservoir_toPacked(reservoir);
     restirReservoirData[id] = ReservoirData_toPacked(reservoirData);
-
-    // TODO: move
-    restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
-    restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
 }

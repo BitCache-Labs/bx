@@ -25,7 +25,7 @@ static String ResolveIncludes(const String& source, HashSet<String>& includedFil
     while (shaderStream.GetLine(line))
     {
         SizeType includePos = line.find("#include");
-        if (includePos != std::string::npos)
+        if (includePos != std::string::npos && includePos == 0)
         {
             SizeType start = line.find("\"", includePos) + 1;
             SizeType end = line.find("\"", start);

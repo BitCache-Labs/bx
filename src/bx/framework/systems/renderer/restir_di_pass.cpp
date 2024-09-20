@@ -19,10 +19,16 @@ BindGroupLayoutDescriptor Restir::GetBindGroupLayout()
 
 struct SpatialReuseConstants
 {
-    u32 dispatchSize;
-    u32 seed;
+    Mat4 invView;
+    Mat4 invProj;
     u32 width;
+    u32 height;
+    u32 seed;
     u32 spatialIndex;
+    b32 unbiased;
+    u32 _PADDING0;
+    u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct TemporalReuseConstants
@@ -197,9 +203,12 @@ BindGroupHandle RestirDiPass::CreateBindGroup(ComputePipelineHandle pipeline, b8
 void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView)
 {
     SpatialReuseConstants spatialReuseConstants{};
-    spatialReuseConstants.dispatchSize = width * height;
+    spatialReuseConstants.invView = camera.GetInvView();
+    spatialReuseConstants.invProj = camera.GetInvProjection();
     spatialReuseConstants.width = width;
+    spatialReuseConstants.height = height;
     spatialReuseConstants.seed = seed;
+    spatialReuseConstants.unbiased = unbiased;
     for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
         spatialReuseConstants.spatialIndex = i;
@@ -240,8 +249,8 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     Graphics::EndComputePass(computePass);
 
     Graphics::DestroyBindGroup(temporalReuseBindGroup);
-
-    /*for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
+    return;
+    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
         BindGroupCreateInfo spatialReuseBindGroupCreateInfo{};
         spatialReuseBindGroupCreateInfo.name = "Restir Spatial Reuse Bind Group";
@@ -263,7 +272,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
         Graphics::EndComputePass(computePass);
 
         Graphics::DestroyBindGroup(spatialReuseBindGroup);
-    }*/
+    }
 }
 
 void RestirDiPass::ClearPipelineCache()

@@ -7,6 +7,7 @@ struct ReservoirStreamData
 {
 	float selectedSelectionWeight;
 	float sampleCountSum;
+	float contributionWeightFactor;
 };
 
 struct ReservoirCountAndContributionWeight
@@ -27,12 +28,12 @@ struct Reservoir
 
 ReservoirStreamData ReservoirStreamData_default()
 {
-	return ReservoirStreamData(0.0, 0.0);
+	return ReservoirStreamData(0.0, 0.0, 1.0);
 }
 
 ReservoirStreamData ReservoirStreamData_fromSingleSample(float selectionWeight)
 {
-	return ReservoirStreamData(selectionWeight, 1.0);
+	return ReservoirStreamData(selectionWeight, 1.0, 1.0);
 }
 
 /// ReservoirCountAndContributionWeight
@@ -95,6 +96,8 @@ void Reservoir_finishStream(inout Reservoir self, ReservoirStreamData streamData
 {
 	self.sampleCount = streamData.sampleCountSum;
 	self.contributionWeight = self.weightSum / max(1e-8, self.sampleCount * streamData.selectedSelectionWeight);
+
+	streamData.contributionWeightFactor *= self.weightSum / self.sampleCount;//self.weightSum / max(1e-8, self.sampleCount * streamData.contributionWeightFactor);
 }
 
 float Reservoir_contributionWeightSum(Reservoir self)
