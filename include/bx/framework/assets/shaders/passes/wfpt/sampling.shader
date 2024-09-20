@@ -101,7 +101,8 @@ RisResult ris(inout uint rngState,
 #if 0
     LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
 
-    ReservoirData reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle, lightSample.blasInstance, lightSample.uv, 1.0);
+    ReservoirData reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
+        lightSample.blasInstance, lightSample.uv, 0.0);
     Reservoir reservoir = Reservoir_default();
     reservoir.contributionWeight = 1.0 / lightSample.pdf;
     reservoir.sampleCount = 1.0;
@@ -113,9 +114,8 @@ RisResult ris(inout uint rngState,
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
 
-    ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0), 1.0);
+    ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0), 0.0);
     Reservoir reservoir = Reservoir_default();
-    ReservoirStreamData streamData = ReservoirStreamData_default();
 	
     #pragma unroll
 	for (uint i = 0; i < M_AREA; i++)
@@ -134,28 +134,18 @@ RisResult ris(inout uint rngState,
             unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution));
         }
 
-        Reservoir sampleReservoir = Reservoir(1.0, contributionWeight, contributionWeight);
-
-        if (Reservoir_mergeReservoirWithStream(reservoir, streamData, sampleReservoir,
-            1.0, 1.0, unoccludedContributionWeight, rngState))
+        float weight = unoccludedContributionWeight * contributionWeight;
+        if (Reservoir_update(reservoir, weight, rngState))
         {
-            reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle, lightSample.blasInstance, lightSample.uv, 1.0);
+            reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
+                lightSample.blasInstance, lightSample.uv, unoccludedContributionWeight);
         }
 	}
 
-    Reservoir_finishStream(reservoir, streamData);
-    reservoirData.contributionWeightFactor = streamData.contributionWeightFactor;
+    reservoir.contributionWeight = (reservoirData.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / reservoirData.unoccludedContributionWeight);
+    reservoir.contributionWeight *= ((reservoir.sampleCount == 0) ? 0.0 : (1.0 / reservoir.sampleCount)) * reservoir.weightSum;
 
-    //if (reservoirData.hitT == 0.0)
-    //{
-    //    LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
-    //
-    //    ReservoirData reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle, lightSample.blasInstance, lightSample.uv);
-    //    reservoir = Reservoir_default();
-    //    reservoir.contributionWeight = 1.0 / lightSample.pdf;
-    //    reservoir.sampleCount = 1.0;
-    //    return RisResult(reservoirData, reservoir);
-    //}
+    reservoir.contributionWeight = fixNan(reservoir.contributionWeight);
 
     return RisResult(reservoirData, reservoir);
 #endif

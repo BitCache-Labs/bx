@@ -3,19 +3,6 @@
 
 #include "[engine]/shaders/random.shader"
 
-struct ReservoirStreamData
-{
-	float selectedSelectionWeight;
-	float sampleCountSum;
-	float contributionWeightFactor;
-};
-
-struct ReservoirCountAndContributionWeight
-{
-	float sampleCount;
-	float contributionWeight;
-};
-
 struct Reservoir
 {
 	float sampleCount;
@@ -23,65 +10,35 @@ struct Reservoir
 	float weightSum;
 };
 
-/// ReservoirStreamData
-/// ------------------------------------------
-
-ReservoirStreamData ReservoirStreamData_default()
+struct PackedReservoir
 {
-	return ReservoirStreamData(0.0, 0.0, 1.0);
-}
-
-ReservoirStreamData ReservoirStreamData_fromSingleSample(float selectionWeight)
-{
-	return ReservoirStreamData(selectionWeight, 1.0, 1.0);
-}
-
-/// ReservoirCountAndContributionWeight
-/// ------------------------------------------
-
-ReservoirCountAndContributionWeight ReservoirCountAndContributionWeight_fromPacked(uint packed)
-{
-	vec2 countAndWeight = unpackHalf2x16(packed);
-	return ReservoirCountAndContributionWeight(countAndWeight.x, countAndWeight.y);
-}
-
-uint ReservoirCountAndContributionWeight_toPacked(ReservoirCountAndContributionWeight self)
-{
-	return packHalf2x16(vec2(self.sampleCount, self.contributionWeight));
-}
-
-/// Reservoir
-/// ------------------------------------------
+	uint sampleCountAndContributionWeight;
+	float weightSum;
+};
 
 Reservoir Reservoir_default()
 {
 	return Reservoir(0.0, 0.0, 0.0);
 }
 
-uint Reservoir_toPacked(Reservoir self)
+PackedReservoir Reservoir_toPacked(Reservoir self)
 {
-	return packHalf2x16(vec2(self.sampleCount, self.contributionWeight));
+	return PackedReservoir(
+		packHalf2x16(vec2(self.sampleCount, self.contributionWeight)),
+		self.weightSum
+	);
 }
 
-Reservoir Reservoir_reconstructBiased(uint packedCountAndContributionWeight)
+Reservoir Reservoir_fromPacked(PackedReservoir packed)
 {
-	ReservoirCountAndContributionWeight sampleReservoirData =
-		ReservoirCountAndContributionWeight_fromPacked(packedCountAndContributionWeight);
-
-	float biasedWeight = sampleReservoirData.sampleCount * sampleReservoirData.contributionWeight;
-	Reservoir reservoir = Reservoir(sampleReservoirData.sampleCount, sampleReservoirData.contributionWeight, biasedWeight);
-	return reservoir;
+	vec2 sampleCountAndContributionWeight = unpackHalf2x16(packed.sampleCountAndContributionWeight);
+	return Reservoir(sampleCountAndContributionWeight.x, sampleCountAndContributionWeight.y, packed.weightSum);
 }
 
-Reservoir Reservoir_reconstructBiasedClamped(uint packedCountAndContributionWeight, float sampleCountClamp)
+Reservoir Reservoir_fromPackedClamped(PackedReservoir packed, float sampleCountClamp)
 {
-	ReservoirCountAndContributionWeight sampleReservoirData =
-		ReservoirCountAndContributionWeight_fromPacked(packedCountAndContributionWeight);
-	sampleReservoirData.sampleCount = min(sampleReservoirData.sampleCount, sampleCountClamp);
-
-	float biasedWeight = sampleReservoirData.sampleCount * sampleReservoirData.contributionWeight;
-	Reservoir reservoir = Reservoir(sampleReservoirData.sampleCount, sampleReservoirData.contributionWeight, biasedWeight);
-	return reservoir;
+	vec2 sampleCountAndContributionWeight = unpackHalf2x16(packed.sampleCountAndContributionWeight);
+	return Reservoir(min(sampleCountAndContributionWeight.x, sampleCountClamp), sampleCountAndContributionWeight.y, packed.weightSum);
 }
 
 bool Reservoir_update(inout Reservoir self, float sampleWeight, inout uint rng)
@@ -92,34 +49,28 @@ bool Reservoir_update(inout Reservoir self, float sampleWeight, inout uint rng)
 	return randomUniformFloat(rng) < (sampleWeight / self.weightSum);
 }
 
-void Reservoir_finishStream(inout Reservoir self, ReservoirStreamData streamData)
+Reservoir Reservoir_combineReservoirs(Reservoir reservoir0, float weight0, Reservoir reservoir1, float weight1,
+	inout uint rng, out bool firstReservoirWasPicked)
 {
-	self.sampleCount = streamData.sampleCountSum;
-	self.contributionWeight = self.weightSum / max(1e-8, self.sampleCount * streamData.selectedSelectionWeight);
+	Reservoir result = Reservoir_default();
 
-	streamData.contributionWeightFactor *= self.weightSum / self.sampleCount;//self.weightSum / max(1e-8, self.sampleCount * streamData.contributionWeightFactor);
-}
+	Reservoir_update(result, weight0 * reservoir0.contributionWeight * reservoir0.sampleCount, rng);
+	firstReservoirWasPicked = !Reservoir_update(result, weight1 * reservoir1.contributionWeight * reservoir1.sampleCount, rng);
+	result.sampleCount = reservoir0.sampleCount + reservoir1.sampleCount;
 
-float Reservoir_contributionWeightSum(Reservoir self)
-{
-	return self.contributionWeight * self.sampleCount;
-}
+	float pickedWeight = firstReservoirWasPicked ? weight0 : weight1;
 
-bool Reservoir_mergeReservoirWithStream(inout Reservoir self, inout ReservoirStreamData streamData, Reservoir reservoir, float visibility, float jacobian, float samplingWeight, inout uint rng)
-{
-	if (visibility * jacobian > 0.0)
+	// TODO: avoid branch with max?
+	if (pickedWeight == 0.0 || result.sampleCount == 0.0)
 	{
-		float weight = samplingWeight * Reservoir_contributionWeightSum(reservoir) * visibility * jacobian;
-		streamData.sampleCountSum += reservoir.sampleCount;
-
-		if (Reservoir_update(self, weight, rng))
-		{
-			streamData.selectedSelectionWeight = samplingWeight * jacobian;
-			return true;
-		}
+		result.contributionWeight = 0.0;
+	}
+	else
+	{
+		result.contributionWeight = (1.0 / pickedWeight) * ((1.0 / result.sampleCount) * result.weightSum);
 	}
 
-	return false;
+	return result;
 }
 
 void Reservoir_clampContributionWeight(inout Reservoir self, float clampWeight)

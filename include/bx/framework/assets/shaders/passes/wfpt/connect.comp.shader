@@ -50,7 +50,7 @@ void main()
     if (id >= shadowRayCount) return;
     uint pid = shadowPixelMapping[id];
 
-    Reservoir reservoir = Reservoir_reconstructBiased(restirReservoirs[pid]);
+    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[pid]);
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[pid]);
     vec3 origin = shadowRayOrigins[pid].xyz;
     vec3 direction = reservoirData.sampleDirection;
@@ -80,8 +80,8 @@ void main()
                 weight = 1.0 / lightSample.pdf;
             }
             
-            vec3 lightingContribution = (throughput * emission) * (weight * reservoirData.contributionWeightFactor);// * reservoir.contributionWeight; // unpackRgb9e5(PackedRgb9e5(restirReservoirs[pid]));//
-            //vec3 lightingContribution = (throughput * emission) * reservoir.contributionWeight;
+            //vec3 lightingContribution = (throughput * emission) * weight;// * reservoir.contributionWeight; // unpackRgb9e5(PackedRgb9e5(restirReservoirs[pid]));//
+            vec3 lightingContribution = (throughput * emission) * reservoir.contributionWeight;
 
             accumulated += lightingContribution;
             

@@ -80,36 +80,33 @@ void main()
 
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
     
-    vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
+    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]); // MOVE DOWN!
+    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
 
-    //restirReservoirs[id] = packRgb9e5(centerNormalAndDepth.xyz * 0.5 + 0.5).data; return;
+    vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
 
     if (centerNormalAndDepth.w == 0.0)
     {
+        restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
+        restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
         return;
     }
     vec3 centerOrigin = getPositionWs(pixel, centerNormalAndDepth.w);
 
-    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
-    Reservoir reservoir = Reservoir_default();
-    ReservoirStreamData streamData = ReservoirStreamData_default();
-    streamData.contributionWeightFactor = reservoirData.contributionWeightFactor;
+    // ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
+    // Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
 
     if (traceValidationRay(centerOrigin, reservoirData.sampleDirection, reservoirData.hitT))
     {
         reservoir.contributionWeight = 0.0;
     }
-
-    Reservoir sampledReservoir = Reservoir_reconstructBiased(restirReservoirs[id]);
-    Reservoir_mergeReservoirWithStream(reservoir, streamData, sampledReservoir,
-        1.0, 1.0, 1.0, rngState);
     
-    float screenRadius = constants.resolution.x / 30.0;
-    float radius = screenRadius;
-    float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + 3) * 0.5;
-    ivec2 pixelSeed = (pixel >> 3);
-    uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + 3));
-    float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
+    //float screenRadius = constants.resolution.x / 30.0;
+    //float radius = screenRadius;
+    //float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + 3) * 0.5;
+    //ivec2 pixelSeed = (pixel >> 3);
+    //uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + 3));
+    //float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
 
     for (uint i = 0; i < 1; i++)
     {
@@ -148,25 +145,28 @@ void main()
             }
         }
     
-        sampledReservoir = Reservoir_reconstructBiasedClamped(restirReservoirsHistory[sampleId], 12.0);
+        Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirsHistory[sampleId], 12.0);
         if (sampledReservoir.contributionWeight < 1e-3)
         {
             continue;
         }
 
-        if (Reservoir_mergeReservoirWithStream(reservoir, streamData, sampledReservoir,
-            visibility, 1.0, 1.0, rngState))
+        bool firstReservoirWasPicked;
+        reservoir = Reservoir_combineReservoirs(reservoir, reservoirData.unoccludedContributionWeight, sampledReservoir, sampledReservoirData.unoccludedContributionWeight,
+	        rngState, firstReservoirWasPicked);
+        if (!firstReservoirWasPicked)
         {
             reservoirData.sampleDirection = centerOriginToSampleHit;
             reservoirData.hitT = length(centerToSampleRelativePos);
+            reservoirData.unoccludedContributionWeight = sampledReservoirData.unoccludedContributionWeight;
         }
     }
-
-    Reservoir_finishStream(reservoir, streamData);
-    reservoirData.contributionWeightFactor = streamData.contributionWeightFactor;
 
     Reservoir_clampContributionWeight(reservoir, 10.0);
 
     restirReservoirs[id] = Reservoir_toPacked(reservoir);
     restirReservoirData[id] = ReservoirData_toPacked(reservoirData);
+
+    restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
+    restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
 }
