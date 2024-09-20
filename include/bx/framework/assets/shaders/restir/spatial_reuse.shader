@@ -1,11 +1,17 @@
 #include "[engine]/shaders/Language.shader"
+#include "[engine]/shaders/extensions/ray_tracing_ext.shader"
 
 #define RESTIR_BINDINGS
+#define BLAS_DATA_BINDINGS
+#define SKY_BINDINGS
 
 #include "[engine]/shaders/restir/restir.shader"
+#include "[engine]/shaders/ray_tracing/blas_data.shader"
+#include "[engine]/shaders/ray_tracing/sky.shader"
 
 #include "[engine]/shaders/packing.shader"
 #include "[engine]/shaders/sampling.shader"
+#include "[engine]/shaders/ray_tracing/light_picking.shader"
 #include "[engine]/shaders/random.shader"
 
 const uint NUM_SPATIAL_SAMPLES = 5;
@@ -18,12 +24,14 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint seed;
     uint spatialIndex;
     bool unbiased;
+    bool jacobian;
     uint _PADDING0;
     uint _PADDING1;
-    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D gbuffer;
+
+layout(BINDING(0, 2)) uniform accelerationStructureEXT Scene;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {
@@ -49,6 +57,34 @@ bool validatePixelSimilarity(vec4 normalAndDepth, vec4 otherNormalAndDepth)
     bool similairNormals = (1.0 - abs(dot(normalAndDepth.xyz, otherNormalAndDepth.xyz))) < 0.2;
     bool similairDepth = abs(1.0 - (normalAndDepth.w / otherNormalAndDepth.w)) < 0.1;
     return similairNormals && similairDepth;
+}
+
+bool traceValidationRay(vec3 origin, vec3 direction, float tMax)
+{
+    const float validationEpsilon = tMax * 0.1;
+    origin += validationEpsilon * direction;
+    tMax = max(0.0, tMax - validationEpsilon);
+
+    rayQueryEXT rayQuery;
+	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, origin, RT_EPSILON, direction, tMax);
+	rayQueryProceedEXT(rayQuery);
+    return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
+}
+
+float ReservoirData_getLightWeight(ReservoirData self, vec3 p)
+{
+    float weight;
+    if (self.triangleLightSource == U32_MAX)
+    {
+        weight = 0.0;// TODO: sun pick prob
+    }
+    else
+    {
+        BlasInstance instance = blasInstances[self.blasInstance];
+        LightSample lightSample = sampleTriangleLight(self.triangleLightSource, self.hitUv, inverse(instance.invTransform), p, 0.0); // TODO: fix sun lmao
+        weight = 1.0 / lightSample.pdf;
+    }
+    return weight;
 }
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
@@ -92,13 +128,7 @@ void main()
         ivec2 samplePixel = pixel + offset;
         uint sampleId = id + flatOffset;
 
-        // TODO: mirror
-        if (samplePixel.x >= constants.resolution.x || samplePixel.y >= constants.resolution.y)
-        {
-            continue;
-        }
-
-        float visibility = 1.0;
+        samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
 
         ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
 
@@ -118,9 +148,22 @@ void main()
         // Trace if unbiased
 
         Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirs[sampleId], RESERVOIR_M_CLAMP);
+
+        float jacobian = 1.0;
+        if (constants.jacobian)
+        {
+            jacobian = ReservoirData_getLightWeight(sampledReservoirData, centerOrigin) / ReservoirData_getLightWeight(reservoirData, centerOrigin);
+        }
+        sampledReservoirData.unoccludedContributionWeight *= jacobian;
+
         if (sampledReservoir.contributionWeight < 1e-3)
         {
             continue;
+        }
+
+        if (constants.unbiased && traceValidationRay(centerOrigin, centerOriginToSampleHit, length(centerToSampleRelativePos)))
+        {
+            sampledReservoir.contributionWeight = 0.0;
         }
 
         bool firstReservoirWasPicked;

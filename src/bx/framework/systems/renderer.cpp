@@ -192,6 +192,8 @@ void Renderer::Render()
         m_wfptPass->hybrid = hybrid;
         m_wfptPass->accumulationFrameIdx = accumulate ? (m_wfptPass->accumulationFrameIdx + 1) : 0;
         m_wfptPass->maxBounces = 3;
+        m_wfptPass->unbiased = unbiased;
+        m_wfptPass->jacobian = jacobian;
         m_wfptPass->Dispatch(m_cameras.back(), *m_blasDataPool, *m_materialPool, *m_sky);
     }
 

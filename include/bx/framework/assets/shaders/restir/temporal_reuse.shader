@@ -2,10 +2,16 @@
 #include "[engine]/shaders/extensions/ray_tracing_ext.shader"
 
 #define RESTIR_BINDINGS
+#define BLAS_DATA_BINDINGS
+#define SKY_BINDINGS
+
+#include "[engine]/shaders/restir/restir.shader"
+#include "[engine]/shaders/ray_tracing/blas_data.shader"
+#include "[engine]/shaders/ray_tracing/sky.shader"
 
 #include "[engine]/shaders/ray_tracing/ray.shader"
-#include "[engine]/shaders/restir/restir.shader"
 #include "[engine]/shaders/sampling.shader"
+#include "[engine]/shaders/ray_tracing/light_picking.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -16,6 +22,10 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uvec2 resolution;
     bool unbiased;
     uint seed;
+    bool jacobian;
+    uint _PADDING0;
+    uint _PADDING1;
+    uint _PADDING2;
 } constants;
 
 layout(BINDING(0, 1)) uniform accelerationStructureEXT Scene;
@@ -71,6 +81,22 @@ bool traceValidationRay(vec3 origin, vec3 direction, float tMax)
     return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
 }
 
+float ReservoirData_getLightWeight(ReservoirData self, vec3 p)
+{
+    float weight;
+    if (self.triangleLightSource == U32_MAX)
+    {
+        weight = 0.0;// TODO: sun pick prob
+    }
+    else
+    {
+        BlasInstance instance = blasInstances[self.blasInstance];
+        LightSample lightSample = sampleTriangleLight(self.triangleLightSource, self.hitUv, inverse(instance.invTransform), p, 0.0); // TODO: fix sun lmao
+        weight = 1.0 / lightSample.pdf;
+    }
+    return weight;
+}
+
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
@@ -112,11 +138,7 @@ void main()
         uint flatOffset = offset.y * constants.resolution.x + offset.x;
         ivec2 samplePixel = pixel + offset;
         uint sampleId = id + flatOffset;
-    
-        float visibility = 1.0;
-        float jacobian = 1.0;
-        float samplingWeight = 1.0;
-        
+            
         ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[sampleId]);
     
         vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(samplePixel);
@@ -132,22 +154,27 @@ void main()
         vec3 centerToSampleRelativePos = sampleRayHitWs - centerOrigin;
         vec3 centerOriginToSampleHit = normalize(centerToSampleRelativePos);
 
-        if (constants.unbiased)
-        {
-            if (traceValidationRay(centerOrigin, centerOriginToSampleHit, length(centerToSampleRelativePos)))
-            {
-                visibility = 0.0; // TODO: use
-            }
-        }
-    
         Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirsHistory[sampleId], RESERVOIR_M_CLAMP);
+
+        float jacobian = 1.0;
+        if (constants.jacobian)
+        {
+            jacobian = ReservoirData_getLightWeight(sampledReservoirData, centerOrigin) / ReservoirData_getLightWeight(reservoirData, centerOrigin);
+        }
+        sampledReservoirData.unoccludedContributionWeight *= HISTORY_WEIGHT_BIAS * jacobian;
+
         if (sampledReservoir.contributionWeight < 1e-3)
         {
             continue;
         }
 
+        if (constants.unbiased && traceValidationRay(centerOrigin, centerOriginToSampleHit, length(centerToSampleRelativePos)))
+        {
+            sampledReservoir.contributionWeight = 0.0;
+        }
+
         bool firstReservoirWasPicked;
-        reservoir = Reservoir_combineReservoirs(reservoir, reservoirData.unoccludedContributionWeight, sampledReservoir, 20.0 * sampledReservoirData.unoccludedContributionWeight,
+        reservoir = Reservoir_combineReservoirs(reservoir, reservoirData.unoccludedContributionWeight, sampledReservoir, sampledReservoirData.unoccludedContributionWeight,
 	        rngState, firstReservoirWasPicked);
         if (!firstReservoirWasPicked)
         {

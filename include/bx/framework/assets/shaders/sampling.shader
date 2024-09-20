@@ -69,6 +69,23 @@ vec3 getUniformSphereSample(vec2 uv)
     );
 }
 
+ivec2 mirrorSample(ivec2 samplePos, ivec2 resolution)
+{
+    ivec2 resMinusOne = resolution - 1;
+    ivec2 result = abs(samplePos);
+
+    if (samplePos.x > resMinusOne.x)
+    {
+        result.x = resMinusOne.x - (result.x - resMinusOne.x);
+    }
+    if (samplePos.y > resMinusOne.y)
+    {
+        result.y = resMinusOne.y - (result.y - resMinusOne.y);
+    }
+
+    return result;
+}
+
 // from https://stackoverflow.com/a/2660181
 vec3 perturbDirectionVector(vec2 uv, vec3 direction, float angle)
 {

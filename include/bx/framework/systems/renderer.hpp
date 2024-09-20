@@ -21,6 +21,7 @@ public:
 	b8 accumulate = false;
 	b8 hybrid = true;
 	b8 unbiased = false;
+	b8 jacobian = false;
 
 private:
 	friend class SceneView;

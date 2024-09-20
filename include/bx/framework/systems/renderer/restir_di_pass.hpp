@@ -6,6 +6,9 @@
 
 #include "bx/framework/components/camera.hpp"
 
+class BlasDataPool;
+class Sky;
+
 class Restir : NoCopy
 {
 public:
@@ -40,13 +43,14 @@ public:
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline, b8 flipRestirSamples) const;
 
-	void Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView);
+	void Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, const BlasDataPool& blasDataPool, const Sky& sky);
 
 	static void ClearPipelineCache();
 
 	u32 seed = 1337;
 	u32 pixelRadius = 30; // TODO: remove
 	b8 unbiased = false;
+	b8 jacobian = false;
 
 	static constexpr u32 SPATIAL_REUSE_PASSES = 2;
 

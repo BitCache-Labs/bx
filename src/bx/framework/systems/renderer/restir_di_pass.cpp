@@ -2,6 +2,8 @@
 
 #include "bx/framework/systems/renderer/lazy_init.hpp"
 #include "bx/framework/resources/shader.hpp"
+#include "bx/framework/systems/renderer/sky.hpp"
+#include "bx/framework/systems/renderer/blas_data_pool.hpp"
 
 #include "bx/engine/core/file.hpp"
 
@@ -26,9 +28,9 @@ struct SpatialReuseConstants
     u32 seed;
     u32 spatialIndex;
     b32 unbiased;
+    b32 jacobian;
     u32 _PADDING0;
     u32 _PADDING1;
-    u32 _PADDING2;
 };
 
 struct TemporalReuseConstants
@@ -41,6 +43,10 @@ struct TemporalReuseConstants
     u32 height;
     b32 unbiased;
     u32 seed;
+    b32 jacobian;
+    u32 _PADDING0;
+    u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipelineHandle>
@@ -58,7 +64,10 @@ struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipel
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),
             }),
+            BlasDataPool::GetBindGroupLayout(),
+            Sky::GetBindGroupLayout(),
             Restir::GetBindGroupLayout()
         };
 
@@ -92,6 +101,8 @@ struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePip
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
             }),
+            BlasDataPool::GetBindGroupLayout(),
+            Sky::GetBindGroupLayout(),
             Restir::GetBindGroupLayout()
         };
 
@@ -200,7 +211,7 @@ BindGroupHandle RestirDiPass::CreateBindGroup(ComputePipelineHandle pipeline, b8
     return Graphics::CreateBindGroup(createInfo);
 }
 
-void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView)
+void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, const BlasDataPool& blasDataPool, const Sky& sky)
 {
     SpatialReuseConstants spatialReuseConstants{};
     spatialReuseConstants.invView = camera.GetInvView();
@@ -209,6 +220,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     spatialReuseConstants.height = height;
     spatialReuseConstants.seed = seed;
     spatialReuseConstants.unbiased = unbiased;
+    spatialReuseConstants.jacobian = jacobian;
     for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
         spatialReuseConstants.spatialIndex = i;
@@ -224,6 +236,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     temporalReuseConstants.height = height;
     temporalReuseConstants.unbiased = unbiased;
     temporalReuseConstants.seed = seed;
+    temporalReuseConstants.jacobian = jacobian;
     Graphics::WriteBuffer(temporalReuseConstantsBuffer, 0, &temporalReuseConstants);
 
     BindGroupCreateInfo temporalReuseBindGroupCreateInfo{};
@@ -236,6 +249,8 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
         BindGroupEntry(3, BindingResource::TextureView(gbufferHistoryView)),
     };
     BindGroupHandle temporalReuseBindGroup = Graphics::CreateBindGroup(temporalReuseBindGroupCreateInfo);
+    BindGroupHandle temporalBlasDataPoolGroup = blasDataPool.CreateBindGroup(TemporalReusePipeline::Get());
+    BindGroupHandle temporalSkyGroup = sky.CreateBindGroup(TemporalReusePipeline::Get());
 
     ComputePassDescriptor computePassDescriptor{};
     computePassDescriptor.name = "Restir Temporal Reuse";
@@ -243,6 +258,8 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     {
         Graphics::SetComputePipeline(TemporalReusePipeline::Get());
         Graphics::SetBindGroup(0, temporalReuseBindGroup);
+        Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, temporalBlasDataPoolGroup);
+        Graphics::SetBindGroup(Sky::BIND_GROUP_SET, temporalSkyGroup);
         Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirTemporalBindGroup);
         Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
     }
@@ -258,14 +275,19 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
         spatialReuseBindGroupCreateInfo.entries = {
             BindGroupEntry(0, BindingResource::Buffer(spatialReuseConstantsBuffers[i])),
             BindGroupEntry(1, BindingResource::TextureView(gbufferView)),
+            BindGroupEntry(2, BindingResource::AccelerationStructure(tlas)),
         };
         BindGroupHandle spatialReuseBindGroup = Graphics::CreateBindGroup(spatialReuseBindGroupCreateInfo);
+        BindGroupHandle spatialBlasDataPoolGroup = blasDataPool.CreateBindGroup(SpatialReusePipeline::Get());
+        BindGroupHandle spatialSkyGroup = sky.CreateBindGroup(SpatialReusePipeline::Get());
 
         computePassDescriptor.name = "Restir Spatial Reuse";
         computePass = Graphics::BeginComputePass(computePassDescriptor);
         {
             Graphics::SetComputePipeline(SpatialReusePipeline::Get());
             Graphics::SetBindGroup(0, spatialReuseBindGroup);
+            Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, spatialBlasDataPoolGroup);
+            Graphics::SetBindGroup(Sky::BIND_GROUP_SET, spatialSkyGroup);
             Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirSpatialBindGroups[i]);
             Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
         }

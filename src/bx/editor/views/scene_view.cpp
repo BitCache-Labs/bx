@@ -327,6 +327,10 @@ void SceneView::Present(bool& show)
     ImGui::Text("PT Unbiased: ");
     ImGui::SameLine();
     ImGui::Checkbox("##PTUnbiased", &SystemManager::GetSystem<Renderer>().unbiased);
+
+    ImGui::Text("PT Jacobian: ");
+    ImGui::SameLine();
+    ImGui::Checkbox("##PTJacobian", &SystemManager::GetSystem<Renderer>().jacobian);
     
     bool sceneActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || ImGui::IsWindowHovered();
     if (sceneActive)

@@ -6,6 +6,7 @@
 
 const uint JACOBIAN_CUTOFF = 8;
 const float RESERVOIR_M_CLAMP = 20.0;
+const float HISTORY_WEIGHT_BIAS = 1.0;
 
 struct ReservoirData
 {
@@ -15,6 +16,7 @@ struct ReservoirData
     uint blasInstance;
     vec2 hitUv;
     float unoccludedContributionWeight;
+    float potatoFactor;
 };
 
 struct PackedReservoirData
@@ -25,8 +27,8 @@ struct PackedReservoirData
     uint blasInstance;
     uint packedHitUv;
     float unoccludedContributionWeight;
+    float potatoFactor;
     uint _PADDING0;
-    uint _PADDING1;
 };
 
 PackedReservoirData ReservoirData_toPacked(ReservoirData self)
@@ -38,7 +40,8 @@ PackedReservoirData ReservoirData_toPacked(ReservoirData self)
         self.blasInstance,
         packHalf2x16(self.hitUv),
         self.unoccludedContributionWeight,
-        0, 0
+        self.potatoFactor,
+        0
     );
 }
 
@@ -50,7 +53,8 @@ ReservoirData ReservoirData_fromPacked(PackedReservoirData packed)
         packed.triangleLightSource,
         packed.blasInstance,
         unpackHalf2x16(packed.packedHitUv),
-        packed.unoccludedContributionWeight
+        packed.unoccludedContributionWeight,
+        packed.potatoFactor
     );
 }
 

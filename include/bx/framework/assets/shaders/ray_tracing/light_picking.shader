@@ -102,21 +102,23 @@ RisResult ris(inout uint rngState,
     LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
 
     ReservoirData reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
-        lightSample.blasInstance, lightSample.uv, 0.0);
+        lightSample.blasInstance, lightSample.uv, 0.0, 1.0);
     Reservoir reservoir = Reservoir_default();
     reservoir.contributionWeight = 1.0 / lightSample.pdf;
     reservoir.sampleCount = 1.0;
     return RisResult(reservoirData, reservoir);
 #else
 
-    const uint M_AREA = 32;
+    const uint M_AREA = 8;
 
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
 
-    ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0), 0.0);
+    ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0), 0.0, 1.0);
     Reservoir reservoir = Reservoir_default();
 	
+    float sumWithoutUcw = 0.0;
+
     #pragma unroll
 	for (uint i = 0; i < M_AREA; i++)
 	{
@@ -127,24 +129,24 @@ RisResult ris(inout uint rngState,
         vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
     
         float unoccludedContributionWeight = 0.0;
-        if (dot(wInWorldSpace, normal) > 0.0 || true)
+        if (dot(wInWorldSpace, normal) > 0.0)
         {
             BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
             vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
             unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution));
         }
 
+        sumWithoutUcw += contributionWeight;
+
         float weight = unoccludedContributionWeight * contributionWeight;
         if (Reservoir_update(reservoir, weight, rngState))
         {
             reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
-                lightSample.blasInstance, lightSample.uv, unoccludedContributionWeight);
+                lightSample.blasInstance, lightSample.uv, unoccludedContributionWeight, 1.0);
         }
 	}
 
-    reservoir.contributionWeight = (reservoirData.unoccludedContributionWeight == 0.0) ? 0.0 : (1.0 / reservoirData.unoccludedContributionWeight);
-    reservoir.contributionWeight *= ((reservoir.sampleCount == 0) ? 0.0 : (1.0 / reservoir.sampleCount)) * reservoir.weightSum;
-
+    reservoir.contributionWeight = reservoir.weightSum / max(1e-8, reservoirData.unoccludedContributionWeight * reservoir.sampleCount);
     reservoir.contributionWeight = fixNan(reservoir.contributionWeight);
 
     return RisResult(reservoirData, reservoir);

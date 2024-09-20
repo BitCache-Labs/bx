@@ -11,11 +11,11 @@
 #include "[engine]/shaders/restir/restir.shader"
 
 #include "[engine]/shaders/passes/wfpt/payload.shader"
-#include "[engine]/shaders/passes/wfpt/sampling.shader"
 #include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/ray_tracing/sample.shader"
+#include "[engine]/shaders/ray_tracing/light_picking.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
