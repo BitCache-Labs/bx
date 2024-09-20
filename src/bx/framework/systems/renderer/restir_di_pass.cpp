@@ -249,7 +249,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     Graphics::EndComputePass(computePass);
 
     Graphics::DestroyBindGroup(temporalReuseBindGroup);
-    return;
+
     for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
         BindGroupCreateInfo spatialReuseBindGroupCreateInfo{};

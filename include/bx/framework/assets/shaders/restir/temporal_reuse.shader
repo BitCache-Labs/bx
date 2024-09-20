@@ -79,22 +79,17 @@ void main()
     ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
 
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
-    
-    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]); // MOVE DOWN!
-    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
 
     vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
 
     if (centerNormalAndDepth.w == 0.0)
     {
-        restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
-        restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
         return;
     }
     vec3 centerOrigin = getPositionWs(pixel, centerNormalAndDepth.w);
 
-    // ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
-    // Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
+    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
+    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
 
     if (traceValidationRay(centerOrigin, reservoirData.sampleDirection, reservoirData.hitT))
     {
@@ -141,18 +136,18 @@ void main()
         {
             if (traceValidationRay(centerOrigin, centerOriginToSampleHit, length(centerToSampleRelativePos)))
             {
-                visibility = 0.0;
+                visibility = 0.0; // TODO: use
             }
         }
     
-        Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirsHistory[sampleId], 12.0);
+        Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirsHistory[sampleId], RESERVOIR_M_CLAMP);
         if (sampledReservoir.contributionWeight < 1e-3)
         {
             continue;
         }
 
         bool firstReservoirWasPicked;
-        reservoir = Reservoir_combineReservoirs(reservoir, reservoirData.unoccludedContributionWeight, sampledReservoir, sampledReservoirData.unoccludedContributionWeight,
+        reservoir = Reservoir_combineReservoirs(reservoir, reservoirData.unoccludedContributionWeight, sampledReservoir, 20.0 * sampledReservoirData.unoccludedContributionWeight,
 	        rngState, firstReservoirWasPicked);
         if (!firstReservoirWasPicked)
         {
@@ -162,7 +157,7 @@ void main()
         }
     }
 
-    Reservoir_clampContributionWeight(reservoir, 10.0);
+    Reservoir_clampContributionWeight(reservoir, RESERVOIR_M_CLAMP);
 
     restirReservoirs[id] = Reservoir_toPacked(reservoir);
     restirReservoirData[id] = ReservoirData_toPacked(reservoirData);

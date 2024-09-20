@@ -5,6 +5,7 @@
 #include "[engine]/shaders/packing.shader"
 
 const uint JACOBIAN_CUTOFF = 8;
+const float RESERVOIR_M_CLAMP = 20.0;
 
 struct ReservoirData
 {
