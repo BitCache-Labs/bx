@@ -16,7 +16,6 @@ struct ReservoirData
     uint blasInstance;
     vec2 hitUv;
     float unoccludedContributionWeight;
-    float potatoFactor;
 };
 
 struct PackedReservoirData
@@ -27,8 +26,8 @@ struct PackedReservoirData
     uint blasInstance;
     uint packedHitUv;
     float unoccludedContributionWeight;
-    float potatoFactor;
     uint _PADDING0;
+    uint _PADDING1;
 };
 
 PackedReservoirData ReservoirData_toPacked(ReservoirData self)
@@ -40,8 +39,7 @@ PackedReservoirData ReservoirData_toPacked(ReservoirData self)
         self.blasInstance,
         packHalf2x16(self.hitUv),
         self.unoccludedContributionWeight,
-        self.potatoFactor,
-        0
+        0, 0
     );
 }
 
@@ -53,8 +51,7 @@ ReservoirData ReservoirData_fromPacked(PackedReservoirData packed)
         packed.triangleLightSource,
         packed.blasInstance,
         unpackHalf2x16(packed.packedHitUv),
-        packed.unoccludedContributionWeight,
-        packed.potatoFactor
+        packed.unoccludedContributionWeight
     );
 }
 
