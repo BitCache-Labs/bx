@@ -99,8 +99,7 @@ void shootRay(vec3 origin, vec3 direction, uint pid)
 vec3 shadeSky(vec3 direction, vec3 throughput)
 {
     float a = (direction.y + 1.0) * 0.5;
-    vec3 color = vec3(0.0);
-    //vec3 color = (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
+    vec3 color = (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
 
     return color * throughput;
 }

@@ -66,8 +66,18 @@ void main()
             vec3 throughput = unpackRgb9e5(payload.throughput);
             vec3 accumulated = unpackRgb9e5(payload.accumulated);
             
-            vec3 emission = vec3(4.0);//vec3(0.6, 0.6, 0.5); // TODO: sun sampling
+            bool sunSample = (reservoirData.triangleLightSource == U32_MAX);
+            vec3 emission;
+            if (sunSample)
+            {
+                emission = vec3(sunIntensity(direction.y));
+            }
+            else
+            {
+                emission = vec3(10.0);
+            }
 
+            // TODO: this throughputs geometry term isn't valid anymore
             vec3 lightingContribution = (throughput * emission) * reservoir.contributionWeight;
 
             accumulated += lightingContribution;

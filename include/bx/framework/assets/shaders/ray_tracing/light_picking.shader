@@ -16,6 +16,7 @@ struct LightSample
     uint triangle;
     uint blasInstance;
     vec2 uv;
+    float intensity;
 };
 
 struct RisResult
@@ -46,21 +47,27 @@ LightSample sampleTriangleLight(uint triangleIndex, vec2 uv, mat4 transform, vec
     pdf *= 1.0 / float(emissiveTriangleCount);
     pdf *= (1.0 - sunPickProbability);
 
-    return LightSample(directionToLight, distanceToLight, pdf, 0, 0, uv);
+    return LightSample(directionToLight, distanceToLight, pdf, 0, 0, uv, 6.0);
+}
+
+float sunPdf(float sunPickProbability)
+{
+    return sunPickProbability * (1.0 / sunSolidAngle());
 }
 
 LightSample _sampleUniformLight(vec4 random, vec3 p)
 {
     uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
 
-    float sunPickProbability = 0.0;//emissiveTriangleCount == 0 ? 1.0 : 0.5;
+    float sunPickProbability = emissiveTriangleCount == 0 ? 1.0 : 0.5;
     if (random.x < sunPickProbability)
     {
         LightSample lightSample;
         lightSample.sampleDirection = sampleSunDirection(random.yz);
         lightSample.hitT = 10000.0;
-        lightSample.pdf = sunPickProbability;//sunPickProbability * (1.0 / sunSolidAngle());
+        lightSample.pdf = sunPdf(sunPickProbability);
         lightSample.triangle = U32_MAX;
+        lightSample.intensity = sunIntensity(lightSample.sampleDirection.y);
         return lightSample;
     }
 
@@ -82,6 +89,7 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
             LightSample lightSample = sampleTriangleLight(triangleIndex, random.zw, inverse(instance.invTransform), p, sunPickProbability);
             lightSample.triangle = triangleIndex;
             lightSample.blasInstance = blasEmissiveInstanceIndices[i];
+            lightSample.intensity = 10.0;
             return lightSample;
         }
         else
@@ -90,7 +98,7 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
         }
     }
 
-    return LightSample(vec3(0.0), 0.0, 0.0, 0, 0, vec2(0.0));
+    return LightSample(vec3(0.0), 0.0, 0.0, 0, 0, vec2(0.0), 0.0);
 }
 
 RisResult ris(inout uint rngState,
@@ -117,8 +125,6 @@ RisResult ris(inout uint rngState,
     ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0), 0.0);
     Reservoir reservoir = Reservoir_default();
 	
-    float sumWithoutUcw = 0.0;
-
     #pragma unroll
 	for (uint i = 0; i < M_AREA; i++)
 	{
@@ -133,10 +139,8 @@ RisResult ris(inout uint rngState,
         {
             BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
             vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
-            unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution));
+            unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution)) * lightSample.intensity;
         }
-
-        sumWithoutUcw += contributionWeight;
 
         float weight = unoccludedContributionWeight * contributionWeight;
         if (Reservoir_update(reservoir, weight, rngState))

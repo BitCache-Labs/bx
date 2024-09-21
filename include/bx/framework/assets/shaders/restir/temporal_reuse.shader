@@ -83,15 +83,18 @@ bool traceValidationRay(vec3 origin, vec3 direction, float tMax)
 
 float ReservoirData_getLightWeight(ReservoirData self, vec3 p)
 {
+    uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
+    float sunPickProbability = emissiveTriangleCount == 0 ? 1.0 : 0.5;
+
     float weight;
     if (self.triangleLightSource == U32_MAX)
     {
-        weight = 0.0;// TODO: sun pick prob
+        weight = 1.0 / sunPdf(sunPickProbability);
     }
     else
     {
         BlasInstance instance = blasInstances[self.blasInstance];
-        LightSample lightSample = sampleTriangleLight(self.triangleLightSource, self.hitUv, inverse(instance.invTransform), p, 0.0); // TODO: fix sun lmao
+        LightSample lightSample = sampleTriangleLight(self.triangleLightSource, self.hitUv, inverse(instance.invTransform), p, sunPickProbability);
         weight = 1.0 / lightSample.pdf;
     }
     return weight;

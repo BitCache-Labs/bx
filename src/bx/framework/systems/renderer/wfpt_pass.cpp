@@ -520,7 +520,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
         
         BindGroupHandle connectBlasDataPoolGroup = blasDataPool.CreateBindGroup(ConnectPipeline::Get());
         BindGroupHandle connectSkyGroup = sky.CreateBindGroup(ConnectPipeline::Get());
-        BindGroupHandle connectRestirGroup = restirDiPass->CreateBindGroup(ConnectPipeline::Get(), true);// RestirDiPass::SPATIAL_REUSE_PASSES % 2 == 0);
+        BindGroupHandle connectRestirGroup = restirDiPass->CreateBindGroup(ConnectPipeline::Get(), RestirDiPass::SPATIAL_REUSE_PASSES % 2 == 0);
 
         WriteIndirectArgsPass writeIndirectArgs(128);
         writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCount);
