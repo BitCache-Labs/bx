@@ -1,5 +1,5 @@
-#ifndef PAYLOAD_H
-#define PAYLOAD_H
+#ifndef NERT_PAYLOAD_H
+#define NERT_PAYLOAD_H
 
 #include "[engine]/shaders/packing.shader"
 
@@ -11,4 +11,4 @@ struct Payload
 	PackedNormalizedXyz10 hitNormal;
 };
 
-#endif // PAYLOAD_H
+#endif // NERT_PAYLOAD_H

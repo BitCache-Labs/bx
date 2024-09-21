@@ -102,7 +102,7 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
 }
 
 RisResult ris(inout uint rngState,
-    LayeredLobe layeredLobe, mat3 worldToTangent, mat3 tangentToWorld,
+    vec3 baseColor, mat3 worldToTangent, mat3 tangentToWorld,
     vec3 normal, bool frontFace,
     vec3 x1, vec3 x0)
 {
@@ -137,8 +137,11 @@ RisResult ris(inout uint rngState,
         float unoccludedContributionWeight = 0.0;
         if (dot(wInWorldSpace, normal) > 0.0)
         {
-            BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
-            vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
+            //BsdfEval bsdfEval = evalLayeredBsdf(layeredLobe, wOutTangentSpace, wInTangentSpace, frontFace);
+            //vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
+            //
+            vec3 brdfEval = diffuseBsdfEval(baseColor);
+            vec3 brdfContribution = (brdfEval, normal, wInWorldSpace, 1.0);
             unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution)) * lightSample.intensity;
         }
 

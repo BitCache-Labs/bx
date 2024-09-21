@@ -39,10 +39,10 @@ bool bsdfSampleValid(BsdfSample bsdfSample)
 	return (bsdfSample.wInTangentSpace.z > MIN_COS_THETA_THRESHOLD || bsdfSample.refract) && bsdfSample.pdf > MIN_BRDF_PDF_THRESHOLD;
 }
 
-vec3 bsdfContribution(BsdfEval bsdfEval, vec3 normal, vec3 wInWorldSpace, float pdf)
+vec3 bsdfContribution(vec3 reflectance, vec3 normal, vec3 wInWorldSpace, float pdf)
 {
 	float cosIn = abs(dot(normal, wInWorldSpace));
-	return (1.0 / pdf) * bsdfEval.reflectance * cosIn;
+	return (1.0 / pdf) * reflectance * cosIn;
 }
 
 bool applyBsdf(BsdfSample bsdfSample, BsdfEval bsdfEval,
@@ -57,7 +57,7 @@ bool applyBsdf(BsdfSample bsdfSample, BsdfEval bsdfEval,
 
 	wInWorldSpace = normalize(tangentToWorld * bsdfSample.wInTangentSpace);
 	
-	vec3 contribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, bsdfSample.pdf);
+	vec3 contribution = bsdfContribution(bsdfEval.reflectance, normal, wInWorldSpace, bsdfSample.pdf);
 	throughput *= contribution;
 	
 	return true;
