@@ -103,9 +103,9 @@ void Renderer::UpdateTlas()
         if (m_tlas) Graphics::DestroyTlas(m_tlas);
         m_tlas = Graphics::CreateTlas(tlasCreateInfo);
 
-        if (m_wfptPass)
+        if (m_nertPass)
         {
-            m_wfptPass->SetTlas(m_tlas);
+            m_nertPass->SetTlas(m_tlas);
         }
     }
 }
@@ -141,12 +141,12 @@ void Renderer::RebuildPasses()
 {
     if (m_dirtyPasses)
     {
-        WfptCreateInfo wfptCreateInfo{};
-        wfptCreateInfo.colorTarget = m_colorTarget;
-        wfptCreateInfo.depthTarget = m_depthTarget;
-        wfptCreateInfo.tlas = m_tlas;
-        m_wfptPass.reset();
-        m_wfptPass = std::unique_ptr<WfptPass>(new WfptPass(wfptCreateInfo));
+        NertCreateInfo nertCreateInfo{};
+        nertCreateInfo.colorTarget = m_colorTarget;
+        nertCreateInfo.depthTarget = m_depthTarget;
+        nertCreateInfo.tlas = m_tlas;
+        m_nertPass.reset();
+        m_nertPass = std::unique_ptr<NertPass>(new NertPass(nertCreateInfo));
 
         m_dirtyPasses = false;
     }
@@ -167,7 +167,7 @@ void Renderer::Shutdown()
     IdPass::ClearPipelineCache();
     PresentPass::ClearPipelineCache();
     RestirDiPass::ClearPipelineCache();
-    WfptPass::ClearPipelineCache();
+    NertPass::ClearPipelineCache();
     WriteIndirectArgsPass::ClearPipelineCache();
 }
 
@@ -186,15 +186,15 @@ void Renderer::Render()
 
     m_sky->Submit();
 
-    if (m_wfptPass)
+    if (m_nertPass)
     {
-        m_wfptPass->seed = frameIdx;
-        m_wfptPass->hybrid = hybrid;
-        m_wfptPass->accumulationFrameIdx = accumulate ? (m_wfptPass->accumulationFrameIdx + 1) : 0;
-        m_wfptPass->maxBounces = 3;
-        m_wfptPass->unbiased = unbiased;
-        m_wfptPass->jacobian = jacobian;
-        m_wfptPass->Dispatch(m_cameras.back(), *m_blasDataPool, *m_materialPool, *m_sky);
+        m_nertPass->seed = frameIdx;
+        m_nertPass->hybrid = hybrid;
+        m_nertPass->accumulationFrameIdx = accumulate ? (m_nertPass->accumulationFrameIdx + 1) : 0;
+        m_nertPass->maxBounces = 3;
+        m_nertPass->unbiased = unbiased;
+        m_nertPass->jacobian = jacobian;
+        m_nertPass->Dispatch(m_cameras.back(), *m_blasDataPool, *m_materialPool, *m_sky);
     }
 
     PresentPass presentPass(m_colorTarget);
