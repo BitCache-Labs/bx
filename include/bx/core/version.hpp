@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bx/engine/core/macros.hpp"
+#include "bx/core/macros.hpp"
 
 #define BX_VERSION_MAJOR 0
 #define BX_VERSION_MINOR 1

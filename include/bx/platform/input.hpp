@@ -98,6 +98,12 @@ ENUM(Key,
 class Input
 {
 public:
+	static bool Initialize();
+	static void Reload();
+	static void Shutdown();
+
+	static void Poll();
+
 	/// <summary>
 	/// Returns the current floating-point value of a given gamepad axis.
 	/// </summary>
@@ -208,14 +214,4 @@ public:
 	/// <para> Currently only implemented for the PS5 and dualshock 4+ controllers</para> 
 	/// </summary>
 	static void ResetPadLightbarColor();
-
-private:
-	friend class Runtime;
-	friend class Module;
-
-	static bool Initialize();
-	static void Reload();
-	static void Shutdown();
-
-	static void Poll();
 };

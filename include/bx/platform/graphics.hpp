@@ -1,6 +1,6 @@
 #pragma once
 
-#include <bx/core/math/math.hpp>
+#include <bx/math/math.hpp>
 #include <bx/core/type.hpp>
 #include <bx/core/macros.hpp>
 
@@ -157,6 +157,13 @@ struct DebugDrawAttribs
 class Graphics
 {
 public:
+	static bool Initialize();
+	static void Reload();
+	static void Shutdown();
+
+	static void NewFrame();
+	static void EndFrame();
+
 	static TextureFormat GetColorBufferFormat();
 	static TextureFormat GetDepthBufferFormat();
 
@@ -206,15 +213,4 @@ public:
 	static void ClearDebugLines();
 
 	static void DebugDraw(const Mat4& viewProj, const DebugDrawAttribs& attribs, const List<DebugVertex>& vertices);
-
-private:
-	friend class Runtime;
-	friend class Module;
-
-	static bool Initialize();
-	static void Reload();
-	static void Shutdown();
-
-	static void NewFrame();
-	static void EndFrame();
 };

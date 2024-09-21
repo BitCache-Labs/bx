@@ -5,7 +5,7 @@
 #include <bx/core/time.hpp>
 #include <bx/core/guard.hpp>
 #include <bx/core/profiler.hpp>
-#include <bx/core/containers/pool.hpp>
+#include <bx/containers/pool.hpp>
 
 struct DebugLineData
 {

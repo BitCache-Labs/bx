@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bx/core/byte_types.hpp"
-#include "bx/core/containers/string.hpp"
+#include "bx/containers/string.hpp"
 
 // For now we leave fmt, String.hpp should handle formatting before logging
 #include <fmt/core.h>

@@ -2,8 +2,8 @@
 
 #include "bx/core/memory.hpp"
 #include "bx/core/guard.hpp"
-#include "bx/core/containers/list.hpp"
-#include "bx/core/containers/hash_map.hpp"
+#include "bx/containers/list.hpp"
+#include "bx/containers/hash_map.hpp"
 
 #include <functional>
 #include <memory>

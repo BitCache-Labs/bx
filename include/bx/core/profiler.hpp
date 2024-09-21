@@ -2,9 +2,9 @@
 
 #include "bx/core/byte_types.hpp"
 #include "bx/core/time.hpp"
-#include "bx/core/containers/string.hpp"
-#include "bx/core/containers/list.hpp"
-#include "bx/core/containers/hash_map.hpp"
+#include "bx/containers/string.hpp"
+#include "bx/containers/list.hpp"
+#include "bx/containers/hash_map.hpp"
 
 #ifndef _MSC_VER
 //https://stackoverflow.com/questions/23230003/something-between-func-and-pretty-function

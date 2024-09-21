@@ -20,15 +20,6 @@ ENUM(CursorMode, NORMAL, HIDDEN, DISABLED, CAPTURED);
 class Window
 {
 public:
-	static void GetSize(int* width, int* height);
-	static void SetCursorMode(CursorMode mode);
-
-	static WindowGLProc GetProcAddress(const char* name);
-
-private:
-	friend class Runtime;
-	friend class Module;
-
 	static bool Initialize();
 	static void Reload();
 	static void Shutdown();
@@ -36,4 +27,9 @@ private:
 	static bool IsOpen();
 	static void PollEvents();
 	static void Display();
+
+	static void GetSize(int* width, int* height);
+	static void SetCursorMode(CursorMode mode);
+
+	static WindowGLProc GetProcAddress(const char* name);
 };

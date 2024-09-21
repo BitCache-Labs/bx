@@ -1,10 +1,10 @@
 #pragma once
 
 #include "bx/core/byte_types.hpp"
-#include "bx/core/meta/meta.hpp"
+#include "bx/meta/meta.hpp"
 #include "bx/core/hash.hpp"
 #include "bx/core/macros.hpp"
-#include "bx/core/containers/string.hpp"
+#include "bx/containers/string.hpp"
 
 //#include <wnaabi/type_info.hpp>
 
@@ -49,7 +49,7 @@ public:
 
 // Enum -----------------------------------------------
 
-#include "bx/core/containers/list.hpp"
+#include "bx/containers/list.hpp"
 
 //#include <cereal/cereal.hpp>
 namespace cereal { class access; }

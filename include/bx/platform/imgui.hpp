@@ -2,21 +2,19 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
+#include <imgui_internal.h>
 
 class ImGuiImpl
 {
 public:
-	static void NewFrame();
-	static void EndFrame();
-
-private:
-	friend class Runtime;
-	friend class Module;
-
 	static bool Initialize();
 	static void Reload();
 	static void Shutdown();
 
+	static void NewFrame();
+	static void EndFrame();
+
+private:
 	static bool Initialize_Window();
 	static void Shutdown_Window();
 	static void NewFrame_Window();

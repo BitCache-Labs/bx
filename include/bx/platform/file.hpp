@@ -1,8 +1,8 @@
 #pragma once
 
 #include "bx/core/byte_types.hpp"
-#include "bx/core/containers/list.hpp"
-#include "bx/core/containers/string.hpp"
+#include "bx/containers/list.hpp"
+#include "bx/containers/string.hpp"
 
 #include <functional>
 
@@ -26,6 +26,8 @@ using FindEachCallback = std::function<void(const String& path, const String& na
 class File
 {
 public:
+	static void Initialize();
+
 	static void AddWildcard(const String& wildcard, const String& value);
 
 	static bool Exists(const String& path);
@@ -47,8 +49,4 @@ public:
 	static List<char> ReadBinaryFile(const String& filename);
 	static String ReadTextFile(const String& filename);
 	static bool WriteTextFile(const String& filename, const String& text);
-
-private:
-	friend class Runtime;
-	static void Initialize();
 };

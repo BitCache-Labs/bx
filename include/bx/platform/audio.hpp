@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bx/core/type.hpp>
-#include <bx/core/math/math.hpp>
+#include <bx/math/math.hpp>
 
 using AudioHandle = u64;
 constexpr AudioHandle AUDIO_INVALID_HANDLE = -1;
@@ -18,6 +18,10 @@ struct AudioInfo
 class Audio
 {
 public:
+	static bool Initialize();
+	static void Reload();
+	static void Shutdown();
+
 	static AudioHandle GetDefaultChannel();
 
 	static void CreateChannel(const ChannelInfo& info);
@@ -28,12 +32,4 @@ public:
 	static void DestroyAudio(const AudioHandle audio);
 	static void PlayAudio(const AudioHandle channel, const AudioHandle audio);
 	static void StopAudio(const AudioHandle channel, const AudioHandle audio);
-
-private:
-	friend class Runtime;
-	friend class Module;
-
-	static bool Initialize();
-	static void Reload();
-	static void Shutdown();
 };

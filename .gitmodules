@@ -38,3 +38,6 @@
 [submodule "extern/bx-platform-opengl"]
 	path = extern/bx-platform-opengl
 	url = https://github.com/BitCache-Labs/bx-platform-opengl.git
+[submodule "extern/implot"]
+	path = extern/implot
+	url = https://github.com/epezent/implot.git

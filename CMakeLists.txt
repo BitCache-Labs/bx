@@ -9,159 +9,49 @@ project (bx)
 
 set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
+#target_compile_features(bx PUBLIC cxx_std_11)
 
 option (BX_BUILD_EDITOR "Build as editor binaries" OFF)
 option (BX_INSTALL "Install binaries" OFF)
 #option (BUILD_TESTS "Build the test binaries" ON)
 
-# TODO: Use Platform.hpp for the future
-message ("CMake system name: ${CMAKE_SYSTEM_NAME}")
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	add_compile_definitions (BX_PLATFORM_PC)
-endif ()
-
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	add_compile_definitions (BX_PLATFORM_LINUX)
-endif ()
-
-message ("CMake build type: ${CMAKE_BUILD_TYPE}")
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	add_compile_definitions (BX_DEBUG_BUILD)
-
-else ()
-    add_compile_definitions (BX_RELEASE_BUILD)
-endif ()
-# ---------------------------------------
-
 # Define options for platform backend
-set (BX_PLATFORM_BACKEND "Default" CACHE STRING "Choose the platform backend: Default")
-set_property (CACHE BX_PLATFORM_BACKEND PROPERTY STRINGS "Default" "Custom")
+set (BX_PLATFORM_BACKEND "Common" CACHE STRING "Choose the platform backend: Common")
+set_property (CACHE BX_PLATFORM_BACKEND PROPERTY STRINGS "Common" "Custom")
 message ("BX platform backend: ${BX_PLATFORM_BACKEND}")
-
-if (BX_PLATFORM_BACKEND STREQUAL "Default")
-    message(STATUS "Using the default platform backend")
-    add_compile_definitions (BX_PLATFORM_DEFAULT_BACKEND)
-
-elseif (BX_PLATFORM_BACKEND STREQUAL "Custom")
-    message(STATUS "Using a custom platform backend")
-    add_compile_definitions (BX_PLATFORM_CUSTOM_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown platform backend: ${BX_PLATFORM_BACKEND}")
-endif ()
 
 # Define options for window backend
 set (BX_WINDOW_BACKEND "GLFW" CACHE STRING "Choose the window backend: GLFW")
 set_property (CACHE BX_WINDOW_BACKEND PROPERTY STRINGS "GLFW" "Custom")
 message ("BX window backend: ${BX_WINDOW_BACKEND}")
 
-if (BX_WINDOW_BACKEND STREQUAL "GLFW")
-    message(STATUS "Using GLFW as the window backend")
-    add_compile_definitions (BX_WINDOW_GLFW_BACKEND)
-
-elseif (BX_WINDOW_BACKEND STREQUAL "Custom")
-    message(STATUS "Using a custom window backend")
-    add_compile_definitions (BX_WINDOW_CUSTOM_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown window backend: ${BX_WINDOW_BACKEND}")
-endif ()
-
 # Define options for graphics backend
 set (BX_GRAPHICS_BACKEND "OpenGL" CACHE STRING "Choose the graphics backend: OpenGL, OpenGLES, Vulkan")
 set_property (CACHE BX_GRAPHICS_BACKEND PROPERTY STRINGS "OpenGL" "OpenGLES" "Vulkan" "Custom")
 message ("BX graphics backend: ${BX_GRAPHICS_BACKEND}")
-
-if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
-    message(STATUS "Using OpenGL as the graphics backend")
-    add_compile_definitions (BX_GRAPHICS_OPENGL_BACKEND)
-
-elseif (BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
-    message(STATUS "Using OpenGLES as the graphics backend")
-    add_compile_definitions (BX_GRAPHICS_OPENGLES_BACKEND)
-
-elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
-    message(STATUS "Using Vulkan as the graphics backend")
-    add_compile_definitions (BX_GRAPHICS_VULKAN_BACKEND)
-
-elseif (BX_GRAPHICS_BACKEND STREQUAL "Custom")
-    message(STATUS "Using a custom graphics backend")
-    add_compile_definitions (BX_GRAPHICS_CUSTOM_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown graphics backend: ${GRAPHICS_BACKEND}")
-endif ()
 
 # Define options for audio backend
 set (BX_AUDIO_BACKEND "PortAudio" CACHE STRING "Choose the audio backend: PortAudio")
 set_property (CACHE BX_AUDIO_BACKEND PROPERTY STRINGS "PortAudio" "Custom")
 message ("BX audio backend: ${BX_AUDIO_BACKEND}")
 
-if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
-    message(STATUS "Using PortAudio as the audio backend")
-    add_compile_definitions (BX_AUDIO_PORTAUDIO_BACKEND)
-
-elseif (BX_AUDIO_BACKEND STREQUAL "Custom")
-    message(STATUS "Using a custom audio backend")
-    add_compile_definitions (BX_AUDIO_CUSTOM_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown audio backend: ${WINDOW_BACKEND}")
-endif ()
-
-
-
 # External libraries
-if (BX_INSTALL)
-	set (PROJECT_PATH_DIR ".")
-else ()
-	set (PROJECT_PATH_DIR "${CMAKE_SOURCE_DIR}")
-endif ()
-
-add_compile_definitions (BX_PROJECT_PATH="${PROJECT_PATH_DIR}")
-add_compile_definitions (BX_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
-
-if (BX_BUILD_EDITOR)
-    add_compile_definitions (BX_EDITOR_BUILD)
-endif ()
-
 add_subdirectory (extern)
-
 set (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-add_subdirectory (wren)
 
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-
-
-# Setup bx stack library
-add_library (bx STATIC)
-
-
-
-# Setup bx-core library
-set (BX_CORE_SRCS
+# Setup bx library
+set (BX_SRCS
 	"src/bx/core/log.cpp"
 	"src/bx/core/memory.cpp"
+	"src/bx/core/object.cpp"
+	"src/bx/core/plugin.cpp"
 	"src/bx/core/profiler.cpp"
+	"src/bx/core/runtime.cpp"
 	"src/bx/core/time.cpp"
 	"src/bx/core/uuid.cpp"
 
-	"src/bx/core/math/math.cpp"
-)
+	"src/bx/math/math.cpp"
 
-set (BX_CORE_LIBS cereal fmt glm file_embed)
-
-add_library (bx-core STATIC ${BX_CORE_SRCS})
-target_link_libraries (bx-core ${BX_CORE_LIBS})
-target_include_directories (bx-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-target_link_libraries (bx bx-core)
-
-
-
-# Setup bx-platform library
-set (BX_PLATFORM_SRCS
 	"src/bx/platform/audio.cpp"
 	"src/bx/platform/graphics.cpp"
 	"src/bx/platform/imgui.cpp"
@@ -169,86 +59,128 @@ set (BX_PLATFORM_SRCS
 	"src/bx/platform/window.cpp"
 )
 
-set (BX_PLATFORM_LIBS bx-core imgui)
+add_library (bx STATIC ${BX_CORE_SRCS})
+target_link_libraries (bx PUBLIC cereal fmt glm imgui)
+target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_library (bx-platform STATIC ${BX_PLATFORM_SRCS})
-target_link_libraries (bx-platform ${BX_PLATFORM_LIBS})
-target_include_directories (bx-platform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+if (BX_INSTALL)
+	set (PROJECT_PATH_DIR ".")
+else ()
+	set (PROJECT_PATH_DIR "${CMAKE_SOURCE_DIR}")
+endif ()
 
-target_link_libraries (bx bx-platform)
+target_compile_definitions(bx PUBLIC BX_PROJECT_PATH="${PROJECT_PATH_DIR}")
+target_compile_definitions(bx PRIVATE BX_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
+
+# TODO: Use Platform.hpp for the future
+message ("CMake system name: ${CMAKE_SYSTEM_NAME}")
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	target_compile_definitions (bx PUBLIC BX_PLATFORM_PC)
+endif ()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	target_compile_definitions (bx PUBLIC BX_PLATFORM_LINUX)
+endif ()
+
+message ("CMake build type: ${CMAKE_BUILD_TYPE}")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	target_compile_definitions (bx PUBLIC BX_DEBUG_BUILD)
+
+else ()
+    target_compile_definitions (bx PUBLIC BX_RELEASE_BUILD)
+endif ()
+# ---------------------------------------
+
+if (BX_BUILD_EDITOR)
+    target_compile_definitions (bx PUBLIC BX_EDITOR_BUILD)
+endif ()
 
 # Setup platform backend
-if (BX_PLATFORM_BACKEND STREQUAL "Default")
-    target_link_libraries(bx-platform-common PRIVATE bx-platform)
+if (BX_PLATFORM_BACKEND STREQUAL "Common")
+    message(STATUS "Using the common platform backend")
+	target_compile_definitions(bx PUBLIC BX_PLATFORM_COMMON_BACKEND)
+    target_link_libraries(bx-platform-common PRIVATE bx)
+	target_link_libraries(bx PUBLIC bx-platform-common)
 
-	target_link_libraries (bx bx-platform-common)
-endif()
+elseif (BX_PLATFORM_BACKEND STREQUAL "Custom")
+    message(STATUS "Using a custom platform backend")
+	target_compile_definitions(bx PUBLIC BX_PLATFORM_CUSTOM_BACKEND)
+
+else ()
+    message(FATAL_ERROR "Unknown platform backend: ${BX_PLATFORM_BACKEND}")
+endif ()
 
 # Setup window backend
 if (BX_WINDOW_BACKEND STREQUAL "GLFW")
+    message(STATUS "Using GLFW as the window backend")
+    target_compile_definitions(bx PUBLIC BX_WINDOW_GLFW_BACKEND)
+
 	# ImGui GLFW (TODO: temporary solution until a fully custom solution is made)
 	add_library (imgui_glfw STATIC "extern/imgui/backends/imgui_impl_glfw.cpp")
 	target_link_libraries(imgui_glfw imgui glfw)
-	target_include_directories (imgui_glfw PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
-    target_link_libraries(bx-platform-glfw PRIVATE bx-platform imgui_glfw)
+    target_link_libraries(bx-platform-glfw PRIVATE bx imgui_glfw)
+	target_link_libraries(bx PUBLIC bx-platform-glfw)
 
-	target_link_libraries (bx bx-platform-glfw)
-endif()
+elseif (BX_WINDOW_BACKEND STREQUAL "Custom")
+    message(STATUS "Using a custom window backend")
+    target_compile_definitions(bx PUBLIC BX_WINDOW_CUSTOM_BACKEND)
+
+else ()
+    message(FATAL_ERROR "Unknown window backend: ${BX_WINDOW_BACKEND}")
+endif ()
 
 # Setup graphics backend
 if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
+    message(STATUS "Using OpenGL as the graphics backend")
+    target_compile_definitions(bx PUBLIC BX_GRAPHICS_OPENGL_BACKEND)
+
 	# ImGui OpenGL3 (TODO: temporary solution until a fully custom solution is made)
 	add_library (imgui_opengl3 STATIC "extern/imgui/backends/imgui_impl_opengl3.cpp")
 	target_link_libraries(imgui_opengl3 imgui)
-	target_include_directories (imgui_opengl3 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
-	target_link_libraries(bx-platform-opengl PRIVATE bx-platform imgui_opengl3)
+	target_link_libraries(bx-platform-opengl PRIVATE bx imgui_opengl3)
+	target_link_libraries (bx PUBLIC bx-platform-opengl)
 
-	target_link_libraries (bx bx-platform-opengl)
+#elseif (BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
+#    message(STATUS "Using OpenGLES as the graphics backend")
+#    target_compile_definitions(bx-platform PUBLIC BX_GRAPHICS_OPENGLES_BACKEND)
+#
+#elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
+#    message(STATUS "Using Vulkan as the graphics backend")
+#    target_compile_definitions(bx-platform PUBLIC BX_GRAPHICS_VULKAN_BACKEND)
+
+elseif (BX_GRAPHICS_BACKEND STREQUAL "Custom")
+    message(STATUS "Using a custom graphics backend")
+    target_compile_definitions(bx PUBLIC BX_GRAPHICS_CUSTOM_BACKEND)
+
+else ()
+    message(FATAL_ERROR "Unknown graphics backend: ${GRAPHICS_BACKEND}")
 endif ()
 
 # Setup audio backend
 if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
-	target_link_libraries(bx-platform-portaudio PRIVATE bx-platform)
+    message(STATUS "Using PortAudio as the audio backend")
+    target_compile_definitions(bx PUBLIC BX_AUDIO_PORTAUDIO_BACKEND)
+	target_link_libraries(bx-platform-portaudio PRIVATE bx)
+	target_link_libraries(bx PUBLIC bx-platform-portaudio)
 
-	target_link_libraries (bx bx-platform-portaudio)
+elseif (BX_AUDIO_BACKEND STREQUAL "Custom")
+    message(STATUS "Using a custom audio backend")
+    target_compile_definitions(bx PUBLIC BX_AUDIO_CUSTOM_BACKEND)
+
+else ()
+    message(FATAL_ERROR "Unknown audio backend: ${WINDOW_BACKEND}")
 endif ()
 
-
-
-# Setup bx-engine library
-set (BX_ENGINE_SRCS
-	"src/bx/engine/data.cpp"
-	"src/bx/engine/ecs.cpp"
-	"src/bx/engine/module.cpp"
-	"src/bx/engine/object.cpp"
-	"src/bx/engine/resource.cpp"
-	"src/bx/engine/script.cpp"
-)
-
-set (BX_ENGINE_LIBS bx-core bx-platform wren)
-
-add_library (bx-engine STATIC ${BX_ENGINE_SRCS})
-target_link_libraries (bx-engine ${BX_ENGINE_LIBS})
-target_include_directories (bx-engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-target_link_libraries (bx bx-engine)
-
-# Setup bx-editor library
+# Editor sources and libraries
 if (BX_BUILD_EDITOR)
-	set (BX_EDITOR_SRCS
-		"src/bx/engine/editor/toolbar.cpp"
+    target_sources(bx PRIVATE
+		"src/bx/editor/command.cpp"
+		"src/bx/editor/selection.cpp"
 	)
-
-	set (BX_EDITOR_LIBS bx-core imgui IconFontCppHeaders FontAwesome FreeFonts)
-
-	add_library (bx-editor STATIC ${BX_EDITOR_SRCS})
-	target_link_libraries (bx-editor ${BX_EDITOR_LIBS})
-	target_include_directories (bx-editor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-	target_link_libraries (bx bx-editor)
-endif ()
+    target_link_libraries(bx PUBLIC implot IconFontCppHeaders FontAwesome FreeFonts)
+endif()
 
 
 
