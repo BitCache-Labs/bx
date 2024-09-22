@@ -21,23 +21,18 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING1;
 } constants;
 
-layout (BINDING(0, 1), std430) readonly buffer _ShadowRayOrigins
+layout(BINDING(0, 2)) readonly buffer _SampleCount
 {
-    vec4 shadowRayOrigins[];
+    uint sampleCount;
 };
-layout(BINDING(0, 2)) readonly buffer _ShadowRayCount
+layout (BINDING(0, 4), std430) readonly buffer _SamplePixelMapping
 {
-    uint shadowRayCount;
+    uint samplePixelMapping[];
 };
 
 layout (BINDING(0, 3), std430) readonly buffer _Intersections
 {
     Intersection intersections[];
-};
-
-layout (BINDING(0, 4), std430) readonly buffer _ShadowPixelMapping
-{
-    uint shadowPixelMapping[];
 };
 
 layout(BINDING(0, 5)) uniform accelerationStructureEXT Scene;
@@ -53,13 +48,13 @@ bool shadowRayHit(vec3 origin, vec3 direction, float tMax)
     return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
 }
 
-layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
 {
-    uint id = uint(gl_GlobalInvocationID.x);
-    if (id >= shadowRayCount) return;
-    uint pid = shadowPixelMapping[id];
-    ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    uint id = uint(pixel.y * constants.resolution.x + pixel.x);
+    if (id >= sampleCount) return;
+    uint pid = samplePixelMapping[id]; // TODO: the pixel mapping is completely WRONG atm!!!!!
 
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[pid]);
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[pid]);

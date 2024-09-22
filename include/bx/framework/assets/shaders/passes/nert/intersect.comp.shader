@@ -6,7 +6,7 @@
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uvec2 resolution;
-    uint _PADDING0;
+    uint maxBounces;
     uint _PADDING1;
 } constants;
 
@@ -14,7 +14,7 @@ layout (BINDING(0, 1), std430) readonly buffer _Rays
 {
     PackedRay rays[];
 };
-layout(BINDING(0, 2), std430) readonly buffer _RayCount
+layout(BINDING(0, 2), std430) writeonly buffer _RayCount
 {
     uint rayCount;
 };
@@ -24,7 +24,7 @@ layout (BINDING(0, 3), std430) writeonly buffer _Intersections
     Intersection intersections[];
 };
 
-layout (BINDING(0, 4), std430) readonly buffer _PixelMapping
+layout (BINDING(0, 4), std430) writeonly buffer _PixelMapping
 {
     uint pixelMapping[];
 };
@@ -39,7 +39,6 @@ void main()
 {
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= rayCount) return;
-    uint pid = pixelMapping[id];
 
     Ray ray = unpackRay(rays[id]);
 
@@ -74,9 +73,12 @@ void main()
 
     if (intersection.t != T_MISS)
     {
+        uint rayIdx = atomicAdd(rayCount, 1u);
+        pixelMapping[rayIdx] = id;
+
         ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
         imageStore(neGbuffer, pixel, vec4(finalHitPos, uintBitsToFloat(hitDepth)));
     }
 
-    intersections[pid] = intersection;
+    intersections[id] = intersection;
 }

@@ -19,6 +19,17 @@ struct NertCreateInfo
 	TlasHandle tlas = TlasHandle::null;
 };
 
+struct NertDispatchInfo
+{
+	Camera& camera;
+	BlasDataPool& blasDataPool;
+	MaterialPool& materialPool;
+	Sky& sky;
+
+	TextureViewHandle gbuffer;
+	TextureViewHandle gbufferHistory;
+};
+
 class NertPass : NoCopy
 {
 public:
@@ -26,17 +37,14 @@ public:
 	~NertPass();
 
 	void SetTlas(TlasHandle tlas);
-	void Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, const MaterialPool& materialPool, const Sky& sky);
+	void Dispatch(const NertDispatchInfo& dispatchInfo);
 
 	static void ClearPipelineCache();
 
-	u32 maxBounces = 3;
+	u32 maxBounces = 10;
 	u32 seed = 1337;
 	u32 accumulationFrameIdx = 0;
-	b8 russianRoulette = true;
-	b8 hybrid = true;
 	b8 unbiased = false;
-	b8 jacobian = false;
 
 private:
 	NertCreateInfo createInfo;
@@ -46,21 +54,26 @@ private:
 	std::unique_ptr<GBufferPass> gbufferPass;
 	std::unique_ptr<RestirDiPass> restirDiPass;
 
-	BufferHandle raysBuffer[2];
-	BufferHandle pixelMappingBuffer[2];
+	TextureHandle neGbuffer;
+	TextureViewHandle neGbufferView;
+
+	BufferHandle raysBuffer;
+	BufferHandle pixelMappingBuffer;
 	BufferHandle identityPixelMappingBuffer;
-	BufferHandle rayCountBuffer[2];
-	BufferHandle shadowRayOriginsBuffer;
-	BufferHandle shadowRayCountBuffer;
-	BufferHandle shadowRayPixelMappingBuffer;
+	BufferHandle rayCountBuffer;
+	BufferHandle sampleCountBuffer;
+	BufferHandle samplePixelMappingBuffer;
 	BufferHandle intersectionsBuffer;
-	BufferHandle payloadsBuffer;
 	BufferHandle indirectArgsBuffer;
 
+	BufferHandle intersectConstantsBuffer;
 	BufferHandle raygenConstantsBuffer;
-	BufferHandle resolveConstantsBuffer;
+	BufferHandle samplegenConstantsBuffer;
+	BufferHandle shadeConstantsBuffer;
 
-	BindGroupHandle connectBindGroup;
-	BindGroupHandle raygenBindGroup;
-	BindGroupHandle resolveBindGroup;
+	void UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo);
+	BindGroupHandle CreateIntersectBindGroup(const NertDispatchInfo& dispatchInfo);
+	BindGroupHandle CreateRaygenBindGroup(const NertDispatchInfo& dispatchInfo);
+	BindGroupHandle CreateSamplegenBindGroup(const NertDispatchInfo& dispatchInfo);
+	BindGroupHandle CreateShadeBindGroup(const NertDispatchInfo& dispatchInfo);
 };
