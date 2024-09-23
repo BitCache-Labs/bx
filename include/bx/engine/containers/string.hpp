@@ -4,7 +4,36 @@
 
 #include <string>
 
+#include "bx/engine/core/byte_types.hpp"
+
 using String = std::string;
+
+inline i32 StringFindNth(const std::string& str, const std::string& substr, u32 nth)
+{
+	u32 pos = 0;
+	u32 count = 0;
+
+	while (count != nth)
+	{
+		pos++;
+		pos = str.find(substr, pos);
+		if (pos == std::string::npos)
+			return -1;
+		count++;
+	}
+	return pos;
+}
+
+inline u32 StringLineCount(const std::string& str)
+{
+	u32 count = 0;
+	for (u32 i = 0; i < str.size(); i++)
+	{
+		if (str[i] == '\n')
+			count++;
+	}
+	return count;
+}
 
 #else // MEMORY_CUSTOM_CONTAINERS
 

@@ -5,7 +5,7 @@
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 #include "[engine]/shaders/restir/restir.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
-#include "[engine]/shaders/ray_tracing/material/layered_lobe.shader"
+#include "[engine]/shaders/ray_tracing/material/bsdf.shader"
 #include "[engine]/shaders/color_helpers.shader"
 
 struct LightSample
@@ -141,8 +141,8 @@ RisResult ris(inout uint rngState,
             //vec3 bsdfContribution = bsdfContribution(bsdfEval, normal, wInWorldSpace, 1.0);
             //
             vec3 brdfEval = diffuseBsdfEval(baseColor);
-            vec3 brdfContribution = (brdfEval, normal, wInWorldSpace, 1.0);
-            unoccludedContributionWeight = fixNan(linearToLuma(bsdfContribution)) * lightSample.intensity;
+            vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
+            unoccludedContributionWeight = fixNan(linearToLuma(brdfContribution)) * lightSample.intensity;
         }
 
         float weight = unoccludedContributionWeight * contributionWeight;

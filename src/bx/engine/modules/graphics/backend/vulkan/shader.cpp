@@ -26,9 +26,9 @@ namespace Vk
         }
     }
 
-    Shader::Shader(const String& name, std::shared_ptr<Device> device, VkShaderStageFlagBits stage, const String& src)
+    Shader::Shader(const String& name, std::shared_ptr<Device> device, VkShaderStageFlagBits stage, const String& src, const List<ShaderIncludeRange>& includeRanges)
         : device(device) {
-        List<u32> code = SpirVCompiler::Instance().Compile(name, GlslangStageFromVkStage(stage), src);
+        List<u32> code = SpirVCompiler::Instance().Compile(name, GlslangStageFromVkStage(stage), src, includeRanges);
 
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

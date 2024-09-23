@@ -148,7 +148,7 @@ namespace Vk
         glslang_finalize_process();
     }
 
-    List<u32> SpirVCompiler::Compile(const String& name, glslang_stage_t stage, const String& src)
+    List<u32> SpirVCompiler::Compile(const String& name, glslang_stage_t stage, const String& src, const List<ShaderIncludeRange>& includeRanges)
     {
         glslang_input_t input{};
         input.language = GLSLANG_SOURCE_GLSL;
@@ -179,9 +179,31 @@ namespace Vk
 
         if (!glslang_shader_parse(shader, &input))
         {
-            BX_LOGE("GLSL Parsing: `{}`\n{}\n{}",
+            String error(glslang_shader_get_info_log(shader));
+
+            String firstErrorLine = error.substr(0, error.find('\n'));
+            i32 lineStart = StringFindNth(firstErrorLine, ":", 2);
+            i32 lineEnd = StringFindNth(firstErrorLine, ":", 3);
+            BX_ENSURE(lineStart >= 0 && lineEnd > lineStart);
+            i32 globalErrorLine = std::stoi(firstErrorLine.substr(lineStart + 1, lineEnd - lineStart));
+
+            u32 localErrorLine = 0;
+            String localErrorFile = "Not Found";
+            for (u32 i = 0; i < includeRanges.size(); i++)
+            {
+                if (globalErrorLine >= includeRanges[i].startLine && globalErrorLine < includeRanges[i].endLine)
+                {
+                    localErrorLine = globalErrorLine - includeRanges[i].startLine;
+                    localErrorFile = includeRanges[i].name;
+                    break;
+                }
+            }
+
+            BX_LOGE("GLSL Parsing: `{}`\n{}\n({}: {})\n{}",
                 name,
-                glslang_shader_get_info_log(shader),
+                error,
+                localErrorFile.c_str(),
+                localErrorLine,
                 glslang_shader_get_info_debug_log(shader));
             glslang_shader_delete(shader);
             return List<u32>{};

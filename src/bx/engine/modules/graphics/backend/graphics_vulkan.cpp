@@ -467,13 +467,15 @@ ShaderHandle Graphics::CreateShader(const ShaderCreateInfo& createInfo)
     ShaderHandle shaderHandle = s->shaderHandlePool.Create();
     s_createInfoCache->shaderCreateInfos.insert(std::make_pair(shaderHandle, createInfo));
 
-    String meta = String(R""""(
-    #version 460
-    
-    #ifndef VULKAN
-    #define VULKAN
-    #endif // VULKAN
-    )"""");
+    String meta = String(
+R""""(
+#version 460
+
+#ifndef VULKAN
+#define VULKAN
+#endif // VULKAN
+)""""
+    );
 
     switch (createInfo.shaderType)
     {
@@ -491,7 +493,7 @@ ShaderHandle Graphics::CreateShader(const ShaderCreateInfo& createInfo)
 
     VkShaderStageFlagBits stage = ShaderTypeToVk(createInfo.shaderType);
 
-    std::shared_ptr<Shader> shader(new Shader(createInfo.name, s->device, stage, meta + createInfo.src));
+    std::shared_ptr<Shader> shader(new Shader(createInfo.name, s->device, stage, meta + createInfo.src.src, createInfo.src.includeRanges));
     s->shaders.emplace(shaderHandle, shader);
 
     return shaderHandle;

@@ -2,6 +2,12 @@
 
 #include "bx/engine/modules/graphics/type_validation.hpp"
 
+ShaderSrc::ShaderSrc(const String& src)
+	: src(src)
+{
+
+}
+
 BlendComponent BlendComponent::Replace()
 {
 	BlendComponent component{};

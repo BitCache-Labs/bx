@@ -16,10 +16,15 @@
 #include <stdexcept>
 
 
-static String ResolveIncludes(const String& source, HashSet<String>& includedFiles)
+static String ResolveIncludes(const String& fileName, const String& source, HashSet<String>& includedFiles, List<ShaderIncludeRange>& includeRanges, u32 lineNumber)
 {
     InputStringStream shaderStream(source);
     OutputStringStream resolvedShader;
+
+    u32 startLineNumber = lineNumber;
+
+    // Start include range
+    includeRanges.push_back(ShaderIncludeRange{ fileName, startLineNumber, 0 });
 
     String line;
     while (shaderStream.GetLine(line))
@@ -27,33 +32,80 @@ static String ResolveIncludes(const String& source, HashSet<String>& includedFil
         SizeType includePos = line.find("#include");
         if (includePos != std::string::npos && includePos == 0)
         {
+            // Extract include file path
             SizeType start = line.find("\"", includePos) + 1;
             SizeType end = line.find("\"", start);
             String includeFile = line.substr(start, end - start);
 
+            // Prevent circular includes
             if (includedFiles.find(includeFile) != includedFiles.end())
             {
                 throw Exception("Circular include detected: " + includeFile);
             }
 
+            // End current include range to make room for include file
+            for (u32 i = 0; i < includeRanges.size(); i++)
+            {
+                if (includeRanges[i].startLine == startLineNumber)
+                {
+                    includeRanges[i].endLine = lineNumber;
+
+                    // Remove if range is empty
+                    if (includeRanges[i].startLine == includeRanges[i].endLine)
+                    {
+                        includeRanges.erase(includeRanges.begin() + i);
+                    }
+
+                    break;
+                }
+            }
+
             includedFiles.insert(includeFile);
-            String includedSource = File::ReadTextFile(includeFile);
-            resolvedShader << ResolveIncludes(includedSource, includedFiles) << "\n";
+            String includedSource = ResolveIncludes(includeFile, File::ReadTextFile(includeFile), includedFiles, includeRanges, lineNumber);
+            lineNumber += StringLineCount(includedSource);
+            resolvedShader << includedSource;
             includedFiles.erase(includeFile);
+
+            // Restart include range after inserting include src
+            startLineNumber = lineNumber;
+            includeRanges.push_back(ShaderIncludeRange{ fileName, startLineNumber, 0 });
         }
         else
         {
             resolvedShader << line << "\n";
+            lineNumber++;
+        }
+    }
+
+    for (u32 i = 0; i < includeRanges.size(); i++)
+    {
+        if (includeRanges[i].startLine == startLineNumber)
+        {
+            includeRanges[i].endLine = lineNumber;
+
+            // Remove if range is empty
+            if (includeRanges[i].startLine == includeRanges[i].endLine)
+            {
+                includeRanges.erase(includeRanges.begin() + i);
+            }
+
+            break;
         }
     }
 
     return resolvedShader.GetString();
 }
 
-String ResolveShaderIncludes(const String& source)
+ShaderSrc ResolveShaderIncludes(const String& source)
 {
-    HashSet<String> includedFiles;
-    return ResolveIncludes(source, includedFiles);
+    HashSet<String> includedFiles{};
+    List<ShaderIncludeRange> includeRanges{};
+    String src = ResolveIncludes("Root", source, includedFiles, includeRanges, 0);
+
+    ShaderSrc result;
+    result.src = src;
+    result.includeRanges = includeRanges;
+    return result;
 }
 
 template<>
@@ -78,7 +130,7 @@ bool Resource<Shader>::Load(const String& filename, Shader& data)
     std::stringstream ss;
     ss << stream.rdbuf();
 
-    String source = ResolveShaderIncludes(ss.str());
+    String source = ResolveShaderIncludes(ss.str()).src;
     data.SetSource(source);
 
     ShaderCreateInfo vertexCreateInfo{};

@@ -80,7 +80,7 @@ b8 ValidateTextureCreateInfo(const TextureCreateInfo& createInfo)
 
 b8 ValidateShaderCreateInfo(const ShaderCreateInfo& createInfo)
 {
-	if (createInfo.src.empty())
+	if (createInfo.src.src.empty())
 	{
 		BX_LOGE("Invalid shader creation info: src cannot be empty.");
 		return false;

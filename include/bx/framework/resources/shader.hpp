@@ -6,7 +6,7 @@
 #include <bx/engine/containers/list.hpp>
 #include <bx/engine/modules/graphics.hpp>
 
-String ResolveShaderIncludes(const String& source);
+ShaderSrc ResolveShaderIncludes(const String& source);
 
 class Shader
 {

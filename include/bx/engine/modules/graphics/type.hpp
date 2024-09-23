@@ -505,12 +505,28 @@ struct ComputePipelineCreateInfo
 	HashMap<String, f64> constants = HashMap<String, f64>{};
 };
 
+struct ShaderIncludeRange
+{
+	String name;
+	u32 startLine;
+	u32 endLine;
+};
+
+struct ShaderSrc
+{
+	ShaderSrc() = default;
+	ShaderSrc(const String& src);
+
+	String src;
+	List<ShaderIncludeRange> includeRanges;
+};
+
 struct ShaderCreateInfo
 {
 	String name = "Shader";
 
 	ShaderType shaderType;
-	String src;
+	ShaderSrc src;
 };
 
 struct BufferCreateInfo
