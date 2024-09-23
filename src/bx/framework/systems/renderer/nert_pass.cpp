@@ -449,7 +449,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     Graphics::EndComputePass(computePass);
 
     computePassDescriptor.name = "Nert Intersect";
-    ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
+    computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
         Graphics::SetComputePipeline(IntersectPipeline::Get());
         Graphics::SetBindGroup(0, intersectBindGroup);
@@ -461,7 +461,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCountBuffer);
 
     computePassDescriptor.name = "Nert Samplegen";
-    ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
+    computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
         BindGroupHandle blasDataPoolGroup = dispatchInfo.blasDataPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle materialPoolGroup = dispatchInfo.materialPool.CreateBindGroup(ShadePipeline::Get());
@@ -489,7 +489,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     // restirDiPass->Dispatch(camera, createInfo.tlas, gbufferPass->GetColorTargetView(), gbufferPass->GetColorTargetHistoryView(), blasDataPool, sky);
 
     computePassDescriptor.name = "Nert Shade";
-    ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
+    computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
         BindGroupHandle blasDataPoolGroup = dispatchInfo.blasDataPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle materialPoolGroup = dispatchInfo.materialPool.CreateBindGroup(ShadePipeline::Get());

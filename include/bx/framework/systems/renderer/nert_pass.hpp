@@ -21,10 +21,10 @@ struct NertCreateInfo
 
 struct NertDispatchInfo
 {
-	Camera& camera;
-	BlasDataPool& blasDataPool;
-	MaterialPool& materialPool;
-	Sky& sky;
+	const Camera& camera;
+	const BlasDataPool& blasDataPool;
+	const MaterialPool& materialPool;
+	const Sky& sky;
 
 	TextureViewHandle gbuffer;
 	TextureViewHandle gbufferHistory;

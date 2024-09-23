@@ -5,6 +5,7 @@
 #include <bx/engine/modules/graphics.hpp>
 
 #include "bx/framework/components/camera.hpp"
+#include "bx/framework/systems/renderer/gbuffer_pass.hpp"
 #include "bx/framework/systems/renderer/nert_pass.hpp"
 #include "bx/framework/systems/renderer/blas_data_pool.hpp"
 #include "bx/framework/systems/renderer/material_pool.hpp"
@@ -40,6 +41,7 @@ private:
 	TlasHandle m_tlas = TlasHandle::null;
 
 	b8 m_dirtyPasses = true;
+	std::unique_ptr<GBufferPass> m_gbufferPass = nullptr;
 	std::unique_ptr<NertPass> m_nertPass = nullptr;
 	std::unique_ptr<BlasDataPool> m_blasDataPool = nullptr;
 	std::unique_ptr<MaterialPool> m_materialPool = nullptr;

@@ -141,6 +141,8 @@ void Renderer::RebuildPasses()
 {
     if (m_dirtyPasses)
     {
+        m_gbufferPass = std::unique_ptr<GBufferPass>(new GBufferPass(m_depthTarget));
+
         NertCreateInfo nertCreateInfo{};
         nertCreateInfo.colorTarget = m_colorTarget;
         nertCreateInfo.depthTarget = m_depthTarget;
@@ -186,15 +188,26 @@ void Renderer::Render()
 
     m_sky->Submit();
 
-    if (m_nertPass)
+    if (m_nertPass) // TODO: remove if statement?
     {
+        m_gbufferPass->Dispatch(m_cameras.back());
+
         m_nertPass->seed = frameIdx;
-        m_nertPass->hybrid = hybrid;
         m_nertPass->accumulationFrameIdx = accumulate ? (m_nertPass->accumulationFrameIdx + 1) : 0;
         m_nertPass->maxBounces = 3;
         m_nertPass->unbiased = unbiased;
-        m_nertPass->jacobian = jacobian;
-        m_nertPass->Dispatch(m_cameras.back(), *m_blasDataPool, *m_materialPool, *m_sky);
+
+        NertDispatchInfo dispatchInfo{
+            m_cameras.back(),
+            * m_blasDataPool,
+            * m_materialPool,
+            * m_sky,
+            m_gbufferPass->GetColorTargetView(),
+            m_gbufferPass->GetColorTargetHistoryView()
+        };
+
+
+        m_nertPass->Dispatch(dispatchInfo);
     }
 
     PresentPass presentPass(m_colorTarget);
