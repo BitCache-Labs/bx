@@ -118,14 +118,19 @@ void main()
             
             SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
 
-            // TODO: load from material / evaluate sun
-            vec3 emission = vec3(4.0);
+            if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
+            {
+                lightingContribution += throughput * material.emissiveFactor;
+            }
 
             vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
             vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0); // TODO: pdf value here???
             throughput *= brdfContribution;
 
-            lightingContribution = (throughput * emission);// * reservoir.contributionWeight;
+            // TODO: load from material / evaluate sun
+            vec3 emission = vec3(4.0);
+
+            lightingContribution += (throughput * emission) * reservoir.contributionWeight;
             //lightingContribution = vec3(1.0, 0.0, 1.0);
         }
     }

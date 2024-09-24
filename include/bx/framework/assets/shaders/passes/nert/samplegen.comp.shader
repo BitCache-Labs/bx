@@ -53,9 +53,9 @@ void main()
     uint rngState = pcgHash(pid ^ xorShiftU32(constants.seed));
 
     Intersection intersection = intersections[pid];
-    Ray ray = unpackRay(rays[id]);
+    Ray ray = unpackRay(rays[pid]);
 
-    if (intersection.t != T_MISS)
+    if (intersection.t != T_MISS) // TODO: remove, should never be the case
     {
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
@@ -107,7 +107,7 @@ void main()
             material.baseColorFactor, worldToTangent, tangentToWorld,
             normal, intersection.frontFace,
             intersectionPos, ray.origin);
-        
+
         outRestirReservoirs[id] = Reservoir_toPacked(risResult.reservoir);
         outRestirReservoirData[id] = ReservoirData_toPacked(risResult.reservoirData);
     }

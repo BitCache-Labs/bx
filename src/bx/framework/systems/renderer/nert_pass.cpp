@@ -451,7 +451,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         BindGroupHandle blasDataPoolGroup = dispatchInfo.blasDataPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle materialPoolGroup = dispatchInfo.materialPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle skyGroup = dispatchInfo.sky.CreateBindGroup(ShadePipeline::Get());
-        BindGroupHandle restirGroup = restirDiPass->CreateBindGroup(ShadePipeline::Get(), true);
+        BindGroupHandle restirGroup = restirDiPass->CreateBindGroup(ShadePipeline::Get(), false);
     
         Graphics::SetComputePipeline(SamplegenPipeline::Get());
         Graphics::SetBindGroup(0, samplegenBindGroup);
