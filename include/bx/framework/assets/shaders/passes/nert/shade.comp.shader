@@ -22,13 +22,9 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING1;
 } constants;
 
-layout(BINDING(0, 1)) readonly buffer _SampleCount
+layout (BINDING(0, 2), std430) readonly buffer _InverseSamplePixelMapping
 {
-    uint sampleCount;
-};
-layout (BINDING(0, 2), std430) readonly buffer _SamplePixelMapping
-{
-    uint samplePixelMapping[];
+    uint inverseSamplePixelMapping[];
 };
 
 layout (BINDING(0, 3), std430) readonly buffer _Intersections
@@ -54,11 +50,13 @@ void main()
 {
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
-    if (id >= sampleCount) return;
-    uint pid = samplePixelMapping[id]; // TODO: the pixel mapping is completely WRONG atm!!!!!
+    if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
+    uint sampleId = inverseSamplePixelMapping[id];
 
-    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[pid]);
-    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[pid]);
+    Intersection intersection = intersections[id];
+
+    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[sampleId]);
+    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
     vec3 origin = imageLoad(neGbuffer, pixel).rgb;
     vec3 direction = reservoirData.sampleDirection;
     float tMax = reservoirData.hitT;
@@ -72,11 +70,10 @@ void main()
     //vec3 hitNormal = unpackNormalizedXyz10(payload.hitNormal, 0);
     //
     //if (dot(direction, hitNormal) > 0.0)
+    if (intersection.t != T_MISS)
     {
         if (!shadowRayHit(origin + direction * RT_EPSILON, direction, tMax))
         {
-            Intersection intersection = intersections[pid];
-
             BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
             BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
 
@@ -128,7 +125,8 @@ void main()
             vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0); // TODO: pdf value here???
             throughput *= brdfContribution;
 
-            lightingContribution = (throughput * emission) * reservoir.contributionWeight;
+            lightingContribution = (throughput * emission);// * reservoir.contributionWeight;
+            //lightingContribution = vec3(1.0, 0.0, 1.0);
         }
     }
 

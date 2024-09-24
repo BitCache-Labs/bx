@@ -21,6 +21,7 @@ struct Ray
 	uint _PADDING1;
 };
 
+// TODO: pack
 struct Intersection
 {
 	vec2 uv;

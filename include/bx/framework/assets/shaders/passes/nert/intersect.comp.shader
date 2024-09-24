@@ -14,9 +14,9 @@ layout (BINDING(0, 1), std430) readonly buffer _Rays
 {
     PackedRay rays[];
 };
-layout(BINDING(0, 2), std430) writeonly buffer _RayCount
+layout(BINDING(0, 2), std430) writeonly buffer _SampleCount
 {
-    uint rayCount;
+    uint sampleCount;
 };
 
 layout (BINDING(0, 3), std430) writeonly buffer _Intersections
@@ -24,15 +24,20 @@ layout (BINDING(0, 3), std430) writeonly buffer _Intersections
     Intersection intersections[];
 };
 
-layout (BINDING(0, 4), std430) writeonly buffer _PixelMapping
+layout (BINDING(0, 4), std430) writeonly buffer _SamplePixelMapping
 {
-    uint pixelMapping[];
+    uint samplePixelMapping[];
 };
 
-layout(BINDING(0, 5)) uniform accelerationStructureEXT Scene;
+layout (BINDING(0, 5), std430) writeonly buffer _InverseSamplePixelMapping
+{
+    uint inverseSamplePixelMapping[];
+};
 
-layout (BINDING(0, 6), rgba32f) uniform image2D gbuffer;
-layout (BINDING(0, 7), rgba32f) uniform image2D neGbuffer;
+layout(BINDING(0, 6)) uniform accelerationStructureEXT Scene;
+
+layout (BINDING(0, 7), rgba32f) uniform image2D gbuffer;
+layout (BINDING(0, 8), rgba32f) uniform image2D neGbuffer;
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
@@ -71,10 +76,11 @@ void main()
         intersection.t = T_MISS;
     }
 
-    if (intersection.t != T_MISS)
+    if (intersection.t != T_MISS) // && hit diffuse on final hit!
     {
-        uint rayIdx = atomicAdd(rayCount, 1u);
-        pixelMapping[rayIdx] = id;
+        uint sampleIdx = atomicAdd(sampleCount, 1u);
+        samplePixelMapping[sampleIdx] = id;
+        inverseSamplePixelMapping[id] = sampleIdx;
 
         ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
         imageStore(neGbuffer, pixel, vec4(finalHitPos, uintBitsToFloat(hitDepth)));

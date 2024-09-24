@@ -28,26 +28,17 @@ layout (BINDING(0, 1), std430) readonly buffer _Rays
 {
     PackedRay rays[];
 };
-layout(BINDING(0, 2), std430) readonly buffer _RayCount
-{
-    uint rayCount;
-};
 
-layout (BINDING(0, 3), std430) readonly buffer _PixelMapping
-{
-    uint pixelMapping[];
-};
-
-layout (BINDING(0, 4), std430) readonly buffer _Intersections
+layout (BINDING(0, 2), std430) readonly buffer _Intersections
 {
     Intersection intersections[];
 };
 
-layout(BINDING(0, 5), std430) buffer _SampleCount
+layout(BINDING(0, 3), std430) readonly buffer _SampleCount
 {
     uint sampleCount;
 };
-layout(BINDING(0, 6), std430) writeonly buffer _SamplePixelMapping
+layout(BINDING(0, 4), std430) readonly buffer _SamplePixelMapping
 {
     uint samplePixelMapping[];
 };
@@ -56,8 +47,8 @@ layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
     uint id = uint(gl_GlobalInvocationID.x);
-    if (id >= rayCount) return;
-    uint pid = pixelMapping[id];
+    if (id >= sampleCount) return;
+    uint pid = samplePixelMapping[id];
 
     uint rngState = pcgHash(pid ^ xorShiftU32(constants.seed));
 
@@ -117,10 +108,7 @@ void main()
             normal, intersection.frontFace,
             intersectionPos, ray.origin);
         
-        outRestirReservoirs[pid] = Reservoir_toPacked(risResult.reservoir);
-        outRestirReservoirData[pid] = ReservoirData_toPacked(risResult.reservoirData);
-        
-        uint sampleIdx = atomicAdd(sampleCount, 1u);
-        samplePixelMapping[sampleIdx] = pid;
+        outRestirReservoirs[id] = Reservoir_toPacked(risResult.reservoir);
+        outRestirReservoirData[id] = ReservoirData_toPacked(risResult.reservoirData);
     }
 }

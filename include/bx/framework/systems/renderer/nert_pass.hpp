@@ -58,11 +58,10 @@ private:
 	TextureViewHandle neGbufferView;
 
 	BufferHandle raysBuffer;
-	BufferHandle pixelMappingBuffer;
 	BufferHandle identityPixelMappingBuffer;
-	BufferHandle rayCountBuffer;
 	BufferHandle sampleCountBuffer;
 	BufferHandle samplePixelMappingBuffer;
+	BufferHandle inverseSamplePixelMappingBuffer;
 	BufferHandle intersectionsBuffer;
 	BufferHandle indirectArgsBuffer;
 

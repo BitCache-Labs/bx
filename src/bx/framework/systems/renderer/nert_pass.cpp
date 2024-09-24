@@ -78,12 +78,13 @@ struct IntersectPipeline : public LazyInit<IntersectPipeline, ComputePipelineHan
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                         // constants
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                     // rays
-                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),                                                    // rayCount
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),                                                    // sampleCount
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),                                                    // intersections
-                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),                                                    // pixelMapping
-                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),                                                 // scene
-                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)), // gbuffer
-                BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)), // neGbuffer
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),                                                    // samplePixelMapping
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),                                                    // inverseSamplePixelMapping
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),                                                 // scene
+                BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)), // gbuffer
+                BindGroupLayoutEntry(8, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)), // neGbuffer
             })
         };
 
@@ -144,11 +145,9 @@ struct SamplegenPipeline : public LazyInit<SamplegenPipeline, ComputePipelineHan
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),         // constants
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // rays
-                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // rayCount
-                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // pixelMapping
-                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // intersections
-                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // sampleRayCount
-                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),    // samplePixelMapping
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // intersections
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // sampleRayCount
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // samplePixelMapping
             }),
             BlasDataPool::GetBindGroupLayout(),
             MaterialPool::GetBindGroupLayout(),
@@ -182,8 +181,7 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                             // constants
-                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                         // sampleCount
-                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                         // samplePixelMapping
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                         // inverseSamplePixelMapping
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                         // intersections
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),                                                     // scene
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // neGbuffer
@@ -243,18 +241,6 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     raysCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     raysBuffer = Graphics::CreateBuffer(raysCreateInfo);
 
-    BufferCreateInfo rayCountCreateInfo{};
-    rayCountCreateInfo.name = "Nert Ray Count Buffer";
-    rayCountCreateInfo.size = sizeof(u32);
-    rayCountCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
-    rayCountBuffer = Graphics::CreateBuffer(rayCountCreateInfo);
-
-    BufferCreateInfo pixelMappingCreateInfo{};
-    pixelMappingCreateInfo.name = "Nert Pixel Mapping Buffer";
-    pixelMappingCreateInfo.size = width * height * sizeof(u32);
-    pixelMappingCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
-    pixelMappingBuffer = Graphics::CreateBuffer(pixelMappingCreateInfo);
-
     BufferCreateInfo shadowRayCountCreateInfo{};
     shadowRayCountCreateInfo.name = "Nert Sample Count Buffer";
     shadowRayCountCreateInfo.size = sizeof(u32);
@@ -266,6 +252,8 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     shadowRayPixelMappingCreateInfo.size = width * height * sizeof(u32);
     shadowRayPixelMappingCreateInfo.usageFlags = BufferUsageFlags::STORAGE;
     samplePixelMappingBuffer = Graphics::CreateBuffer(shadowRayPixelMappingCreateInfo);
+    shadowRayPixelMappingCreateInfo.name = "Nert Inverse Sample Pixel Mapping Buffer";
+    inverseSamplePixelMappingBuffer = Graphics::CreateBuffer(shadowRayPixelMappingCreateInfo);
 
     BufferCreateInfo intersectionsCreateInfo{};
     intersectionsCreateInfo.name = "Nert Intersections Buffer";
@@ -317,11 +305,10 @@ NertPass::~NertPass()
     Graphics::DestroyTexture(neGbuffer);
 
     Graphics::DestroyBuffer(raysBuffer);
-    Graphics::DestroyBuffer(rayCountBuffer);
-    Graphics::DestroyBuffer(pixelMappingBuffer);
     Graphics::DestroyBuffer(identityPixelMappingBuffer);
     Graphics::DestroyBuffer(sampleCountBuffer);
     Graphics::DestroyBuffer(samplePixelMappingBuffer);
+    Graphics::DestroyBuffer(inverseSamplePixelMappingBuffer);
     Graphics::DestroyBuffer(intersectionsBuffer);
     Graphics::DestroyBuffer(indirectArgsBuffer);
 
@@ -371,12 +358,13 @@ BindGroupHandle NertPass::CreateIntersectBindGroup(const NertDispatchInfo& dispa
     bindGroupCreateInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(intersectConstantsBuffer)),
         BindGroupEntry(1, BindingResource::Buffer(raysBuffer)),
-        BindGroupEntry(2, BindingResource::Buffer(rayCountBuffer)),
+        BindGroupEntry(2, BindingResource::Buffer(sampleCountBuffer)),
         BindGroupEntry(3, BindingResource::Buffer(intersectionsBuffer)),
-        BindGroupEntry(4, BindingResource::Buffer(pixelMappingBuffer)),
-        BindGroupEntry(5, BindingResource::AccelerationStructure(createInfo.tlas)),
-        BindGroupEntry(6, BindingResource::TextureView(dispatchInfo.gbuffer)),
-        BindGroupEntry(7, BindingResource::TextureView(neGbufferView)),
+        BindGroupEntry(4, BindingResource::Buffer(samplePixelMappingBuffer)),
+        BindGroupEntry(5, BindingResource::Buffer(inverseSamplePixelMappingBuffer)),
+        BindGroupEntry(6, BindingResource::AccelerationStructure(createInfo.tlas)),
+        BindGroupEntry(7, BindingResource::TextureView(dispatchInfo.gbuffer)),
+        BindGroupEntry(8, BindingResource::TextureView(neGbufferView)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
@@ -401,11 +389,9 @@ BindGroupHandle NertPass::CreateSamplegenBindGroup(const NertDispatchInfo& dispa
     bindGroupCreateInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(samplegenConstantsBuffer)),
         BindGroupEntry(1, BindingResource::Buffer(raysBuffer)),
-        BindGroupEntry(2, BindingResource::Buffer(rayCountBuffer)),
-        BindGroupEntry(3, BindingResource::Buffer(pixelMappingBuffer)),
-        BindGroupEntry(4, BindingResource::Buffer(intersectionsBuffer)),
-        BindGroupEntry(5, BindingResource::Buffer(sampleCountBuffer)),
-        BindGroupEntry(6, BindingResource::Buffer(samplePixelMappingBuffer)),
+        BindGroupEntry(2, BindingResource::Buffer(intersectionsBuffer)),
+        BindGroupEntry(3, BindingResource::Buffer(sampleCountBuffer)),
+        BindGroupEntry(4, BindingResource::Buffer(samplePixelMappingBuffer)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
@@ -417,8 +403,7 @@ BindGroupHandle NertPass::CreateShadeBindGroup(const NertDispatchInfo& dispatchI
     bindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(ShadePipeline::Get(), 0);
     bindGroupCreateInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(shadeConstantsBuffer)),
-        BindGroupEntry(1, BindingResource::Buffer(sampleCountBuffer)),
-        BindGroupEntry(2, BindingResource::Buffer(samplePixelMappingBuffer)),
+        BindGroupEntry(2, BindingResource::Buffer(inverseSamplePixelMappingBuffer)),
         BindGroupEntry(3, BindingResource::Buffer(intersectionsBuffer)),
         BindGroupEntry(4, BindingResource::AccelerationStructure(createInfo.tlas)),
         BindGroupEntry(5, BindingResource::TextureView(neGbufferView)),
@@ -436,7 +421,6 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     BindGroupHandle samplegenBindGroup = CreateSamplegenBindGroup(dispatchInfo);
     BindGroupHandle shadeBindGroup = CreateShadeBindGroup(dispatchInfo);
 
-    Graphics::ClearBuffer(rayCountBuffer);
     Graphics::ClearBuffer(sampleCountBuffer);
 
     ComputePassDescriptor computePassDescriptor{};
@@ -459,8 +443,8 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     Graphics::EndComputePass(computePass);
 
     WriteIndirectArgsPass writeIndirectArgs(128);
-    writeIndirectArgs.Dispatch(indirectArgsBuffer, rayCountBuffer);
-
+    writeIndirectArgs.Dispatch(indirectArgsBuffer, sampleCountBuffer);
+    
     computePassDescriptor.name = "Nert Samplegen";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
@@ -468,7 +452,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         BindGroupHandle materialPoolGroup = dispatchInfo.materialPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle skyGroup = dispatchInfo.sky.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle restirGroup = restirDiPass->CreateBindGroup(ShadePipeline::Get(), true);
-
+    
         Graphics::SetComputePipeline(SamplegenPipeline::Get());
         Graphics::SetBindGroup(0, samplegenBindGroup);
         Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, blasDataPoolGroup);
@@ -476,7 +460,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         Graphics::SetBindGroup(Sky::BIND_GROUP_SET, skyGroup);
         Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirGroup);
         Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
-
+    
         Graphics::DestroyBindGroup(blasDataPoolGroup);
         Graphics::DestroyBindGroup(materialPoolGroup);
         Graphics::DestroyBindGroup(skyGroup);
