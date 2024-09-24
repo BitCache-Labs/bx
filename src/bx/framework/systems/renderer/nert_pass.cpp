@@ -175,7 +175,7 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
         ShaderCreateInfo shaderCreateInfo{};
         shaderCreateInfo.name = "Nert Shade Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/wfpt/connect.comp.shader")));
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/nert/shade.comp.shader")));
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
@@ -189,6 +189,7 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // neGbuffer
                 BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
             }),
+            MaterialPool::GetBindGroupLayout(),
             BlasDataPool::GetBindGroupLayout(),
             Sky::GetBindGroupLayout(),
             Restir::GetBindGroupLayout(),

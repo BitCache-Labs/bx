@@ -1,17 +1,18 @@
 #include "[engine]/shaders/Language.shader"
 #include "[engine]/shaders/extensions/ray_tracing_ext.shader"
 
+#define MATERIAL_BINDINGS
 #define RESTIR_BINDINGS
 #define BLAS_DATA_BINDINGS
 #define SKY_BINDINGS
 
+#include "[engine]/shaders/ray_tracing/material.shader"
 #include "[engine]/shaders/restir/restir.shader"
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 #include "[engine]/shaders/ray_tracing/sky.shader"
 
 #include "[engine]/shaders/math.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
-#include "[engine]/shaders/passes/nert/payload.shader"
 #include "[engine]/shaders/ray_tracing/light_picking.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
@@ -21,11 +22,11 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING1;
 } constants;
 
-layout(BINDING(0, 2)) readonly buffer _SampleCount
+layout(BINDING(0, 1)) readonly buffer _SampleCount
 {
     uint sampleCount;
 };
-layout (BINDING(0, 4), std430) readonly buffer _SamplePixelMapping
+layout (BINDING(0, 2), std430) readonly buffer _SamplePixelMapping
 {
     uint samplePixelMapping[];
 };
@@ -35,10 +36,10 @@ layout (BINDING(0, 3), std430) readonly buffer _Intersections
     Intersection intersections[];
 };
 
-layout(BINDING(0, 5)) uniform accelerationStructureEXT Scene;
+layout(BINDING(0, 4)) uniform accelerationStructureEXT Scene;
 
-layout (BINDING(0, 6), rgba32f) uniform image2D neGbuffer;
-layout (BINDING(0, 7), rgba32f) uniform image2D outImage;
+layout (BINDING(0, 5), rgba32f) uniform image2D neGbuffer;
+layout (BINDING(0, 6), rgba32f) uniform image2D outImage;
 
 bool shadowRayHit(vec3 origin, vec3 direction, float tMax)
 {
@@ -58,7 +59,7 @@ void main()
 
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[pid]);
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[pid]);
-    vec3 origin = loadImage(neGbuffer, pixel).rgb;
+    vec3 origin = imageLoad(neGbuffer, pixel).rgb;
     vec3 direction = reservoirData.sampleDirection;
     float tMax = reservoirData.hitT;
 
@@ -108,15 +109,15 @@ void main()
             }
 
             // Build tangent to world matrix and correct for wOut below hemisphere (can happen due to normal mapping)
-            mat3 tangentToWorld = buildOrthonormalBasis(normal);
-            mat3 worldToTangent = transpose(tangentToWorld);
-
-            vec3 wOutTangentSpace = normalize(worldToTangent * -ray.direction);
-            if (wOutTangentSpace.z < 0.0 && intersection.frontFace)
-            {
-                wOutTangentSpace.z *= -0.25;
-                wOutTangentSpace = normalize(wOutTangentSpace);
-            }
+            //mat3 tangentToWorld = buildOrthonormalBasis(normal);
+            //mat3 worldToTangent = transpose(tangentToWorld);
+            //
+            //vec3 wOutTangentSpace = normalize(worldToTangent * -ray.direction);
+            //if (wOutTangentSpace.z < 0.0 && intersection.frontFace)
+            //{
+            //    wOutTangentSpace.z *= -0.25;
+            //    wOutTangentSpace = normalize(wOutTangentSpace);
+            //}
             
             SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
 
@@ -124,12 +125,12 @@ void main()
             vec3 emission = vec3(4.0);
 
             vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
-            vec3 brdfContribution = (brdfEval, normal, direction, 1.0); // TODO: pdf value here???
+            vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0); // TODO: pdf value here???
             throughput *= brdfContribution;
 
             lightingContribution = (throughput * emission) * reservoir.contributionWeight;
         }
     }
 
-    storeImage(outImage, pixel, vec4(lightingContribution, 1.0));
+    imageStore(outImage, pixel, vec4(lightingContribution, 1.0));
 }

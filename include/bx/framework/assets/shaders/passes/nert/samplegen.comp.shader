@@ -10,7 +10,6 @@
 #include "[engine]/shaders/ray_tracing/sky.shader"
 #include "[engine]/shaders/restir/restir.shader"
 
-#include "[engine]/shaders/passes/nert/payload.shader"
 #include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"

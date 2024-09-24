@@ -38,7 +38,7 @@ layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
     uint id = uint(gl_GlobalInvocationID.x);
-    if (id >= rayCount) return;
+    if (id >= constants.resolution.x * constants.resolution.y) return;
 
     Ray ray = unpackRay(rays[id]);
 
