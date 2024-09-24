@@ -8,6 +8,7 @@ layout(BINDING(0, 0)) uniform sampler2D colorImage;
 
 vec3 aces(vec3 x)
 {
+    return x;
     const float a = 2.51;
     const float b = 0.03;
     const float c = 2.43;
