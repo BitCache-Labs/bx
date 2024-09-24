@@ -1,4 +1,5 @@
 #include "[engine]/shaders/Language.shader"
+#include "[engine]/shaders/extensions/ray_tracing_ext.shader"
 
 #define MATERIAL_BINDINGS
 #define BLAS_DATA_BINDINGS
@@ -42,6 +43,83 @@ layout(BINDING(0, 4), std430) readonly buffer _SamplePixelMapping
 {
     uint samplePixelMapping[];
 };
+
+layout(BINDING(0, 5)) uniform accelerationStructureEXT Scene;
+
+bool shadowRayHit(vec3 origin, vec3 direction, float tMax)
+{
+    rayQueryEXT rayQuery;
+	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, origin, RT_EPSILON, direction, tMax);
+	rayQueryProceedEXT(rayQuery);
+    return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
+}
+
+RisResult ris(inout uint rngState,
+    vec3 baseColor, mat3 worldToTangent, mat3 tangentToWorld,
+    vec3 normal, bool frontFace,
+    vec3 x1, vec3 x0)
+{
+#if 0
+    LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
+
+    ReservoirData reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
+        lightSample.blasInstance, lightSample.uv, 0.0);
+    Reservoir reservoir = Reservoir_default();
+    reservoir.contributionWeight = 1.0 / lightSample.pdf;
+    reservoir.sampleCount = 1.0;
+    return RisResult(reservoirData, reservoir);
+#else
+
+    const uint M_AREA = 320;
+
+    vec3 wOutWorldSpace = normalize(x1 - x0);
+    vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
+
+    ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0), 0.0);
+    Reservoir reservoir = Reservoir_default();
+	
+    #pragma unroll
+	for (uint i = 0; i < M_AREA; i++)
+	{
+        LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
+        vec3 wInWorldSpace = lightSample.sampleDirection;
+    
+        float p_hat = 0.0;
+        if (dot(wInWorldSpace, normal) > 0.0)
+        {
+            vec3 brdfEval = diffuseBsdfEval(baseColor);
+            vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
+            float intensity = triangleLightIntensity(lightSample.triangle, lightSample.blasInstance, lightSample.sampleDirection, lightSample.hitT);
+
+            p_hat = length(brdfContribution * intensity);
+        }
+
+        float weight = p_hat / lightSample.pdf;
+        if (Reservoir_update(reservoir, weight, rngState))
+        {
+            reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
+                lightSample.blasInstance, lightSample.uv, p_hat);
+        }
+	}
+
+    if (ReservoirData_isValid(reservoirData))
+    {
+        vec3 wInWorldSpace = reservoirData.sampleDirection;
+
+        vec3 brdfEval = diffuseBsdfEval(baseColor);
+        vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
+        float intensity = triangleLightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, reservoirData.sampleDirection, reservoirData.hitT);
+
+        float shadowFactor = shadowRayHit(x1, reservoirData.sampleDirection, reservoirData.hitT) ? 0.0 : 1.0;
+
+        float p_hat = length(shadowFactor * brdfContribution * intensity);
+
+        reservoir.contributionWeight = reservoir.weightSum / max(1e-8, p_hat * reservoir.sampleCount);
+    }
+
+    return RisResult(reservoirData, reservoir);
+#endif
+}
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()

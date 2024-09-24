@@ -55,11 +55,11 @@ struct SamplegenConstants
     u32 _PADDING0;
 };
 
-struct ShadeConstants
+struct NertShadeConstants
 {
     u32 width;
     u32 height;
-    u32 _PADDING0;
+    u32 sampleNumber;
     u32 _PADDING1;
 };
 
@@ -147,6 +147,7 @@ struct SamplegenPipeline : public LazyInit<SamplegenPipeline, ComputePipelineHan
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // intersections
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // sampleRayCount
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),     // samplePixelMapping
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()), // scene
             }),
             BlasDataPool::GetBindGroupLayout(),
             MaterialPool::GetBindGroupLayout(),
@@ -183,7 +184,7 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                         // intersections
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),                                                     // scene
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // neGbuffer
-                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
             }),
             MaterialPool::GetBindGroupLayout(),
             BlasDataPool::GetBindGroupLayout(),
@@ -283,7 +284,7 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
 
     BufferCreateInfo shadeConstantsCreateInfo{};
     shadeConstantsCreateInfo.name = "Nert Raygen Constants Buffer";
-    shadeConstantsCreateInfo.size = sizeof(ShadeConstants);
+    shadeConstantsCreateInfo.size = sizeof(NertShadeConstants);
     shadeConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
     shadeConstantsBuffer = Graphics::CreateBuffer(shadeConstantsCreateInfo);
 
@@ -337,9 +338,10 @@ void NertPass::UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo)
     samplegenConstants.seed = seed;
     Graphics::WriteBuffer(samplegenConstantsBuffer, 0, &samplegenConstants);
 
-    ShadeConstants shadeConstants{};
+    NertShadeConstants shadeConstants{};
     shadeConstants.width = width;
     shadeConstants.height = height;
+    shadeConstants.sampleNumber = 0;// accumulationFrameIdx;
     Graphics::WriteBuffer(shadeConstantsBuffer, 0, &shadeConstants);
 }
 
@@ -384,6 +386,7 @@ BindGroupHandle NertPass::CreateSamplegenBindGroup(const NertDispatchInfo& dispa
         BindGroupEntry(2, BindingResource::Buffer(intersectionsBuffer)),
         BindGroupEntry(3, BindingResource::Buffer(sampleCountBuffer)),
         BindGroupEntry(4, BindingResource::Buffer(samplePixelMappingBuffer)),
+        BindGroupEntry(5, BindingResource::AccelerationStructure(createInfo.tlas)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
@@ -459,9 +462,9 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     }
     Graphics::EndComputePass(computePass);
 
-    restirDiPass->seed = seed;
-    restirDiPass->unbiased = unbiased;
-    restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.blasDataPool, dispatchInfo.sky);
+    //restirDiPass->seed = seed;
+    //restirDiPass->unbiased = unbiased;
+    //restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.blasDataPool, dispatchInfo.sky);
 
     computePassDescriptor.name = "Nert Shade";
     computePass = Graphics::BeginComputePass(computePassDescriptor);

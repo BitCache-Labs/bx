@@ -18,7 +18,7 @@
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uvec2 resolution;
-    uint _PADDING0;
+    uint sampleNumber;
     uint _PADDING1;
 } constants;
 
@@ -66,7 +66,7 @@ void main()
     //if (dot(direction, hitNormal) > 0.0)
     if (intersection.t != T_MISS)
     {
-        if (!shadowRayHit(origin + direction * RT_EPSILON, direction, tMax))
+        //if (!shadowRayHit(origin + direction * RT_EPSILON, direction, tMax))
         {
             BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
             BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
@@ -117,17 +117,35 @@ void main()
                 lightingContribution += throughput * material.emissiveFactor;
             }
 
-            vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
-            vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0); // TODO: pdf value here???
-            throughput *= brdfContribution;
+            //vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
+            //vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0); // TODO: pdf value here???
+            //throughput *= brdfContribution;
 
-            // TODO: load from material / evaluate sun
-            vec3 emission = vec3(4.0);
+            if (ReservoirData_isValid(reservoirData))
+            {
+                vec3 wInWorldSpace = reservoirData.sampleDirection;
 
-            lightingContribution += (throughput * emission) * reservoir.contributionWeight;
-            //lightingContribution = vec3(1.0, 0.0, 1.0);
+                vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
+                vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
+                float intensity = triangleLightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, reservoirData.sampleDirection, reservoirData.hitT);
+
+                float shadowFactor = shadowRayHit(origin, reservoirData.sampleDirection, reservoirData.hitT) ? 0.0 : 1.0;
+
+                vec3 radiance = shadowFactor * brdfContribution * intensity;
+
+                lightingContribution += throughput * radiance * reservoir.contributionWeight;
+            }
+
+            //// TODO: load from material / evaluate sun
+            //vec3 emission = vec3(4.0);
+            //
+            //lightingContribution += (throughput * emission) * reservoir.contributionWeight;
+            ////lightingContribution = vec3(1.0, 0.0, 1.0);
         }
     }
 
-    imageStore(outImage, pixel, vec4(lightingContribution, 1.0));
+    vec3 old = imageLoad(outImage, pixel).rgb;
+    float portion = 1.0 / (0 + 1); // constants.sampleNumber
+    vec3 resolved = (old * (1.0 - portion) + portion * lightingContribution);
+    imageStore(outImage, pixel, vec4(resolved, 1.0));
 }

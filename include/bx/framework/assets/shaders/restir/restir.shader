@@ -30,6 +30,11 @@ struct PackedReservoirData
     uint _PADDING1;
 };
 
+bool ReservoirData_isValid(ReservoirData self)
+{
+    return self.hitT != 0.0;
+}
+
 PackedReservoirData ReservoirData_toPacked(ReservoirData self)
 {
     return PackedReservoirData(
