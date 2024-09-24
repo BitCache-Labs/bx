@@ -10,7 +10,6 @@ class BlasDataPool;
 class MaterialPool;
 class Sky;
 class RestirDiPass;
-class GBufferPass;
 
 struct NertCreateInfo
 {
@@ -51,7 +50,6 @@ private:
 	TextureViewHandle colorTargetView;
 	u32 width, height;
 
-	std::unique_ptr<GBufferPass> gbufferPass;
 	std::unique_ptr<RestirDiPass> restirDiPass;
 
 	TextureHandle neGbuffer;
@@ -61,7 +59,6 @@ private:
 	BufferHandle identityPixelMappingBuffer;
 	BufferHandle sampleCountBuffer;
 	BufferHandle samplePixelMappingBuffer;
-	BufferHandle inverseSamplePixelMappingBuffer;
 	BufferHandle intersectionsBuffer;
 	BufferHandle indirectArgsBuffer;
 

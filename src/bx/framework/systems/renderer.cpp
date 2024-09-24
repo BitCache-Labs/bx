@@ -208,6 +208,8 @@ void Renderer::Render()
 
 
         m_nertPass->Dispatch(dispatchInfo);
+
+        m_gbufferPass->NextFrame();
     }
 
     PresentPass presentPass(m_colorTarget);

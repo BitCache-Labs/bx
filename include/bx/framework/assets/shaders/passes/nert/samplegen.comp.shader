@@ -108,7 +108,7 @@ void main()
             normal, intersection.frontFace,
             intersectionPos, ray.origin);
 
-        outRestirReservoirs[id] = Reservoir_toPacked(risResult.reservoir);
-        outRestirReservoirData[id] = ReservoirData_toPacked(risResult.reservoirData);
+        outRestirReservoirs[pid] = Reservoir_toPacked(risResult.reservoir);
+        outRestirReservoirData[pid] = ReservoirData_toPacked(risResult.reservoirData);
     }
 }

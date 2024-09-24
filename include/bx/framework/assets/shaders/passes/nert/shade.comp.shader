@@ -22,11 +22,6 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING1;
 } constants;
 
-layout (BINDING(0, 2), std430) readonly buffer _InverseSamplePixelMapping
-{
-    uint inverseSamplePixelMapping[];
-};
-
 layout (BINDING(0, 3), std430) readonly buffer _Intersections
 {
     Intersection intersections[];
@@ -51,12 +46,11 @@ void main()
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
-    uint sampleId = inverseSamplePixelMapping[id];
 
     Intersection intersection = intersections[id];
 
-    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[sampleId]);
-    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
+    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
+    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
     vec3 origin = imageLoad(neGbuffer, pixel).rgb;
     vec3 direction = reservoirData.sampleDirection;
     float tMax = reservoirData.hitT;

@@ -117,7 +117,7 @@ RisResult ris(inout uint rngState,
     return RisResult(reservoirData, reservoir);
 #else
 
-    const uint M_AREA = 8;
+    const uint M_AREA = 32;
 
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
@@ -132,7 +132,7 @@ RisResult ris(inout uint rngState,
         float contributionWeight = 1.0 / lightSample.pdf;
 
         vec3 wInWorldSpace = lightSample.sampleDirection;
-        vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
+        //vec3 wInTangentSpace = normalize(worldToTangent * wInWorldSpace);
     
         float unoccludedContributionWeight = 0.0;
         if (dot(wInWorldSpace, normal) > 0.0)

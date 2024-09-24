@@ -29,11 +29,6 @@ layout (BINDING(0, 4), std430) writeonly buffer _SamplePixelMapping
     uint samplePixelMapping[];
 };
 
-layout (BINDING(0, 5), std430) writeonly buffer _InverseSamplePixelMapping
-{
-    uint inverseSamplePixelMapping[];
-};
-
 layout(BINDING(0, 6)) uniform accelerationStructureEXT Scene;
 
 layout (BINDING(0, 7), rgba32f) uniform image2D gbuffer;
@@ -80,7 +75,6 @@ void main()
     {
         uint sampleIdx = atomicAdd(sampleCount, 1u);
         samplePixelMapping[sampleIdx] = id;
-        inverseSamplePixelMapping[id] = sampleIdx;
 
         ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
         imageStore(neGbuffer, pixel, vec4(finalHitPos, uintBitsToFloat(hitDepth)));
