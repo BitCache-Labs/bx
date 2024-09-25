@@ -48,15 +48,15 @@ void main()
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
 
     Intersection intersection = intersections[id];
+    vec3 origin = imageLoad(neGbuffer, pixel).rgb;
 
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
-    vec3 origin = imageLoad(neGbuffer, pixel).rgb;
-    //vec3 direction = reservoirData.sampleDirection;
-    float tMax = reservoirData.hitT;
-
+    
     mat4 lightTransform = inverse(blasInstances[reservoirData.blasInstance].invTransform);
-    vec3 direction = sampleTriangleLight(reservoirData.triangleLightSource, reservoirData.hitUv, lightTransform, origin, 0.0).sampleDirection;
+    LightSample reconstructedLightSample = sampleTriangleLight(reservoirData.triangleLightSource, reservoirData.hitUv, lightTransform, origin, 0.0);
+    vec3 direction = reconstructedLightSample.sampleDirection;
+    float tMax = reconstructedLightSample.hitT;
 
     // TODO: write in intersect.comp for mirrors, load here
     vec3 throughput = vec3(1.0);
@@ -130,20 +130,14 @@ void main()
 
                 vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
                 vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
-                float intensity = triangleLightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, reservoirData.hitT);
+                float intensity = triangleLightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
 
-                float shadowFactor = shadowRayHit(origin, direction, reservoirData.hitT) ? 0.0 : 1.0;
+                float shadowFactor = shadowRayHit(origin, direction, tMax) ? 0.0 : 1.0;
 
                 vec3 radiance = shadowFactor * brdfContribution * intensity;
 
                 lightingContribution += throughput * radiance * reservoir.contributionWeight;
             }
-
-            //// TODO: load from material / evaluate sun
-            //vec3 emission = vec3(4.0);
-            //
-            //lightingContribution += (throughput * emission) * reservoir.contributionWeight;
-            ////lightingContribution = vec3(1.0, 0.0, 1.0);
         }
     }
 

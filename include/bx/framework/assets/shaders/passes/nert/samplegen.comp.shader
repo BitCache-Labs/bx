@@ -62,7 +62,7 @@ RisResult ris(inout uint rngState,
 #if 0
     LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
 
-    ReservoirData reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
+    ReservoirData reservoirData = ReservoirData(lightSample.triangle,
         lightSample.blasInstance, lightSample.uv);
     Reservoir reservoir = Reservoir_default();
     reservoir.contributionWeight = 1.0 / lightSample.pdf;
@@ -75,9 +75,12 @@ RisResult ris(inout uint rngState,
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
 
-    ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0));
+    ReservoirData reservoirData = ReservoirData(0, 0, vec2(0.0), 0.0);
     Reservoir reservoir = Reservoir_default();
 	
+    vec3 outputSampleDirection;
+    float outputSampleHitT;
+
     #pragma unroll
 	for (uint i = 0; i < M_AREA; i++)
 	{
@@ -95,26 +98,30 @@ RisResult ris(inout uint rngState,
         }
 
         float weight = p_hat / lightSample.pdf;
-        if (Reservoir_update(reservoir, weight, rngState))
+        if (Reservoir_update(reservoir, weight, 1.0, rngState))
         {
-            reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
-                lightSample.blasInstance, lightSample.uv);
+            reservoirData = ReservoirData(lightSample.triangle,
+                lightSample.blasInstance, lightSample.uv, p_hat);
+
+            outputSampleDirection = lightSample.sampleDirection;
+            outputSampleHitT = lightSample.hitT;
         }
 	}
 
     if (ReservoirData_isValid(reservoirData))
     {
-        vec3 wInWorldSpace = reservoirData.sampleDirection;
+        vec3 wInWorldSpace = outputSampleDirection;
 
         vec3 brdfEval = diffuseBsdfEval(baseColor);
         vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
-        float intensity = triangleLightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, reservoirData.sampleDirection, reservoirData.hitT);
+        float intensity = triangleLightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, outputSampleDirection, outputSampleHitT);
 
-        float shadowFactor = shadowRayHit(x1, reservoirData.sampleDirection, reservoirData.hitT) ? 0.0 : 1.0;
+        float visibility = shadowRayHit(x1, outputSampleDirection, outputSampleHitT) ? 0.0 : 1.0;
 
-        float p_hat = length(shadowFactor * brdfContribution * intensity);
+        float p_hat = length(visibility * brdfContribution * intensity);
 
         reservoir.contributionWeight = (p_hat > 0.0) ? ((1.0 / p_hat) * reservoir.weightSum / reservoir.sampleCount) : 0.0;
+        reservoirData.p_hat = p_hat;
     }
 
     return RisResult(reservoirData, reservoir);
