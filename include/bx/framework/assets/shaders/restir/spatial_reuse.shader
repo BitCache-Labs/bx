@@ -130,20 +130,32 @@ void main()
     
         Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirs[sampleId], RESERVOIR_M_CLAMP);
     
-        mat4 lightTransform = inverse(blasInstances[sampledReservoirData.blasInstance].invTransform);
-        LightSample sampledLightSample = sampleTriangleLight(sampledReservoirData.triangleLightSource, sampledReservoirData.hitUv, lightTransform, origin, 0.0);
-        
-        if (dot(sampledLightSample.sampleDirection, normal) > 0.0)
+        vec3 direction;
+        float tMax;
+        if (reservoirData.triangleLightSource != U32_MAX)
+        {
+            mat4 lightTransform = inverse(blasInstances[sampledReservoirData.blasInstance].invTransform);
+            LightSample reconstructedLightSample = sampleTriangleLight(sampledReservoirData.triangleLightSource, sampledReservoirData.hitUv, lightTransform, origin, 0.0);
+            direction = reconstructedLightSample.sampleDirection;
+            tMax = reconstructedLightSample.hitT;
+        }
+        else
+        {
+            direction = sampleSunDirection(reservoirData.hitUv);
+            tMax = SUN_DISTANCE;
+        }
+
+        if (dot(direction, normal) > 0.0)
         {
             vec3 brdfEval = diffuseBsdfEval(vec3(0.7, 0.7, 0.7)); // TODO: pass basecolor around?
-            vec3 brdfContribution = bsdfContribution(brdfEval, normal, sampledLightSample.sampleDirection, 1.0);
-            float intensity = triangleLightIntensity(sampledReservoirData.triangleLightSource, sampledReservoirData.blasInstance,
-                sampledLightSample.sampleDirection, sampledLightSample.hitT);
+            vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0);
+            float intensity = lightIntensity(sampledReservoirData.triangleLightSource, sampledReservoirData.blasInstance,
+                direction, tMax);
         
             float visibility = 1.0;
             if (constants.unbiased)
             {
-                visibility = traceValidationRay(origin, sampledLightSample.sampleDirection, sampledLightSample.hitT) ? 0.0 : 1.0;
+                visibility = traceValidationRay(origin, direction, tMax) ? 0.0 : 1.0;
             }
 
             sampledReservoirData.p_hat = length(visibility * brdfContribution * intensity);

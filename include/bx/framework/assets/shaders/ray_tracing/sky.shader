@@ -26,7 +26,7 @@ layout (BINDING(3, 0), std140) uniform _SkyConstants
 float sunIntensity(float zenithAngleCos)
 {
     float cutoffAngle = PI / 1.95;
-    float intensity = skyConstants.sunIntensity * 0.5 *
+    float intensity = skyConstants.sunIntensity *
         max(0.0, 1.0 - exp(-((cutoffAngle - acos(zenithAngleCos)) / 1.4)));
     return intensity;
 }
