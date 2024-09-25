@@ -341,7 +341,7 @@ void NertPass::UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo)
     NertShadeConstants shadeConstants{};
     shadeConstants.width = width;
     shadeConstants.height = height;
-    shadeConstants.sampleNumber = 0;// accumulationFrameIdx;
+    shadeConstants.sampleNumber = accumulationFrameIdx;
     Graphics::WriteBuffer(shadeConstantsBuffer, 0, &shadeConstants);
 }
 

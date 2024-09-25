@@ -145,7 +145,7 @@ void main()
     }
 
     vec3 old = imageLoad(outImage, pixel).rgb;
-    float portion = 1.0 / (0 + 1); // constants.sampleNumber
+    float portion = 1.0 / (constants.sampleNumber + 1);
     vec3 resolved = (old * (1.0 - portion) + portion * lightingContribution);
     imageStore(outImage, pixel, vec4(resolved, 1.0));
 }
