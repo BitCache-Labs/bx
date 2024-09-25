@@ -83,7 +83,7 @@ bool traceValidationRay(vec3 origin, vec3 direction, float tMax)
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
-{return;
+{
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= constants.resolution.x * constants.resolution.y) return;
     ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
@@ -141,20 +141,18 @@ void main()
             reservoirData = sampledReservoirData;
         }
         
-        if (ReservoirData_isValid(reservoirData))
-        {
-            outputReservoir.contributionWeight = (reservoirData.p_hat > 0.0) ? ((1.0 / reservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount) : 0.0;
+        outputReservoir.contributionWeight = (reservoirData.p_hat > 0.0) ? ((1.0 / reservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount) : 0.0;
 
-            restirReservoirs[id] = Reservoir_toPacked(outputReservoir);
-            restirReservoirData[id] = ReservoirData_toPacked(reservoirData);
-        }
+        Reservoir_clampContributionWeight(outputReservoir, RESERVOIR_CONTRIBUTION_CLAMP);
 
-        restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
-        restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
+        restirReservoirs[id] = Reservoir_toPacked(outputReservoir);
+        restirReservoirData[id] = ReservoirData_toPacked(reservoirData);
+        //restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
+        //restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
     }
     else
     {
-        restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
-        restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
+        //restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
+        //restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
     }
 }

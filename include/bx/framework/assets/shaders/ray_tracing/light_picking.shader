@@ -39,12 +39,12 @@ float triangleLightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 dire
 
     // TODO: incorporate material emissive factor
 
-    return triangleLightSolidAngle(cosOut, area, distanceToLight) * 4.0;
+    return triangleLightSolidAngle(cosOut, area, distanceToLight) * 40.0;
 }
 
 float lightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)
 {
-    if (triangleIndex != U32_MAX && false)
+    if (triangleIndex != U32_MAX)
     {
         return triangleLightIntensity(triangleIndex, blasInstanceIdx, directionToLight, distanceToLight);
     }
@@ -77,7 +77,7 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
 {
     uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
 
-    float sunPickProbability = 0.0;//(emissiveTriangleCount == 0) ? 1.0 : 0.5;
+    float sunPickProbability = (emissiveTriangleCount == 0) ? 1.0 : 0.5;
     if (random.x < sunPickProbability)
     {
         LightSample lightSample;

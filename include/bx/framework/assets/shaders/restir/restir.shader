@@ -4,9 +4,8 @@
 #include "[engine]/shaders/reservoir.shader"
 #include "[engine]/shaders/packing.shader"
 
-const uint JACOBIAN_CUTOFF = 8;
-const float RESERVOIR_M_CLAMP = 20.0;
-const float HISTORY_WEIGHT_BIAS = 1.0;
+const float RESERVOIR_M_CLAMP = 256.0;
+const float RESERVOIR_CONTRIBUTION_CLAMP = 1024.0 * 8.0;
 
 struct ReservoirData
 {
