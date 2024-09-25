@@ -70,7 +70,7 @@ RisResult ris(inout uint rngState,
     return RisResult(reservoirData, reservoir);
 #else
 
-    const uint M_AREA = 320;
+    const uint M_AREA = 32;
 
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
@@ -114,7 +114,7 @@ RisResult ris(inout uint rngState,
 
         float p_hat = length(shadowFactor * brdfContribution * intensity);
 
-        reservoir.contributionWeight = reservoir.weightSum / max(1e-8, p_hat * reservoir.sampleCount);
+        reservoir.contributionWeight = (p_hat > 0.0) ? ((1.0 / p_hat) * reservoir.weightSum / reservoir.sampleCount) : 0.0;
     }
 
     return RisResult(reservoirData, reservoir);

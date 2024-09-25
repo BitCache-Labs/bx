@@ -133,7 +133,7 @@ void main()
 
                 vec3 radiance = shadowFactor * brdfContribution * intensity;
 
-                lightingContribution += max(throughput * radiance * reservoir.contributionWeight, 0.0); // TODO: why is this clamp required??
+                lightingContribution += throughput * radiance * reservoir.contributionWeight;
             }
 
             //// TODO: load from material / evaluate sun
