@@ -10,12 +10,11 @@ const float HISTORY_WEIGHT_BIAS = 1.0;
 
 struct ReservoirData
 {
-    vec3 sampleDirection;
-    float hitT;
+    vec3 sampleDirection;   // both can go??
+    float hitT;             // both can go??
     uint triangleLightSource;
     uint blasInstance;
     vec2 hitUv;
-    float unoccludedContributionWeight;
 };
 
 struct PackedReservoirData
@@ -25,9 +24,9 @@ struct PackedReservoirData
     uint triangleLightSource;
     uint blasInstance;
     uint packedHitUv;
-    float unoccludedContributionWeight;
     uint _PADDING0;
     uint _PADDING1;
+    uint _PADDING2;
 };
 
 bool ReservoirData_isValid(ReservoirData self)
@@ -43,8 +42,7 @@ PackedReservoirData ReservoirData_toPacked(ReservoirData self)
         self.triangleLightSource,
         self.blasInstance,
         packHalf2x16(self.hitUv),
-        self.unoccludedContributionWeight,
-        0, 0
+        0, 0, 0
     );
 }
 
@@ -55,8 +53,7 @@ ReservoirData ReservoirData_fromPacked(PackedReservoirData packed)
         packed.hitT,
         packed.triangleLightSource,
         packed.blasInstance,
-        unpackHalf2x16(packed.packedHitUv),
-        packed.unoccludedContributionWeight
+        unpackHalf2x16(packed.packedHitUv)
     );
 }
 

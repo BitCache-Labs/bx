@@ -52,8 +52,11 @@ void main()
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
     vec3 origin = imageLoad(neGbuffer, pixel).rgb;
-    vec3 direction = reservoirData.sampleDirection;
+    //vec3 direction = reservoirData.sampleDirection;
     float tMax = reservoirData.hitT;
+
+    mat4 lightTransform = inverse(blasInstances[reservoirData.blasInstance].invTransform);
+    vec3 direction = sampleTriangleLight(reservoirData.triangleLightSource, reservoirData.hitUv, lightTransform, origin, 0.0).sampleDirection;
 
     // TODO: write in intersect.comp for mirrors, load here
     vec3 throughput = vec3(1.0);
@@ -123,13 +126,13 @@ void main()
 
             if (ReservoirData_isValid(reservoirData))
             {
-                vec3 wInWorldSpace = reservoirData.sampleDirection;
+                vec3 wInWorldSpace = direction;
 
                 vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
                 vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
-                float intensity = triangleLightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, reservoirData.sampleDirection, reservoirData.hitT);
+                float intensity = triangleLightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, reservoirData.hitT);
 
-                float shadowFactor = shadowRayHit(origin, reservoirData.sampleDirection, reservoirData.hitT) ? 0.0 : 1.0;
+                float shadowFactor = shadowRayHit(origin, direction, reservoirData.hitT) ? 0.0 : 1.0;
 
                 vec3 radiance = shadowFactor * brdfContribution * intensity;
 
@@ -145,7 +148,7 @@ void main()
     }
 
     vec3 old = imageLoad(outImage, pixel).rgb;
-    float portion = 1.0 / (constants.sampleNumber + 1);
+    float portion = 1.0 / (0 + 1); // constants.sampleNumber
     vec3 resolved = (old * (1.0 - portion) + portion * lightingContribution);
     imageStore(outImage, pixel, vec4(resolved, 1.0));
 }

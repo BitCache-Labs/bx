@@ -462,9 +462,9 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     }
     Graphics::EndComputePass(computePass);
 
-    //restirDiPass->seed = seed;
-    //restirDiPass->unbiased = unbiased;
-    //restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.blasDataPool, dispatchInfo.sky);
+    restirDiPass->seed = seed;
+    restirDiPass->unbiased = unbiased;
+    restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.blasDataPool, dispatchInfo.sky);
 
     computePassDescriptor.name = "Nert Shade";
     computePass = Graphics::BeginComputePass(computePassDescriptor);

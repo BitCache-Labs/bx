@@ -63,7 +63,7 @@ RisResult ris(inout uint rngState,
     LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
 
     ReservoirData reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
-        lightSample.blasInstance, lightSample.uv, 0.0);
+        lightSample.blasInstance, lightSample.uv);
     Reservoir reservoir = Reservoir_default();
     reservoir.contributionWeight = 1.0 / lightSample.pdf;
     reservoir.sampleCount = 1.0;
@@ -75,7 +75,7 @@ RisResult ris(inout uint rngState,
     vec3 wOutWorldSpace = normalize(x1 - x0);
     vec3 wOutTangentSpace = normalize(worldToTangent * wOutWorldSpace);
 
-    ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0), 0.0);
+    ReservoirData reservoirData = ReservoirData(vec3(0.0), 0.0, 0, 0, vec2(0.0));
     Reservoir reservoir = Reservoir_default();
 	
     #pragma unroll
@@ -98,7 +98,7 @@ RisResult ris(inout uint rngState,
         if (Reservoir_update(reservoir, weight, rngState))
         {
             reservoirData = ReservoirData(lightSample.sampleDirection, lightSample.hitT, lightSample.triangle,
-                lightSample.blasInstance, lightSample.uv, p_hat);
+                lightSample.blasInstance, lightSample.uv);
         }
 	}
 

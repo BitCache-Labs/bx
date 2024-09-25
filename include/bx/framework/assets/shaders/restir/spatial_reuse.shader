@@ -93,98 +93,98 @@ float ReservoirData_getLightWeight(ReservoirData self, vec3 p)
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-    uint id = uint(gl_GlobalInvocationID.x);
-    if (id >= constants.resolution.x * constants.resolution.y) return;
-    ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
-    
-    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
-
-    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
-    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
-
-    vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
-    if (centerNormalAndDepth.w == 0.0)
-    {
-        outRestirReservoirs[id] = Reservoir_toPacked(reservoir);
-        outRestirReservoirData[id] = ReservoirData_toPacked(reservoirData);
-        restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
-        restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
-        return;
-    }
-    vec3 centerOrigin = getPositionWs(pixel, centerNormalAndDepth.w);
-
-    float screenRadius = constants.resolution.x / 30.0;
-    float radius = screenRadius;
-    float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex) * 0.5;
-    ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 3) : (pixel >> 2);
-    uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + constants.spatialIndex));
-    float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
-
-    #pragma unroll
-    for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
-    {
-        float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
-        float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
-
-        ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
-        uint flatOffset = offset.y * constants.resolution.x + offset.x;
-        ivec2 samplePixel = pixel + offset;
-        uint sampleId = id + flatOffset;
-
-        samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
-
-        ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
-
-        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
-        if (sampleNormalAndDepth.w == 0.0)
-        {
-            continue;
-        }
-        
-        vec3 samplePositionWs = getPositionWs(samplePixel, sampleNormalAndDepth.w);
-    
-        vec3 sampleRelativeHitPos = sampledReservoirData.sampleDirection * sampledReservoirData.hitT;
-        vec3 sampleRayHitWs = samplePositionWs + sampleRelativeHitPos;
-        vec3 centerToSampleRelativePos = sampleRayHitWs - centerOrigin;
-        vec3 centerOriginToSampleHit = normalize(centerToSampleRelativePos);
-
-        // Trace if unbiased
-
-        Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirs[sampleId], RESERVOIR_M_CLAMP);
-
-        float jacobian = 1.0;
-        if (constants.jacobian)
-        {
-            jacobian = ReservoirData_getLightWeight(sampledReservoirData, centerOrigin) / ReservoirData_getLightWeight(reservoirData, centerOrigin);
-        }
-        sampledReservoirData.unoccludedContributionWeight *= jacobian;
-
-        if (sampledReservoir.contributionWeight < 1e-3)
-        {
-            continue;
-        }
-
-        if (constants.unbiased && traceValidationRay(centerOrigin, centerOriginToSampleHit, length(centerToSampleRelativePos)))
-        {
-            sampledReservoir.contributionWeight = 0.0;
-        }
-
-        bool firstReservoirWasPicked;
-        reservoir = Reservoir_combineReservoirs(reservoir, reservoirData.unoccludedContributionWeight, sampledReservoir, sampledReservoirData.unoccludedContributionWeight,
-	        rngState, firstReservoirWasPicked);
-        if (!firstReservoirWasPicked)
-        {
-            reservoirData.sampleDirection = centerOriginToSampleHit;
-            reservoirData.hitT = length(centerToSampleRelativePos);
-            reservoirData.unoccludedContributionWeight = sampledReservoirData.unoccludedContributionWeight;
-        }
-    }
-
-    Reservoir_clampContributionWeight(reservoir, RESERVOIR_M_CLAMP);
-
-    outRestirReservoirs[id] = Reservoir_toPacked(reservoir);
-    outRestirReservoirData[id] = ReservoirData_toPacked(reservoirData);
-
-    restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
-    restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
+    //uint id = uint(gl_GlobalInvocationID.x);
+    //if (id >= constants.resolution.x * constants.resolution.y) return;
+    //ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
+    //
+    //uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
+    //
+    //Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
+    //ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
+    //
+    //vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
+    //if (centerNormalAndDepth.w == 0.0)
+    //{
+    //    outRestirReservoirs[id] = Reservoir_toPacked(reservoir);
+    //    outRestirReservoirData[id] = ReservoirData_toPacked(reservoirData);
+    //    restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
+    //    restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
+    //    return;
+    //}
+    //vec3 centerOrigin = getPositionWs(pixel, centerNormalAndDepth.w);
+    //
+    //float screenRadius = constants.resolution.x / 30.0;
+    //float radius = screenRadius;
+    //float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex) * 0.5;
+    //ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 3) : (pixel >> 2);
+    //uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + constants.spatialIndex));
+    //float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
+    //
+    //#pragma unroll
+    //for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
+    //{
+    //    float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
+    //    float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
+    //
+    //    ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
+    //    uint flatOffset = offset.y * constants.resolution.x + offset.x;
+    //    ivec2 samplePixel = pixel + offset;
+    //    uint sampleId = id + flatOffset;
+    //
+    //    samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
+    //
+    //    ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
+    //
+    //    vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
+    //    if (sampleNormalAndDepth.w == 0.0)
+    //    {
+    //        continue;
+    //    }
+    //    
+    //    vec3 samplePositionWs = getPositionWs(samplePixel, sampleNormalAndDepth.w);
+    //
+    //    vec3 sampleRelativeHitPos = sampledReservoirData.sampleDirection * sampledReservoirData.hitT;
+    //    vec3 sampleRayHitWs = samplePositionWs + sampleRelativeHitPos;
+    //    vec3 centerToSampleRelativePos = sampleRayHitWs - centerOrigin;
+    //    vec3 centerOriginToSampleHit = normalize(centerToSampleRelativePos);
+    //
+    //    // Trace if unbiased
+    //
+    //    Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirs[sampleId], RESERVOIR_M_CLAMP);
+    //
+    //    float jacobian = 1.0;
+    //    if (constants.jacobian)
+    //    {
+    //        jacobian = ReservoirData_getLightWeight(sampledReservoirData, centerOrigin) / ReservoirData_getLightWeight(reservoirData, centerOrigin);
+    //    }
+    //    sampledReservoirData.unoccludedContributionWeight *= jacobian;
+    //
+    //    if (sampledReservoir.contributionWeight < 1e-3)
+    //    {
+    //        continue;
+    //    }
+    //
+    //    if (constants.unbiased && traceValidationRay(centerOrigin, centerOriginToSampleHit, length(centerToSampleRelativePos)))
+    //    {
+    //        sampledReservoir.contributionWeight = 0.0;
+    //    }
+    //
+    //    bool firstReservoirWasPicked;
+    //    reservoir = Reservoir_combineReservoirs(reservoir, reservoirData.unoccludedContributionWeight, sampledReservoir, sampledReservoirData.unoccludedContributionWeight,
+	//        rngState, firstReservoirWasPicked);
+    //    if (!firstReservoirWasPicked)
+    //    {
+    //        reservoirData.sampleDirection = centerOriginToSampleHit;
+    //        reservoirData.hitT = length(centerToSampleRelativePos);
+    //        reservoirData.unoccludedContributionWeight = sampledReservoirData.unoccludedContributionWeight;
+    //    }
+    //}
+    //
+    //Reservoir_clampContributionWeight(reservoir, RESERVOIR_M_CLAMP);
+    //
+    //outRestirReservoirs[id] = Reservoir_toPacked(reservoir);
+    //outRestirReservoirData[id] = ReservoirData_toPacked(reservoirData);
+    //
+    //restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
+    //restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
 }
