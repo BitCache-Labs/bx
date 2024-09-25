@@ -266,35 +266,35 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     Graphics::EndComputePass(computePass);
 
     Graphics::DestroyBindGroup(temporalReuseBindGroup);
-
-    //for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
-    //{
-    //    BindGroupCreateInfo spatialReuseBindGroupCreateInfo{};
-    //    spatialReuseBindGroupCreateInfo.name = "Restir Spatial Reuse Bind Group";
-    //    spatialReuseBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(SpatialReusePipeline::Get(), 0);
-    //    spatialReuseBindGroupCreateInfo.entries = {
-    //        BindGroupEntry(0, BindingResource::Buffer(spatialReuseConstantsBuffers[i])),
-    //        BindGroupEntry(1, BindingResource::TextureView(gbufferView)),
-    //        BindGroupEntry(2, BindingResource::AccelerationStructure(tlas)),
-    //    };
-    //    BindGroupHandle spatialReuseBindGroup = Graphics::CreateBindGroup(spatialReuseBindGroupCreateInfo);
-    //    BindGroupHandle spatialBlasDataPoolGroup = blasDataPool.CreateBindGroup(SpatialReusePipeline::Get());
-    //    BindGroupHandle spatialSkyGroup = sky.CreateBindGroup(SpatialReusePipeline::Get());
-    //
-    //    computePassDescriptor.name = "Restir Spatial Reuse";
-    //    computePass = Graphics::BeginComputePass(computePassDescriptor);
-    //    {
-    //        Graphics::SetComputePipeline(SpatialReusePipeline::Get());
-    //        Graphics::SetBindGroup(0, spatialReuseBindGroup);
-    //        Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, spatialBlasDataPoolGroup);
-    //        Graphics::SetBindGroup(Sky::BIND_GROUP_SET, spatialSkyGroup);
-    //        Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirSpatialBindGroups[i]);
-    //        Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
-    //    }
-    //    Graphics::EndComputePass(computePass);
-    //
-    //    Graphics::DestroyBindGroup(spatialReuseBindGroup);
-    //}
+    return;
+    for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
+    {
+        BindGroupCreateInfo spatialReuseBindGroupCreateInfo{};
+        spatialReuseBindGroupCreateInfo.name = "Restir Spatial Reuse Bind Group";
+        spatialReuseBindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(SpatialReusePipeline::Get(), 0);
+        spatialReuseBindGroupCreateInfo.entries = {
+            BindGroupEntry(0, BindingResource::Buffer(spatialReuseConstantsBuffers[i])),
+            BindGroupEntry(1, BindingResource::TextureView(gbufferView)),
+            BindGroupEntry(2, BindingResource::AccelerationStructure(tlas)),
+        };
+        BindGroupHandle spatialReuseBindGroup = Graphics::CreateBindGroup(spatialReuseBindGroupCreateInfo);
+        BindGroupHandle spatialBlasDataPoolGroup = blasDataPool.CreateBindGroup(SpatialReusePipeline::Get());
+        BindGroupHandle spatialSkyGroup = sky.CreateBindGroup(SpatialReusePipeline::Get());
+    
+        computePassDescriptor.name = "Restir Spatial Reuse";
+        computePass = Graphics::BeginComputePass(computePassDescriptor);
+        {
+            Graphics::SetComputePipeline(SpatialReusePipeline::Get());
+            Graphics::SetBindGroup(0, spatialReuseBindGroup);
+            Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, spatialBlasDataPoolGroup);
+            Graphics::SetBindGroup(Sky::BIND_GROUP_SET, spatialSkyGroup);
+            Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirSpatialBindGroups[i]);
+            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+        }
+        Graphics::EndComputePass(computePass);
+    
+        Graphics::DestroyBindGroup(spatialReuseBindGroup);
+    }
 }
 
 void RestirDiPass::ClearPipelineCache()

@@ -4,6 +4,8 @@
 #include "[engine]/shaders/math.shader"
 #include "[engine]/shaders/sampling.shader"
 
+const float SUN_DISTANCE = 1000.0;
+
 struct SkyConstants
 {
 	vec3 sunDirection;

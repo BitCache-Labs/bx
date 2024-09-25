@@ -32,8 +32,12 @@ layout(BINDING(0, 4)) uniform accelerationStructureEXT Scene;
 layout (BINDING(0, 5), rgba32f) uniform image2D neGbuffer;
 layout (BINDING(0, 6), rgba32f) uniform image2D outImage;
 
-bool shadowRayHit(vec3 origin, vec3 direction, float tMax)
+bool traceValidationRay(vec3 origin, vec3 direction, float tMax)
 {
+    const float validationEpsilon = min(tMax * 0.001, 0.1);
+    origin += validationEpsilon * direction;
+    tMax = max(0.0, tMax - validationEpsilon);
+
     rayQueryEXT rayQuery;
 	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, origin, RT_EPSILON, direction, tMax);
 	rayQueryProceedEXT(rayQuery);
@@ -53,10 +57,20 @@ void main()
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
     
-    mat4 lightTransform = inverse(blasInstances[reservoirData.blasInstance].invTransform);
-    LightSample reconstructedLightSample = sampleTriangleLight(reservoirData.triangleLightSource, reservoirData.hitUv, lightTransform, origin, 0.0);
-    vec3 direction = reconstructedLightSample.sampleDirection;
-    float tMax = reconstructedLightSample.hitT;
+    vec3 direction;
+    float tMax;
+    if (reservoirData.triangleLightSource != U32_MAX)
+    {
+        mat4 lightTransform = inverse(blasInstances[reservoirData.blasInstance].invTransform);
+        LightSample reconstructedLightSample = sampleTriangleLight(reservoirData.triangleLightSource, reservoirData.hitUv, lightTransform, origin, 0.0);
+        direction = reconstructedLightSample.sampleDirection;
+        tMax = reconstructedLightSample.hitT;
+    }
+    else
+    {
+        direction = sampleSunDirection(reservoirData.hitUv);
+        tMax = SUN_DISTANCE;
+    }
 
     // TODO: write in intersect.comp for mirrors, load here
     vec3 throughput = vec3(1.0);
@@ -130,11 +144,11 @@ void main()
 
                 vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
                 vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
-                float intensity = triangleLightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
+                float intensity = lightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
 
-                float shadowFactor = shadowRayHit(origin, direction, tMax) ? 0.0 : 1.0;
+                float visibility = traceValidationRay(origin, direction, tMax) ? 0.0 : 1.0;
 
-                vec3 radiance = shadowFactor * brdfContribution * intensity;
+                vec3 radiance = visibility * brdfContribution * intensity;
 
                 lightingContribution += throughput * radiance * reservoir.contributionWeight;
             }

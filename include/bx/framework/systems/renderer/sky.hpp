@@ -11,7 +11,7 @@ struct SunInfo
 	Vec3 direction = Vec3(-0.3, -1.0, 0.0);
 	f32 size = 0.15;
 	Color color = Color::White();
-	f32 intensity = 2.0;
+	f32 intensity = 15.0;
 };
 
 class Sky : NoCopy

@@ -71,7 +71,7 @@ vec3 getPositionWsHistory(ivec2 pixel, float depth)
 
 bool traceValidationRay(vec3 origin, vec3 direction, float tMax)
 {
-    const float validationEpsilon = tMax * 0.1;
+    const float validationEpsilon = min(tMax * 0.001, 0.1);
     origin += validationEpsilon * direction;
     tMax = max(0.0, tMax - validationEpsilon);
 
@@ -83,7 +83,7 @@ bool traceValidationRay(vec3 origin, vec3 direction, float tMax)
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
-{
+{return;
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= constants.resolution.x * constants.resolution.y) return;
     ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));

@@ -16,7 +16,6 @@ struct LightSample
     uint triangle;
     uint blasInstance;
     vec2 uv;
-    //float intensity;
 };
 
 struct RisResult
@@ -40,7 +39,19 @@ float triangleLightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 dire
 
     // TODO: incorporate material emissive factor
 
-    return triangleLightSolidAngle(cosOut, area, distanceToLight);
+    return triangleLightSolidAngle(cosOut, area, distanceToLight) * 4.0;
+}
+
+float lightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)
+{
+    if (triangleIndex != U32_MAX && false)
+    {
+        return triangleLightIntensity(triangleIndex, blasInstanceIdx, directionToLight, distanceToLight);
+    }
+    else
+    {
+        return sunIntensity(directionToLight.y);
+    }
 }
 
 LightSample sampleTriangleLight(uint triangleIndex, vec2 uv, mat4 transform, vec3 p, float sunPickProbability)
@@ -62,24 +73,20 @@ LightSample sampleTriangleLight(uint triangleIndex, vec2 uv, mat4 transform, vec
     return LightSample(directionToLight, distanceToLight, pdf, triangleIndex, 0, uv);
 }
 
-float sunPdf(float sunPickProbability)
-{
-    return sunPickProbability * (1.0 / sunSolidAngle());
-}
-
 LightSample _sampleUniformLight(vec4 random, vec3 p)
 {
     uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
 
-    float sunPickProbability = 0.0;//emissiveTriangleCount == 0 ? 1.0 : 0.5;
+    float sunPickProbability = 0.0;//(emissiveTriangleCount == 0) ? 1.0 : 0.5;
     if (random.x < sunPickProbability)
     {
         LightSample lightSample;
         lightSample.sampleDirection = sampleSunDirection(random.yz);
-        lightSample.hitT = 10000.0;
-        lightSample.pdf = sunPdf(sunPickProbability);
+        lightSample.hitT = SUN_DISTANCE;
+        lightSample.pdf = sunPickProbability;
         lightSample.triangle = U32_MAX;
-        //lightSample.intensity = sunIntensity(lightSample.sampleDirection.y);
+        lightSample.blasInstance = 0;
+        lightSample.uv = random.yz;
         return lightSample;
     }
 
@@ -101,7 +108,6 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
             LightSample lightSample = sampleTriangleLight(triangleIndex, random.zw, inverse(instance.invTransform), p, sunPickProbability);
             lightSample.triangle = triangleIndex;
             lightSample.blasInstance = blasEmissiveInstanceIndices[i];
-            //lightSample.intensity = 10.0;
             return lightSample;
         }
         else
