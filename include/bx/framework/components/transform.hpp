@@ -28,6 +28,7 @@ public:
 
 	inline const Mat4& GetMatrix() const { return m_matrix; }
 	inline const Mat4& GetInvMatrix() const { return m_invMatrix; }
+	inline const Mat4& GetPrevMatrix() const { return m_prevMatrix; }
 
 	inline void SetMatrix(const Mat4& matrix)
 	{
@@ -41,6 +42,8 @@ public:
 
 	inline void Update()
 	{
+		m_prevMatrix = m_matrix;
+
 		m_wasDirty = false;
 		if (!m_isDirty) return;
 		m_isDirty = false;
@@ -66,4 +69,5 @@ private:
 
 	Mat4 m_matrix = Mat4::Identity();
 	Mat4 m_invMatrix = Mat4::Identity();
+	Mat4 m_prevMatrix = Mat4::Identity();
 };

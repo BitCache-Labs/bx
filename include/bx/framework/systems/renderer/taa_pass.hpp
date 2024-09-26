@@ -14,7 +14,7 @@ public:
 
 	TextureHandle GetResolvedColorTarget() const;
 
-	void Dispatch(const Camera& camera, TextureHandle colorTarget);
+	void Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle velocityTargetView);
 	void NextFrame();
 
 	static void ClearPipelineCache();

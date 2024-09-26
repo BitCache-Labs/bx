@@ -1017,6 +1017,7 @@ void Graphics::SetGraphicsPipeline(GraphicsPipelineHandle graphicsPipelineHandle
         info.primitiveTopology = PrimitiveTopologyToVk(createInfo.topology);
         info.vertexBindingDescriptions = vertexBindingDescriptions;
         info.vertexAttributeDescriptions = vertexAttributeDescriptions;
+        info.blendCount = createInfo.colorTargets.size();
 
         List<PushConstantRange> pc{};
         

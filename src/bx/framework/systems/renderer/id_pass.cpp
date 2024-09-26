@@ -75,7 +75,7 @@ struct IdPipeline : public LazyInitMap<IdPipeline, GraphicsPipelineHandle, IdPip
         pipelineCreateInfo.fragmentShader = fragmentShader;
         pipelineCreateInfo.vertexBuffers = { vertexBufferLayout };
         pipelineCreateInfo.cullMode = Optional<Face>::None();
-        pipelineCreateInfo.colorTarget = Optional<ColorTargetState>::Some(colorTargetState);
+        pipelineCreateInfo.colorTargets = List<ColorTargetState>{ colorTargetState };
         pipelineCreateInfo.depthFormat = Optional<TextureFormat>::Some(depthFormat);
         data = Graphics::CreateGraphicsPipeline(pipelineCreateInfo);
 

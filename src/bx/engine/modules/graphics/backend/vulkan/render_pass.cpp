@@ -11,7 +11,7 @@ namespace Vk
 {
     RenderPass::RenderPass(const String& name, std::shared_ptr<Device> device,
         const RenderPassInfo& info)
-        : device(device) {
+        : device(device), info(info) {
         List<VkAttachmentDescription> attachements;
 
         List<VkAttachmentReference> colorAttachmentRefs;
@@ -96,5 +96,10 @@ namespace Vk
 
     VkRenderPass RenderPass::GetRenderPass() const {
         return this->renderPass;
+    }
+
+    const RenderPassInfo& RenderPass::GetInfo() const
+    {
+        return info;
     }
 }

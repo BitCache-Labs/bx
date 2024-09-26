@@ -32,6 +32,7 @@ namespace Vk
         VkPrimitiveTopology primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         VkFrontFace frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         VkCullModeFlags cullMode = VK_CULL_MODE_NONE;
+        u32 blendCount = 1;
 
         List<VkVertexInputBindingDescription> vertexBindingDescriptions{};
         List<VkVertexInputAttributeDescription> vertexAttributeDescriptions{};

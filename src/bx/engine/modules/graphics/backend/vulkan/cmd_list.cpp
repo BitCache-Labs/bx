@@ -388,9 +388,19 @@ namespace Vk
         renderPassInfo.renderArea.extent =
             VkExtent2D{ framebuffer->Images()[0]->Width(), framebuffer->Images()[0]->Height() };
 
-        std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = { {clearColor.r, clearColor.g, clearColor.b, clearColor.a} };
-        clearValues[1].depthStencil = { 1.0f, 0 };
+        List<VkClearValue> clearValues{};
+        for (u32 i = 0; i < renderPass->GetInfo().colorFormats.size(); i++)
+        {
+            VkClearValue clearValue{};
+            clearValue.color = { {clearColor.r, clearColor.g, clearColor.b, clearColor.a} };
+            clearValues.push_back(clearValue);
+        }
+        if (renderPass->GetInfo().depthFormat.IsSome())
+        {
+            VkClearValue clearValue{};
+            clearValue.depthStencil = { 1.0f, 0 };
+            clearValues.push_back(clearValue);
+        }
 
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();

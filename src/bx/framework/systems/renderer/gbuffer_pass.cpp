@@ -12,13 +12,15 @@
 struct GBufferConstants
 {
     Mat4 viewProj;
+    Mat4 viewProjHistory;
     Vec3 viewPos;
     u32 _PADDING0;
 };
 
 struct VertexMeshUniform
 {
-    Mat4 world = Mat4::Identity();
+    Mat4 worldMesh = Mat4::Identity();
+    Mat4 worldMeshHistory = Mat4::Identity();
     Mat4 transInvWorldMesh = Mat4::Identity();
     u32 blasInstanceIdx;
     u32 _PADDING0;
@@ -80,6 +82,8 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
 
         ColorTargetState colorTargetState{};
         colorTargetState.format = Graphics::GetTextureCreateInfo(args.colorTarget).format;
+        ColorTargetState velocityTargetState{};
+        velocityTargetState.format = TextureFormat::RG32_FLOAT;
 
         TextureFormat depthFormat = Graphics::GetTextureCreateInfo(args.depthTarget).format;
 
@@ -90,7 +94,7 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
         pipelineCreateInfo.fragmentShader = fragmentShader;
         pipelineCreateInfo.vertexBuffers = { vertexBufferLayout };
         pipelineCreateInfo.cullMode = Optional<Face>::None();
-        pipelineCreateInfo.colorTarget = Optional<ColorTargetState>::Some(colorTargetState);
+        pipelineCreateInfo.colorTargets = List<ColorTargetState>{ colorTargetState, velocityTargetState };
         pipelineCreateInfo.depthFormat = Optional<TextureFormat>::Some(depthFormat);
         data = Graphics::CreateGraphicsPipeline(pipelineCreateInfo);
 
@@ -110,7 +114,6 @@ GBufferPass::GBufferPass(TextureHandle depthTarget)
     height = textureCreateInfo.size.height;
 
     TextureCreateInfo colorTargetCreateInfo{};
-    
     colorTargetCreateInfo.size = Extend3D(width, height, 1);
     colorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     colorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
@@ -120,6 +123,14 @@ GBufferPass::GBufferPass(TextureHandle depthTarget)
         colorTarget[i] = Graphics::CreateTexture(colorTargetCreateInfo);
         colorTargetView[i] = Graphics::CreateTextureView(colorTarget[i]);
     }
+
+    TextureCreateInfo velocityTargetCreateInfo{};
+    velocityTargetCreateInfo.name = "GBuffer Velocity Target";
+    velocityTargetCreateInfo.size = Extend3D(width, height, 1);
+    velocityTargetCreateInfo.format = TextureFormat::RG32_FLOAT;
+    velocityTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
+    velocityTarget = Graphics::CreateTexture(velocityTargetCreateInfo);
+    velocityTargetView = Graphics::CreateTextureView(velocityTarget);
     
     depthTargetView = Graphics::CreateTextureView(depthTarget);
 
@@ -138,6 +149,9 @@ GBufferPass::~GBufferPass()
         Graphics::DestroyTextureView(colorTargetView[i]);
     }
 
+    Graphics::DestroyTextureView(velocityTargetView);
+    Graphics::DestroyTexture(velocityTarget);
+
     Graphics::DestroyBuffer(constantBuffer);
     Graphics::DestroyTextureView(depthTargetView);
 }
@@ -152,16 +166,28 @@ TextureViewHandle GBufferPass::GetColorTargetHistoryView() const
     return colorTargetView[frameIdx % 2 != 0];
 }
 
+TextureViewHandle GBufferPass::GetVelocityTargetView() const
+{
+    return velocityTargetView;
+}
+
 void GBufferPass::Dispatch(const Camera& camera)
 {
     GBufferConstants constants{};
     constants.viewProj = camera.GetViewProjection();
+    constants.viewProjHistory = camera.GetPrevViewProjection();
+    //constants.width = width;
+    //constants.height = height;
     Mat4::Decompose(camera.GetView().Inverse(), constants.viewPos, Quat{}, Vec3{});
     Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(GBufferConstants));
 
     RenderPassDescriptor renderPassDescriptor{};
     renderPassDescriptor.name = "GBuffer";
-    renderPassDescriptor.colorAttachments = { RenderPassColorAttachment(colorTargetView[frameIdx % 2 == 0])};
+    renderPassDescriptor.colorAttachments =
+    {
+        RenderPassColorAttachment(colorTargetView[frameIdx % 2 == 0]),
+        RenderPassColorAttachment(velocityTargetView)
+    };
     renderPassDescriptor.depthStencilAttachment = Optional<RenderPassDepthStencilAttachment>::Some(RenderPassDepthStencilAttachment(depthTargetView));
 
     RenderPassHandle renderPass = Graphics::BeginRenderPass(renderPassDescriptor);
@@ -179,8 +205,9 @@ void GBufferPass::Dispatch(const Camera& camera)
                     const auto& meshData = mesh.GetData();
 
                     VertexMeshUniform meshUniform{};
-                    meshUniform.world = trx.GetMatrix() * meshData.GetMatrix();
-                    meshUniform.transInvWorldMesh = meshUniform.world.Inverse().Transpose();
+                    meshUniform.worldMesh = trx.GetMatrix() * meshData.GetMatrix();
+                    meshUniform.worldMeshHistory = trx.GetPrevMatrix() * meshData.GetMatrix();
+                    meshUniform.transInvWorldMesh = meshUniform.worldMesh.Inverse().Transpose();
                     meshUniform.blasInstanceIdx = mf.m_blasInstanceIndices[i];
 
                     BufferCreateInfo meshUniformCreateInfo{};

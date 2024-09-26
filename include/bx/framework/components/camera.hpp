@@ -47,6 +47,7 @@ public:
 
 	inline const Mat4& GetViewProjection() const { return m_viewProj; }
 	inline const Mat4& GetInvViewProjection() const { return m_invViewProj; }
+	inline const Mat4& GetPrevViewProjection() const { return m_prevViewProj; }
 
 	inline void Update()
 	{
@@ -57,6 +58,7 @@ public:
 		m_prevInvProjection = m_invProjection;
 		m_invProjection = m_projection.Inverse();
 
+		m_prevViewProj = m_viewProj;
 		m_viewProj = m_projection * m_view;
 		m_invViewProj = m_viewProj.Inverse();
 	}
@@ -85,4 +87,5 @@ private:
 
 	Mat4 m_viewProj = Mat4::Identity();
 	Mat4 m_invViewProj = Mat4::Identity();
+	Mat4 m_prevViewProj = Mat4::Identity();
 };

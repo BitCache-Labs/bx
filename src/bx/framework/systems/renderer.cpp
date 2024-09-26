@@ -215,7 +215,7 @@ void Renderer::Render()
         };
         m_nertPass->Dispatch(dispatchInfo);
 
-        m_taaPass->Dispatch(m_cameras.back(), m_colorTarget);
+        m_taaPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetVelocityTargetView());
 
         m_gbufferPass->NextFrame();
     }

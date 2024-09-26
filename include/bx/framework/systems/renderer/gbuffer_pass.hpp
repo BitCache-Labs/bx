@@ -20,6 +20,7 @@ public:
 
 	TextureViewHandle GetColorTargetView() const;
 	TextureViewHandle GetColorTargetHistoryView() const;
+	TextureViewHandle GetVelocityTargetView() const;
 
 	void Dispatch(const Camera& camera);
 	void NextFrame();
@@ -30,8 +31,10 @@ private:
 	BufferHandle constantBuffer;
 
 	TextureHandle colorTarget[2];
+	TextureHandle velocityTarget;
 	TextureHandle depthTarget;
 	TextureViewHandle colorTargetView[2];
+	TextureViewHandle velocityTargetView;
 	TextureViewHandle depthTargetView;
 	u32 width, height;
 	u32 frameIdx;

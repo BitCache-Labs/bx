@@ -44,8 +44,11 @@ namespace Vk
 
         VkRenderPass GetRenderPass() const;
 
+        const RenderPassInfo& GetInfo() const;
+
     private:
         VkRenderPass renderPass;
+        RenderPassInfo info;
 
         const std::shared_ptr<Device> device;
     };

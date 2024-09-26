@@ -488,7 +488,7 @@ struct GraphicsPipelineCreateInfo
 	// ShaderHandle tessalationShader = ShaderHandle::null;
 
 	List<VertexBufferLayout> vertexBuffers = List<VertexBufferLayout>{};
-	Optional<ColorTargetState> colorTarget = Optional<ColorTargetState>::None();
+	List<ColorTargetState> colorTargets = {};
 	PrimitiveTopology topology = PrimitiveTopology::TRIANGLE_LIST;
 	FrontFace frontFace = FrontFace::CCW;
 	Optional<Face> cullMode = Optional<Face>::None();

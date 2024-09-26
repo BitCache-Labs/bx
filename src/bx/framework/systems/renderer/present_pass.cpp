@@ -38,7 +38,7 @@ struct PresentPipeline : public LazyInit<PresentPipeline, GraphicsPipelineHandle
         pipelineCreateInfo.fragmentShader = fragmentShader;
         pipelineCreateInfo.vertexBuffers = {};
         pipelineCreateInfo.cullMode = Optional<Face>::None();
-        pipelineCreateInfo.colorTarget = Optional<ColorTargetState>::Some(colorTargetState);
+        pipelineCreateInfo.colorTargets = List<ColorTargetState>{ colorTargetState };
         data = Graphics::CreateGraphicsPipeline(pipelineCreateInfo);
 
         Graphics::DestroyShader(vertexShader);
