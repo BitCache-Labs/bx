@@ -20,14 +20,10 @@ public:
 
 	struct PackedReservoirData
 	{
-		PackedNormalizedXyz10 packedSampleDirection;
-		f32 hitT;
 		u32 triangleLightSource;
 		u32 blasInstance;
 		u32 packedHitUv;
-		u32 _PADDING0;
-		u32 _PADDING1;
-		u32 _PADDING2;
+		float p_hat;
 	};
 
 public:

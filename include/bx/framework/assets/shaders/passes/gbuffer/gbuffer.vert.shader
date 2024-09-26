@@ -23,6 +23,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
 layout (BINDING(0, 1), std140) uniform _Model
 {
     mat4 worldMesh;
+    mat4 transInvWorldMesh;
     uint blasInstanceIdx;
     uint _PADDING0;
 } model;
@@ -32,7 +33,7 @@ void main()
     outPositionWs = model.worldMesh * vec4(inPosition, 1.0);
     gl_Position = constants.viewProj * outPositionWs;
 
-    outNormal = inNormal;
+    outNormal = (model.transInvWorldMesh * vec4(inNormal, 1.0)).xyz;
     outTexcoord = inTexcoord;
     outBlasInstanceIdx = model.blasInstanceIdx;
 }

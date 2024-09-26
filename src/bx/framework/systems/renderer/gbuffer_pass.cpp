@@ -19,6 +19,7 @@ struct GBufferConstants
 struct VertexMeshUniform
 {
     Mat4 world = Mat4::Identity();
+    Mat4 transInvWorldMesh = Mat4::Identity();
     u32 blasInstanceIdx;
     u32 _PADDING0;
 };
@@ -179,6 +180,7 @@ void GBufferPass::Dispatch(const Camera& camera)
 
                     VertexMeshUniform meshUniform{};
                     meshUniform.world = trx.GetMatrix() * meshData.GetMatrix();
+                    meshUniform.transInvWorldMesh = meshUniform.world.Inverse().Transpose();
                     meshUniform.blasInstanceIdx = mf.m_blasInstanceIndices[i];
 
                     BufferCreateInfo meshUniformCreateInfo{};
