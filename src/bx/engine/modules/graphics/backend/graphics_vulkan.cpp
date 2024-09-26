@@ -1328,6 +1328,21 @@ void Graphics::ReadTexture(TextureHandle texture, void* data, const Extend3D& of
     readbackBuffer->Unmap();
 }
 
+void Graphics::CopyTexture(TextureHandle src, TextureHandle dst)
+{
+    BX_ENSURE(src && dst);
+
+    if (src != dst)
+    {
+        auto srcIter = s->textures.find(src);
+        BX_ENSURE(srcIter != s->textures.end());
+        auto dstIter = s->textures.find(dst);
+        BX_ENSURE(dstIter != s->textures.end());
+
+        s->cmdList->CopyImages(srcIter->second, dstIter->second);
+    }
+}
+
 // TODO: obliterate this obomination
 void Graphics::DebugDraw(const Mat4& viewProj, const DebugDrawAttribs& attribs, const List<DebugVertex>& vertices)
 {

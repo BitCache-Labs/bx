@@ -1,4 +1,3 @@
-
 #include "bx/framework/systems/renderer.hpp"
 
 #include "bx/framework/components/transform.hpp"
@@ -141,6 +140,9 @@ void Renderer::RebuildPasses()
 {
     if (m_dirtyPasses)
     {
+        i32 w, h;
+        Window::GetSize(&w, &h);
+
         m_gbufferPass = std::unique_ptr<GBufferPass>(new GBufferPass(m_depthTarget));
 
         NertCreateInfo nertCreateInfo{};
@@ -149,6 +151,8 @@ void Renderer::RebuildPasses()
         nertCreateInfo.tlas = m_tlas;
         m_nertPass.reset();
         m_nertPass = std::unique_ptr<NertPass>(new NertPass(nertCreateInfo));
+
+        m_taaPass = std::unique_ptr<TaaPass>(new TaaPass(w, h));
 
         m_dirtyPasses = false;
     }
@@ -171,6 +175,7 @@ void Renderer::Shutdown()
     RestirDiPass::ClearPipelineCache();
     NertPass::ClearPipelineCache();
     WriteIndirectArgsPass::ClearPipelineCache();
+    TaaPass::ClearPipelineCache();
 }
 
 void Renderer::Update()
@@ -210,10 +215,12 @@ void Renderer::Render()
         };
         m_nertPass->Dispatch(dispatchInfo);
 
+        m_taaPass->Dispatch(m_cameras.back(), m_colorTarget);
+
         m_gbufferPass->NextFrame();
     }
 
-    PresentPass presentPass(m_colorTarget);
+    PresentPass presentPass(m_taaPass->GetResolvedColorTarget());
     presentPass.Dispatch();
 
     frameIdx++;
@@ -222,7 +229,7 @@ void Renderer::Render()
 TextureHandle Renderer::GetEditorCameraColorTarget()
 {
 #ifdef BX_EDITOR_BUILD
-    return m_colorTarget;// Graphics::GetSwapchainColorTarget();
+    return m_taaPass->GetResolvedColorTarget();// Graphics::GetSwapchainColorTarget();
 #else
     return TextureHandle::null;
 #endif

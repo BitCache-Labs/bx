@@ -91,6 +91,7 @@ public:
 
 	static void WriteTexture(TextureHandle texture, const void* data, const Extend3D& offset, const Extend3D& size);
 	static void ReadTexture(TextureHandle texture, void* data,  const Extend3D& offset, const Extend3D& size);
+	static void CopyTexture(TextureHandle src, TextureHandle dst);
 
 	// Debug draw utilities
 	static void DebugLine(const Vec3& a, const Vec3& b, u32 color = 0xFFFFFFFF, f32 lifespan = 0.0f);
