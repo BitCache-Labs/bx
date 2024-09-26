@@ -41,7 +41,8 @@ bool bsdfSampleValid(BsdfSample bsdfSample)
 
 vec3 bsdfContribution(vec3 reflectance, vec3 normal, vec3 wInWorldSpace, float pdf)
 {
-	float cosIn = abs(dot(normal, wInWorldSpace));
+    float cosIn = max(dot(normal, wInWorldSpace), 0.0);
+	//float cosIn = abs(dot(normal, wInWorldSpace));
 	return (1.0 / pdf) * reflectance * cosIn;
 }
 

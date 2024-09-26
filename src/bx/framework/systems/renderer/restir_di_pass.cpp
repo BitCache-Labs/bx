@@ -28,9 +28,9 @@ struct SpatialReuseConstants
     u32 seed;
     u32 spatialIndex;
     b32 unbiased;
-    b32 jacobian;
     u32 _PADDING0;
     u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct TemporalReuseConstants
@@ -43,10 +43,6 @@ struct TemporalReuseConstants
     u32 height;
     b32 unbiased;
     u32 seed;
-    b32 jacobian;
-    u32 _PADDING0;
-    u32 _PADDING1;
-    u32 _PADDING2;
 };
 
 struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipelineHandle>
@@ -220,7 +216,6 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     spatialReuseConstants.height = height;
     spatialReuseConstants.seed = seed;
     spatialReuseConstants.unbiased = unbiased;
-    spatialReuseConstants.jacobian = jacobian;
     for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
         spatialReuseConstants.spatialIndex = i;
@@ -236,7 +231,6 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     temporalReuseConstants.height = height;
     temporalReuseConstants.unbiased = unbiased;
     temporalReuseConstants.seed = seed;
-    temporalReuseConstants.jacobian = jacobian;
     Graphics::WriteBuffer(temporalReuseConstantsBuffer, 0, &temporalReuseConstants);
 
     BindGroupCreateInfo temporalReuseBindGroupCreateInfo{};

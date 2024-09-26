@@ -192,21 +192,22 @@ void Renderer::Render()
     {
         m_gbufferPass->Dispatch(m_cameras.back());
 
+        m_sky->sunInfo.intensity = 0.0;
+
         m_nertPass->seed = frameIdx;
         m_nertPass->accumulationFrameIdx = accumulate ? (m_nertPass->accumulationFrameIdx + 1) : 0;
         m_nertPass->maxBounces = 3;
         m_nertPass->unbiased = unbiased;
 
-        NertDispatchInfo dispatchInfo{
+        NertDispatchInfo dispatchInfo
+        {
             m_cameras.back(),
-            * m_blasDataPool,
-            * m_materialPool,
-            * m_sky,
+            *m_blasDataPool,
+            *m_materialPool,
+            *m_sky,
             m_gbufferPass->GetColorTargetView(),
             m_gbufferPass->GetColorTargetHistoryView()
         };
-
-
         m_nertPass->Dispatch(dispatchInfo);
 
         m_gbufferPass->NextFrame();

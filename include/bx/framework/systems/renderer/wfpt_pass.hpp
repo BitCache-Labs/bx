@@ -36,7 +36,6 @@ public:
 	b8 russianRoulette = true;
 	b8 hybrid = true;
 	b8 unbiased = false;
-	b8 jacobian = false;
 
 private:
 	WfptCreateInfo createInfo;

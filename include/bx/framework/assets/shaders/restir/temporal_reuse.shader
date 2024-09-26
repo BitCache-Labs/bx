@@ -22,10 +22,6 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uvec2 resolution;
     bool unbiased;
     uint seed;
-    bool jacobian;
-    uint _PADDING0;
-    uint _PADDING1;
-    uint _PADDING2;
 } constants;
 
 layout(BINDING(0, 1)) uniform accelerationStructureEXT Scene;

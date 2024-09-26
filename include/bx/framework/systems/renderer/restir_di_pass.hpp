@@ -44,9 +44,7 @@ public:
 	static void ClearPipelineCache();
 
 	u32 seed = 1337;
-	u32 pixelRadius = 30; // TODO: remove
 	b8 unbiased = false;
-	b8 jacobian = false;
 
 	static constexpr u32 SPATIAL_REUSE_PASSES = 2;
 
