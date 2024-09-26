@@ -27,6 +27,15 @@ void main()
     vec3 current = imageLoad(colorTarget, pixel).rgb;
     vec3 history = imageLoad(resolvedColorTargetHistory, prevPixel).rgb;
 
+    vec3 nearColor0 = imageLoad(colorTarget, pixel + ivec2(1, 0)).xyz;
+    vec3 nearColor1 = imageLoad(colorTarget, pixel + ivec2(0, 1)).xyz;
+    vec3 nearColor2 = imageLoad(colorTarget, pixel + ivec2(-1, 0)).xyz;
+    vec3 nearColor3 = imageLoad(colorTarget, pixel + ivec2(0, -1)).xyz;
+    vec3 boxMin = min(current, min(nearColor0, min(nearColor1, min(nearColor2, nearColor3))));
+    vec3 boxMax = max(current, max(nearColor0, max(nearColor1, max(nearColor2, nearColor3))));
+    
+    history = clamp(history, boxMin, boxMax);
+
     vec3 result = mix(current, history, 0.9);
 
     imageStore(resolvedColorTarget, pixel, vec4(result, 1.0));
