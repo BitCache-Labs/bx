@@ -211,7 +211,8 @@ void Renderer::Render()
             *m_materialPool,
             *m_sky,
             m_gbufferPass->GetColorTargetView(),
-            m_gbufferPass->GetColorTargetHistoryView()
+            m_gbufferPass->GetColorTargetHistoryView(),
+            m_gbufferPass->GetVelocityTargetView()
         };
         m_nertPass->Dispatch(dispatchInfo);
 

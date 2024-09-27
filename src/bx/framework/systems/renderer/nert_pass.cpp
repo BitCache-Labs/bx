@@ -129,6 +129,36 @@ struct RaygenPipeline : public LazyInit<RaygenPipeline, ComputePipelineHandle>
 template<>
 std::unique_ptr<RaygenPipeline> LazyInit<RaygenPipeline, ComputePipelineHandle>::cache = nullptr;
 
+struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
+{
+    ResolvePipeline()
+    {
+        ShaderCreateInfo shaderCreateInfo{};
+        shaderCreateInfo.name = "Nert Resolve Shader";
+        shaderCreateInfo.shaderType = ShaderType::COMPUTE;
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/nert/resolve.comp.shader")));
+        ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
+
+        PipelineLayoutDescriptor pipelineLayoutDescriptor{};
+        pipelineLayoutDescriptor.bindGroupLayouts = {
+            BindGroupLayoutDescriptor(0, {
+                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true))
+            })
+        };
+
+        ComputePipelineCreateInfo pipelineCreateInfo{};
+        pipelineCreateInfo.name = "Nert Resolve Pipeline";
+        pipelineCreateInfo.layout = pipelineLayoutDescriptor;
+        pipelineCreateInfo.shader = shader;
+        data = Graphics::CreateComputePipeline(pipelineCreateInfo);
+
+        Graphics::DestroyShader(shader);
+    }
+};
+template<>
+std::unique_ptr<ResolvePipeline> LazyInit<ResolvePipeline, ComputePipelineHandle>::cache = nullptr;
+
 struct SamplegenPipeline : public LazyInit<SamplegenPipeline, ComputePipelineHandle>
 {
     SamplegenPipeline()
@@ -464,7 +494,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
 
     restirDiPass->seed = seed;
     restirDiPass->unbiased = unbiased;
-    restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.blasDataPool, dispatchInfo.sky);
+    restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity, dispatchInfo.blasDataPool, dispatchInfo.sky);
 
     computePassDescriptor.name = "Nert Shade";
     computePass = Graphics::BeginComputePass(computePassDescriptor);

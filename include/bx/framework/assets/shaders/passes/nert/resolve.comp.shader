@@ -1,0 +1,2 @@
+// take noisy illumination
+// take 

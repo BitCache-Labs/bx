@@ -552,7 +552,7 @@ void WfptPass::Dispatch(const Camera& camera, const BlasDataPool& blasDataPool, 
 
         restirDiPass->seed = seed;
         restirDiPass->unbiased = unbiased;
-        restirDiPass->Dispatch(camera, createInfo.tlas, gbufferPass->GetColorTargetView(), gbufferPass->GetColorTargetHistoryView(), blasDataPool, sky);
+        //restirDiPass->Dispatch(camera, createInfo.tlas, gbufferPass->GetColorTargetView(), gbufferPass->GetColorTargetHistoryView(), blasDataPool, sky);
         
         writeIndirectArgs.Dispatch(indirectArgsBuffer, shadowRayCountBuffer);
 

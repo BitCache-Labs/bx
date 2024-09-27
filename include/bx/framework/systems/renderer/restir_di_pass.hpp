@@ -39,7 +39,7 @@ public:
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline, b8 flipRestirSamples) const;
 
-	void Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, const BlasDataPool& blasDataPool, const Sky& sky);
+	void Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityView, const BlasDataPool& blasDataPool, const Sky& sky);
 
 	static void ClearPipelineCache();
 

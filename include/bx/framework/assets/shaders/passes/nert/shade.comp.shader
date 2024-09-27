@@ -67,15 +67,10 @@ void main()
     vec3 throughput = vec3(1.0);
 
     vec3 lightingContribution = vec3(0.0);
-    float ambientLightStrength = 0.15;
+    vec3 ambientContribution = vec3(0.15, 0.15, 0.17);
 
-    //Payload payload = payloads[pid];
-    //vec3 hitNormal = unpackNormalizedXyz10(payload.hitNormal, 0);
-    //
-    //if (dot(direction, hitNormal) > 0.0)
     if (intersection.t != T_MISS)
     {
-        //if (!shadowRayHit(origin + direction * RT_EPSILON, direction, tMax))
         {
             BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
             BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
@@ -107,17 +102,6 @@ void main()
             {
                 normal = -normal;
             }
-
-            // Build tangent to world matrix and correct for wOut below hemisphere (can happen due to normal mapping)
-            //mat3 tangentToWorld = buildOrthonormalBasis(normal);
-            //mat3 worldToTangent = transpose(tangentToWorld);
-            //
-            //vec3 wOutTangentSpace = normalize(worldToTangent * -ray.direction);
-            //if (wOutTangentSpace.z < 0.0 && intersection.frontFace)
-            //{
-            //    wOutTangentSpace.z *= -0.25;
-            //    wOutTangentSpace = normalize(wOutTangentSpace);
-            //}
             
             SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
 
@@ -143,7 +127,7 @@ void main()
                 lightingContribution += throughput * radiance * reservoir.contributionWeight;
             }
 
-            lightingContribution += throughput * brdfEval * ambientLightStrength;
+            lightingContribution += throughput * brdfEval * ambientContribution;
         }
     }
 

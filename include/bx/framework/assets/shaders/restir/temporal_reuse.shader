@@ -28,6 +28,7 @@ layout(BINDING(0, 1)) uniform accelerationStructureEXT Scene;
 
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 3), rgba32f) uniform image2D gbufferHistory;
+layout (BINDING(0, 4), rgba32f) uniform image2D velocity;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {
@@ -78,10 +79,15 @@ void main()
 
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
-        
-    ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[id]);
     
-    vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(pixel);
+    vec2 velocity = imageLoad(velocity, pixel).rg / 100.0;
+    ivec2 prevPixel = ivec2(vec2(pixel) - (vec2(constants.resolution) * velocity));
+    uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
+
+    ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
+
+    vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(prevPixel);
+
     if (sampleNormalAndDepthHistory.w != 0.0 && centerNormalAndDepth.w != 0.0)
     {
         Reservoir outputReservoir = Reservoir_default();
@@ -93,7 +99,7 @@ void main()
         vec3 origin = getPositionWs(pixel, centerNormalAndDepth.w);
         vec3 normal = centerNormalAndDepth.xyz;
         
-        Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirsHistory[id], RESERVOIR_M_CLAMP);
+        Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirsHistory[prevId], RESERVOIR_M_CLAMP);
 
         vec3 direction;
         float tMax;
@@ -143,12 +149,5 @@ void main()
 
         restirReservoirs[id] = Reservoir_toPacked(outputReservoir);
         restirReservoirData[id] = ReservoirData_toPacked(reservoirData);
-        restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
-        restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
-    }
-    else
-    {
-        restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
-        restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
     }
 }

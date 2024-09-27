@@ -96,6 +96,7 @@ struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePip
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
             }),
             BlasDataPool::GetBindGroupLayout(),
             Sky::GetBindGroupLayout(),
@@ -207,7 +208,7 @@ BindGroupHandle RestirDiPass::CreateBindGroup(ComputePipelineHandle pipeline, b8
     return Graphics::CreateBindGroup(createInfo);
 }
 
-void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, const BlasDataPool& blasDataPool, const Sky& sky)
+void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityView, const BlasDataPool& blasDataPool, const Sky& sky)
 {
     SpatialReuseConstants spatialReuseConstants{};
     spatialReuseConstants.invView = camera.GetInvView();
@@ -241,6 +242,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
         BindGroupEntry(1, BindingResource::AccelerationStructure(tlas)),
         BindGroupEntry(2, BindingResource::TextureView(gbufferView)),
         BindGroupEntry(3, BindingResource::TextureView(gbufferHistoryView)),
+        BindGroupEntry(4, BindingResource::TextureView(velocityView)),
     };
     BindGroupHandle temporalReuseBindGroup = Graphics::CreateBindGroup(temporalReuseBindGroupCreateInfo);
     BindGroupHandle temporalBlasDataPoolGroup = blasDataPool.CreateBindGroup(TemporalReusePipeline::Get());
