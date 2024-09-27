@@ -45,25 +45,29 @@ void main()
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
     
-    vec3 direction;
-    float tMax;
-    if (reservoirData.triangleLightSource != U32_MAX)
+    vec3 direction = UP;
+    float tMax = 0.0;
+    if (ReservoirData_isValid(reservoirData))
     {
-        mat4 lightTransform = inverse(blasInstances[reservoirData.blasInstance].invTransform);
-        LightSample reconstructedLightSample = sampleTriangleLight(reservoirData.triangleLightSource, reservoirData.hitUv, lightTransform, origin, 0.0);
-        direction = reconstructedLightSample.sampleDirection;
-        tMax = reconstructedLightSample.hitT;
-    }
-    else
-    {
-        direction = sampleSunDirection(reservoirData.hitUv);
-        tMax = SUN_DISTANCE;
+        if (reservoirData.triangleLightSource != U32_MAX)
+        {
+            mat4 lightTransform = inverse(blasInstances[reservoirData.blasInstance].invTransform);
+            LightSample reconstructedLightSample = sampleTriangleLight(reservoirData.triangleLightSource, reservoirData.hitUv, lightTransform, origin, 0.0);
+            direction = reconstructedLightSample.sampleDirection;
+            tMax = reconstructedLightSample.hitT;
+        }
+        else
+        {
+            direction = sampleSunDirection(reservoirData.hitUv);
+            tMax = SUN_DISTANCE;
+        }
     }
 
     // TODO: write in intersect.comp for mirrors, load here
     vec3 throughput = vec3(1.0);
 
     vec3 lightingContribution = vec3(0.0);
+    float ambientLightStrength = 0.15;
 
     //Payload payload = payloads[pid];
     //vec3 hitNormal = unpackNormalizedXyz10(payload.hitNormal, 0);
@@ -122,24 +126,24 @@ void main()
                 lightingContribution += throughput * material.emissiveFactor;
             }
 
-            //vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
-            //vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0); // TODO: pdf value here???
-            //throughput *= brdfContribution;
-
+            vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
+            
             if (ReservoirData_isValid(reservoirData))
             {
-                vec3 wInWorldSpace = direction;
-
-                vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
-                vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
+                vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0);
                 float intensity = lightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
 
-                float visibility = traceValidationRay(Scene, origin, direction, normal, tMax) ? 0.0 : 1.0;
+                float visibility = 0.0;
+                if (dot(normal, direction) > 0.0)
+                {
+                    visibility = traceValidationRay(Scene, origin, direction, normal, tMax) ? 0.0 : 1.0;
+                }
 
-                vec3 radiance = visibility * brdfContribution * intensity;
-
+                vec3 radiance = visibility * intensity * brdfContribution;
                 lightingContribution += throughput * radiance * reservoir.contributionWeight;
             }
+
+            lightingContribution += throughput * brdfEval * ambientLightStrength;
         }
     }
 
