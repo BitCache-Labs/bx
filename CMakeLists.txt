@@ -56,13 +56,18 @@ set (BX_SRCS
 	"src/bx/platform/window.cpp"
 )
 
-add_library (bx STATIC ${BX_SRCS})
-target_link_libraries (bx PUBLIC cereal fmt glm imgui)
-target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set (BX_REFLECT_SRCS
+	"src/bx/core/reflect.cpp"
+	"src/bx/math/reflect.cpp"
+	"src/bx/meta/reflect.cpp"
+	"src/bx/platform/reflect.cpp"
+)
 
-add_library(bx-reflect OBJECT "src/bx/meta/any.reflect.cpp")
-target_include_directories (bx-reflect PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(bx PRIVATE $<TARGET_OBJECTS:bx-reflect>)
+set (BX_LIBS cereal fmt glm imgui)
+
+add_library (bx STATIC ${BX_SRCS})
+target_link_libraries (bx PUBLIC ${BX_LIBS})
+target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if (BX_INSTALL)
 	set (PROJECT_PATH_DIR ".")
@@ -176,6 +181,10 @@ endif ()
 
 # Editor sources and libraries
 if (BX_BUILD_EDITOR)
+	set (BX_REFLECT_SRCS ${BX_REFLECT_SRCS}
+		"src/bx/editor/reflect.cpp"
+	)
+
     target_sources(bx PRIVATE
 		"src/bx/editor/command.cpp"
 		"src/bx/editor/selection.cpp"
@@ -184,6 +193,11 @@ if (BX_BUILD_EDITOR)
     target_link_libraries(bx PUBLIC implot IconFontCppHeaders FontAwesome FreeFonts)
 endif()
 
+# Link the reflect obj lib
+add_library(bx-reflect OBJECT ${BX_REFLECT_SRCS})
+target_include_directories (bx-reflect PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(bx-reflect PRIVATE ${BX_LIBS})
+target_link_libraries(bx PRIVATE $<TARGET_OBJECTS:bx-reflect>)
 
 
 # TODO: Clean this up

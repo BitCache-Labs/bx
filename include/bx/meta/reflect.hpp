@@ -56,9 +56,9 @@ namespace Reflection
 	template<typename T>
 	struct ReflectAtStartup
 	{
-		static bool Reflect()
+		static bool Reflect(const char* name)
 		{
-			std::cout << "HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
+			std::cout << "REFLECT: " << name << std::endl;
 			return true;
 			/*static_assert(!sHasExternalReflect<T> || !sHasInternalReflect<T>, "Both an internal and external reflect function.");
 			static_assert(sHasExternalReflect<T> || sHasInternalReflect<T>,
@@ -76,11 +76,11 @@ If you are trying to reflect an std::vector<AssetHandle<Material>>, you need to 
 			return true;*/
 		}
 
-		static bool g_reflectedAtStartup;
+		//static bool g_reflectedAtStartup;
 	};
 
-	template<typename T>
-	bool ReflectAtStartup<T>::g_reflectedAtStartup = ReflectAtStartup<T>::Reflect();
+	//template<typename T>
+	//bool ReflectAtStartup<T>::g_reflectedAtStartup = ReflectAtStartup<T>::Reflect();
 }
 
 //template<typename T>
@@ -89,7 +89,7 @@ If you are trying to reflect an std::vector<AssetHandle<Material>>, you need to 
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a ## b
 #define GET_MACRO(_1, _2, NAME,...) NAME
-#define REFLECT_AT_START_UP_2(name, type) const bool volatile CONCAT(g_reflected, name) = Reflection::ReflectAtStartup<type>::g_reflectedAtStartup;
+#define REFLECT_AT_START_UP_2(name, type) const bool CONCAT(g_reflected, name) = Reflection::ReflectAtStartup<type>::Reflect(#name);
 #define REFLECT_AT_START_UP_1(type) REFLECT_AT_START_UP_2(type, type)
 
 #define EXPAND( x ) x

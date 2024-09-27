@@ -1,7 +1,5 @@
 #pragma once
 
-#include <bx/meta/reflect.hpp>
-
 class Any
 {
 public:
