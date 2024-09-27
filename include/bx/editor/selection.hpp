@@ -5,8 +5,11 @@
 class Selection
 {
 public:
-	static ObjectRef GetSelected();
-	static void SetSelected(ObjectRef selected);
+	ObjectRef GetSelected();
+	void SetSelected(ObjectRef selected);
 
-	static void ClearSelection();
+	void ClearSelection();
+
+private:
+	ObjectRef m_selected = ObjectRef::Invalid();
 };

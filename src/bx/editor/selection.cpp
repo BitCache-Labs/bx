@@ -1,18 +1,16 @@
 #include "bx/editor/selection.hpp"
 
-static ObjectRef s_selected = ObjectRef::Invalid();
-
 ObjectRef Selection::GetSelected()
 {
-	return s_selected;
+	return m_selected;
 }
 
 void Selection::SetSelected(ObjectRef selected)
 {
-	s_selected = selected;
+	m_selected = selected;
 }
 
 void Selection::ClearSelection()
 {
-	s_selected = ObjectRef::Invalid();
+	m_selected = ObjectRef::Invalid();
 }

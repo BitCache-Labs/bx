@@ -3,49 +3,46 @@
 #include <bx/core/byte_types.hpp>
 #include <bx/containers/list.hpp>
 
-static List<ICommand*> g_commands;
-static SizeType g_current = 0;
-
-ICommand& CommandHistory::Add(ICommand* pCmd)
+Command& CommandHistory::Add(Command* pCmd)
 {
 	if (CanRedo())
 	{
-		for (SizeType i = g_current; i < g_commands.size(); i++)
-			delete g_commands[i];
+		for (SizeType i = m_current; i < m_commands.size(); i++)
+			delete m_commands[i];
 
-		g_commands.erase(g_commands.begin() + g_current, g_commands.begin() + (g_commands.size() - g_current));
+		m_commands.erase(m_commands.begin() + m_current, m_commands.begin() + (m_commands.size() - m_current));
 	}
 
-	g_commands.emplace_back(pCmd);
-	g_current++;
+	m_commands.emplace_back(pCmd);
+	m_current++;
 
 	return *pCmd;
 }
 
 bool CommandHistory::CanRedo()
 {
-	return g_current < g_commands.size();
+	return m_current < m_commands.size();
 }
 
 bool CommandHistory::CanUndo()
 {
-	return g_current > 0;
+	return m_current > 0;
 }
 
 void CommandHistory::Redo()
 {
 	if (!CanRedo()) return;
 
-	auto pCmd = g_commands[g_current];
+	auto pCmd = m_commands[m_current];
 	pCmd->Do();
-	g_current++;
+	m_current++;
 }
 
 void CommandHistory::Undo()
 {
 	if (!CanUndo()) return;
 
-	auto pCmd = g_commands[g_current - 1];
+	auto pCmd = m_commands[m_current - 1];
 	pCmd->Undo();
-	g_current--;
+	m_current--;
 }

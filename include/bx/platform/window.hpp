@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bx/core/type.hpp"
+#include "bx/meta/enum.hpp"
 
 typedef void (*WindowGLProc)(void);
 

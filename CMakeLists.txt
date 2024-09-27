@@ -7,10 +7,6 @@ message(STATUS "C Compiler Version: ${CMAKE_C_COMPILER_VERSION}")
 
 project (bx)
 
-set (CMAKE_CXX_STANDARD 11)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
-#target_compile_features(bx PUBLIC cxx_std_11)
-
 option (BX_BUILD_EDITOR "Build as editor binaries" OFF)
 option (BX_INSTALL "Install binaries" OFF)
 #option (BUILD_TESTS "Build the test binaries" ON)
@@ -46,12 +42,13 @@ set (BX_SRCS
 	"src/bx/core/object.cpp"
 	"src/bx/core/plugin.cpp"
 	"src/bx/core/profiler.cpp"
-	"src/bx/core/runtime.cpp"
+	"src/bx/core/application.cpp"
 	"src/bx/core/time.cpp"
 	"src/bx/core/uuid.cpp"
 
 	"src/bx/math/math.cpp"
 
+	# TODO: These shouldn't really exist, left here for compatibility while porting
 	"src/bx/platform/audio.cpp"
 	"src/bx/platform/graphics.cpp"
 	"src/bx/platform/imgui.cpp"
@@ -59,9 +56,13 @@ set (BX_SRCS
 	"src/bx/platform/window.cpp"
 )
 
-add_library (bx STATIC ${BX_CORE_SRCS})
+add_library (bx STATIC ${BX_SRCS})
 target_link_libraries (bx PUBLIC cereal fmt glm imgui)
 target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_library(bx-reflect OBJECT "src/bx/meta/any.reflect.cpp")
+target_include_directories (bx-reflect PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(bx PRIVATE $<TARGET_OBJECTS:bx-reflect>)
 
 if (BX_INSTALL)
 	set (PROJECT_PATH_DIR ".")
@@ -75,7 +76,7 @@ target_compile_definitions(bx PRIVATE BX_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
 # TODO: Use Platform.hpp for the future
 message ("CMake system name: ${CMAKE_SYSTEM_NAME}")
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	target_compile_definitions (bx PUBLIC BX_PLATFORM_PC)
+	target_compile_definitions (bx PUBLIC BX_PLATFORM_WINDOWS)
 endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -178,6 +179,7 @@ if (BX_BUILD_EDITOR)
     target_sources(bx PRIVATE
 		"src/bx/editor/command.cpp"
 		"src/bx/editor/selection.cpp"
+		"src/bx/editor/view.cpp"
 	)
     target_link_libraries(bx PUBLIC implot IconFontCppHeaders FontAwesome FreeFonts)
 endif()

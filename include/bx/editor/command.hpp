@@ -1,6 +1,9 @@
 #pragma once
 
-struct ICommand
+#include <bx/core/byte_types.hpp>
+#include <bx/containers/list.hpp>
+
+struct Command
 {
 	virtual void Do() = 0;
 	virtual void Undo() = 0;
@@ -9,11 +12,15 @@ struct ICommand
 class CommandHistory
 {
 public:
-	static ICommand& Add(ICommand* pCmd);
+	Command& Add(Command* pCmd);
 
-	static bool CanRedo();
-	static bool CanUndo();
+	bool CanRedo();
+	bool CanUndo();
 
-	static void Redo();
-	static void Undo();
+	void Redo();
+	void Undo();
+
+private:
+	List<Command*> m_commands;
+	SizeType m_current = 0;
 };

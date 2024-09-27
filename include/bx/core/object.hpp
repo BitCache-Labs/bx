@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bx/core/type.hpp"
 #include "bx/core/guard.hpp"
 #include "bx/core/macros.hpp"
+#include "bx/meta/type.hpp"
 
 #include <utility>
 

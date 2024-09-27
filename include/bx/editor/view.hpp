@@ -1,28 +1,28 @@
 #pragma once
 
-struct View
+#include "bx/editor/selection.hpp"
+#include "bx/editor/command.hpp"
+
+using MenuBarCallbackFn = void(*)();
+
+class View
 {
-	using InitializeFn = bool(*)(bool& isShown);
-	using ShutdownFn = void(*)(bool& isShown);
+public:
+	virtual ~View() {}
 
-	using OnReloadFn = void(*)();
-	using OnPlayFn = void(*)();
-	using OnStopFn = void(*)();
-	using OnPauseFn = void(*)(bool);
+	virtual bool Initialize() = 0;
+	virtual void Shutdown() = 0;
 
-	using OnToolbarFn = void(*)(bool& isShown);
-	using OnGuiFn = void(*)(bool& isShown);
+	virtual void OnReload() = 0;
+	virtual void OnPresent() = 0;
+};
 
-	InitializeFn Initialize = nullptr;
-	ShutdownFn Shutdown = nullptr;
+class ViewManager
+{
+public:
+	static void AddMenuBarCallback(const MenuBarCallbackFn& callback);
+	static void AddView(View* view);
 
-	OnReloadFn OnReload = nullptr;
-	OnPlayFn OnPlay = nullptr;
-	OnStopFn OnStop = nullptr;
-	OnPauseFn OnPause = nullptr;
-
-	OnToolbarFn OnToolbar = nullptr;
-	OnGuiFn OnGui = nullptr;
-
-	bool isShown = false;
+	static void Reload();
+	static void Present();
 };

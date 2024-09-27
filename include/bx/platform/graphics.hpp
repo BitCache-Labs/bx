@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bx/math/math.hpp>
-#include <bx/core/type.hpp>
+#include <bx/meta/enum.hpp>
 #include <bx/core/macros.hpp>
 
 using GraphicsHandle = u64;
