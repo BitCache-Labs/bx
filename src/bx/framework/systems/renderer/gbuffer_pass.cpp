@@ -83,7 +83,7 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
         ColorTargetState colorTargetState{};
         colorTargetState.format = Graphics::GetTextureCreateInfo(args.colorTarget).format;
         ColorTargetState velocityTargetState{};
-        velocityTargetState.format = TextureFormat::RG32_FLOAT;
+        velocityTargetState.format = TextureFormat::RGBA32_FLOAT;
 
         TextureFormat depthFormat = Graphics::GetTextureCreateInfo(args.depthTarget).format;
 
@@ -127,7 +127,7 @@ GBufferPass::GBufferPass(TextureHandle depthTarget)
     TextureCreateInfo velocityTargetCreateInfo{};
     velocityTargetCreateInfo.name = "GBuffer Velocity Target";
     velocityTargetCreateInfo.size = Extend3D(width, height, 1);
-    velocityTargetCreateInfo.format = TextureFormat::RG32_FLOAT;
+    velocityTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     velocityTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
     velocityTarget = Graphics::CreateTexture(velocityTargetCreateInfo);
     velocityTargetView = Graphics::CreateTextureView(velocityTarget);

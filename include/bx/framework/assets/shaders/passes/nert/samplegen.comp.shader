@@ -46,18 +46,6 @@ layout(BINDING(0, 4), std430) readonly buffer _SamplePixelMapping
 
 layout(BINDING(0, 5)) uniform accelerationStructureEXT Scene;
 
-bool traceValidationRay(vec3 origin, vec3 direction, float tMax)
-{
-    const float validationEpsilon = min(tMax * 0.001, 0.1);
-    origin += validationEpsilon * direction;
-    tMax = max(0.0, tMax - validationEpsilon);
-
-    rayQueryEXT rayQuery;
-	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, origin, RT_EPSILON, direction, tMax);
-	rayQueryProceedEXT(rayQuery);
-    return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
-}
-
 RisResult ris(inout uint rngState,
     vec3 baseColor, mat3 worldToTangent, mat3 tangentToWorld,
     vec3 normal, bool frontFace,
@@ -111,7 +99,7 @@ RisResult ris(inout uint rngState,
 
     if (ReservoirData_isValid(reservoirData))
     {
-        float visibility = traceValidationRay(x1, outputSampleDirection, outputSampleHitT) ? 0.0 : 1.0;
+        float visibility = traceValidationRay(Scene, x1, outputSampleDirection, normal, outputSampleHitT) ? 0.0 : 1.0;
         reservoirData.p_hat *= visibility;
     }
 

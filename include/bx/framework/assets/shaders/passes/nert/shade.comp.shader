@@ -32,18 +32,6 @@ layout(BINDING(0, 4)) uniform accelerationStructureEXT Scene;
 layout (BINDING(0, 5), rgba32f) uniform image2D neGbuffer;
 layout (BINDING(0, 6), rgba32f) uniform image2D outImage;
 
-bool traceValidationRay(vec3 origin, vec3 direction, float tMax)
-{
-    const float validationEpsilon = min(tMax * 0.001, 0.1);
-    origin += validationEpsilon * direction;
-    tMax = max(0.0, tMax - validationEpsilon);
-
-    rayQueryEXT rayQuery;
-	rayQueryInitializeEXT(rayQuery, Scene, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, origin, RT_EPSILON, direction, tMax);
-	rayQueryProceedEXT(rayQuery);
-    return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
-}
-
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
 {
@@ -146,7 +134,7 @@ void main()
                 vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
                 float intensity = lightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
 
-                float visibility = traceValidationRay(origin, direction, tMax) ? 0.0 : 1.0;
+                float visibility = traceValidationRay(Scene, origin, direction, normal, tMax) ? 0.0 : 1.0;
 
                 vec3 radiance = visibility * brdfContribution * intensity;
 

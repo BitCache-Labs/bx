@@ -68,7 +68,7 @@ LightSample sampleTriangleLight(uint triangleIndex, vec2 uv, mat4 transform, vec
     float distanceToLight = length(directionToLight);
     directionToLight = normalize(directionToLight);
 
-    float pdf = (1.0 - sunPickProbability) / float(emissiveTriangleCount);
+    float pdf = max(1e-6, (1.0 - sunPickProbability) / float(emissiveTriangleCount));
 
     return LightSample(directionToLight, distanceToLight, pdf, triangleIndex, 0, uv);
 }

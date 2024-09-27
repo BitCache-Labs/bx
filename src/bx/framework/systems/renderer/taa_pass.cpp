@@ -33,8 +33,10 @@ struct TaaPipeline : public LazyInit<TaaPipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
-                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RG32_FLOAT)),
-                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT))
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT))
             })
         };
 
@@ -87,7 +89,7 @@ TextureHandle TaaPass::GetResolvedColorTarget() const
     return resolvedColorTarget;
 }
 
-void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle velocityTargetView)
+void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityTargetView)
 {
     TaaConstants constants{};
     constants.width = width;
@@ -104,7 +106,9 @@ void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureV
         BindGroupEntry(1, BindingResource::TextureView(colorTargetView)),
         BindGroupEntry(2, BindingResource::TextureView(resolvedColorTargetHistoryView)),
         BindGroupEntry(3, BindingResource::TextureView(velocityTargetView)),
-        BindGroupEntry(4, BindingResource::TextureView(resolvedColorTargetView)),
+        BindGroupEntry(4, BindingResource::TextureView(gbufferView)),
+        BindGroupEntry(5, BindingResource::TextureView(gbufferHistoryView)),
+        BindGroupEntry(6, BindingResource::TextureView(resolvedColorTargetView)),
     };
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
 

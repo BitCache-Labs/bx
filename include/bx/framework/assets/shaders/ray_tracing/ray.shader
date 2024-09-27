@@ -54,4 +54,18 @@ Ray unpackRay(PackedRay packedRay)
 	return ray;
 }
 
+#ifdef RAY_TRACING_EXT_H
+bool traceValidationRay(accelerationStructureEXT scene, vec3 origin, vec3 direction, vec3 normal, float tMax)
+{
+    const float validationEpsilon = min(tMax * 0.01, 0.1);
+    origin += validationEpsilon * normal;
+    tMax = max(0.0, tMax - validationEpsilon);
+
+    rayQueryEXT rayQuery;
+	rayQueryInitializeEXT(rayQuery, scene, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, origin, RT_EPSILON, direction, tMax);
+	rayQueryProceedEXT(rayQuery);
+    return rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
+}
+#endif // RAY_TRACING_EXT_H
+
 #endif // RAY_H

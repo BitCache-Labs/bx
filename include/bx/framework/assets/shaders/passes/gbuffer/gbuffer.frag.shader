@@ -9,7 +9,7 @@ layout (location = 4) in vec4 inPositionHistory;
 layout (location = 5) in vec4 inPosition;
 
 layout (location = 0) out vec4 outColor;
-layout (location = 1) out vec2 outVelocity;
+layout (location = 1) out vec4 outVelocity;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -21,15 +21,11 @@ layout (BINDING(0, 0), std140) uniform _Constants
 
 vec2 calcVelocity(vec4 newPos, vec4 oldPos)
 {
-    oldPos /= oldPos.w;
-    oldPos.xy = (oldPos.xy + 1.0) / 2.0;
-    oldPos.y = 1.0 - oldPos.y;
-    
-    newPos /= newPos.w;
-    newPos.xy = (newPos.xy + 1.0) / 2.0;
-    newPos.y = 1.0 - newPos.y;
-    
-    return (newPos - oldPos).xy;
+    vec2 a = (newPos.xy / newPos.w);
+    vec2 b = (oldPos.xy / oldPos.w);
+    vec2 result = (a - b) * 0.5;
+    result.y = -result.y;
+    return result;
 }
 
 void main()
@@ -40,5 +36,5 @@ void main()
     float blasInstanceIdx = uintBitsToFloat((uint(gl_FrontFacing) << 31) | inBlasInstanceIdx);
 
     outColor = vec4(oneOverSqrDepth, packedNormal, packedTexcoord, blasInstanceIdx);
-    outVelocity = calcVelocity(inPosition, inPositionHistory);
+    outVelocity = vec4(calcVelocity(inPosition, inPositionHistory) * 100.0, 0.0, 0.0);
 }

@@ -215,12 +215,17 @@ void Renderer::Render()
         };
         m_nertPass->Dispatch(dispatchInfo);
 
-        m_taaPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetVelocityTargetView());
+        if (taa)
+        {
+            m_taaPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_gbufferPass->GetColorTargetHistoryView(), m_gbufferPass->GetVelocityTargetView());
+        }
 
         m_gbufferPass->NextFrame();
     }
 
-    PresentPass presentPass(m_taaPass->GetResolvedColorTarget());
+    TextureHandle finalColor = taa ? m_taaPass->GetResolvedColorTarget() : m_colorTarget;
+
+    PresentPass presentPass(finalColor);
     presentPass.Dispatch();
 
     frameIdx++;
@@ -229,7 +234,7 @@ void Renderer::Render()
 TextureHandle Renderer::GetEditorCameraColorTarget()
 {
 #ifdef BX_EDITOR_BUILD
-    return m_taaPass->GetResolvedColorTarget();// Graphics::GetSwapchainColorTarget();
+    return taa ? m_taaPass->GetResolvedColorTarget() : m_colorTarget;
 #else
     return TextureHandle::null;
 #endif
