@@ -45,6 +45,7 @@ public:
 	u32 seed = 1337;
 	u32 accumulationFrameIdx = 0;
 	b8 unbiased = false;
+	b8 denoise = true;
 
 private:
 	NertCreateInfo createInfo;

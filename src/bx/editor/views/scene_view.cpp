@@ -331,6 +331,10 @@ void SceneView::Present(bool& show)
     ImGui::Text("TAA: ");
     ImGui::SameLine();
     ImGui::Checkbox("##TAA", &SystemManager::GetSystem<Renderer>().taa);
+
+    ImGui::Text("RT Denoise: ");
+    ImGui::SameLine();
+    ImGui::Checkbox("##RTDenoise", &SystemManager::GetSystem<Renderer>().denoise);
     
     bool sceneActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || ImGui::IsWindowHovered();
     if (sceneActive)

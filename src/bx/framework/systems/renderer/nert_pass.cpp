@@ -51,8 +51,8 @@ struct ResolveConstants
 {
     u32 width;
     u32 height;
-    u32 _PADDING0;
-    u32 _PADDING1;
+    u32 seed;
+    b32 denoise;
 };
 
 struct SamplegenConstants
@@ -155,7 +155,8 @@ struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // gbufferHistory
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // shadeResult
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // shadeResultHistory
-                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // velocity
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
             })
         };
 
@@ -401,6 +402,8 @@ void NertPass::UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo)
     ResolveConstants resolveConstants{};
     resolveConstants.width = width;
     resolveConstants.height = height;
+    resolveConstants.seed = seed;
+    resolveConstants.denoise = denoise;
     Graphics::WriteBuffer(resolveConstantsBuffer, 0, &resolveConstants);
 
     SamplegenConstants samplegenConstants{};
@@ -457,7 +460,8 @@ BindGroupHandle NertPass::CreateResolveBindGroup(const NertDispatchInfo& dispatc
         BindGroupEntry(2, BindingResource::TextureView(dispatchInfo.gbufferHistory)),
         BindGroupEntry(3, BindingResource::TextureView(shadeOutTextureView[frameIdx % 2 == 0])),
         BindGroupEntry(4, BindingResource::TextureView(shadeOutTextureView[frameIdx % 2 != 0])),
-        BindGroupEntry(5, BindingResource::TextureView(colorTargetView)),
+        BindGroupEntry(5, BindingResource::TextureView(dispatchInfo.velocity)),
+        BindGroupEntry(6, BindingResource::TextureView(colorTargetView)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
