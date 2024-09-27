@@ -7,7 +7,7 @@
 #define SKY_BINDINGS
 
 #include "[engine]/shaders/ray_tracing/material.shader"
-#include "[engine]/shaders/restir/restir.shader"
+#include "[engine]/shaders/passes/restir_di/restir.shader"
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 #include "[engine]/shaders/ray_tracing/sky.shader"
 

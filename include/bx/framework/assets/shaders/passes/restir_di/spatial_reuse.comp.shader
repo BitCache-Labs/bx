@@ -5,41 +5,37 @@
 #define BLAS_DATA_BINDINGS
 #define SKY_BINDINGS
 
-#include "[engine]/shaders/restir/restir.shader"
+#include "[engine]/shaders/passes/restir_di/restir.shader"
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 #include "[engine]/shaders/ray_tracing/sky.shader"
 
-#include "[engine]/shaders/ray_tracing/ray.shader"
+#include "[engine]/shaders/packing.shader"
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/light_picking.shader"
+#include "[engine]/shaders/random.shader"
+
+const uint NUM_SPATIAL_SAMPLES = 5;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     mat4 invView;
     mat4 invProj;
-    mat4 prevInvView;
-    mat4 prevInvProj;
     uvec2 resolution;
-    bool unbiased;
     uint seed;
+    uint spatialIndex;
+    bool unbiased;
+    uint _PADDING0;
+    uint _PADDING1;
+    uint _PADDING2;
 } constants;
 
-layout(BINDING(0, 1)) uniform accelerationStructureEXT Scene;
+layout (BINDING(0, 1), rgba32f) uniform image2D gbuffer;
 
-layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
-layout (BINDING(0, 3), rgba32f) uniform image2D gbufferHistory;
-layout (BINDING(0, 4), rgba32f) uniform image2D velocity;
+layout(BINDING(0, 2)) uniform accelerationStructureEXT Scene;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {
     vec4 gbufferData = imageLoad(gbuffer, pixel);
-    vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
-    return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
-}
-
-vec4 getPixelNormalAndDepthHistory(ivec2 pixel)
-{
-    vec4 gbufferData = imageLoad(gbufferHistory, pixel);
     vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
     return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
 }
@@ -55,15 +51,12 @@ vec3 getPositionWs(ivec2 pixel, float depth)
     return origin.xyz + direction.xyz * depth;
 }
 
-vec3 getPositionWsHistory(ivec2 pixel, float depth)
+bool validatePixelSimilarity(vec4 normalAndDepth, vec4 otherNormalAndDepth)
 {
-    vec2 pixelCenter = vec2(pixel.x + 0.5, pixel.y + 0.5);
-    vec2 uv = (pixelCenter / vec2(constants.resolution)) * 2.0 - 1.0;
-    uv.y = -uv.y;
-    vec4 origin = constants.prevInvView * vec4(0.0, 0.0, 0.0, 1.0);
-    vec4 target = constants.prevInvProj * vec4(uv, 1.0, 1.0);
-    vec4 direction = constants.prevInvView * vec4(normalize(target.xyz), 0.0);
-    return origin.xyz + direction.xyz * depth;
+    return true;
+    bool similairNormals = (1.0 - abs(dot(normalAndDepth.xyz, otherNormalAndDepth.xyz))) < 0.2;
+    bool similairDepth = abs(1.0 - (normalAndDepth.w / otherNormalAndDepth.w)) < 0.1;
+    return similairNormals && similairDepth;
 }
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
@@ -72,39 +65,59 @@ void main()
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= constants.resolution.x * constants.resolution.y) return;
     ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
-
-    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
-
-    vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
-
+    
+    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
+    
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     
-    vec2 velocity = imageLoad(velocity, pixel).rg / 100.0;
-    ivec2 prevPixel = ivec2(vec2(pixel) - (vec2(constants.resolution) * velocity));
-    if (prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y || prevPixel.x < 0 || prevPixel.y < 0)
+    vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
+    if (centerNormalAndDepth.w == 0.0)
     {
-        prevPixel = pixel;
+        outRestirReservoirs[id] = Reservoir_toPacked(reservoir);
+        outRestirReservoirData[id] = ReservoirData_toPacked(reservoirData);
+        restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
+        restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
+        return;
     }
-    uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
+    vec3 origin = getPositionWs(pixel, centerNormalAndDepth.w);
+    vec3 normal = centerNormalAndDepth.xyz;
+    
+    Reservoir outputReservoir = Reservoir_default();
 
-    ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
-
-    vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(prevPixel);
-
-    if (sampleNormalAndDepthHistory.w != 0.0 && centerNormalAndDepth.w != 0.0)
-    {
-        Reservoir outputReservoir = Reservoir_default();
-        
-        Reservoir_update(outputReservoir,
+    Reservoir_update(outputReservoir,
             reservoirData.p_hat * reservoir.contributionWeight * reservoir.sampleCount,
             reservoir.sampleCount, rngState);
-        
-        vec3 origin = getPositionWs(pixel, centerNormalAndDepth.w);
-        vec3 normal = centerNormalAndDepth.xyz;
-        
-        Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirsHistory[prevId], RESERVOIR_M_CLAMP);
 
+    float screenRadius = constants.resolution.x / 30.0;
+    float radius = screenRadius;
+    float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex) * 0.5;
+    ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 3) : (pixel >> 2);
+    uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + constants.spatialIndex));
+    float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
+
+    #pragma unroll
+    for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
+    {
+        float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
+        float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
+    
+        ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
+        uint flatOffset = offset.y * constants.resolution.x + offset.x;
+        ivec2 samplePixel = pixel + offset;
+        uint sampleId = id + flatOffset;
+        samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
+    
+        ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
+    
+        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
+        if (sampleNormalAndDepth.w == 0.0)
+        {
+            continue;
+        }
+    
+        Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirs[sampleId], RESERVOIR_M_CLAMP);
+    
         vec3 direction;
         float tMax;
         if (reservoirData.triangleLightSource != U32_MAX)
@@ -119,7 +132,7 @@ void main()
             direction = sampleSunDirection(reservoirData.hitUv);
             tMax = SUN_DISTANCE;
         }
-        
+
         if (dot(direction, normal) > 0.0)
         {
             vec3 brdfEval = diffuseBsdfEval(vec3(0.7, 0.7, 0.7)); // TODO: pass basecolor around?
@@ -146,12 +159,15 @@ void main()
         {
             reservoirData = sampledReservoirData;
         }
-        
-        outputReservoir.contributionWeight = (reservoirData.p_hat > 0.0) ? ((1.0 / reservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount) : 0.0;
-
-        Reservoir_clampContributionWeight(outputReservoir, RESERVOIR_CONTRIBUTION_CLAMP);
-
-        restirReservoirs[id] = Reservoir_toPacked(outputReservoir);
-        restirReservoirData[id] = ReservoirData_toPacked(reservoirData);
     }
+
+    outputReservoir.contributionWeight = (reservoirData.p_hat > 0.0) ? ((1.0 / reservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount) : 0.0;
+    
+    Reservoir_clampContributionWeight(outputReservoir, RESERVOIR_CONTRIBUTION_CLAMP);
+
+    outRestirReservoirs[id] = Reservoir_toPacked(outputReservoir);
+    outRestirReservoirData[id] = ReservoirData_toPacked(reservoirData);
+    
+    restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
+    restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
 }

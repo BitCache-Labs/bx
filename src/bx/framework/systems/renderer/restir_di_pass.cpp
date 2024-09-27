@@ -52,7 +52,7 @@ struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipel
         ShaderCreateInfo shaderCreateInfo{};
         shaderCreateInfo.name = "Restir Spatial Reuse Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/restir/spatial_reuse.shader")));
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/restir_di/spatial_reuse.comp.shader")));
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
@@ -86,7 +86,7 @@ struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePip
         ShaderCreateInfo shaderCreateInfo{};
         shaderCreateInfo.name = "Restir Temporal Reuse Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/restir/temporal_reuse.shader")));
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/restir_di/temporal_reuse.comp.shader")));
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
