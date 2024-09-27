@@ -3,7 +3,6 @@
 
 #include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
-#include "[engine]/shaders/restir/restir.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/ray_tracing/material/bsdf.shader"
 #include "[engine]/shaders/color_helpers.shader"
