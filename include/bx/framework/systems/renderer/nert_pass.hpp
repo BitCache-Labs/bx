@@ -50,11 +50,15 @@ private:
 	NertCreateInfo createInfo;
 	TextureViewHandle colorTargetView;
 	u32 width, height;
+	u32 frameIdx;
 
 	std::unique_ptr<RestirDiPass> restirDiPass;
 
 	TextureHandle neGbuffer;
 	TextureViewHandle neGbufferView;
+
+	TextureHandle shadeOutTexture[2];
+	TextureViewHandle shadeOutTextureView[2];
 
 	BufferHandle raysBuffer;
 	BufferHandle identityPixelMappingBuffer;
@@ -65,12 +69,14 @@ private:
 
 	BufferHandle intersectConstantsBuffer;
 	BufferHandle raygenConstantsBuffer;
+	BufferHandle resolveConstantsBuffer;
 	BufferHandle samplegenConstantsBuffer;
 	BufferHandle shadeConstantsBuffer;
 
 	void UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo);
 	BindGroupHandle CreateIntersectBindGroup(const NertDispatchInfo& dispatchInfo);
 	BindGroupHandle CreateRaygenBindGroup(const NertDispatchInfo& dispatchInfo);
+	BindGroupHandle CreateResolveBindGroup(const NertDispatchInfo& dispatchInfo);
 	BindGroupHandle CreateSamplegenBindGroup(const NertDispatchInfo& dispatchInfo);
 	BindGroupHandle CreateShadeBindGroup(const NertDispatchInfo& dispatchInfo);
 };

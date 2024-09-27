@@ -82,6 +82,10 @@ void main()
     
     vec2 velocity = imageLoad(velocity, pixel).rg / 100.0;
     ivec2 prevPixel = ivec2(vec2(pixel) - (vec2(constants.resolution) * velocity));
+    if (prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y || prevPixel.x < 0 || prevPixel.y < 0)
+    {
+        prevPixel = pixel;
+    }
     uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
 
     ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);

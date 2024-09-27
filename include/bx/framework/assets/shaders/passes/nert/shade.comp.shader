@@ -67,6 +67,9 @@ void main()
     vec3 throughput = vec3(1.0);
 
     vec3 lightingContribution = vec3(0.0);
+    vec3 ambientEmissiveContribution = vec3(0.0);
+    vec3 baseColorFactor = vec3(0.0);
+
     vec3 ambientContribution = vec3(0.15, 0.15, 0.17);
 
     if (intersection.t != T_MISS)
@@ -104,17 +107,16 @@ void main()
             }
             
             SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
+            baseColorFactor = material.baseColorFactor;
 
             if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
             {
-                lightingContribution += throughput * material.emissiveFactor;
+                ambientEmissiveContribution += throughput * material.emissiveFactor;
             }
-
-            vec3 brdfEval = diffuseBsdfEval(material.baseColorFactor);
             
             if (ReservoirData_isValid(reservoirData))
             {
-                vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0);
+                vec3 brdfContribution = bsdfContribution(vec3(1.0), normal, direction, 1.0);
                 float intensity = lightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
 
                 float visibility = 0.0;
@@ -127,12 +129,20 @@ void main()
                 lightingContribution += throughput * radiance * reservoir.contributionWeight;
             }
 
-            lightingContribution += throughput * brdfEval * ambientContribution;
+            ambientEmissiveContribution += throughput * diffuseBsdfEval(baseColorFactor) * ambientContribution;
         }
     }
 
-    vec3 old = imageLoad(outImage, pixel).rgb;
-    float portion = 1.0 / (0 + 1); // constants.sampleNumber
-    vec3 resolved = (old * (1.0 - portion) + portion * lightingContribution);
-    imageStore(outImage, pixel, vec4(resolved, 1.0));
+    vec4 packedResult = vec4(
+        uintBitsToFloat(packRgb9e5(lightingContribution).data),
+        uintBitsToFloat(packRgb9e5(ambientEmissiveContribution).data),
+        uintBitsToFloat(packRgb9e5(baseColorFactor).data),
+        0.0
+    );
+    imageStore(outImage, pixel, packedResult);
+
+    //vec3 old = imageLoad(outImage, pixel).rgb;
+    //float portion = 1.0 / (0 + 1); // constants.sampleNumber
+    //vec3 resolved = (old * (1.0 - portion) + portion * lightingContribution);
+    //imageStore(outImage, pixel, vec4(resolved, 1.0));
 }
