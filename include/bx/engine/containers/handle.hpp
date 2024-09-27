@@ -9,6 +9,7 @@ struct Handle
 	static const Handle<T> null;
 
 	b8 operator==(const Handle<T>& other) const { return id == other.id; }
+	b8 operator!=(const Handle<T>& other) const { return id != other.id; }
 	operator b8() const { return id != 0; }
 };
 

@@ -60,7 +60,7 @@ TaaPass::TaaPass(u32 width, u32 height)
     resolvedColorTargetCreateInfo.name = "TAA Resolved Color Target";
     resolvedColorTargetCreateInfo.size = Extend3D(width, height, 1);
     resolvedColorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
-    resolvedColorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
+    resolvedColorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::COPY_DST | TextureUsageFlags::COPY_SRC;
     resolvedColorTarget = Graphics::CreateTexture(resolvedColorTargetCreateInfo);
     resolvedColorTargetView = Graphics::CreateTextureView(resolvedColorTarget);
 

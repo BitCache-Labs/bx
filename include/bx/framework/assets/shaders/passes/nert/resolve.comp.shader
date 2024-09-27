@@ -9,7 +9,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING1;
 } constants;
 
-layout (BINDING(0, 1), rgba32f) uniform image2D shadeResult;
+layout (BINDING(0, 1), rgba32f) uniform image2D ambientEmissiveBaseColor;
 layout (BINDING(0, 2), rgba32f) uniform image2D denoisedIllumination;
 layout (BINDING(0, 3), rgba32f) uniform image2D outImage;
 
@@ -20,12 +20,12 @@ void main()
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
 
-    vec4 currentPacked = imageLoad(shadeResult, pixel);
-    vec3 currentAmbientEmissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(currentPacked.y)));
-    vec3 currentBaseColorFactor = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(currentPacked.z)));
+    vec4 currentPacked = imageLoad(ambientEmissiveBaseColor, pixel);
+    vec3 currentAmbientEmissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(currentPacked.x)));
+    vec3 currentBaseColorFactor = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(currentPacked.y)));
 
-    vec3 resolvedLighting = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(denoisedIllumination, pixel).x)));
+    vec3 resolvedLighting = imageLoad(denoisedIllumination, pixel).rgb;
 
-    vec3 resolved = resolvedLighting * currentBaseColorFactor + currentAmbientEmissive;
+    vec3 resolved = resolvedLighting;// * currentBaseColorFactor + currentAmbientEmissive;
     imageStore(outImage, pixel, vec4(resolved, 1.0));
 }

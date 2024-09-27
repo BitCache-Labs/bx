@@ -30,7 +30,8 @@ layout (BINDING(0, 3), std430) readonly buffer _Intersections
 layout(BINDING(0, 4)) uniform accelerationStructureEXT Scene;
 
 layout (BINDING(0, 5), rgba32f) uniform image2D neGbuffer;
-layout (BINDING(0, 6), rgba32f) uniform image2D outImage;
+layout (BINDING(0, 6), rgba32f) uniform image2D outIllumination;
+layout (BINDING(0, 7), rgba32f) uniform image2D outAmbientEmissiveBaseColor;
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
@@ -133,13 +134,15 @@ void main()
         }
     }
 
-    vec4 packedResult = vec4(
-        uintBitsToFloat(packRgb9e5(lightingContribution).data),
+    imageStore(outIllumination, pixel, vec4(lightingContribution, 1.0));
+
+    vec4 packedAmbientEmissiveBaseColor = vec4(
         uintBitsToFloat(packRgb9e5(ambientEmissiveContribution).data),
         uintBitsToFloat(packRgb9e5(baseColorFactor).data),
+        0.0,
         0.0
     );
-    imageStore(outImage, pixel, packedResult);
+    imageStore(outAmbientEmissiveBaseColor, pixel, packedAmbientEmissiveBaseColor);
 
     //vec3 old = imageLoad(outImage, pixel).rgb;
     //float portion = 1.0 / (0 + 1); // constants.sampleNumber

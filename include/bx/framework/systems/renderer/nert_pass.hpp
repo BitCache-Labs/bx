@@ -9,6 +9,7 @@
 class BlasDataPool;
 class MaterialPool;
 class Sky;
+class ReblurPass;
 class RestirDiPass;
 
 struct NertCreateInfo
@@ -54,12 +55,15 @@ private:
 	u32 frameIdx;
 
 	std::unique_ptr<RestirDiPass> restirDiPass;
+	std::unique_ptr<ReblurPass> reblurPass;
 
 	TextureHandle neGbuffer;
 	TextureViewHandle neGbufferView;
 
-	TextureHandle shadeOutTexture[2];
-	TextureViewHandle shadeOutTextureView[2];
+	TextureHandle illuminationTexture;
+	TextureViewHandle illuminationTextureView;
+	TextureHandle ambientEmissiveBaseColorTexture;
+	TextureViewHandle ambientEmissiveBaseColorTextureView;
 
 	BufferHandle raysBuffer;
 	BufferHandle identityPixelMappingBuffer;

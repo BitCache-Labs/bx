@@ -7,6 +7,7 @@
 #include "bx/framework/systems/renderer/sky.hpp"
 #include "bx/framework/systems/renderer/gbuffer_pass.hpp"
 #include "bx/framework/systems/renderer/restir_di_pass.hpp"
+#include "bx/framework/systems/renderer/reblur_pass.hpp"
 
 #include "bx/framework/components/transform.hpp"
 #include "bx/framework/components/mesh_filter.hpp"
@@ -151,7 +152,7 @@ struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                                 // constants
-                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),   // shadeResult
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),   // ambientEmissiveBaseColor
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // denoisedIllumination
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),        // outImage
             })
@@ -224,7 +225,8 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                             // intersections
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),                                                         // scene
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // neGbuffer
-                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),   // outImage
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // outIllumination
+                BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // outAmbientEmissiveBaseColor
             }),
             MaterialPool::GetBindGroupLayout(),
             BlasDataPool::GetBindGroupLayout(),
@@ -262,16 +264,21 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     neGbuffer = Graphics::CreateTexture(neGbufferCreateInfo);
     neGbufferView = Graphics::CreateTextureView(neGbuffer);
 
-    TextureCreateInfo shadeOutCreateInfo{};
-    shadeOutCreateInfo.format = TextureFormat::RGBA32_FLOAT;
-    shadeOutCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING;
-    shadeOutCreateInfo.size = Extend3D(width, height, 1);
-    for (u32 i = 0; i < 2; i++)
-    {
-        shadeOutCreateInfo.name = Log::Format("Nert Shade Out {} Texture", i);
-        shadeOutTexture[i] = Graphics::CreateTexture(shadeOutCreateInfo);
-        shadeOutTextureView[i] = Graphics::CreateTextureView(shadeOutTexture[i]);
-    }
+    TextureCreateInfo illuminationCreateInfo{};
+    illuminationCreateInfo.name = "Nert Illumination Texture";
+    illuminationCreateInfo.format = TextureFormat::RGBA32_FLOAT;
+    illuminationCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::COPY_SRC;
+    illuminationCreateInfo.size = Extend3D(width, height, 1);
+    illuminationTexture = Graphics::CreateTexture(illuminationCreateInfo);
+    illuminationTextureView = Graphics::CreateTextureView(illuminationTexture);
+
+    TextureCreateInfo ambientEmissiveBaseColorCreateInfo{};
+    ambientEmissiveBaseColorCreateInfo.name = "Nert Ambient Emissive Base Color Texture";
+    ambientEmissiveBaseColorCreateInfo.format = TextureFormat::RGBA32_FLOAT;
+    ambientEmissiveBaseColorCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING;
+    ambientEmissiveBaseColorCreateInfo.size = Extend3D(width, height, 1);
+    ambientEmissiveBaseColorTexture = Graphics::CreateTexture(ambientEmissiveBaseColorCreateInfo);
+    ambientEmissiveBaseColorTextureView = Graphics::CreateTextureView(ambientEmissiveBaseColorTexture);
 
     List<u32> pixelMappingData(width * height);
     for (u32 i = 0; i < width * height; i++)
@@ -346,21 +353,19 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     shadeConstantsBuffer = Graphics::CreateBuffer(shadeConstantsCreateInfo);
 
     restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height));
+    reblurPass = std::unique_ptr<ReblurPass>(new ReblurPass(width, height));
 }
 
 NertPass::~NertPass()
 {
-    restirDiPass.reset();
-
     Graphics::DestroyTextureView(colorTargetView);
     Graphics::DestroyTextureView(neGbufferView);
     Graphics::DestroyTexture(neGbuffer);
 
-    for (u32 i = 0; i < 2; i++)
-    {
-        Graphics::DestroyTextureView(shadeOutTextureView[i]);
-        Graphics::DestroyTexture(shadeOutTexture[i]);
-    }
+    Graphics::DestroyTextureView(illuminationTextureView);
+    Graphics::DestroyTexture(illuminationTexture);
+    Graphics::DestroyTextureView(ambientEmissiveBaseColorTextureView);
+    Graphics::DestroyTexture(ambientEmissiveBaseColorTexture);
 
     Graphics::DestroyBuffer(raysBuffer);
     Graphics::DestroyBuffer(identityPixelMappingBuffer);
@@ -451,8 +456,8 @@ BindGroupHandle NertPass::CreateResolveBindGroup(const NertDispatchInfo& dispatc
     bindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(ResolvePipeline::Get(), 0);
     bindGroupCreateInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(resolveConstantsBuffer)),
-        BindGroupEntry(1, BindingResource::TextureView(shadeOutTextureView[frameIdx % 2 == 0])),
-        BindGroupEntry(2, BindingResource::TextureView(shadeOutTextureView[frameIdx % 2 == 0])), // TODO: denoiser out
+        BindGroupEntry(1, BindingResource::TextureView(ambientEmissiveBaseColorTextureView)),
+        BindGroupEntry(2, BindingResource::TextureView(illuminationTextureView)),
         BindGroupEntry(3, BindingResource::TextureView(colorTargetView)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
@@ -484,7 +489,8 @@ BindGroupHandle NertPass::CreateShadeBindGroup(const NertDispatchInfo& dispatchI
         BindGroupEntry(3, BindingResource::Buffer(intersectionsBuffer)),
         BindGroupEntry(4, BindingResource::AccelerationStructure(createInfo.tlas)),
         BindGroupEntry(5, BindingResource::TextureView(neGbufferView)),
-        BindGroupEntry(6, BindingResource::TextureView(shadeOutTextureView[frameIdx % 2 == 0])),
+        BindGroupEntry(6, BindingResource::TextureView(illuminationTextureView)),
+        BindGroupEntry(7, BindingResource::TextureView(ambientEmissiveBaseColorTextureView)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
@@ -572,6 +578,16 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         Graphics::DestroyBindGroup(restirGroup);
     }
     Graphics::EndComputePass(computePass);
+
+    if (denoise)
+    {
+        ReblurDispatchInfo reblurDispatchInfo;
+        reblurDispatchInfo.unresolvedIllumination = illuminationTexture;
+        reblurDispatchInfo.gbufferView = dispatchInfo.gbuffer;
+        reblurDispatchInfo.gbufferHistoryView = dispatchInfo.gbufferHistory;
+        reblurDispatchInfo.velocityView = dispatchInfo.velocity;
+        reblurPass->Dispatch(reblurDispatchInfo);
+    }
 
     computePassDescriptor.name = "Nert Resolve";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
