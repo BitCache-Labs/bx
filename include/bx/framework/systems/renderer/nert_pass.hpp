@@ -70,14 +70,16 @@ private:
 
 	BufferHandle intersectConstantsBuffer;
 	BufferHandle raygenConstantsBuffer;
-	BufferHandle resolveConstantsBuffer;
+	BufferHandle resolveSpatialConstantsBuffer;
+	BufferHandle resolveTemporalConstantsBuffer;
 	BufferHandle samplegenConstantsBuffer;
 	BufferHandle shadeConstantsBuffer;
 
 	void UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo);
 	BindGroupHandle CreateIntersectBindGroup(const NertDispatchInfo& dispatchInfo);
 	BindGroupHandle CreateRaygenBindGroup(const NertDispatchInfo& dispatchInfo);
-	BindGroupHandle CreateResolveBindGroup(const NertDispatchInfo& dispatchInfo);
+	BindGroupHandle CreateResolveSpatialBindGroup(const NertDispatchInfo& dispatchInfo);
+	BindGroupHandle CreateResolveTemporalBindGroup(const NertDispatchInfo& dispatchInfo);
 	BindGroupHandle CreateSamplegenBindGroup(const NertDispatchInfo& dispatchInfo);
 	BindGroupHandle CreateShadeBindGroup(const NertDispatchInfo& dispatchInfo);
 };

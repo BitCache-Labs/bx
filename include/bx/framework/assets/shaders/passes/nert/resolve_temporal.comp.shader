@@ -29,8 +29,6 @@ layout (BINDING(0, 4), rgba32f) uniform image2D shadeResultHistory;
 
 layout (BINDING(0, 5), rgba32f) uniform image2D velocity;
 
-layout (BINDING(0, 6), rgba32f) uniform image2D outImage;
-
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {
     vec4 gbufferData = imageLoad(gbuffer, pixel);
@@ -44,7 +42,6 @@ vec4 getPixelNormalAndDepthHistory(ivec2 pixel)
     vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
     return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
 }
-
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
@@ -65,44 +62,6 @@ void main()
     {
         vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel);
 
-        // Spatial reuse
-        float screenRadius = constants.resolution.x / 100.0;
-        float radius = screenRadius;
-        float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed) * 0.5;
-        ivec2 pixelSeed = pixel >> 2;
-        uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed));
-        float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
-
-        #pragma unroll
-        for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
-        {
-            float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
-            float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
-        
-            ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
-            uint flatOffset = offset.y * constants.resolution.x + offset.x;
-            ivec2 samplePixel = pixel + offset;
-            uint sampleId = id + flatOffset;
-            samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
-
-            vec4 samplePacked = imageLoad(shadeResult, samplePixel);
-            vec3 sampleLighting = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(samplePacked.x)));
-            vec3 sampleAmbientEmissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(samplePacked.y)));
-            vec3 sampleBaseColorFactor = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(samplePacked.z)));
-
-            vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
-
-            bool depthSimilarity = abs(currentNormalAndDepth.w - sampleNormalAndDepth.w) < 0.1;
-            bool normalSimilarity = dot(currentNormalAndDepth.xyz, sampleNormalAndDepth.xyz) >= 0.86;
-            if (depthSimilarity && normalSimilarity)
-            {
-                float weight = 1.0;
-                resolvedLighting += sampleLighting * weight;
-                lightingSampleCount += weight;
-            }
-        }
-
-        // Temporal reuse
         vec2 velocity = imageLoad(velocity, pixel).rg / 100.0;
         ivec2 prevPixel = ivec2(vec2(pixel) - (vec2(constants.resolution) * velocity));
         if (prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y || prevPixel.x < 0 || prevPixel.y < 0)
@@ -118,20 +77,17 @@ void main()
         vec3 sampleAmbientEmissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(samplePacked.y)));
         vec3 sampleBaseColorFactor = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(samplePacked.z)));
         
-        bool depthSimilarity = abs(currentNormalAndDepth.w - sampleNormalAndDepth.w) < 0.1;
+        bool depthSimilarity = abs(currentNormalAndDepth.w - sampleNormalAndDepth.w) < 0.5;
         bool normalSimilarity = dot(currentNormalAndDepth.xyz, sampleNormalAndDepth.xyz) >= 0.86;
         if (depthSimilarity && normalSimilarity)
         {
-            float weight = NUM_SPATIAL_SAMPLES;
+            float weight = 1.0;
             resolvedLighting += sampleLighting * weight;
             lightingSampleCount += weight;
         }
     }
     
     resolvedLighting /= lightingSampleCount;
-
-    vec3 resolved = resolvedLighting * currentBaseColorFactor + currentAmbientEmissive;
-    imageStore(outImage, pixel, vec4(resolved, 1.0));
 
     currentPacked.x = uintBitsToFloat(packRgb9e5(resolvedLighting).data);
     imageStore(shadeResult, pixel, currentPacked);

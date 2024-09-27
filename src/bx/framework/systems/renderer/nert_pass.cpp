@@ -47,7 +47,15 @@ struct RaygenConstants
     u32 height;
 };
 
-struct ResolveConstants
+struct ResolveSpatialConstants
+{
+    u32 width;
+    u32 height;
+    u32 seed;
+    b32 denoise;
+};
+
+struct ResolveTemporalConstants
 {
     u32 width;
     u32 height;
@@ -137,31 +145,31 @@ struct RaygenPipeline : public LazyInit<RaygenPipeline, ComputePipelineHandle>
 template<>
 std::unique_ptr<RaygenPipeline> LazyInit<RaygenPipeline, ComputePipelineHandle>::cache = nullptr;
 
-struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
+struct ResolveSpatialPipeline : public LazyInit<ResolveSpatialPipeline, ComputePipelineHandle>
 {
-    ResolvePipeline()
+    ResolveSpatialPipeline()
     {
         ShaderCreateInfo shaderCreateInfo{};
-        shaderCreateInfo.name = "Nert Resolve Shader";
+        shaderCreateInfo.name = "Nert Resolve Spatial Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/nert/resolve.comp.shader")));
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/nert/resolve_spatial.comp.shader")));
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
-                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                             // constants
-                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // gbuffer
-                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // gbufferHistory
-                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // shadeResult
-                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // shadeResultHistory
-                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // velocity
-                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
+                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                                 // constants
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // gbuffer
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // gbufferHistory
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),   // shadeResult
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // shadeResultHistory
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // velocity
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),        // outImage
             })
         };
 
         ComputePipelineCreateInfo pipelineCreateInfo{};
-        pipelineCreateInfo.name = "Nert Resolve Pipeline";
+        pipelineCreateInfo.name = "Nert Resolve Spatial Pipeline";
         pipelineCreateInfo.layout = pipelineLayoutDescriptor;
         pipelineCreateInfo.shader = shader;
         data = Graphics::CreateComputePipeline(pipelineCreateInfo);
@@ -170,7 +178,41 @@ struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
     }
 };
 template<>
-std::unique_ptr<ResolvePipeline> LazyInit<ResolvePipeline, ComputePipelineHandle>::cache = nullptr;
+std::unique_ptr<ResolveSpatialPipeline> LazyInit<ResolveSpatialPipeline, ComputePipelineHandle>::cache = nullptr;
+
+struct ResolveTemporalPipeline : public LazyInit<ResolveTemporalPipeline, ComputePipelineHandle>
+{
+    ResolveTemporalPipeline()
+    {
+        ShaderCreateInfo shaderCreateInfo{};
+        shaderCreateInfo.name = "Nert Resolve Temporal Shader";
+        shaderCreateInfo.shaderType = ShaderType::COMPUTE;
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/nert/resolve_temporal.comp.shader")));
+        ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
+
+        PipelineLayoutDescriptor pipelineLayoutDescriptor{};
+        pipelineLayoutDescriptor.bindGroupLayouts = {
+            BindGroupLayoutDescriptor(0, {
+                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                                 // constants
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // gbuffer
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // gbufferHistory
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),   // shadeResult
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // shadeResultHistory
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // velocity
+            })
+        };
+
+        ComputePipelineCreateInfo pipelineCreateInfo{};
+        pipelineCreateInfo.name = "Nert Resolve Temporal Pipeline";
+        pipelineCreateInfo.layout = pipelineLayoutDescriptor;
+        pipelineCreateInfo.shader = shader;
+        data = Graphics::CreateComputePipeline(pipelineCreateInfo);
+
+        Graphics::DestroyShader(shader);
+    }
+};
+template<>
+std::unique_ptr<ResolveTemporalPipeline> LazyInit<ResolveTemporalPipeline, ComputePipelineHandle>::cache = nullptr;
 
 struct SamplegenPipeline : public LazyInit<SamplegenPipeline, ComputePipelineHandle>
 {
@@ -330,11 +372,17 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     raygenConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
     raygenConstantsBuffer = Graphics::CreateBuffer(raygenConstantsCreateInfo);
 
-    BufferCreateInfo resolveConstantsCreateInfo{};
-    resolveConstantsCreateInfo.name = "Nert Resolve Constants Buffer";
-    resolveConstantsCreateInfo.size = sizeof(ResolveConstants);
-    resolveConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
-    resolveConstantsBuffer = Graphics::CreateBuffer(resolveConstantsCreateInfo);
+    BufferCreateInfo resolveSpatialConstantsCreateInfo{};
+    resolveSpatialConstantsCreateInfo.name = "Nert Resolve Spatial Constants Buffer";
+    resolveSpatialConstantsCreateInfo.size = sizeof(ResolveSpatialConstants);
+    resolveSpatialConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
+    resolveSpatialConstantsBuffer = Graphics::CreateBuffer(resolveSpatialConstantsCreateInfo);
+
+    BufferCreateInfo resolveTemporalConstantsCreateInfo{};
+    resolveTemporalConstantsCreateInfo.name = "Nert Resolve Temporal Constants Buffer";
+    resolveTemporalConstantsCreateInfo.size = sizeof(ResolveTemporalConstants);
+    resolveTemporalConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
+    resolveTemporalConstantsBuffer = Graphics::CreateBuffer(resolveTemporalConstantsCreateInfo);
 
     BufferCreateInfo samplegenConstantsCreateInfo{};
     samplegenConstantsCreateInfo.name = "Nert Samplegen Constants Buffer";
@@ -374,7 +422,8 @@ NertPass::~NertPass()
 
     Graphics::DestroyBuffer(intersectConstantsBuffer);
     Graphics::DestroyBuffer(raygenConstantsBuffer);
-    Graphics::DestroyBuffer(resolveConstantsBuffer);
+    Graphics::DestroyBuffer(resolveSpatialConstantsBuffer);
+    Graphics::DestroyBuffer(resolveTemporalConstantsBuffer);
     Graphics::DestroyBuffer(samplegenConstantsBuffer);
     Graphics::DestroyBuffer(shadeConstantsBuffer);
 }
@@ -399,12 +448,19 @@ void NertPass::UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo)
     raygenConstants.height = height;
     Graphics::WriteBuffer(raygenConstantsBuffer, 0, &raygenConstants);
 
-    ResolveConstants resolveConstants{};
-    resolveConstants.width = width;
-    resolveConstants.height = height;
-    resolveConstants.seed = seed;
-    resolveConstants.denoise = denoise;
-    Graphics::WriteBuffer(resolveConstantsBuffer, 0, &resolveConstants);
+    ResolveSpatialConstants resolveSpatialConstants{};
+    resolveSpatialConstants.width = width;
+    resolveSpatialConstants.height = height;
+    resolveSpatialConstants.seed = seed;
+    resolveSpatialConstants.denoise = denoise;
+    Graphics::WriteBuffer(resolveSpatialConstantsBuffer, 0, &resolveSpatialConstants);
+
+    ResolveSpatialConstants resolveTemporalConstants{};
+    resolveTemporalConstants.width = width;
+    resolveTemporalConstants.height = height;
+    resolveTemporalConstants.seed = seed;
+    resolveTemporalConstants.denoise = denoise;
+    Graphics::WriteBuffer(resolveTemporalConstantsBuffer, 0, &resolveTemporalConstants);
 
     SamplegenConstants samplegenConstants{};
     samplegenConstants.width = width;
@@ -449,19 +505,35 @@ BindGroupHandle NertPass::CreateRaygenBindGroup(const NertDispatchInfo& dispatch
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
 
-BindGroupHandle NertPass::CreateResolveBindGroup(const NertDispatchInfo& dispatchInfo)
+BindGroupHandle NertPass::CreateResolveSpatialBindGroup(const NertDispatchInfo& dispatchInfo)
 {
     BindGroupCreateInfo bindGroupCreateInfo{};
-    bindGroupCreateInfo.name = "Nert Resolve Bind Group";
-    bindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(ResolvePipeline::Get(), 0);
+    bindGroupCreateInfo.name = "Nert Resolve Spatial Bind Group";
+    bindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(ResolveSpatialPipeline::Get(), 0);
     bindGroupCreateInfo.entries = {
-        BindGroupEntry(0, BindingResource::Buffer(resolveConstantsBuffer)),
+        BindGroupEntry(0, BindingResource::Buffer(resolveSpatialConstantsBuffer)),
         BindGroupEntry(1, BindingResource::TextureView(dispatchInfo.gbuffer)),
         BindGroupEntry(2, BindingResource::TextureView(dispatchInfo.gbufferHistory)),
         BindGroupEntry(3, BindingResource::TextureView(shadeOutTextureView[frameIdx % 2 == 0])),
         BindGroupEntry(4, BindingResource::TextureView(shadeOutTextureView[frameIdx % 2 != 0])),
         BindGroupEntry(5, BindingResource::TextureView(dispatchInfo.velocity)),
         BindGroupEntry(6, BindingResource::TextureView(colorTargetView)),
+    };
+    return Graphics::CreateBindGroup(bindGroupCreateInfo);
+}
+
+BindGroupHandle NertPass::CreateResolveTemporalBindGroup(const NertDispatchInfo& dispatchInfo)
+{
+    BindGroupCreateInfo bindGroupCreateInfo{};
+    bindGroupCreateInfo.name = "Nert Resolve Temporal Bind Group";
+    bindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(ResolveTemporalPipeline::Get(), 0);
+    bindGroupCreateInfo.entries = {
+        BindGroupEntry(0, BindingResource::Buffer(resolveTemporalConstantsBuffer)),
+        BindGroupEntry(1, BindingResource::TextureView(dispatchInfo.gbuffer)),
+        BindGroupEntry(2, BindingResource::TextureView(dispatchInfo.gbufferHistory)),
+        BindGroupEntry(3, BindingResource::TextureView(shadeOutTextureView[frameIdx % 2 == 0])),
+        BindGroupEntry(4, BindingResource::TextureView(shadeOutTextureView[frameIdx % 2 != 0])),
+        BindGroupEntry(5, BindingResource::TextureView(dispatchInfo.velocity)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
@@ -503,7 +575,8 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
 
     BindGroupHandle intersectBindGroup = CreateIntersectBindGroup(dispatchInfo);
     BindGroupHandle raygenBindGroup = CreateRaygenBindGroup(dispatchInfo);
-    BindGroupHandle resolveBindGroup = CreateResolveBindGroup(dispatchInfo);
+    BindGroupHandle resolveSpatialBindGroup = CreateResolveSpatialBindGroup(dispatchInfo);
+    BindGroupHandle resolveTemporalBindGroup = CreateResolveTemporalBindGroup(dispatchInfo);
     BindGroupHandle samplegenBindGroup = CreateSamplegenBindGroup(dispatchInfo);
     BindGroupHandle shadeBindGroup = CreateShadeBindGroup(dispatchInfo);
 
@@ -581,18 +654,28 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     }
     Graphics::EndComputePass(computePass);
 
-    computePassDescriptor.name = "Nert Resolve";
+    computePassDescriptor.name = "Nert Temporal Resolve";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
-        Graphics::SetComputePipeline(ResolvePipeline::Get());
-        Graphics::SetBindGroup(0, resolveBindGroup);
+        Graphics::SetComputePipeline(ResolveTemporalPipeline::Get());
+        Graphics::SetBindGroup(0, resolveTemporalBindGroup);
+        Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
+    }
+    Graphics::EndComputePass(computePass);
+
+    computePassDescriptor.name = "Nert Spatial Resolve";
+    computePass = Graphics::BeginComputePass(computePassDescriptor);
+    {
+        Graphics::SetComputePipeline(ResolveSpatialPipeline::Get());
+        Graphics::SetBindGroup(0, resolveSpatialBindGroup);
         Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
     }
     Graphics::EndComputePass(computePass);
 
     Graphics::DestroyBindGroup(intersectBindGroup);
     Graphics::DestroyBindGroup(raygenBindGroup);
-    Graphics::DestroyBindGroup(resolveBindGroup);
+    Graphics::DestroyBindGroup(resolveSpatialBindGroup);
+    Graphics::DestroyBindGroup(resolveTemporalBindGroup);
     Graphics::DestroyBindGroup(samplegenBindGroup);
     Graphics::DestroyBindGroup(shadeBindGroup);
 
