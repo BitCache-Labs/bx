@@ -47,6 +47,7 @@ public:
 	u32 accumulationFrameIdx = 0;
 	b8 unbiased = false;
 	b8 denoise = true;
+	b8 antiFirefly = true;
 
 private:
 	NertCreateInfo createInfo;

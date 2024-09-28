@@ -24,11 +24,14 @@ public:
 	static void ClearPipelineCache();
 
 	u32 seed = 1337;
+	b8 antiFirefly = true;
 
 private:
 	u32 width, height;
 	u32 frameIdx;
 
+	TextureHandle preBlurTexture;
+	TextureViewHandle preBlurTextureView;
 	TextureHandle tmpIlluminationTexture;
 	TextureViewHandle tmpIlluminationTextureView;
 	TextureHandle historyTexture[2];

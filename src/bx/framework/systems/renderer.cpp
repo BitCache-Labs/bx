@@ -204,6 +204,7 @@ void Renderer::Render()
         m_nertPass->maxBounces = 3;
         m_nertPass->unbiased = unbiased;
         m_nertPass->denoise = denoise;
+        m_nertPass->antiFirefly = antiFirefly;
 
         NertDispatchInfo dispatchInfo
         {

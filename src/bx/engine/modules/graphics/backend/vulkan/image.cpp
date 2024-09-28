@@ -145,9 +145,9 @@ namespace Vk
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask =
             IsDepthFormat(format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.baseMipLevel = baseMips;
         viewInfo.subresourceRange.levelCount = mips;
-        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.baseArrayLayer = baseArrayLayer;
         viewInfo.subresourceRange.layerCount = arrayLayers;
 
         VK_ASSERT(!vkCreateImageView(device->GetDevice(), &viewInfo, nullptr, &this->imageView),

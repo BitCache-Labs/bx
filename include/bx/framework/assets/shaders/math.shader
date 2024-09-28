@@ -81,6 +81,11 @@ vec4 saturate(vec4 x)
     return clamp(x, 0.0, 1.0);
 }
 
+float stdDev(float a, float b)
+{
+    return sqrt(abs(b - sqr(a)));
+}
+
 vec3 _reflect(vec3 v, vec3 n)
 {
     return v - 2.0 * dot(v, n) * n;

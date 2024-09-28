@@ -339,6 +339,10 @@ void SceneView::Present(bool& show)
     ImGui::Text("RT Denoise: ");
     ImGui::SameLine();
     ImGui::Checkbox("##RTDenoise", &SystemManager::GetSystem<Renderer>().denoise);
+
+    ImGui::Text("RT Anti Firefly: ");
+    ImGui::SameLine();
+    ImGui::Checkbox("##RTAntiFirefly", &SystemManager::GetSystem<Renderer>().antiFirefly);
     
     bool sceneActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || ImGui::IsWindowHovered();
     if (sceneActive)

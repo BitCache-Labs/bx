@@ -581,6 +581,9 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
 
     if (denoise)
     {
+        reblurPass->seed = seed;
+        reblurPass->antiFirefly = antiFirefly;
+
         ReblurDispatchInfo reblurDispatchInfo;
         reblurDispatchInfo.unresolvedIllumination = illuminationTexture;
         reblurDispatchInfo.gbufferView = dispatchInfo.gbuffer;
