@@ -42,27 +42,30 @@ void main()
 
     vec2 velocity = imageLoad(velocity, pixel).rg / 100.0;
     ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
-    if (prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y || prevPixel.x < 0 || prevPixel.y < 0)
-    {
-        prevPixel = pixel;
-    }
-    uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
+    bool outOfBounds = (prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y || prevPixel.x < 0 || prevPixel.y < 0);
 
     vec3 current = imageLoad(inImage, pixel).rgb;
     vec4 history = imageLoad(history, prevPixel);
 
-    uint currentBlasInstance;
-    uint historyBlasInstance;
-    vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
-    vec4 historyNormalAndDepth = getPixelNormalAndDepthHistory(prevPixel, historyBlasInstance);
-    bool validDepth = abs(currentNormalAndDepth.w - historyNormalAndDepth.w) < 0.6 && historyNormalAndDepth.w != 0.0;
-    bool validNormals = dot(currentNormalAndDepth.xyz, historyNormalAndDepth.xyz) >= 0.86;
-    bool validBlasInstance = currentBlasInstance == historyBlasInstance;
-
-    if (validDepth && validNormals && validBlasInstance)
+    if (!outOfBounds)
     {
-        history.w += 1.0;
-        history.w = min(history.w, 16.0);
+        uint currentBlasInstance;
+        uint historyBlasInstance;
+        vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
+        vec4 historyNormalAndDepth = getPixelNormalAndDepthHistory(prevPixel, historyBlasInstance);
+        bool validDepth = abs(currentNormalAndDepth.w - historyNormalAndDepth.w) < 1.5 && historyNormalAndDepth.w != 0.0;
+        bool validNormals = dot(currentNormalAndDepth.xyz, historyNormalAndDepth.xyz) >= 0.86;
+        bool validBlasInstance = currentBlasInstance == historyBlasInstance;
+
+        if (validDepth && validNormals && validBlasInstance && dot(current, history.rgb) > 0.0)
+        {
+            history.w += 1.0;
+            history.w = min(history.w, 64.0);
+        }
+        else
+        {
+            history.w = 0.0;
+        }
     }
     else
     {

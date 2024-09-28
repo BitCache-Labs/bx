@@ -26,6 +26,6 @@ void main()
 
     vec3 resolvedLighting = imageLoad(denoisedIllumination, pixel).rgb;
 
-    vec3 resolved = resolvedLighting;// * currentBaseColorFactor + currentAmbientEmissive;
+    vec3 resolved = resolvedLighting * currentBaseColorFactor + currentAmbientEmissive;
     imageStore(outImage, pixel, vec4(resolved, 1.0));
 }

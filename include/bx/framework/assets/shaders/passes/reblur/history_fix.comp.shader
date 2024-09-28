@@ -8,7 +8,7 @@ const int ANTI_FIREFLY_RADIUS = 4;
 const float ANTI_FIREFLY_SCALE = 2.0;
 
 const int FAST_HISTORY_RADIUS = 2; // or 1
-const float FAST_HISTORY_SCALE = 1.0; // or 2.0
+const float FAST_HISTORY_SCALE = 0.1; // or 2.0
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -44,7 +44,7 @@ void main()
         #pragma unroll
         for (int i = 3; i >= 1; i--)
         {
-            vec4 mippedData = textureLod(mippedBlur, uv, i);
+            vec4 mippedData = textureLod(mippedBlur, uv, 6);
             float mippedDepth = mippedData.w * 1000.0;
 
             //if (abs(mippedDepth - depth) < 0.00002 && i > 1 && mippedDepth == depth)
@@ -95,8 +95,8 @@ void main()
         float sigma = stdDev(m1, m2) * ANTI_FIREFLY_SCALE;
         float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
 
+        result *= fixNan(clampedLuma / luma); // TODO: incorrect
         luma = clampedLuma;
-        result *= clampedLuma / luma; // TODO: incorrect
     }
 
     if (true)
@@ -130,9 +130,10 @@ void main()
 
         float sigma = stdDev(m1, m2) * FAST_HISTORY_SCALE;
         float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
-
         clampedLuma = mix(clampedLuma, luma, 1.0 / (1.0 + frameCount));
-        result *= clampedLuma / luma; // TODO: incorrect
+
+        result *= fixNan(clampedLuma / luma); // TODO: incorrect
+        luma = clampedLuma;
     }
 
     imageStore(outImage, pixel, vec4(result, 1.0));

@@ -20,10 +20,11 @@ float KERNEL[9] = float[](
     1.0, 2.0, 1.0
 );
 
-vec4 getPixelNormalAndDepth(ivec2 pixel)
+vec4 getPixelNormalAndDepth(ivec2 pixel, out uint blasInstance)
 {
     vec4 gbufferData = imageLoad(gbuffer, pixel);
     vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
+    blasInstance = floatBitsToUint(gbufferData.a);
     return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
 }
 
@@ -34,7 +35,11 @@ void main()
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
 
+    uint currentBlasInstance;
+    vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
+
     vec3 result = vec3(0.0);
+    float sampleCount = 0.0;
 
     #pragma unroll
     for (uint y = 0; y < 3; y++)
@@ -44,13 +49,24 @@ void main()
         {
             ivec2 samplePixel = pixel + ivec2(x - 1, y - 1) * 2;
             samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
-            result += imageLoad(inImage, samplePixel).rgb * KERNEL[y * 3 + x];
+
+            uint sampleBlasInstance;
+            vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel, sampleBlasInstance);
+
+            bool validDepth = abs(currentNormalAndDepth.w - sampleNormalAndDepth.w) < 0.6 && sampleNormalAndDepth.w != 0.0;
+            bool validNormals = dot(currentNormalAndDepth.xyz, sampleNormalAndDepth.xyz) >= 0.86;
+            bool validBlasInstance = currentBlasInstance == sampleBlasInstance;
+
+            if (validDepth && validNormals && validBlasInstance)
+            {
+                float weight = KERNEL[y * 3 + x];
+                result += imageLoad(inImage, samplePixel).rgb * weight;
+                sampleCount += weight;
+            }
         }
     }
 
-    result /= 16.0;
+    result /= sampleCount;
 
-    float depth = getPixelNormalAndDepth(pixel).w;
-
-    imageStore(outImage, pixel, vec4(result, depth));
+    imageStore(outImage, pixel, vec4(result, currentNormalAndDepth.w));
 }
