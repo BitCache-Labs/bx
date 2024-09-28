@@ -11,7 +11,7 @@ namespace Vk
 
     VkAccessFlags LayoutToAccessFlags(VkImageLayout layout)
     {
-        return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+        return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT; // TODO: wtf is this??
         switch (layout)
         {
         case VK_IMAGE_LAYOUT_UNDEFINED:

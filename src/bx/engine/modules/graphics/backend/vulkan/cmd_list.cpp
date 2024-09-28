@@ -209,9 +209,11 @@ namespace Vk
         int32_t mipHeight = static_cast<int32_t>(image->Height());
         int32_t mipDepth = static_cast<int32_t>(image->Depth());
 
+        this->TransitionImageLayout(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT);
+
         for (uint32_t i = 1; i < image->Mips(); i++) {
             barrier.subresourceRange.baseMipLevel = i - 1;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            barrier.oldLayout = ResourceStateTracker::GetCurrentImageLayout(*image);
             barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -258,7 +260,7 @@ namespace Vk
         }
 
         barrier.subresourceRange.baseMipLevel = image->Mips() - 1;
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.oldLayout = ResourceStateTracker::GetCurrentImageLayout(*image);
         barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -266,6 +268,8 @@ namespace Vk
         vkCmdPipelineBarrier(this->cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
             &barrier);
+
+        ResourceStateTracker::ApplyImplicitImageTransition(*image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         this->trackedImages.push_back(image);
     }

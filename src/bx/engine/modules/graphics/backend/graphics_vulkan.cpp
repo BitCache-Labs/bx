@@ -1344,6 +1344,16 @@ void Graphics::CopyTexture(TextureHandle src, TextureHandle dst)
     }
 }
 
+void Graphics::BuildTextureMips(TextureHandle texture)
+{
+    BX_ENSURE(texture);
+
+    auto textureIter = s->textures.find(texture);
+    BX_ENSURE(textureIter != s->textures.end());
+
+    s->cmdList->GenerateMips(textureIter->second);
+}
+
 // TODO: obliterate this obomination
 void Graphics::DebugDraw(const Mat4& viewProj, const DebugDrawAttribs& attribs, const List<DebugVertex>& vertices)
 {

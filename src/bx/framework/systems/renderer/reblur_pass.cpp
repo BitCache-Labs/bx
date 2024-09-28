@@ -113,8 +113,9 @@ ReblurPass::ReblurPass(u32 width, u32 height)
 
     TextureCreateInfo historyCreateInfo{};
     historyCreateInfo.size = Extend3D(width, height, 1);
+    historyCreateInfo.mipLevelCount = Math::MipLevelsFromDims(width, height);
     historyCreateInfo.format = TextureFormat::RGBA32_FLOAT;
-    historyCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING;
+    historyCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::COPY_SRC | TextureUsageFlags::COPY_DST | TextureUsageFlags::TEXTURE_BINDING;
     for (u32 i = 0; i < 2; i++)
     {
         historyCreateInfo.name = Log::Format("Reblur History {} Texture", i);
@@ -215,6 +216,8 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
         Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
     }
     Graphics::EndComputePass(computePass);
+
+    Graphics::BuildTextureMips(historyTexture[frameIdx % 2 != 0]); // TODO: should this be history out or not?
 
     //Graphics::CopyTexture(tmpIlluminationTexture, dispatchInfo.unresolvedIllumination);
 

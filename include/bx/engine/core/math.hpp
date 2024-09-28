@@ -129,6 +129,11 @@ namespace Math
 		src = x;
 		return dst;
 	}
+
+	static u32 MipLevelsFromDims(u32 width, u32 height)
+	{
+		return static_cast<u32>(floor(log2(Max(width, height)))) + 1;
+	}
 }
 
 struct Vec2
