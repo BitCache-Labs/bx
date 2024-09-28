@@ -17,17 +17,19 @@ layout (BINDING(0, 5), rgba32f) uniform image2D gbufferHistory;
 layout (BINDING(0, 6), rgba32f) uniform image2D velocity;
 layout (BINDING(0, 7), rgba32f) uniform image2D outImage;
 
-vec4 getPixelNormalAndDepth(ivec2 pixel)
+vec4 getPixelNormalAndDepth(ivec2 pixel, out uint blasInstance)
 {
     vec4 gbufferData = imageLoad(gbuffer, pixel);
     vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
+    blasInstance = floatBitsToUint(gbufferData.a);
     return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
 }
 
-vec4 getPixelNormalAndDepthHistory(ivec2 pixel)
+vec4 getPixelNormalAndDepthHistory(ivec2 pixel, out uint blasInstance)
 {
     vec4 gbufferData = imageLoad(gbufferHistory, pixel);
     vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
+    blasInstance = floatBitsToUint(gbufferData.a);
     return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
 }
 
@@ -49,15 +51,18 @@ void main()
     vec3 current = imageLoad(inImage, pixel).rgb;
     vec4 history = imageLoad(history, prevPixel);
 
-    vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel);
-    vec4 historyNormalAndDepth = getPixelNormalAndDepthHistory(prevPixel);
+    uint currentBlasInstance;
+    uint historyBlasInstance;
+    vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
+    vec4 historyNormalAndDepth = getPixelNormalAndDepthHistory(prevPixel, historyBlasInstance);
     bool validDepth = abs(currentNormalAndDepth.w - historyNormalAndDepth.w) < 0.6 && historyNormalAndDepth.w != 0.0;
     bool validNormals = dot(currentNormalAndDepth.xyz, historyNormalAndDepth.xyz) >= 0.86;
+    bool validBlasInstance = currentBlasInstance == historyBlasInstance;
 
-    if (validDepth && validNormals)
+    if (validDepth && validNormals && validBlasInstance)
     {
         history.w += 1.0;
-        history.w = min(history.w, 64.0);
+        history.w = min(history.w, 16.0);
     }
     else
     {

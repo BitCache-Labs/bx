@@ -7,6 +7,9 @@
 const int ANTI_FIREFLY_RADIUS = 4;
 const float ANTI_FIREFLY_SCALE = 2.0;
 
+const int FAST_HISTORY_RADIUS = 2; // or 1
+const float FAST_HISTORY_SCALE = 1.0; // or 2.0
+
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uvec2 resolution;
@@ -26,7 +29,8 @@ void main()
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
 
-    bool disoccluded = (imageLoad(outHistory, pixel).w == 0.0);
+    float frameCount = imageLoad(outHistory, pixel).w;
+    bool disoccluded = (frameCount == 0.0);
 
     vec3 current = imageLoad(inImage, pixel).rgb;
 
@@ -57,10 +61,10 @@ void main()
         }
     }
 
+    float luma = linearToLuma(result);
+
     if (constants.antiFirefly)
     {
-        float luma = linearToLuma(result);
-
         float m1 = 0.0;
         float m2 = 0.0;
 
@@ -91,6 +95,43 @@ void main()
         float sigma = stdDev(m1, m2) * ANTI_FIREFLY_SCALE;
         float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
 
+        luma = clampedLuma;
+        result *= clampedLuma / luma; // TODO: incorrect
+    }
+
+    if (true)
+    {
+        float m1 = 0.0;
+        float m2 = 0.0;
+
+        #pragma unroll
+        for (int y = -FAST_HISTORY_RADIUS; y <= FAST_HISTORY_RADIUS; y++)
+        {
+            #pragma unroll
+            for (int x = -FAST_HISTORY_RADIUS; x <= FAST_HISTORY_RADIUS; x++)
+            {
+                if (x == 0 && y == 0)
+                {
+                    continue;
+                }
+
+                ivec2 samplePixel = pixel + ivec2(x, y);
+                samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
+
+                float sampleLuma = linearToLuma(imageLoad(inImage, samplePixel).rgb);
+                m1 += sampleLuma;
+                m2 += sqr(sampleLuma);
+            }
+        }
+
+        float invNorm = 1.0 / ((FAST_HISTORY_RADIUS * 2 + 1) * (FAST_HISTORY_RADIUS * 2 + 1) - 1);
+        m1 *= invNorm;
+        m2 *= invNorm;
+
+        float sigma = stdDev(m1, m2) * FAST_HISTORY_SCALE;
+        float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
+
+        clampedLuma = mix(clampedLuma, luma, 1.0 / (1.0 + frameCount));
         result *= clampedLuma / luma; // TODO: incorrect
     }
 
