@@ -24,8 +24,8 @@ namespace Vk
         framebufferInfo.renderPass = renderPass->GetRenderPass();
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = images[0]->Width();
-        framebufferInfo.height = images[0]->Height();
+        framebufferInfo.width = images[0]->GetImage()->Width();
+        framebufferInfo.height = images[0]->GetImage()->Height();
         framebufferInfo.layers = 1;
 
         VK_ASSERT(!vkCreateFramebuffer(this->device->GetDevice(), &framebufferInfo, nullptr,
@@ -58,7 +58,7 @@ namespace Vk
         }
     }
 
-    const List<std::shared_ptr<Image>>& Framebuffer::Images() const {
+    const List<std::shared_ptr<ImageView>>& Framebuffer::Images() const {
         return this->images;
     }
 

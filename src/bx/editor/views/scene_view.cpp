@@ -291,11 +291,15 @@ void SceneView::Present(bool& show)
     TextureHandle editorCameraColorTarget = renderer.GetEditorCameraColorTarget();
     if (editorCameraColorTarget)
     {
+        TextureViewHandle editorCameraColorTargetView = Graphics::CreateTextureView(editorCameraColorTarget);
+
         static std::shared_ptr<Vk::DescriptorSet> descriptorSets[3];
 
         u32 frameIdx = GraphicsVulkan::GetCurrentFrameIdx();
-        descriptorSets[frameIdx] = GraphicsVulkan::TextureAsDescriptorSet(editorCameraColorTarget);
+        descriptorSets[frameIdx] = GraphicsVulkan::TextureAsDescriptorSet(editorCameraColorTargetView);
         ImGui::Image((void*)descriptorSets[frameIdx]->GetDescriptorSet(), contentRegionAvail);
+
+        Graphics::DestroyTextureView(editorCameraColorTargetView);
     }
 #elif defined BX_GRAPHICS_OPENGL_BACKEND
     Renderer& renderer = SystemManager::GetSystem<Renderer>();

@@ -26,7 +26,8 @@ public:
 	static TextureHandle CreateTexture(const TextureCreateInfo& createInfo);
 	static void DestroyTexture(TextureHandle& texture);
 
-	static TextureViewHandle CreateTextureView(TextureHandle texture);
+	static const TextureViewCreateInfo& GetTextureViewCreateInfo(TextureViewHandle textureView);
+	static TextureViewHandle CreateTextureView(const TextureViewCreateInfo& createInfo);
 	static void DestroyTextureView(TextureViewHandle& textureView);
 
 	static const SamplerCreateInfo& GetSamplerCreateInfo(SamplerHandle sampler);
@@ -115,6 +116,7 @@ private:
 		HashMap<BufferHandle, BufferCreateInfo> bufferCreateInfos;
 		HashMap<SamplerHandle, SamplerCreateInfo> samplerCreateInfos;
 		HashMap<TextureHandle, TextureCreateInfo> textureCreateInfos;
+		HashMap<TextureViewHandle, TextureViewCreateInfo> textureViewCreateInfos;
 		HashMap<ShaderHandle, ShaderCreateInfo> shaderCreateInfos;
 		HashMap<GraphicsPipelineHandle, GraphicsPipelineCreateInfo> graphicsPipelineCreateInfos;
 		HashMap<ComputePipelineHandle, ComputePipelineCreateInfo> computePipelineCreateInfos;

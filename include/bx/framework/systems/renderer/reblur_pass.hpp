@@ -36,7 +36,9 @@ private:
 
 	BufferHandle preBlurConstantsBuffer;
 	BufferHandle temporalAccumConstantsBuffer;
+	BufferHandle historyFixConstantsBuffer;
 
 	BindGroupHandle CreatePreBlurBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
 	BindGroupHandle CreateTemporalAccumBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
+	BindGroupHandle CreateHistoryFixBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
 };

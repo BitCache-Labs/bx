@@ -17,7 +17,7 @@ namespace Vk
 
     struct FramebufferInfo
     {
-        List<std::shared_ptr<Image>> images;
+        List<std::shared_ptr<ImageView>> images;
         std::shared_ptr<RenderPass> renderPass;
 
         b8 operator==(const FramebufferInfo& other) const
@@ -44,14 +44,14 @@ namespace Vk
         explicit Framebuffer(Framebuffer&& other) noexcept;
         Framebuffer& operator=(Framebuffer&& other) noexcept;
 
-        const List<std::shared_ptr<Image>>& Images() const;
+        const List<std::shared_ptr<ImageView>>& Images() const;
 
         VkFramebuffer GetFramebuffer() const;
 
     private:
         VkFramebuffer framebuffer;
         std::shared_ptr<RenderPass> renderPass;
-        List<std::shared_ptr<Image>> images;
+        List<std::shared_ptr<ImageView>> images;
 
         const std::shared_ptr<Device> device;
     };
@@ -64,7 +64,7 @@ struct std::hash<Vk::FramebufferInfo>
     {
         SizeType result = 0;
         for (auto& image : v.images) {
-            const Vk::Image& dimage = *image;
+            const Vk::Image& dimage = *image->GetImage();
             hashCombine<Vk::Image>(result, dimage);
         }
         hashCombine<Vk::RenderPass>(result, *v.renderPass);

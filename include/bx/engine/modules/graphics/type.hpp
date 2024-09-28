@@ -580,6 +580,19 @@ struct TextureCreateInfo
 	}
 };
 
+struct TextureViewCreateInfo
+{
+	TextureViewCreateInfo() = default;
+	TextureViewCreateInfo(TextureHandle texture)
+		: texture(texture) {}
+
+	TextureHandle texture = TextureHandle::null;
+	u32 baseMipLevel = 0;
+	u32 mipLevelCount = 1;
+	u32 baseArrayLayer = 0;
+	u32 arrayLayerCount = 1;
+};
+
 struct ImageDataLayout
 {
 	u64 offset;

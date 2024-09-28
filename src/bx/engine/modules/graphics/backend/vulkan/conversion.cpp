@@ -404,4 +404,146 @@ namespace Vk
 			}
 		}
 	}
+
+	TextureFormat TextureFormatFromVk(VkFormat format)
+	{
+		switch (format)
+		{
+		case VK_FORMAT_R8_UNORM:
+			return TextureFormat::R8_UNORM;
+		case VK_FORMAT_R8_SNORM:
+			return TextureFormat::R8_SNORM;
+		case VK_FORMAT_R8_UINT:
+			return TextureFormat::R8_UINT;
+		case VK_FORMAT_R8_SINT:
+			return TextureFormat::R8_SINT;
+
+		case VK_FORMAT_R16_UINT:
+			return TextureFormat::R16_UINT;
+		case VK_FORMAT_R16_SINT:
+			return TextureFormat::R16_SINT;
+		case VK_FORMAT_R16_UNORM:
+			return TextureFormat::R16_UNORM;
+		case VK_FORMAT_R16_SNORM:
+			return TextureFormat::R16_SNORM;
+		case VK_FORMAT_R16_SFLOAT:
+			return TextureFormat::R16_FLOAT;
+		case VK_FORMAT_R8G8_UNORM:
+			return TextureFormat::RG8_UNORM;
+		case VK_FORMAT_R8G8_SNORM:
+			return TextureFormat::RG8_SNORM;
+		case VK_FORMAT_R8G8_UINT:
+			return TextureFormat::RG8_UINT;
+		case VK_FORMAT_R8G8_SINT:
+			return TextureFormat::RG8_SINT;
+
+		case VK_FORMAT_R32_UINT:
+			return TextureFormat::R32_UINT;
+		case VK_FORMAT_R32_SINT:
+			return TextureFormat::R32_SINT;
+		case VK_FORMAT_R32_SFLOAT:
+			return TextureFormat::R32_FLOAT;
+		case VK_FORMAT_R16G16_UINT:
+			return TextureFormat::RG16_UINT;
+		case VK_FORMAT_R16G16_SINT:
+			return TextureFormat::RG16_SINT;
+		case VK_FORMAT_R16G16_UNORM:
+			return TextureFormat::RG16_UNORM;
+		case VK_FORMAT_R16G16_SNORM:
+			return TextureFormat::RG16_SNORM;
+		case VK_FORMAT_R16G16_SFLOAT:
+			return TextureFormat::RG16_FLOAT;
+		case VK_FORMAT_R8G8B8A8_UNORM:
+			return TextureFormat::RGBA8_UNORM;
+		case VK_FORMAT_R8G8B8A8_SRGB:
+			return TextureFormat::RGBA8_UNORM_SRGB;
+		case VK_FORMAT_R8G8B8A8_SNORM:
+			return TextureFormat::RGBA8_SNORM;
+		case VK_FORMAT_R8G8B8A8_UINT:
+			return TextureFormat::RGBA8_UINT;
+		case VK_FORMAT_R8G8B8A8_SINT:
+			return TextureFormat::RGBA8_SINT;
+		case VK_FORMAT_B8G8R8A8_UNORM:
+			return TextureFormat::BGRA8_UNORM;
+		case VK_FORMAT_B8G8R8A8_SRGB:
+			return TextureFormat::BGRA8_UNORM_SRGB;
+
+		case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
+			return TextureFormat::RGB9E5_UFLOAT;
+		case VK_FORMAT_A2R10G10B10_UINT_PACK32:
+			return TextureFormat::RGB10A2_UINT;
+		case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
+			return TextureFormat::RGB10A2_UNORM;
+		case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
+			return TextureFormat::RG11B10_FLOAT;
+
+		case VK_FORMAT_R32G32_UINT:
+			return TextureFormat::RG32_UINT;
+		case VK_FORMAT_R32G32_SINT:
+			return TextureFormat::RG32_SINT;
+		case VK_FORMAT_R32G32_SFLOAT:
+			return TextureFormat::RG32_FLOAT;
+		case VK_FORMAT_R16G16B16A16_UINT:
+			return TextureFormat::RGBA16_UINT;
+		case VK_FORMAT_R16G16B16A16_SINT:
+			return TextureFormat::RGBA16_SINT;
+		case VK_FORMAT_R16G16B16A16_UNORM:
+			return TextureFormat::RGBA16_UNORM;
+		case VK_FORMAT_R16G16B16A16_SNORM:
+			return TextureFormat::RGBA16_SNORM;
+		case VK_FORMAT_R16G16B16A16_SFLOAT:
+			return TextureFormat::RGBA16_FLOAT;
+
+		case VK_FORMAT_R32G32B32A32_UINT:
+			return TextureFormat::RGBA32_UINT;
+		case VK_FORMAT_R32G32B32A32_SINT:
+			return TextureFormat::RGBA32_SINT;
+		case VK_FORMAT_R32G32B32A32_SFLOAT:
+			return TextureFormat::RGBA32_FLOAT;
+
+		case VK_FORMAT_S8_UINT:
+			return TextureFormat::STENCIL8;
+		case VK_FORMAT_D16_UNORM:
+			return TextureFormat::DEPTH16_UNORM;
+		case VK_FORMAT_D24_UNORM_S8_UINT:
+			return TextureFormat::DEPTH24_PLUS_STENCIL8;
+		case VK_FORMAT_D32_SFLOAT:
+			return TextureFormat::DEPTH32_FLOAT;
+		case VK_FORMAT_D32_SFLOAT_S8_UINT:
+			return TextureFormat::DEPTH32_FLOAT_STENCIL8;
+
+		case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:
+			return TextureFormat::BC1_RGBA_UNORM;
+		case VK_FORMAT_BC1_RGBA_SRGB_BLOCK:
+			return TextureFormat::BC1_RGBA_UNORM_SRGB;
+		case VK_FORMAT_BC2_UNORM_BLOCK:
+			return TextureFormat::BC2_RGBA_UNORM;
+		case VK_FORMAT_BC2_SRGB_BLOCK:
+			return TextureFormat::BC2_RGBA_UNORM_SRGB;
+		case VK_FORMAT_BC3_UNORM_BLOCK:
+			return TextureFormat::BC3_RGBA_UNORM;
+		case VK_FORMAT_BC3_SRGB_BLOCK:
+			return TextureFormat::BC3_RGBA_UNORM_SRGB;
+		case VK_FORMAT_BC4_UNORM_BLOCK:
+			return TextureFormat::BC4_R_UNORM;
+		case VK_FORMAT_BC4_SNORM_BLOCK:
+			return TextureFormat::BC4_R_SNORM;
+		case VK_FORMAT_BC5_UNORM_BLOCK:
+			return TextureFormat::BC5_RG_UNORM;
+		case VK_FORMAT_BC5_SNORM_BLOCK:
+			return TextureFormat::BC5_RG_SNORM;
+		case VK_FORMAT_BC6H_UFLOAT_BLOCK:
+			return TextureFormat::BC6H_RGB_UFLOAT;
+		case VK_FORMAT_BC6H_SFLOAT_BLOCK:
+			return TextureFormat::BC6H_RGB_FLOAT;
+		case VK_FORMAT_BC7_UNORM_BLOCK:
+			return TextureFormat::BC7_RGBA_UNORM;
+		case VK_FORMAT_BC7_SRGB_BLOCK:
+			return TextureFormat::BC7_RGBA_UNORM_SRGB;
+
+		default:
+			BX_FAIL("VkFormat not supported.");
+			return TextureFormat::R8_UNORM;
+		}
+	}
 }

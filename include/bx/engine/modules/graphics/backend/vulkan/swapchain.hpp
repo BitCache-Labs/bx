@@ -15,6 +15,7 @@ namespace Vk
     class PhysicalDevice;
     class RenderPass;
     class Image;
+    class ImageView;
     class Framebuffer;
     class Semaphore;
     class Fence;
@@ -57,6 +58,7 @@ namespace Vk
 
         uint32_t imageCount;
         List<std::shared_ptr<Image>> images;
+        List<std::shared_ptr<ImageView>> imageViews;
         List<std::shared_ptr<Framebuffer>> framebuffers;
 
         uint32_t currentFrame;

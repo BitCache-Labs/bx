@@ -59,7 +59,7 @@ namespace Vk
     }
 
     void DescriptorSet::SetImage(uint32_t binding, VkDescriptorType type,
-        std::shared_ptr<Image> image, std::shared_ptr<Sampler> sampler)
+        std::shared_ptr<ImageView> image, std::shared_ptr<Sampler> sampler)
     {
         trackedSamplers[binding] = sampler;
 
@@ -90,7 +90,7 @@ namespace Vk
         vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
     }
 
-    void DescriptorSet::SetImageArray(u32 binding, VkDescriptorType type, const List<std::shared_ptr<Image>> images, std::shared_ptr<Sampler> sampler)
+    void DescriptorSet::SetImageArray(u32 binding, VkDescriptorType type, const List<std::shared_ptr<ImageView>> images, std::shared_ptr<Sampler> sampler)
     {
         trackedSamplers[binding] = sampler;
 
@@ -155,7 +155,7 @@ namespace Vk
             VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             VkPipelineStageFlags stageFlags = isGraphics ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-            cmdList.TransitionImageLayout(image, layout, stageFlags);
+            cmdList.TransitionImageLayout(image->GetImage(), layout, stageFlags);
         }
 
         for (auto& image : trackedStorageImages)
@@ -165,7 +165,7 @@ namespace Vk
             VkImageLayout layout = VK_IMAGE_LAYOUT_GENERAL;
             VkPipelineStageFlags stageFlags = isGraphics ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-            cmdList.TransitionImageLayout(image, layout, stageFlags);
+            cmdList.TransitionImageLayout(image->GetImage(), layout, stageFlags);
         }
     }
 

@@ -385,12 +385,14 @@ namespace Vk
 
     void CmdList::BeginRenderPass(std::shared_ptr<RenderPass> renderPass,
         std::shared_ptr<Framebuffer> framebuffer, const Color& clearColor) {
+        std::shared_ptr<Vk::Image> image = framebuffer->Images()[0]->GetImage();
+
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass->GetRenderPass();
         renderPassInfo.framebuffer = framebuffer->GetFramebuffer();
         renderPassInfo.renderArea.extent =
-            VkExtent2D{ framebuffer->Images()[0]->Width(), framebuffer->Images()[0]->Height() };
+            VkExtent2D{ image->Width(), image->Height() };
 
         List<VkClearValue> clearValues{};
         for (u32 i = 0; i < renderPass->GetInfo().colorFormats.size(); i++)

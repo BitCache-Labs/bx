@@ -51,7 +51,7 @@ void main()
 
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel);
     vec4 historyNormalAndDepth = getPixelNormalAndDepthHistory(prevPixel);
-    bool validDepth = abs(currentNormalAndDepth.w - historyNormalAndDepth.w) < 0.3 && historyNormalAndDepth.w != 0.0;
+    bool validDepth = abs(currentNormalAndDepth.w - historyNormalAndDepth.w) < 0.6 && historyNormalAndDepth.w != 0.0;
     bool validNormals = dot(currentNormalAndDepth.xyz, historyNormalAndDepth.xyz) >= 0.86;
 
     if (validDepth && validNormals)

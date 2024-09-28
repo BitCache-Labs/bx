@@ -39,7 +39,7 @@ namespace Vk
         uint32_t mips, VkImageUsageFlags usage, VkFormat format, uint32_t arrayLayers,
         VkImageType dims, unsigned depth)
         : name(name), device(device),
-        imageView(VK_NULL_HANDLE),
+        //imageView(VK_NULL_HANDLE),
         width(width),
         height(height),
         depth(depth),
@@ -76,12 +76,68 @@ namespace Vk
         ImageState imageState;
         imageState.currentLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
         imageState.lastStageFlags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        //imageState.accessFlags = VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
         ResourceStateTracker::AddGlobalImageState(this->image, imageState);
 
+        //VkImageViewCreateInfo viewInfo{};
+        //viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        //viewInfo.image = this->image;
+        //viewInfo.viewType = (arrayLayers == 1)
+        //    ? ((dims == VK_IMAGE_TYPE_2D) ? VK_IMAGE_VIEW_TYPE_2D
+        //        : VK_IMAGE_VIEW_TYPE_3D)
+        //    : VK_IMAGE_VIEW_TYPE_CUBE;
+        //viewInfo.format = format;
+        //viewInfo.subresourceRange.aspectMask =
+        //    IsDepthFormat(format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+        //viewInfo.subresourceRange.baseMipLevel = 0;
+        //viewInfo.subresourceRange.levelCount = mips;
+        //viewInfo.subresourceRange.baseArrayLayer = 0;
+        //viewInfo.subresourceRange.layerCount = arrayLayers;
+        //
+        //VK_ASSERT(!vkCreateImageView(device->GetDevice(), &viewInfo, nullptr, &this->imageView),
+        //    "Failed to create image view");
+    }
+
+    Image::Image(const String& name, std::shared_ptr<Device> device, VkImage image,// VkImageView imageView,
+        uint32_t width, uint32_t height, VkFormat format)
+        : name(name), device(device),
+        image(image),
+        //imageView(imageView),
+        allocation(VK_NULL_HANDLE),
+        width(width),
+        height(height),
+        depth(1),
+        mips(1),
+        arrayLayers(1),
+        format(format) {
+        DebugNames::Set(*device, VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(this->image),
+            name);
+    }
+
+    Image::~Image() {
+        //vkDestroyImageView(this->device->GetDevice(), this->imageView, nullptr);
+
+        if (this->allocation) {
+            ResourceStateTracker::RemoveGlobalImageState(this->image);
+            vmaDestroyImage(this->device->GetAllocator(), this->image, this->allocation);
+        }
+    }
+
+    VkImage Image::GetImage() const {
+        return this->image;
+    }
+
+    //VkImageView Image::GetImageView() const {
+    //    return this->imageView;
+    //}
+
+    ImageView::ImageView(std::shared_ptr<Device> device, std::shared_ptr<Image> image,
+        uint32_t baseMips, uint32_t mips, VkFormat format, uint32_t baseArrayLayer, uint32_t arrayLayers,
+        VkImageType dims, uint32_t depth)
+        : device(device), image(image)
+    {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.image = this->image;
+        viewInfo.image = image->GetImage();
         viewInfo.viewType = (arrayLayers == 1)
             ? ((dims == VK_IMAGE_TYPE_2D) ? VK_IMAGE_VIEW_TYPE_2D
                 : VK_IMAGE_VIEW_TYPE_3D)
@@ -98,35 +154,18 @@ namespace Vk
             "Failed to create image view");
     }
 
-    Image::Image(const String& name, std::shared_ptr<Device> device, VkImage image, VkImageView imageView,
-        uint32_t width, uint32_t height)
-        : name(name), device(device),
-        image(image),
-        imageView(imageView),
-        allocation(VK_NULL_HANDLE),
-        width(width),
-        height(height),
-        depth(1),
-        mips(1),
-        arrayLayers(1) {
-        DebugNames::Set(*device, VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(this->image),
-            name);
-    }
-
-    Image::~Image() {
+    ImageView::~ImageView()
+    {
         vkDestroyImageView(this->device->GetDevice(), this->imageView, nullptr);
-
-        if (this->allocation) {
-            ResourceStateTracker::RemoveGlobalImageState(this->image);
-            vmaDestroyImage(this->device->GetAllocator(), this->image, this->allocation);
-        }
     }
 
-    VkImage Image::GetImage() const {
-        return this->image;
+    std::shared_ptr<Image> ImageView::GetImage() const
+    {
+        return image;
     }
 
-    VkImageView Image::GetImageView() const {
-        return this->imageView;
+    VkImageView ImageView::GetImageView() const
+    {
+        return imageView;
     }
 }

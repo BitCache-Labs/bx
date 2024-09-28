@@ -52,11 +52,11 @@ true;
 false;
 #endif
 
-struct TextureView
-{
-    TextureHandle handle;
-    std::shared_ptr<Image> texture;
-};
+//struct TextureView
+//{
+//    TextureHandle handle;
+//    std::shared_ptr<Image> texture;
+//};
 
 struct State : NoCopy
 {
@@ -82,7 +82,7 @@ struct State : NoCopy
 
     HashMap<BufferHandle, std::shared_ptr<Buffer>> buffers;
     HashMap<TextureHandle, std::shared_ptr<Image>> textures;
-    HashMap<TextureViewHandle, TextureView> textureViews;
+    HashMap<TextureViewHandle, std::shared_ptr<ImageView>> textureViews;
     HashMap<ShaderHandle, std::shared_ptr<Shader>> shaders;
     HashMap<GraphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>> graphicsPipelines;
     HashMap<GraphicsPipelineHandle, const HashMap<u32, std::shared_ptr<DescriptorSetLayout>>> graphicsPipelineLayouts;
@@ -163,12 +163,10 @@ void BuildSwapchain(HashMap<TextureHandle, TextureCreateInfo>& textureCreateInfo
         textureCreateInfos.insert(std::make_pair(textureHandle, s->swapchain->GetImageCreateInfo()));
 
         std::shared_ptr<Image> image = s->swapchain->GetImage(i);
-        TextureView textureView{};
-        textureView.handle = textureHandle;
-        textureView.texture = image;
+        std::shared_ptr<ImageView> imageView(new ImageView(s->device, image, 0, 1, image->Format()));
 
         s->textures.emplace(textureHandle, image);
-        s->textureViews.emplace(textureViewHandle, textureView);
+        s->textureViews.emplace(textureViewHandle, imageView);
         s->swapchainColorTargets[i] = textureHandle;
         s->swapchainColorTargetViews[i] = textureViewHandle;
     }
@@ -375,20 +373,21 @@ void Graphics::DestroyTexture(TextureHandle& texture)
     s->textureHandlePool.Destroy(texture);
 }
 
-TextureViewHandle Graphics::CreateTextureView(TextureHandle texture)
+TextureViewHandle Graphics::CreateTextureView(const TextureViewCreateInfo& createInfo)
 {
-    BX_ENSURE(texture);
+    // TODO: validate create info
+    BX_ENSURE(createInfo.texture);
 
     TextureViewHandle textureViewHandle = s->textureViewHandlePool.Create();
 
-    auto textureIter = s->textures.find(texture);
+    s_createInfoCache->textureViewCreateInfos.insert(std::make_pair(textureViewHandle, createInfo));
+
+    auto textureIter = s->textures.find(createInfo.texture);
     BX_ENSURE(textureIter != s->textures.end());
 
-    TextureView textureView;
-    textureView.handle = texture;
-    textureView.texture = textureIter->second;
-
-    s->textureViews.insert(std::make_pair(textureViewHandle, textureView));
+    std::shared_ptr<ImageView> imageView(new ImageView(s->device, textureIter->second,
+        createInfo.baseMipLevel, createInfo.mipLevelCount, textureIter->second->Format(), createInfo.baseArrayLayer, createInfo.arrayLayerCount));
+    s->textureViews.insert(std::make_pair(textureViewHandle, imageView));
 
     return textureViewHandle;
 }
@@ -398,6 +397,7 @@ void Graphics::DestroyTextureView(TextureViewHandle& textureView)
     BX_ENSURE(textureView);
 
     s->textureViews.erase(textureView);
+    s_createInfoCache->textureViewCreateInfos.erase(textureView);
     s->textureViewHandlePool.Destroy(textureView);
 }
 
@@ -683,18 +683,18 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
 
             VkDescriptorType type = layout->GetDescriptorType(entry.binding);
             std::shared_ptr<Sampler> sampler = type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? s->sampler : nullptr;
-            descriptorSet->SetImage(entry.binding, type, textureViewIter->second.texture, sampler);
+            descriptorSet->SetImage(entry.binding, type, textureViewIter->second, sampler);
             break;
         }
         case BindingResourceType::TEXTURE_VIEW_ARRAY:
         {
-            List<std::shared_ptr<Image>> textures{};
+            List<std::shared_ptr<ImageView>> textures{};
             for (const auto& textureView : entry.resource.textureViewArray)
             {
                 auto textureViewIter = s->textureViews.find(textureView);
                 BX_ENSURE(textureViewIter != s->textureViews.end());
 
-                textures.push_back(textureViewIter->second.texture);
+                textures.push_back(textureViewIter->second);
             }
 
             VkDescriptorType type = layout->GetDescriptorType(entry.binding);
@@ -894,21 +894,19 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
     {
         auto textureViewIter = s->textureViews.find(colorAttachment.view);
         BX_ENSURE(textureViewIter != s->textureViews.end());
-        auto& textureCreateInfo = GetTextureCreateInfo(textureViewIter->second.handle);
+        auto& image = textureViewIter->second->GetImage();
 
-        framebufferInfo.images.push_back(textureViewIter->second.texture);
-        s->cmdList->TransitionImageLayout(textureViewIter->second.texture,
+        framebufferInfo.images.push_back(textureViewIter->second);
+        s->cmdList->TransitionImageLayout(textureViewIter->second->GetImage(),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-        VkFormat format = TextureFormatToVk(textureCreateInfo.format);
-        renderPassInfo.colorFormats.push_back(format);
+        renderPassInfo.colorFormats.push_back(image->Format());
 
         if (width == 0 && height == 0)
         {
-            auto createInfo = GetTextureCreateInfo(textureViewIter->second.handle);
-            width = createInfo.size.width;
-            height = createInfo.size.height;
+            width = image->Width();
+            height = image->Height();
         }
     }
     if (descriptor.depthStencilAttachment.IsSome())
@@ -917,21 +915,21 @@ RenderPassHandle Graphics::BeginRenderPass(const RenderPassDescriptor& descripto
 
         auto textureViewIter = s->textureViews.find(depthAttachment.view);
         BX_ENSURE(textureViewIter != s->textureViews.end());
-        auto& textureCreateInfo = GetTextureCreateInfo(textureViewIter->second.handle);
+        auto& image = textureViewIter->second->GetImage();
 
-        framebufferInfo.images.push_back(textureViewIter->second.texture);
-        s->cmdList->TransitionImageLayout(textureViewIter->second.texture,
-            TextureFormatToVkImageLayout(textureCreateInfo.format),
+        TextureFormat format = TextureFormatFromVk(image->Format());
+
+        framebufferInfo.images.push_back(textureViewIter->second);
+        s->cmdList->TransitionImageLayout(textureViewIter->second->GetImage(),
+            TextureFormatToVkImageLayout(format),
             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
 
-        VkFormat format = TextureFormatToVk(textureCreateInfo.format);
-        renderPassInfo.depthFormat = Optional<VkFormat>::Some(format);
+        renderPassInfo.depthFormat = Optional<VkFormat>::Some(image->Format());
 
         if (width == 0 && height == 0)
         {
-            auto createInfo = GetTextureCreateInfo(textureViewIter->second.handle);
-            width = createInfo.size.width;
-            height = createInfo.size.height;
+            width = image->Width();
+            height = image->Height();
         }
     }
 
@@ -1379,7 +1377,7 @@ ImGui_ImplVulkan_InitInfo GraphicsVulkan::ImGuiInitInfo()
     return info;
 }
 
-std::shared_ptr<DescriptorSet> GraphicsVulkan::TextureAsDescriptorSet(TextureHandle texture)
+std::shared_ptr<DescriptorSet> GraphicsVulkan::TextureAsDescriptorSet(TextureViewHandle textureView)
 {
     VkDescriptorSetLayoutBinding binding{};
     binding.binding = 0;
@@ -1390,8 +1388,8 @@ std::shared_ptr<DescriptorSet> GraphicsVulkan::TextureAsDescriptorSet(TextureHan
     std::shared_ptr<DescriptorSetLayout> layout(new DescriptorSetLayout("Texture As Descriptor Set Layout", s->device, { binding }));
     std::shared_ptr<DescriptorSet> descriptorSet(new DescriptorSet("Texture As Descriptor Set", s->device, s->descriptorPool, layout));
     
-    auto textureIter = s->textures.find(texture);
-    BX_ENSURE(textureIter != s->textures.end());
+    auto textureIter = s->textureViews.find(textureView);
+    BX_ENSURE(textureIter != s->textureViews.end());
     descriptorSet->SetImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, textureIter->second, s->sampler);
 
     return descriptorSet;

@@ -35,6 +35,15 @@ const TextureCreateInfo& Graphics::GetTextureCreateInfo(TextureHandle texture)
     return createInfoIter->second;
 }
 
+const TextureViewCreateInfo& Graphics::GetTextureViewCreateInfo(TextureViewHandle textureView)
+{
+    BX_ENSURE(textureView);
+
+    auto createInfoIter = s_createInfoCache->textureViewCreateInfos.find(textureView);
+    BX_ENSURE(createInfoIter != s_createInfoCache->textureViewCreateInfos.end());
+    return createInfoIter->second;
+}
+
 const SamplerCreateInfo& Graphics::GetSamplerCreateInfo(SamplerHandle sampler)
 {
     BX_ENSURE(sampler);

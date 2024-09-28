@@ -21,4 +21,6 @@ namespace Vk
 	VkFrontFace FrontFaceToVk(const FrontFace& frontFace);
 	VkPrimitiveTopology PrimitiveTopologyToVk(const PrimitiveTopology& topology);
 	VkCullModeFlags CullModeToVk(const Optional<Face>& cullMode);
+
+	TextureFormat TextureFormatFromVk(VkFormat format);
 }

@@ -17,8 +17,8 @@ namespace Vk
             const PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, uint32_t mips,
             VkImageUsageFlags usage, VkFormat format, uint32_t arrayLayers = 1,
             VkImageType type = VK_IMAGE_TYPE_2D, uint32_t depth = 1);
-        Image(const String& name, std::shared_ptr<Device> device, VkImage image, VkImageView imageView,
-            uint32_t width, uint32_t height);
+        Image(const String& name, std::shared_ptr<Device> device, VkImage image, //VkImageView imageView,
+            uint32_t width, uint32_t height, VkFormat format);
         ~Image();
 
         uint32_t Width() const;
@@ -29,14 +29,14 @@ namespace Vk
         VkFormat Format() const;
 
         VkImage GetImage() const;
-        VkImageView GetImageView() const;
+        //VkImageView GetImageView() const;
 
     private:
         const String name;
         const std::shared_ptr<Device> device;
 
         VkImage image;
-        VkImageView imageView;
+        //VkImageView imageView;
         VmaAllocation allocation;
 
         uint32_t width;
@@ -45,6 +45,23 @@ namespace Vk
         uint32_t mips;
         uint32_t arrayLayers;
         VkFormat format;
+    };
+
+    class ImageView : NoCopy {
+    public:
+        ImageView(std::shared_ptr<Device> device, std::shared_ptr<Image> image,
+            uint32_t baseMip, uint32_t mips, VkFormat format, uint32_t baseArrayLayer = 0, uint32_t arrayLayers = 1,
+            VkImageType type = VK_IMAGE_TYPE_2D, uint32_t depth = 1);
+        ~ImageView();
+
+        std::shared_ptr<Image> GetImage() const;
+        VkImageView GetImageView() const;
+
+    private:
+        const std::shared_ptr<Device> device;
+        const std::shared_ptr<Image> image;
+
+        VkImageView imageView;
     };
 }
 

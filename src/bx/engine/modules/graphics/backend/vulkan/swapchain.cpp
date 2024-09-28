@@ -159,38 +159,43 @@ namespace Vk
         vkGetSwapchainImagesKHR(device->GetDevice(), this->swapchain, &this->imageCount,
             swapChainImages.data());
 
-        std::vector<VkImageView> swapChainImageViews(swapChainImages.size());
-        for (size_t i = 0; i < swapChainImages.size(); i++) {
-            VkImageViewCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = swapChainImages[i];
-            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = this->format.format;
-            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            createInfo.subresourceRange.baseMipLevel = 0;
-            createInfo.subresourceRange.levelCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.layerCount = 1;
-
-            VK_ASSERT(!vkCreateImageView(device->GetDevice(), &createInfo, nullptr,
-                &swapChainImageViews[i]),
-                "Failed to create image view.");
-        }
+        //std::vector<VkImageView> swapChainImageViews(swapChainImages.size());
+        //for (size_t i = 0; i < swapChainImages.size(); i++) {
+        //    VkImageViewCreateInfo createInfo{};
+        //    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        //    createInfo.image = swapChainImages[i];
+        //    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        //    createInfo.format = this->format.format;
+        //    createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        //    createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        //    createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        //    createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        //    createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        //    createInfo.subresourceRange.baseMipLevel = 0;
+        //    createInfo.subresourceRange.levelCount = 1;
+        //    createInfo.subresourceRange.baseArrayLayer = 0;
+        //    createInfo.subresourceRange.layerCount = 1;
+        //
+        //    VK_ASSERT(!vkCreateImageView(device->GetDevice(), &createInfo, nullptr,
+        //        &swapChainImageViews[i]),
+        //        "Failed to create image view.");
+        //}
 
         this->images.reserve(swapChainImages.size());
         for (size_t i = 0; i < swapChainImages.size(); i++) {
             this->images.push_back(
-                std::shared_ptr<Image>(new Image(Log::Format("Swapchain Image {}", i), device, swapChainImages[i], swapChainImageViews[i],
-                    this->extent.width, this->extent.height)));
+                std::shared_ptr<Image>(new Image(Log::Format("Swapchain Image {}", i), device, swapChainImages[i],
+                    this->extent.width, this->extent.height, this->format.format)));
 
             ImageState imageState;
             imageState.currentLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
             imageState.lastStageFlags = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             ResourceStateTracker::AddGlobalImageState(this->images[i]->GetImage(), imageState);
+        }
+
+        this->imageViews.reserve(swapChainImages.size());
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            this->imageViews.push_back(std::shared_ptr<ImageView>(new ImageView(device, this->images[i], 0, 1, this->format.format)));
         }
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -206,7 +211,7 @@ namespace Vk
         renderPassInfo.clear = false;
         this->renderPass = std::shared_ptr<RenderPass>(new RenderPass("Swapchain Render Pass",
             this->device, renderPassInfo));
-        for (auto& image : this->images) {
+        for (auto& image : this->imageViews) {
             FramebufferInfo framebufferInfo{};
             framebufferInfo.images = { image };
             framebufferInfo.renderPass = this->renderPass;
