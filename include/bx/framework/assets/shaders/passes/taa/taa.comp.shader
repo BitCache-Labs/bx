@@ -39,7 +39,7 @@ void main()
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
 
     vec2 velocity = imageLoad(velocityTarget, pixel).rg / 100.0;
-    ivec2 prevPixel = ivec2(vec2(pixel) - (vec2(constants.resolution) * velocity));
+    ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
 
     vec3 current = imageLoad(colorTarget, pixel).rgb;
     vec3 history = imageLoad(resolvedColorTargetHistory, prevPixel).rgb;

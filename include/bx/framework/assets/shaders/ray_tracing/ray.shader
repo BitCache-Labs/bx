@@ -58,7 +58,7 @@ Ray unpackRay(PackedRay packedRay)
 bool traceValidationRay(accelerationStructureEXT scene, vec3 origin, vec3 direction, vec3 normal, float tMax)
 {
     const float validationEpsilon = min(tMax * 0.01, 0.1);
-    origin += validationEpsilon * normal;
+    origin += validationEpsilon * direction;
     tMax = max(0.0, tMax - validationEpsilon);
 
     rayQueryEXT rayQuery;

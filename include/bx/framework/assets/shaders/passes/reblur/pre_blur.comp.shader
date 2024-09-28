@@ -12,6 +12,12 @@ layout (BINDING(0, 0), std140) uniform _Constants
 layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
 layout (BINDING(0, 2), rgba32f) uniform image2D outImage;
 
+float KERNEL[9] = float[](
+    1.0, 2.0, 1.0,
+    2.0, 4.0, 2.0,
+    1.0, 2.0, 1.0
+);
+
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
 {
@@ -20,12 +26,6 @@ void main()
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
 
     vec3 result = vec3(0.0);
-
-    float KERNEL[9] = float[](
-        1.0, 2.0, 1.0,
-        2.0, 4.0, 2.0,
-        1.0, 2.0, 1.0
-    );
 
     #pragma unroll
     for (uint y = 0; y < 3; y++)

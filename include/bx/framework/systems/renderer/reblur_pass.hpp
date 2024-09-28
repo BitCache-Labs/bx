@@ -27,11 +27,16 @@ public:
 
 private:
 	u32 width, height;
+	u32 frameIdx;
 
 	TextureHandle tmpIlluminationTexture;
 	TextureViewHandle tmpIlluminationTextureView;
+	TextureHandle historyTexture[2];
+	TextureViewHandle historyTextureView[2];
 
 	BufferHandle preBlurConstantsBuffer;
+	BufferHandle temporalAccumConstantsBuffer;
 
 	BindGroupHandle CreatePreBlurBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
+	BindGroupHandle CreateTemporalAccumBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
 };
