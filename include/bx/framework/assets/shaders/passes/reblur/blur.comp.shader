@@ -1,5 +1,7 @@
 #include "[engine]/shaders/Language.shader"
 
+#include "[engine]/shaders/passes/reblur/shared.shader"
+
 #include "[engine]/shaders/packing.shader"
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/random.shader"
@@ -48,7 +50,7 @@ void main()
         return;
     }
 
-    float screenRadius = (constants.resolution.x / 1920.0) * 5.0;
+    float screenRadius = (constants.resolution.x / 1920.0) * 10.0;
     float radius = screenRadius;
     float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + 1) * 0.5;
     ivec2 pixelSeed = pixel >> 3;
@@ -70,14 +72,9 @@ void main()
         uint sampleBlasInstance;
         vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel, sampleBlasInstance);
     
-        float depthWeight = 1.0 - abs(currentNormalAndDepth.w - sampleNormalAndDepth.w);
-        bool validDepth = depthWeight > 0.0 && sampleNormalAndDepth.w != 0.0;
-        bool validNormals = dot(currentNormalAndDepth.xyz, sampleNormalAndDepth.xyz) >= 0.86;
-        float blasInstanceWeight = (currentBlasInstance == sampleBlasInstance) ? 1.0 : 0.7;
-    
-        if (validDepth && validNormals)
+        float weight;
+        if (sampleToCurrentSimilarity(currentNormalAndDepth, sampleNormalAndDepth, currentBlasInstance, sampleBlasInstance, weight))
         {
-            float weight = blasInstanceWeight * depthWeight;
             result += imageLoad(inImage, samplePixel).rgb * weight;
             sampleCount += weight;
         }
