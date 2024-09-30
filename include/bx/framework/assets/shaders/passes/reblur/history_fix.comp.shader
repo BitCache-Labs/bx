@@ -5,10 +5,10 @@
 #include "[engine]/shaders/sampling.shader"
 
 const int ANTI_FIREFLY_RADIUS = 4;
-const float ANTI_FIREFLY_SCALE = 1.0;
+const float ANTI_FIREFLY_SCALE = 0.5;
 
 const int FAST_HISTORY_RADIUS = 2; // or 1
-const float FAST_HISTORY_SCALE = 0.1; // or 2.0
+const float FAST_HISTORY_SCALE = 0.16; // or 2.0
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -128,9 +128,10 @@ void main()
         float sigma = stdDev(m1, m2) * FAST_HISTORY_SCALE;
         float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
         clampedLuma = mix(clampedLuma, luma, 1.0 / (1.0 + frameCount));
-
-        result *= fixNan(clampedLuma / luma); // TODO: incorrect
+        float lumaFactor = (luma == 0.0) ? 0.0 : (clampedLuma / luma);
         luma = clampedLuma;
+
+        result *= lumaFactor; // TODO: incorrect
     }
 
     imageStore(outImage, pixel, vec4(result, 1.0));

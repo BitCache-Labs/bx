@@ -103,10 +103,10 @@ void main()
 
     vec3 result = mix(history.rgb, current, 1.0 / (1.0 + history.w));
 
-    if (dot(result, current) < 0.5)
+    if (dot(result, current) < 0.5 && history.w >= MAX_ACCUMULATED_FRAMES * 0.1)
     {
         history.w = min(history.w, MAX_ACCUMULATED_FRAMES * 0.5);
-        history.w *= 0.3;
+        history.w *= mix(0.3, 1.0, dot(result, current));
         result = mix(history.rgb, current, 1.0 / (1.0 + history.w));
     }
 
