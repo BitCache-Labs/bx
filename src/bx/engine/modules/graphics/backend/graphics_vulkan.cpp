@@ -385,8 +385,11 @@ TextureViewHandle Graphics::CreateTextureView(const TextureViewCreateInfo& creat
     auto textureIter = s->textures.find(createInfo.texture);
     BX_ENSURE(textureIter != s->textures.end());
 
+    u32 mipLevelCount = createInfo.mipLevelCount.IsSome() ? createInfo.mipLevelCount.Unwrap() : textureIter->second->Mips() - createInfo.baseMipLevel;
+    u32 arrayLayerCount = createInfo.arrayLayerCount.IsSome() ? createInfo.arrayLayerCount.Unwrap() : textureIter->second->ArrayLayers() - createInfo.baseArrayLayer;
+
     std::shared_ptr<ImageView> imageView(new ImageView(s->device, textureIter->second,
-        createInfo.baseMipLevel, createInfo.mipLevelCount, textureIter->second->Format(), createInfo.baseArrayLayer, createInfo.arrayLayerCount));
+        createInfo.baseMipLevel, mipLevelCount, textureIter->second->Format(), createInfo.baseArrayLayer, arrayLayerCount));
     s->textureViews.insert(std::make_pair(textureViewHandle, imageView));
 
     return textureViewHandle;

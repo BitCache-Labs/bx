@@ -17,7 +17,7 @@ namespace Vk
             const PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, uint32_t mips,
             VkImageUsageFlags usage, VkFormat format, uint32_t arrayLayers = 1,
             VkImageType type = VK_IMAGE_TYPE_2D, uint32_t depth = 1);
-        Image(const String& name, std::shared_ptr<Device> device, VkImage image, //VkImageView imageView,
+        Image(const String& name, std::shared_ptr<Device> device, VkImage image,
             uint32_t width, uint32_t height, VkFormat format);
         ~Image();
 
@@ -29,14 +29,12 @@ namespace Vk
         VkFormat Format() const;
 
         VkImage GetImage() const;
-        //VkImageView GetImageView() const;
 
     private:
         const String name;
         const std::shared_ptr<Device> device;
 
         VkImage image;
-        //VkImageView imageView;
         VmaAllocation allocation;
 
         uint32_t width;

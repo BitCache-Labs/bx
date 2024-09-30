@@ -10,6 +10,7 @@ struct ReblurDispatchInfo
 
 	TextureViewHandle gbufferView;
 	TextureViewHandle gbufferHistoryView;
+	TextureViewHandle neGbufferHistoryView;
 	TextureViewHandle velocityView;
 };
 

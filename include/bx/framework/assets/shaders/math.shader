@@ -83,7 +83,7 @@ vec4 saturate(vec4 x)
 
 float stdDev(float a, float b)
 {
-    return sqrt(abs(b - sqr(a)));
+    return safeSqrt(abs(b - sqr(a)));
 }
 
 vec3 _reflect(vec3 v, vec3 n)

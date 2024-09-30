@@ -588,9 +588,9 @@ struct TextureViewCreateInfo
 
 	TextureHandle texture = TextureHandle::null;
 	u32 baseMipLevel = 0;
-	u32 mipLevelCount = 1;
+	Optional<u32> mipLevelCount = Optional<u32>::None();
 	u32 baseArrayLayer = 0;
-	u32 arrayLayerCount = 1;
+	Optional<u32> arrayLayerCount = Optional<u32>::None();
 };
 
 struct ImageDataLayout

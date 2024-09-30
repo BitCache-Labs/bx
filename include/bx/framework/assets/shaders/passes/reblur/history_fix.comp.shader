@@ -5,7 +5,7 @@
 #include "[engine]/shaders/sampling.shader"
 
 const int ANTI_FIREFLY_RADIUS = 4;
-const float ANTI_FIREFLY_SCALE = 2.0;
+const float ANTI_FIREFLY_SCALE = 1.0;
 
 const int FAST_HISTORY_RADIUS = 2; // or 1
 const float FAST_HISTORY_SCALE = 0.1; // or 2.0
@@ -39,22 +39,18 @@ void main()
     if (disoccluded)
     {
         vec2 uv = vec2(pixel) / vec2(constants.resolution);
-        float depth = textureLod(mippedBlur, uv, 0).w * 1000.0;
+        float depth = textureLod(mippedBlur, uv, 0).w;
 
         #pragma unroll
         for (int i = 3; i >= 1; i--)
         {
-            vec4 mippedData = textureLod(mippedBlur, uv, 6);
-            float mippedDepth = mippedData.w * 1000.0;
+            vec4 mippedData = textureLod(mippedBlur, uv, i);
+            float mippedDepth = mippedData.w;
 
-            //if (abs(mippedDepth - depth) < 0.00002 && i > 1 && mippedDepth == depth)
-            //{
-            //    continue;
-            //}
-            //
-            //if (i == 1) result = vec3(1.0, 0.0, 0.0);
-            //if (i == 2) result = vec3(0.0, 1.0, 0.0);
-            //if (i == 3) result = vec3(0.0, 0.0, 1.0);
+            if (abs(mippedDepth - depth) < 0.1 && i > 1)
+            {
+                continue;
+            }
 
             result = mippedData.rgb;
             break;
@@ -94,12 +90,13 @@ void main()
 
         float sigma = stdDev(m1, m2) * ANTI_FIREFLY_SCALE;
         float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
-
-        result *= fixNan(clampedLuma / luma); // TODO: incorrect
+        float lumaFactor = (luma == 0.0) ? 0.0 : (clampedLuma / luma);
         luma = clampedLuma;
+
+        result *= lumaFactor; // TODO: incorrect
     }
 
-    if (true)
+    if (false)
     {
         float m1 = 0.0;
         float m2 = 0.0;
@@ -137,4 +134,5 @@ void main()
     }
 
     imageStore(outImage, pixel, vec4(result, 1.0));
+    //imageStore(outHistory, pixel, vec4(result, frameCount));
 }

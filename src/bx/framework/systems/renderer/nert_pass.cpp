@@ -257,12 +257,15 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     height = colorTargetCreateInfo.size.height;
 
     TextureCreateInfo neGbufferCreateInfo{};
-    neGbufferCreateInfo.name = "Nert Non Euclidian GBuffer Texture";
     neGbufferCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     neGbufferCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING;
     neGbufferCreateInfo.size = Extend3D(width, height, 1);
-    neGbuffer = Graphics::CreateTexture(neGbufferCreateInfo);
-    neGbufferView = Graphics::CreateTextureView(neGbuffer);
+    for (u32 i = 0; i < 2; i++)
+    {
+        neGbufferCreateInfo.name = Log::Format("Nert Non Euclidian GBuffer {} Texture", i);
+        neGbuffer[i] = Graphics::CreateTexture(neGbufferCreateInfo);
+        neGbufferView[i] = Graphics::CreateTextureView(neGbuffer[i]);
+    }
 
     TextureCreateInfo illuminationCreateInfo{};
     illuminationCreateInfo.name = "Nert Illumination Texture";
@@ -359,8 +362,11 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
 NertPass::~NertPass()
 {
     Graphics::DestroyTextureView(colorTargetView);
-    Graphics::DestroyTextureView(neGbufferView);
-    Graphics::DestroyTexture(neGbuffer);
+    for (u32 i = 0; i < 2; i++)
+    {
+        Graphics::DestroyTextureView(neGbufferView[i]);
+        Graphics::DestroyTexture(neGbuffer[i]);
+    }
 
     Graphics::DestroyTextureView(illuminationTextureView);
     Graphics::DestroyTexture(illuminationTexture);
@@ -432,7 +438,7 @@ BindGroupHandle NertPass::CreateIntersectBindGroup(const NertDispatchInfo& dispa
         BindGroupEntry(4, BindingResource::Buffer(samplePixelMappingBuffer)),
         BindGroupEntry(6, BindingResource::AccelerationStructure(createInfo.tlas)),
         BindGroupEntry(7, BindingResource::TextureView(dispatchInfo.gbuffer)),
-        BindGroupEntry(8, BindingResource::TextureView(neGbufferView)),
+        BindGroupEntry(8, BindingResource::TextureView(neGbufferView[frameIdx % 2 == 0])),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
@@ -488,7 +494,7 @@ BindGroupHandle NertPass::CreateShadeBindGroup(const NertDispatchInfo& dispatchI
         BindGroupEntry(0, BindingResource::Buffer(shadeConstantsBuffer)),
         BindGroupEntry(3, BindingResource::Buffer(intersectionsBuffer)),
         BindGroupEntry(4, BindingResource::AccelerationStructure(createInfo.tlas)),
-        BindGroupEntry(5, BindingResource::TextureView(neGbufferView)),
+        BindGroupEntry(5, BindingResource::TextureView(neGbufferView[frameIdx % 2 == 0])),
         BindGroupEntry(6, BindingResource::TextureView(illuminationTextureView)),
         BindGroupEntry(7, BindingResource::TextureView(ambientEmissiveBaseColorTextureView)),
     };
@@ -588,6 +594,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         reblurDispatchInfo.unresolvedIllumination = illuminationTexture;
         reblurDispatchInfo.gbufferView = dispatchInfo.gbuffer;
         reblurDispatchInfo.gbufferHistoryView = dispatchInfo.gbufferHistory;
+        reblurDispatchInfo.neGbufferHistoryView = neGbufferView[frameIdx % 2 != 0];
         reblurDispatchInfo.velocityView = dispatchInfo.velocity;
         reblurPass->Dispatch(reblurDispatchInfo);
     }

@@ -108,7 +108,7 @@ void main()
             }
             
             SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
-            baseColorFactor = material.baseColorFactor;
+            baseColorFactor = diffuseBsdfEval(material.baseColorFactor); // TODO: rename
 
             if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
             {
@@ -130,7 +130,7 @@ void main()
                 lightingContribution += throughput * radiance * reservoir.contributionWeight;
             }
 
-            ambientEmissiveContribution += throughput * diffuseBsdfEval(baseColorFactor) * ambientContribution;
+            ambientEmissiveContribution += throughput * baseColorFactor * ambientContribution;
         }
     }
 

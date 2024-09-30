@@ -2,23 +2,20 @@
 
 #include "[engine]/shaders/packing.shader"
 #include "[engine]/shaders/sampling.shader"
+#include "[engine]/shaders/random.shader"
+
+const uint NUM_SPATIAL_SAMPLES = 8;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uvec2 resolution;
+    uint seed;
     uint _PADDING0;
-    uint _PADDING1;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 3), rgba32f) uniform image2D outImage;
-
-float KERNEL[9] = float[](
-    1.0, 2.0, 1.0,
-    2.0, 4.0, 2.0,
-    1.0, 2.0, 1.0
-);
 
 vec4 getPixelNormalAndDepth(ivec2 pixel, out uint blasInstance)
 {
@@ -38,31 +35,47 @@ void main()
     uint currentBlasInstance;
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
 
-    vec3 result = vec3(0.0);
-    float sampleCount = 0.0;
+    vec3 result = imageLoad(inImage, pixel).rgb;
+    float sampleCount = 1.0;
 
-    #pragma unroll
-    for (uint y = 0; y < 3; y++)
+    if (currentNormalAndDepth.w == 0.0)
     {
-        #pragma unroll
-        for (uint x = 0; x < 3; x++)
+        imageStore(outImage, pixel, vec4(result, currentNormalAndDepth.w));
+        return;
+    }
+
+    float screenRadius = (constants.resolution.x / 1920.0) * 3.0;
+    float radius = screenRadius;
+    float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + 0) * 0.5;
+    ivec2 pixelSeed = pixel >> 3;
+    uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + 0));
+    float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
+    
+    #pragma unroll
+    for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
+    {
+        float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
+        float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
+    
+        ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
+        uint flatOffset = offset.y * constants.resolution.x + offset.x;
+        ivec2 samplePixel = pixel + offset;
+        uint sampleId = id + flatOffset;
+        samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
+    
+        uint sampleBlasInstance;
+        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel, sampleBlasInstance);
+    
+        float depthWeight = 1.0 - abs(currentNormalAndDepth.w - sampleNormalAndDepth.w);
+        bool validDepth = depthWeight > 0.0 && sampleNormalAndDepth.w != 0.0;
+        bool validNormals = dot(currentNormalAndDepth.xyz, sampleNormalAndDepth.xyz) >= 0.86;
+        float blasInstanceWeight = (currentBlasInstance == sampleBlasInstance) ? 1.0 : 0.7;
+    
+        if (validDepth && validNormals)
         {
-            ivec2 samplePixel = pixel + ivec2(x - 1, y - 1) * 2;
-            samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
-
-            uint sampleBlasInstance;
-            vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel, sampleBlasInstance);
-
-            bool validDepth = abs(currentNormalAndDepth.w - sampleNormalAndDepth.w) < 0.6 && sampleNormalAndDepth.w != 0.0;
-            bool validNormals = dot(currentNormalAndDepth.xyz, sampleNormalAndDepth.xyz) >= 0.86;
-            bool validBlasInstance = currentBlasInstance == sampleBlasInstance;
-
-            if (validDepth && validNormals && validBlasInstance)
-            {
-                float weight = KERNEL[y * 3 + x];
-                result += imageLoad(inImage, samplePixel).rgb * weight;
-                sampleCount += weight;
-            }
+            float weight = blasInstanceWeight * depthWeight;
+            result += imageLoad(inImage, samplePixel).rgb * weight;
+            sampleCount += weight;
         }
     }
 

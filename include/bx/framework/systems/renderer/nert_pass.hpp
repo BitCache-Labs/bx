@@ -58,8 +58,8 @@ private:
 	std::unique_ptr<RestirDiPass> restirDiPass;
 	std::unique_ptr<ReblurPass> reblurPass;
 
-	TextureHandle neGbuffer;
-	TextureViewHandle neGbufferView;
+	TextureHandle neGbuffer[2];
+	TextureViewHandle neGbufferView[2];
 
 	TextureHandle illuminationTexture;
 	TextureViewHandle illuminationTextureView;

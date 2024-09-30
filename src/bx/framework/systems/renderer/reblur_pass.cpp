@@ -9,8 +9,8 @@ struct PreBlurConstants
 {
     u32 width;
     u32 height;
+    u32 seed;
     u32 _PADDING0;
-    u32 _PADDING1;
 };
 
 struct TemporalAccumConstants
@@ -33,8 +33,8 @@ struct BlurConstants
 {
     u32 width;
     u32 height;
+    u32 seed;
     u32 _PADDING0;
-    u32 _PADDING1;
 };
 
 struct PreBlurPipeline : public LazyInit<PreBlurPipeline, ComputePipelineHandle>
@@ -88,8 +88,9 @@ struct TemporalAccumPipeline : public LazyInit<TemporalAccumPipeline, ComputePip
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outHistory
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // gbuffer
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // gbufferHistory
-                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // velocity
-                BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // neGbufferHistory
+                BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // velocity
+                BindGroupLayoutEntry(8, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
             })
         };
 
@@ -282,8 +283,9 @@ BindGroupHandle ReblurPass::CreateTemporalAccumBindGroup(const ReblurDispatchInf
         BindGroupEntry(3, BindingResource::TextureView(historyTextureView[frameIdx % 2 != 0])),
         BindGroupEntry(4, BindingResource::TextureView(dispatchInfo.gbufferView)),
         BindGroupEntry(5, BindingResource::TextureView(dispatchInfo.gbufferHistoryView)),
-        BindGroupEntry(6, BindingResource::TextureView(dispatchInfo.velocityView)),
-        BindGroupEntry(7, BindingResource::TextureView(tmpIlluminationTextureView)),
+        BindGroupEntry(6, BindingResource::TextureView(dispatchInfo.neGbufferHistoryView)),
+        BindGroupEntry(7, BindingResource::TextureView(dispatchInfo.velocityView)),
+        BindGroupEntry(8, BindingResource::TextureView(tmpIlluminationTextureView)),
     };
 
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
@@ -350,6 +352,7 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     PreBlurConstants preBlurConstants{};
     preBlurConstants.width = width;
     preBlurConstants.height = height;
+    preBlurConstants.seed = seed;
     Graphics::WriteBuffer(preBlurConstantsBuffer, 0, &preBlurConstants);
 
     TemporalAccumConstants temporalAccumConstants{};
@@ -362,6 +365,12 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     historyFixConstants.height = height;
     historyFixConstants.antiFirefly = antiFirefly;
     Graphics::WriteBuffer(historyFixConstantsBuffer, 0, &historyFixConstants);
+
+    BlurConstants blurConstants{};
+    blurConstants.width = width;
+    blurConstants.height = height;
+    blurConstants.seed = seed;
+    Graphics::WriteBuffer(blurConstantsBuffer, 0, &blurConstants);
 
     ComputePassDescriptor computePassDescriptor{};
     computePassDescriptor.name = "Reblur Pre Blur";
@@ -381,9 +390,9 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
         Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
     }
     Graphics::EndComputePass(computePass);
-
+    
     Graphics::BuildTextureMips(preBlurTexture);
-
+    
     computePassDescriptor.name = "Reblur History Fix";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
@@ -392,7 +401,7 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
         Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
     }
     Graphics::EndComputePass(computePass);
-
+    
     computePassDescriptor.name = "Reblur Blur";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
@@ -404,6 +413,7 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
 
     // TODO: remove
     Graphics::CopyTexture(tmpIlluminationTexture, dispatchInfo.unresolvedIllumination);
+    //Graphics::CopyTexture(preBlurTexture, dispatchInfo.unresolvedIllumination);
 
     Graphics::DestroyBindGroup(preBlurBindGroup);
     Graphics::DestroyBindGroup(temporalAccumBindGroup);
