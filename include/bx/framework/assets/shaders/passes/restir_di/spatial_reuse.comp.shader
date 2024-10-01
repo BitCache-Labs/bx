@@ -4,7 +4,9 @@
 #define RESTIR_BINDINGS
 #define BLAS_DATA_BINDINGS
 #define SKY_BINDINGS
+#define MATERIAL_BINDINGS
 
+#include "[engine]/shaders/ray_tracing/material.shader"
 #include "[engine]/shaders/passes/restir_di/restir.shader"
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 #include "[engine]/shaders/ray_tracing/sky.shader"
@@ -137,7 +139,7 @@ void main()
         {
             vec3 brdfEval = diffuseBsdfEval(vec3(0.7, 0.7, 0.7)); // TODO: pass basecolor around?
             vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0);
-            float intensity = lightIntensity(sampledReservoirData.triangleLightSource, sampledReservoirData.blasInstance,
+            vec3 intensity = lightIntensity(sampledReservoirData.triangleLightSource, sampledReservoirData.blasInstance,
                 direction, tMax);
         
             float visibility = 1.0;

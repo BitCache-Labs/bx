@@ -17,6 +17,8 @@ public:
 
 	inline const Vec4& GetBaseColorFactor() const { return m_baseColorFactor; }
 	inline void SetBaseColorFactor(const Vec4& baseColorFactor) { m_baseColorFactor = baseColorFactor; }
+	inline const Vec3& GetEmissiveFactor() const { return m_emissiveFactor; }
+	inline void SetEmissiveFactor(const Vec3& emissiveFactor) { m_emissiveFactor = emissiveFactor; }
 
 	inline b8 IsEmissive() const { return m_isEmissive; }
 
@@ -44,7 +46,8 @@ private:
 
 	mutable HashMap<BindGroupLayoutHandle, BindGroupHandle> m_bindGroupCache;
 
-	Vec4 m_baseColorFactor = Vec4(1, 1, 1, 1);
+	Vec4 m_baseColorFactor = Vec4::One();
+	Vec3 m_emissiveFactor = Vec3::One();
 
 	b8 m_isEmissive = false;
 

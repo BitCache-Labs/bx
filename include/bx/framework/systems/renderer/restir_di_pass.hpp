@@ -7,6 +7,7 @@
 #include "bx/framework/components/camera.hpp"
 
 class BlasDataPool;
+class MaterialPool;
 class Sky;
 
 class Restir : NoCopy
@@ -39,7 +40,7 @@ public:
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline, b8 flipRestirSamples) const;
 
-	void Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityView, const BlasDataPool& blasDataPool, const Sky& sky);
+	void Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityView, const BlasDataPool& blasDataPool, const Sky& sky, const MaterialPool& materialPool);
 
 	static void ClearPipelineCache();
 

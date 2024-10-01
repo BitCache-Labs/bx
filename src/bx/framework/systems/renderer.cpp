@@ -203,6 +203,7 @@ void Renderer::Render()
         m_nertPass->accumulationFrameIdx = accumulate ? (m_nertPass->accumulationFrameIdx + 1) : 0;
         m_nertPass->maxBounces = 3;
         m_nertPass->unbiased = unbiased;
+        m_nertPass->restir = restir;
         m_nertPass->denoise = denoise;
         m_nertPass->antiFirefly = antiFirefly;
 

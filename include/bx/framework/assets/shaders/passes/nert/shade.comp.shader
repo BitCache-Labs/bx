@@ -71,7 +71,7 @@ void main()
     vec3 ambientEmissiveContribution = vec3(0.0);
     vec3 baseColorFactor = vec3(0.0);
 
-    vec3 ambientContribution = vec3(0.15, 0.15, 0.17);
+    vec3 ambientContribution = 0.0 * vec3(0.15, 0.15, 0.17);
 
     if (intersection.t != T_MISS)
     {
@@ -118,7 +118,7 @@ void main()
             if (ReservoirData_isValid(reservoirData))
             {
                 vec3 brdfContribution = bsdfContribution(vec3(1.0), normal, direction, 1.0);
-                float intensity = lightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
+                vec3 intensity = lightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
 
                 float visibility = 0.0;
                 if (dot(normal, direction) > 0.0)

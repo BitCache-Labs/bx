@@ -336,6 +336,10 @@ void SceneView::Present(bool& show)
     ImGui::SameLine();
     ImGui::Checkbox("##TAA", &SystemManager::GetSystem<Renderer>().taa);
 
+    ImGui::Text("RT Restir: ");
+    ImGui::SameLine();
+    ImGui::Checkbox("##RTRestir", &SystemManager::GetSystem<Renderer>().restir);
+
     ImGui::Text("RT Denoise: ");
     ImGui::SameLine();
     ImGui::Checkbox("##RTDenoise", &SystemManager::GetSystem<Renderer>().denoise);

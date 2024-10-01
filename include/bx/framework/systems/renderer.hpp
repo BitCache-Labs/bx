@@ -24,6 +24,7 @@ public:
 	b8 hybrid = true;
 	b8 unbiased = false;
 	b8 taa = false;
+	b8 restir = true;
 	b8 denoise = true;
 	b8 antiFirefly = true;
 

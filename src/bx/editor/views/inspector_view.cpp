@@ -833,6 +833,11 @@ public:
 				textureName = "";
 			}
 
+			if (ImGui::ColorEdit3("Emissive Factor", &data.m_emissiveFactor[0]))
+			{
+				changed = true;
+			}
+
 			if (ImGui::Checkbox("Is Emissive", &data.m_isEmissive))
 			{
 				changed = true;

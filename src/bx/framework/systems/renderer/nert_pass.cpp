@@ -558,9 +558,12 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     }
     Graphics::EndComputePass(computePass);
 
-    restirDiPass->seed = seed;
-    restirDiPass->unbiased = unbiased;
-    restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity, dispatchInfo.blasDataPool, dispatchInfo.sky);
+    if (restir)
+    {
+        restirDiPass->seed = seed;
+        restirDiPass->unbiased = unbiased;
+        restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity, dispatchInfo.blasDataPool, dispatchInfo.sky, dispatchInfo.materialPool);
+    }
 
     computePassDescriptor.name = "Nert Shade";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
@@ -568,7 +571,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         BindGroupHandle blasDataPoolGroup = dispatchInfo.blasDataPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle materialPoolGroup = dispatchInfo.materialPool.CreateBindGroup(ShadePipeline::Get());
         BindGroupHandle skyGroup = dispatchInfo.sky.CreateBindGroup(ShadePipeline::Get());
-        BindGroupHandle restirGroup = restirDiPass->CreateBindGroup(ShadePipeline::Get(), RestirDiPass::SPATIAL_REUSE_PASSES % 2 == 0);
+        BindGroupHandle restirGroup = restirDiPass->CreateBindGroup(ShadePipeline::Get(), restir ? (RestirDiPass::SPATIAL_REUSE_PASSES % 2 == 0) : true);
 
         Graphics::SetComputePipeline(ShadePipeline::Get());
         Graphics::SetBindGroup(0, shadeBindGroup);

@@ -5,6 +5,7 @@
 #include "[engine]/shaders/ray_tracing/blas_data.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/ray_tracing/material/bsdf.shader"
+#include "[engine]/shaders/ray_tracing/material.shader"
 #include "[engine]/shaders/color_helpers.shader"
 
 struct LightSample
@@ -23,7 +24,7 @@ struct RisResult
     Reservoir reservoir;
 };
 
-float triangleLightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)
+vec3 triangleLightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)
 {
     BlasInstance instance = blasInstances[blasInstanceIdx];
     mat4 transform = inverse(instance.invTransform);
@@ -32,16 +33,22 @@ float triangleLightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 dire
     vec3 edge1 = triangle.p1 - triangle.p0;
     vec3 edge2 = triangle.p2 - triangle.p0;
 
+    //vec3 barycentrics = barycentricsFromUv(uv);
+    //vec3 samplePosition = triangle.p0 * barycentrics.x + triangle.p1 * barycentrics.y + triangle.p2 * barycentrics.z;
+    vec2 uv = vec2(0.5);
+
+    SampledMaterial material = sampleMaterial(materialDescriptors[instance.materialIdx], uv);
+
     float area = calculateTriangleAreaFromEdges(edge1, edge2);
     vec3 triangleNormal = normalize(cross(edge1, edge2));
     float cosOut = abs(dot(triangleNormal, -directionToLight));
 
     // TODO: incorporate material emissive factor
 
-    return triangleLightSolidAngle(cosOut, area, distanceToLight) * 40.0;
+    return triangleLightSolidAngle(cosOut, area, distanceToLight) * material.emissiveFactor * 40.0;
 }
 
-float lightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)
+vec3 lightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)
 {
     if (triangleIndex != U32_MAX)
     {
@@ -49,7 +56,7 @@ float lightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToL
     }
     else
     {
-        return sunIntensity(directionToLight.y);
+        return vec3(sunIntensity(directionToLight.y));
     }
 }
 

@@ -46,6 +46,7 @@ public:
 	u32 seed = 1337;
 	u32 accumulationFrameIdx = 0;
 	b8 unbiased = false;
+	b8 restir = true;
 	b8 denoise = true;
 	b8 antiFirefly = true;
 

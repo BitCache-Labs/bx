@@ -62,7 +62,7 @@ RisResult ris(inout uint rngState,
     return RisResult(reservoirData, reservoir);
 #else
 
-    const uint M_AREA = 32;
+    const uint M_AREA = 16;
 
     ReservoirData reservoirData = ReservoirData(0, 0, vec2(0.0), 0.0);
     Reservoir reservoir = Reservoir_default();
@@ -81,7 +81,7 @@ RisResult ris(inout uint rngState,
         {
             vec3 brdfEval = diffuseBsdfEval(baseColor);
             vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
-            float intensity = lightIntensity(lightSample.triangle, lightSample.blasInstance, lightSample.sampleDirection, lightSample.hitT);
+            vec3 intensity = lightIntensity(lightSample.triangle, lightSample.blasInstance, lightSample.sampleDirection, lightSample.hitT);
 
             p_hat = length(brdfContribution * intensity);
         }

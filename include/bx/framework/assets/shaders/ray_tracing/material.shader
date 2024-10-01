@@ -32,8 +32,6 @@ layout(BINDING(2, 0), std430) readonly buffer _MaterialDescriptors
 
 layout(BINDING(2, 1)) uniform sampler2D materialTextures[MAX_MATERIAL_TEXTURES];
 
-#endif // MATERIAL_BINDINGS
-
 SampledMaterial sampleMaterial(MaterialDescriptor materialDescriptor, vec2 uv)
 {
 	SampledMaterial sampledMaterial;
@@ -52,6 +50,8 @@ SampledMaterial sampleMaterial(MaterialDescriptor materialDescriptor, vec2 uv)
 
 	return sampledMaterial;
 }
+
+#endif // MATERIAL_BINDINGS
 
 LayeredLobe layeredLobeFromMaterial(SampledMaterial sampledMaterial)
 {
