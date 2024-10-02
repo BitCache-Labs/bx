@@ -198,10 +198,14 @@ void GBufferPass::Dispatch(const Camera& camera)
         EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
             [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr)
             {
+                SizeType index = 0;
                 for (u32 i = 0; i < mf.GetMeshes().size(); i++)
                 {
+                    const auto& material = mr.GetMaterial(index++);
+                    index %= mr.GetMaterialCount();
+
                     const auto& mesh = mf.GetMesh(i);
-                    if (!mesh) continue;
+                    if (!mesh || !material) continue;
                     const auto& meshData = mesh.GetData();
 
                     VertexMeshUniform meshUniform{};
