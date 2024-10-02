@@ -13,6 +13,11 @@ struct Triangle
 	uint i2;
 };
 
+Triangle Triangle_default()
+{
+	return Triangle(vec3(0.0), 0, vec3(0.0), 0, vec3(0.0), 0);
+}
+
 float calculateTriangleAreaFromEdges(vec3 edge1, vec3 edge2)
 {
 	return length(cross(edge1, edge2)) * 0.5;

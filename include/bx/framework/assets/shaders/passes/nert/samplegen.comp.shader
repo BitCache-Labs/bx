@@ -81,7 +81,7 @@ RisResult ris(inout uint rngState,
         {
             vec3 brdfEval = diffuseBsdfEval(baseColor);
             vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
-            vec3 intensity = lightIntensity(lightSample.triangle, lightSample.blasInstance, lightSample.sampleDirection, lightSample.hitT);
+            vec3 intensity = lightIntensity(lightSample.triangle, lightSample.blasInstance, lightSample.sampleDirection, lightSample.hitT, lightSample.transformedTriangle);
 
             p_hat = length(brdfContribution * intensity);
         }

@@ -16,6 +16,7 @@ struct LightSample
     uint triangle;
     uint blasInstance;
     vec2 uv;
+    Triangle transformedTriangle;
 };
 
 struct RisResult
@@ -28,9 +29,31 @@ vec3 triangleLightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 direc
 {
     BlasInstance instance = blasInstances[blasInstanceIdx];
 
-    Triangle triangle = transformedTriangle(blasTriangles[triangleIndex], instance.transform);
-    vec3 edge1 = triangle.p1 - triangle.p0;
-    vec3 edge2 = triangle.p2 - triangle.p0;
+    Triangle transformedTriangle = transformedTriangle(blasTriangles[triangleIndex], instance.transform);
+    vec3 edge1 = transformedTriangle.p1 - transformedTriangle.p0;
+    vec3 edge2 = transformedTriangle.p2 - transformedTriangle.p0;
+
+    //vec3 barycentrics = barycentricsFromUv(uv);
+    //vec3 samplePosition = triangle.p0 * barycentrics.x + triangle.p1 * barycentrics.y + triangle.p2 * barycentrics.z;
+    vec2 uv = vec2(0.5);
+
+    SampledMaterial material = sampleMaterial(materialDescriptors[instance.materialIdx], uv);
+
+    float area = calculateTriangleAreaFromEdges(edge1, edge2);
+    vec3 triangleNormal = normalize(cross(edge1, edge2));
+    float cosOut = abs(dot(triangleNormal, -directionToLight));
+
+    // TODO: incorporate material emissive factor
+
+    return triangleLightSolidAngle(cosOut, area, distanceToLight) * material.emissiveFactor * 40.0;
+}
+
+vec3 triangleLightIntensity(Triangle transformedTriangle, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)
+{
+    BlasInstance instance = blasInstances[blasInstanceIdx];
+
+    vec3 edge1 = transformedTriangle.p1 - transformedTriangle.p0;
+    vec3 edge2 = transformedTriangle.p2 - transformedTriangle.p0;
 
     //vec3 barycentrics = barycentricsFromUv(uv);
     //vec3 samplePosition = triangle.p0 * barycentrics.x + triangle.p1 * barycentrics.y + triangle.p2 * barycentrics.z;
@@ -59,6 +82,18 @@ vec3 lightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLi
     }
 }
 
+vec3 lightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight, Triangle transformedTriangle)
+{
+    if (triangleIndex != U32_MAX)
+    {
+        return triangleLightIntensity(transformedTriangle, blasInstanceIdx, directionToLight, distanceToLight);
+    }
+    else
+    {
+        return vec3(sunIntensity(directionToLight.y));
+    }
+}
+
 LightSample sampleTriangleLight(uint triangleIndex, vec2 uv, mat4 transform, vec3 p, float sunPickProbability)
 {
     uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
@@ -75,7 +110,7 @@ LightSample sampleTriangleLight(uint triangleIndex, vec2 uv, mat4 transform, vec
 
     float pdf = max(1e-6, (1.0 - sunPickProbability) / float(emissiveTriangleCount));
 
-    return LightSample(directionToLight, distanceToLight, pdf, triangleIndex, 0, uv);
+    return LightSample(directionToLight, distanceToLight, pdf, triangleIndex, 0, uv, triangle);
 }
 
 LightSample _sampleUniformLight(vec4 random, vec3 p)
@@ -121,7 +156,7 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
         }
     }
 
-    return LightSample(vec3(0.0), 0.0, 0.0, 0, 0, vec2(0.0));
+    return LightSample(vec3(0.0), 0.0, 0.0, 0, 0, vec2(0.0), Triangle_default());
 }
 
 #endif // WFPT_SAMPLING_H
