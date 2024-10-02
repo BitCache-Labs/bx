@@ -31,6 +31,8 @@ public:
 
 	static constexpr u32 SHADER_BIND_GROUP = 1;
 
+	mutable b8 m_graphicsDirty = true;
+
 private:
 	template <typename T>
 	friend class Serial;

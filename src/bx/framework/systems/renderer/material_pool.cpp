@@ -31,7 +31,7 @@ u32 MaterialPool::AvailableTextureIdx() const
     return 0;
 }
 
-MaterialPool::MaterialDescriptor MaterialPool::AllocateMaterial(const Material& material)
+MaterialPool::MaterialDescriptor MaterialPool::UpdateMaterial(const Material& material, u32 descriptorIdx)
 {
     MaterialDescriptor materialDescriptor{};
     materialDescriptor.baseColorFactor = material.GetBaseColorFactor().Xyz();
@@ -51,8 +51,7 @@ MaterialPool::MaterialDescriptor MaterialPool::AllocateMaterial(const Material& 
         materialDescriptor.emissiveFactor = material.GetEmissiveFactor();
     }
 
-    Graphics::WriteBuffer(materialDescriptorsBuffer, materialDescriptorCount * sizeof(MaterialDescriptor), &materialDescriptor, sizeof(MaterialDescriptor));
-    materialDescriptorCount++;
+    Graphics::WriteBuffer(materialDescriptorsBuffer, descriptorIdx * sizeof(MaterialDescriptor), &materialDescriptor, sizeof(MaterialDescriptor));
 
     return materialDescriptor;
 }
@@ -65,13 +64,21 @@ u32 MaterialPool::SubmitInstance(const Material& material, ResourceHandle resour
     {
         materialIdx = materialDescriptors.size();
 
-        MaterialDescriptor descriptor = AllocateMaterial(material);
+        MaterialDescriptor descriptor = UpdateMaterial(material, materialDescriptorCount++);
         materialDescriptors.push_back(descriptor);
         materialDescriptorIndices.insert(std::make_pair(resourceHandle, materialIdx));
     }
     else
     {
         materialIdx = descriptorIndexIter->second;
+
+        if (material.m_graphicsDirty)
+        {
+            material.m_graphicsDirty = false;
+
+            MaterialDescriptor descriptor = UpdateMaterial(material, materialIdx);
+            materialDescriptors[materialIdx] = descriptor;
+        }
     }
 
     return materialIdx;

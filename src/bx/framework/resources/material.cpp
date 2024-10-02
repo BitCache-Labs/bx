@@ -13,6 +13,8 @@
 template<>
 bool Resource<Material>::Save(const String& filename, const Material& data)
 {
+    data.m_graphicsDirty = true;
+
     // Serialize data
     std::ofstream stream(File::GetPath(filename));
     if (stream.fail())

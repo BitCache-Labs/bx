@@ -44,5 +44,5 @@ private:
 	List<MaterialDescriptor> materialDescriptors;
 
 	u32 AvailableTextureIdx() const;
-	MaterialDescriptor AllocateMaterial(const Material& material);
+	MaterialDescriptor UpdateMaterial(const Material& material, u32 descriptorIdx);
 };
