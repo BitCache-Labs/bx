@@ -94,7 +94,7 @@ BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
     return accessor;
 }
 
-u32 BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx, b8 isEmissive)
+u32 BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& transform, const Mat4& invTransTransform, u32 materialIdx, b8 isEmissive)
 {
     u32 blasIdx;
     auto accessorIndexIter = blasAccessorIndices.find(resourceHandle);
@@ -112,7 +112,8 @@ u32 BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle
     }
 
     BlasInstance blasInstance{};
-    blasInstance.invTransform = invTransform;
+    blasInstance.transform = transform;
+    blasInstance.invTransTransform = invTransTransform;
     blasInstance.blasIdx = blasIdx;
     blasInstance.materialIdx = materialIdx;
     pendingInstances.push_back(blasInstance);

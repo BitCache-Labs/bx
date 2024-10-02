@@ -52,7 +52,7 @@ void main()
     {
         if (reservoirData.triangleLightSource != U32_MAX)
         {
-            mat4 lightTransform = inverse(blasInstances[reservoirData.blasInstance].invTransform);
+            mat4 lightTransform = blasInstances[reservoirData.blasInstance].transform;
             LightSample reconstructedLightSample = sampleTriangleLight(reservoirData.triangleLightSource, reservoirData.hitUv, lightTransform, origin, 0.0);
             direction = reconstructedLightSample.sampleDirection;
             tMax = reconstructedLightSample.hitT;
@@ -100,7 +100,7 @@ void main()
                 + texCoord2 * barycentrics.z;
 
             // Correct normal for transform and backface hits
-            mat4 invTransTransform = transpose(blasInstance.invTransform);
+            mat4 invTransTransform = blasInstance.invTransTransform;
             normal = normalize((invTransTransform * vec4(normal, 1.0)).xyz);
             if (!intersection.frontFace)
             {

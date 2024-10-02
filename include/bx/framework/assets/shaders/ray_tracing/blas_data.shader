@@ -14,7 +14,8 @@ struct BlasAccessor
 
 struct BlasInstance
 {
-	mat4 invTransform;
+	mat4 transform;
+	mat4 invTransTransform;
 	uint blasIdx;
 	uint materialIdx;
 	uint _PADDING0;

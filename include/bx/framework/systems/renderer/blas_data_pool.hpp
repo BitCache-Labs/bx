@@ -21,7 +21,8 @@ public:
 
 	struct BlasInstance
 	{
-		Mat4 invTransform;
+		Mat4 transform;
+		Mat4 invTransTransform;
 		u32 blasIdx;
 		u32 materialIdx;
 		u32 _PADDING0;
@@ -45,7 +46,7 @@ public:
 	BlasDataPool();
 	~BlasDataPool();
 
-	u32 SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& invTransform, u32 materialIdx, b8 isEmissive);
+	u32 SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& transform, const Mat4& invTransTransform, u32 materialIdx, b8 isEmissive);
 	void Submit();
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline) const;

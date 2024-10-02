@@ -411,9 +411,7 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     }
     Graphics::EndComputePass(computePass);
 
-    // TODO: remove
     Graphics::CopyTexture(tmpIlluminationTexture, dispatchInfo.unresolvedIllumination);
-    //Graphics::CopyTexture(preBlurTexture, dispatchInfo.unresolvedIllumination);
 
     Graphics::DestroyBindGroup(preBlurBindGroup);
     Graphics::DestroyBindGroup(temporalAccumBindGroup);

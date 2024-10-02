@@ -183,7 +183,7 @@ void main()
         }
 
         // Correct normal for transform and backface hits
-        mat4 invTransTransform = transpose(blasInstance.invTransform);
+        mat4 invTransTransform = blasInstance.invTransTransform;
         normal = normalize((invTransTransform * vec4(normal, 1.0)).xyz);
         if (!intersection.frontFace)
         {

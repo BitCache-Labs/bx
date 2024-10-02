@@ -27,9 +27,8 @@ struct RisResult
 vec3 triangleLightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)
 {
     BlasInstance instance = blasInstances[blasInstanceIdx];
-    mat4 transform = inverse(instance.invTransform);
 
-    Triangle triangle = transformedTriangle(blasTriangles[triangleIndex], transform);
+    Triangle triangle = transformedTriangle(blasTriangles[triangleIndex], instance.transform);
     vec3 edge1 = triangle.p1 - triangle.p0;
     vec3 edge2 = triangle.p2 - triangle.p0;
 
@@ -111,7 +110,7 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
             uint triangleOffset = blas.triangleOffset;
             triangleIndex += triangleOffset;
 
-            LightSample lightSample = sampleTriangleLight(triangleIndex, random.zw, inverse(instance.invTransform), p, sunPickProbability);
+            LightSample lightSample = sampleTriangleLight(triangleIndex, random.zw, instance.transform, p, sunPickProbability);
             lightSample.triangle = triangleIndex;
             lightSample.blasInstance = blasEmissiveInstanceIndices[i];
             return lightSample;

@@ -111,7 +111,7 @@ void main()
         float tMax;
         if (reservoirData.triangleLightSource != U32_MAX)
         {
-            mat4 lightTransform = inverse(blasInstances[sampledReservoirData.blasInstance].invTransform);
+            mat4 lightTransform = blasInstances[sampledReservoirData.blasInstance].transform;
             LightSample reconstructedLightSample = sampleTriangleLight(sampledReservoirData.triangleLightSource, sampledReservoirData.hitUv, lightTransform, origin, 0.0);
             direction = reconstructedLightSample.sampleDirection;
             tMax = reconstructedLightSample.hitT;
