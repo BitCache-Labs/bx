@@ -12,7 +12,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
 
 layout (BINDING(0, 1), rgba32f) uniform image2D colorTarget;
 layout (BINDING(0, 2), rgba32f) uniform image2D resolvedColorTarget;
-layout (BINDING(0, 3), rgba32f) uniform image2D velocityTarget;
+layout (BINDING(0, 3), rg16f) uniform image2D velocityTarget;
 layout (BINDING(0, 4), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 5), rgba32f) uniform image2D gbufferHistory;
 layout (BINDING(0, 6), rgba32f) uniform image2D resolvedColorTargetHistory;

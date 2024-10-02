@@ -30,7 +30,7 @@ layout(BINDING(0, 1)) uniform accelerationStructureEXT Scene;
 
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 3), rgba32f) uniform image2D gbufferHistory;
-layout (BINDING(0, 4), rgba32f) uniform image2D velocity;
+layout (BINDING(0, 4), rg16f) uniform image2D velocity;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {

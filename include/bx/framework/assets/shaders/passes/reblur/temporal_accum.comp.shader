@@ -20,7 +20,7 @@ layout (BINDING(0, 3), rgba32f) uniform image2D outHistory;
 layout (BINDING(0, 4), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 5), rgba32f) uniform image2D gbufferHistory;
 layout (BINDING(0, 6), rgba32f) uniform image2D neGbufferHistory;
-layout (BINDING(0, 7), rgba32f) uniform image2D velocity;
+layout (BINDING(0, 7), rg16f) uniform image2D velocity;
 layout (BINDING(0, 8), rgba32f) uniform image2D outImage;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel, out uint blasInstance)
