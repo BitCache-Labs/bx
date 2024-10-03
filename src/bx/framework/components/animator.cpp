@@ -8,15 +8,21 @@
 Animator::Animator()
 {
     BufferCreateInfo createInfo{};
-    createInfo.name = "Animator Bones Buffer";
     createInfo.size = sizeof(Mat4) * 100;
     createInfo.usageFlags = BufferUsageFlags::UNIFORM | BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST;
-    m_boneBuffer = Graphics::CreateBuffer(createInfo);
+    for (u32 i = 0; i < 2; i++)
+    {
+        createInfo.name = Log::Format("Animator Bones {} Buffer", i);
+        m_boneBuffer[i] = Graphics::CreateBuffer(createInfo);
+    }
 }
 
 void Animator::OnRemoved()
 {
-    Graphics::DestroyBuffer(m_boneBuffer);
+    for (u32 i = 0; i < 2; i++)
+    {
+        Graphics::DestroyBuffer(m_boneBuffer[i]);
+    }
 }
 
 static SizeType GetPositionIndex(const Animation::Keyframes& keys, f32 time)
@@ -191,5 +197,6 @@ void Animator::Update()
             return worldMatrix;
         });
 
-    Graphics::WriteBuffer(m_boneBuffer, 0, GetBoneMatrices().data(), GetBoneMatrices().size() * sizeof(Mat4));
+    Graphics::WriteBuffer(m_boneBuffer[frameIdx % 2 == 0], 0, GetBoneMatrices().data(), GetBoneMatrices().size() * sizeof(Mat4));
+    frameIdx++;
 }

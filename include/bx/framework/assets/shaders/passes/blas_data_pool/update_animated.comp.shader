@@ -35,12 +35,6 @@ void main()
     mat4 matrix = mat4(0);
     for (uint i = 0; i < 4; i++)
     {
-        //if (packedVertex.realBones[i] < 0)
-        //{
-        //    matrix += weights[i] * bones[0];
-        //    continue;
-        //}
-
         matrix += weights[i] * bones[boneIndices[i]];
     }
     packedVertex.position = (matrix * vec4(packedVertex.position, 1.0)).xyz;

@@ -101,7 +101,12 @@ public:
 
 	inline BufferHandle GetBoneBuffer() const
 	{
-		return m_boneBuffer;
+		return m_boneBuffer[frameIdx % 2 == 0];
+	}
+
+	inline BufferHandle GetBoneHistoryBuffer() const
+	{
+		return m_boneBuffer[frameIdx % 2 != 0];
 	}
 
 	void Update();
@@ -152,5 +157,6 @@ private:
 	List<Mat4> m_boneMatrices;
 	List<Mat4> m_boneMatrices2;
 
-	BufferHandle m_boneBuffer;
+	BufferHandle m_boneBuffer[2];
+	u32 frameIdx = 0;
 };

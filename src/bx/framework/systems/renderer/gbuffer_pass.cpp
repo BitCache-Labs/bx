@@ -7,6 +7,7 @@
 
 #include "bx/framework/components/transform.hpp"
 #include "bx/framework/components/mesh_filter.hpp"
+#include "bx/framework/components/animator.hpp"
 #include "bx/framework/components/mesh_renderer.hpp"
 
 struct GBufferConstants
@@ -106,6 +107,70 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
 template<>
 HashMap<GBufferPipelineArgs, std::unique_ptr<GBufferPipeline>> LazyInitMap<GBufferPipeline, GraphicsPipelineHandle, GBufferPipelineArgs>::cache = {};
 
+struct GBufferSkinnedPipeline : public LazyInitMap<GBufferSkinnedPipeline, GraphicsPipelineHandle, GBufferPipelineArgs>
+{
+    GBufferSkinnedPipeline(const GBufferPipelineArgs& args)
+    {
+        ShaderCreateInfo vertexCreateInfo{};
+        vertexCreateInfo.name = "GBuffer Skinned Vertex Shader";
+        vertexCreateInfo.shaderType = ShaderType::VERTEX;
+        vertexCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/gbuffer/gbuffer_skinned.vert.shader")));
+        ShaderHandle vertexShader = Graphics::CreateShader(vertexCreateInfo);
+
+        ShaderCreateInfo fragmentCreateInfo{};
+        fragmentCreateInfo.name = "GBuffer Fragment Shader";
+        fragmentCreateInfo.shaderType = ShaderType::FRAGMENT;
+        fragmentCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/gbuffer/gbuffer.frag.shader")));
+        ShaderHandle fragmentShader = Graphics::CreateShader(fragmentCreateInfo);
+
+        PipelineLayoutDescriptor pipelineLayoutDescriptor{};
+        pipelineLayoutDescriptor.bindGroupLayouts = {
+            BindGroupLayoutDescriptor(0, {
+                BindGroupLayoutEntry(0, ShaderStageFlags::VERTEX | ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::UniformBuffer()),
+                BindGroupLayoutEntry(1, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),
+                BindGroupLayoutEntry(2, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer()),
+                BindGroupLayoutEntry(3, ShaderStageFlags::VERTEX, BindingTypeDescriptor::UniformBuffer())
+            })
+        };
+
+        VertexBufferLayout vertexBufferLayout{};
+        vertexBufferLayout.stride = sizeof(Mesh::Vertex);
+        vertexBufferLayout.attributes = {
+            VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, position), 0),
+            VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, color), 1),
+            VertexAttribute(VertexFormat::SINT_32X4,  offsetof(Mesh::Vertex, bones), 2),
+            VertexAttribute(VertexFormat::FLOAT_32X4, offsetof(Mesh::Vertex, weights), 3),
+            VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, normal), 4),
+            VertexAttribute(VertexFormat::FLOAT_32X3, offsetof(Mesh::Vertex, tangent), 5),
+            VertexAttribute(VertexFormat::FLOAT_32X2, offsetof(Mesh::Vertex, uv), 6)
+        };
+
+        ColorTargetState colorTargetState{};
+        colorTargetState.format = Graphics::GetTextureCreateInfo(args.colorTarget).format;
+        ColorTargetState velocityTargetState{};
+        velocityTargetState.format = TextureFormat::RG16_FLOAT;
+
+        TextureFormat depthFormat = Graphics::GetTextureCreateInfo(args.depthTarget).format;
+
+        GraphicsPipelineCreateInfo pipelineCreateInfo{};
+        pipelineCreateInfo.name = "GBuffer Pipeline";
+        pipelineCreateInfo.layout = pipelineLayoutDescriptor;
+        pipelineCreateInfo.vertexShader = vertexShader;
+        pipelineCreateInfo.fragmentShader = fragmentShader;
+        pipelineCreateInfo.vertexBuffers = { vertexBufferLayout };
+        pipelineCreateInfo.cullMode = Optional<Face>::None();
+        pipelineCreateInfo.colorTargets = List<ColorTargetState>{ colorTargetState, velocityTargetState };
+        pipelineCreateInfo.depthFormat = Optional<TextureFormat>::Some(depthFormat);
+        data = Graphics::CreateGraphicsPipeline(pipelineCreateInfo);
+
+        Graphics::DestroyShader(vertexShader);
+        Graphics::DestroyShader(fragmentShader);
+    }
+};
+
+template<>
+HashMap<GBufferPipelineArgs, std::unique_ptr<GBufferSkinnedPipeline>> LazyInitMap<GBufferSkinnedPipeline, GraphicsPipelineHandle, GBufferPipelineArgs>::cache = {};
+
 GBufferPass::GBufferPass(TextureHandle depthTarget)
     : depthTarget(depthTarget)
 {
@@ -176,8 +241,6 @@ void GBufferPass::Dispatch(const Camera& camera)
     GBufferConstants constants{};
     constants.viewProj = camera.GetViewProjection();
     constants.viewProjHistory = camera.GetPrevViewProjection();
-    //constants.width = width;
-    //constants.height = height;
     Mat4::Decompose(camera.GetView().Inverse(), constants.viewPos, Quat{}, Vec3{});
     Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(GBufferConstants));
 
@@ -197,6 +260,54 @@ void GBufferPass::Dispatch(const Camera& camera)
 
         EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
             [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr)
+            {
+                SizeType index = 0;
+                for (u32 i = 0; i < mf.GetMeshes().size(); i++)
+                {
+                    const auto& material = mr.GetMaterial(index++);
+                    index %= mr.GetMaterialCount();
+
+                    const auto& mesh = mf.GetMesh(i);
+                    if (!mesh || !material || entity.HasComponent<Animator>()) continue;
+                    const auto& meshData = mesh.GetData();
+
+                    VertexMeshUniform meshUniform{};
+                    meshUniform.worldMesh = trx.GetMatrix() * meshData.GetMatrix();
+                    meshUniform.worldMeshHistory = trx.GetPrevMatrix() * meshData.GetMatrix();
+                    meshUniform.transInvWorldMesh = meshUniform.worldMesh.Inverse().Transpose();
+                    meshUniform.blasInstanceIdx = mf.m_blasInstanceIndices[i];
+
+                    BufferCreateInfo meshUniformCreateInfo{};
+                    meshUniformCreateInfo.name = "Mesh Uniform";
+                    meshUniformCreateInfo.size = sizeof(VertexMeshUniform);
+                    meshUniformCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
+                    meshUniformCreateInfo.data = &meshUniform;
+                    BufferHandle meshUniformBuffer = Graphics::CreateBuffer(meshUniformCreateInfo);
+
+                    BindGroupCreateInfo createInfo{};
+                    createInfo.name = "GBuffer Pass BindGroup";
+                    createInfo.layout = Graphics::GetBindGroupLayout(pipeline, 0);
+                    createInfo.entries = {
+                        BindGroupEntry(0, BindingResource::Buffer(BufferBinding(constantBuffer))),
+                        BindGroupEntry(1, BindingResource::Buffer(BufferBinding(meshUniformBuffer)))
+                    };
+                    BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
+
+                    Graphics::SetVertexBuffer(0, BufferSlice(meshData.GetVertexBuffer()));
+                    Graphics::SetIndexBuffer(BufferSlice(meshData.GetIndexBuffer()), IndexFormat::UINT32);
+                    Graphics::SetBindGroup(0, bindGroup);
+                    Graphics::DrawIndexed(meshData.GetIndices().size());
+
+                    Graphics::DestroyBindGroup(bindGroup);
+                    Graphics::DestroyBuffer(meshUniformBuffer);
+                }
+            });
+
+        pipeline = GBufferSkinnedPipeline::Get({ colorTarget[frameIdx % 2 == 0], depthTarget });
+        Graphics::SetGraphicsPipeline(pipeline);
+
+        EntityManager::ForEach<Transform, MeshFilter, MeshRenderer, Animator>(
+            [&](Entity entity, const Transform& trx, const MeshFilter& mf, const MeshRenderer& mr, const Animator& animator)
             {
                 SizeType index = 0;
                 for (u32 i = 0; i < mf.GetMeshes().size(); i++)
@@ -226,7 +337,9 @@ void GBufferPass::Dispatch(const Camera& camera)
                     createInfo.layout = Graphics::GetBindGroupLayout(pipeline, 0);
                     createInfo.entries = {
                         BindGroupEntry(0, BindingResource::Buffer(BufferBinding(constantBuffer))),
-                        BindGroupEntry(1, BindingResource::Buffer(BufferBinding(meshUniformBuffer)))
+                        BindGroupEntry(1, BindingResource::Buffer(BufferBinding(meshUniformBuffer))),
+                        BindGroupEntry(2, BindingResource::Buffer(BufferBinding(animator.GetBoneBuffer()))),
+                        BindGroupEntry(3, BindingResource::Buffer(BufferBinding(animator.GetBoneHistoryBuffer())))
                     };
                     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
 
