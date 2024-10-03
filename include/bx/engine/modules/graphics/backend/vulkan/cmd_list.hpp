@@ -18,6 +18,7 @@ namespace Vk
     class Framebuffer;
     class RenderPass;
     class DescriptorSet;
+    class AccelerationStructure;
 
     class CmdList : NoCopy {
     public:
@@ -43,9 +44,9 @@ namespace Vk
         void BindIndexBuffer(std::shared_ptr<Buffer> indexBuffer, VkIndexType type);
 
         void BuildAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR buildInfo, const VkAccelerationStructureBuildRangeInfoKHR& rangeInfo,
-            std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer, VkAccelerationStructureKHR accelerationStructure);
+            std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<AccelerationStructure> accelerationStructure);
         void UpdateAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR buildInfo, const VkAccelerationStructureBuildRangeInfoKHR& rangeInfo,
-            std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer, VkAccelerationStructureKHR accelerationStructure);
+            std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<AccelerationStructure> accelerationStructure);
 
         void BeginRenderPass(std::shared_ptr<RenderPass> renderPass, std::shared_ptr<Framebuffer> framebuffer,
             const Color& clearColor);
@@ -94,5 +95,6 @@ namespace Vk
         std::vector<std::shared_ptr<Image>> trackedImages;
         std::vector<std::shared_ptr<Framebuffer>> trackedFramebuffers;
         std::vector<std::shared_ptr<DescriptorSet>> trackedDescriptorSets;
+        std::vector<std::shared_ptr<AccelerationStructure>> trackedAccelerationStructures;
     };
 }

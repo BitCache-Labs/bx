@@ -9,6 +9,7 @@
 #include "bx/engine/modules/graphics/backend/vulkan/buffer.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/device.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/physical_device.hpp"
+#include "bx/engine/modules/graphics/backend/vulkan/acceleration_structure.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/pfn.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/validation.hpp"
 
@@ -80,9 +81,9 @@ namespace Vk
 
     Blas::Blas(const String& name, std::shared_ptr<Device> device,
         const PhysicalDevice& physicalDevice, u32 size)
-        : AccelerationStructure(name, device, physicalDevice, size, VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR)
+        : device(device), physicalDevice(physicalDevice)
     {
-
+        accelerationStructure = std::shared_ptr<AccelerationStructure>(new AccelerationStructure(name, device, physicalDevice, size, VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR));
     }
 
     u32 Blas::RequiredSize(std::shared_ptr<Device> device, const PhysicalDevice& physicalDevice,
@@ -111,7 +112,7 @@ namespace Vk
         buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
         buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 
-        cmdList.BuildAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, GetBuffer(), GetAccelerationStructure());
+        cmdList.BuildAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, accelerationStructure);
     }
 
     void Blas::Update(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags)
@@ -126,14 +127,19 @@ namespace Vk
         buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
         buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 
-        cmdList.UpdateAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, GetBuffer(), GetAccelerationStructure());
+        cmdList.UpdateAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, accelerationStructure);
+    }
+
+    std::shared_ptr<AccelerationStructure> Blas::GetAccelerationStructure() const
+    {
+        return accelerationStructure;
     }
 
     Tlas::Tlas(const String& name, std::shared_ptr<Device> device,
         const PhysicalDevice& physicalDevice, u32 size)
-        : AccelerationStructure(name, device, physicalDevice, size, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)
+        : device(device), physicalDevice(physicalDevice)
     {
-
+        accelerationStructure = std::shared_ptr<AccelerationStructure>(new AccelerationStructure(name, device, physicalDevice, size, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR));
     }
 
     u32 Tlas::RequiredSize(std::shared_ptr<Device> device, const PhysicalDevice& physicalDevice,
@@ -169,12 +175,17 @@ namespace Vk
         buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
         buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
 
-        cmdList.BuildAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, GetBuffer(), GetAccelerationStructure());
+        cmdList.BuildAccelerationStructure(buildInfo, rangeInfo, scratchBuffer, accelerationStructure);
     }
 
     void Tlas::Update(CmdList& cmdList, VkAccelerationStructureGeometryKHR geometry, VkAccelerationStructureBuildRangeInfoKHR rangeInfo, VkBuildAccelerationStructureFlagsKHR flags)
     {
 
+    }
+
+    std::shared_ptr<AccelerationStructure> Tlas::GetAccelerationStructure() const
+    {
+        return accelerationStructure;
     }
 
     void Tlas::TrackBlas(std::shared_ptr<Blas> blas)

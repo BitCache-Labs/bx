@@ -2,6 +2,7 @@
 
 #include "bx/engine/core/macros.hpp"
 
+#include "bx/engine/modules/graphics/backend/vulkan/acceleration_structure.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/device.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/cmd_queue.hpp"
 #include "bx/engine/modules/graphics/backend/vulkan/buffer.hpp"
@@ -62,6 +63,7 @@ namespace Vk
         this->trackedImages.clear();
         this->trackedFramebuffers.clear();
         this->trackedDescriptorSets.clear();
+        this->trackedAccelerationStructures.clear();
     }
 
     void CmdList::FillBuffer(std::shared_ptr<Buffer> dst, u32 value)
@@ -323,8 +325,7 @@ namespace Vk
     }
 
     void CmdList::BuildAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR buildInfo, const VkAccelerationStructureBuildRangeInfoKHR& rangeInfo,
-        std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer,
-        VkAccelerationStructureKHR accelerationStructure)
+        std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<AccelerationStructure> accelerationStructure)
     {
         /*VkAccelerationStructureBuildGeometryInfoKHR buildGeometryInfo{};
         buildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
@@ -342,7 +343,7 @@ namespace Vk
 
         buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
         buildInfo.srcAccelerationStructure = VK_NULL_HANDLE;
-        buildInfo.dstAccelerationStructure = accelerationStructure;
+        buildInfo.dstAccelerationStructure = accelerationStructure->GetAccelerationStructure();
         buildInfo.scratchData.deviceAddress = scratchBuffer->GetDeviceAddress();
 
         auto pRangeInfo = &rangeInfo;
@@ -357,15 +358,15 @@ namespace Vk
             VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
 
         this->trackedBuffers.push_back(scratchBuffer);
-        this->trackedBuffers.push_back(resultBuffer);
+        this->trackedAccelerationStructures.push_back(accelerationStructure);
     }
 
     void CmdList::UpdateAccelerationStructure(VkAccelerationStructureBuildGeometryInfoKHR buildInfo, const VkAccelerationStructureBuildRangeInfoKHR& rangeInfo,
-        std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<Buffer> resultBuffer, VkAccelerationStructureKHR accelerationStructure)
+        std::shared_ptr<Buffer> scratchBuffer, std::shared_ptr<AccelerationStructure> accelerationStructure)
     {
         buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
-        buildInfo.srcAccelerationStructure = accelerationStructure;
-        buildInfo.dstAccelerationStructure = accelerationStructure;
+        buildInfo.srcAccelerationStructure = accelerationStructure->GetAccelerationStructure();
+        buildInfo.dstAccelerationStructure = accelerationStructure->GetAccelerationStructure();
         buildInfo.scratchData.deviceAddress = scratchBuffer->GetDeviceAddress();
 
         auto pRangeInfo = &rangeInfo;
@@ -380,7 +381,7 @@ namespace Vk
             VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
 
         this->trackedBuffers.push_back(scratchBuffer);
-        this->trackedBuffers.push_back(resultBuffer);
+        this->trackedAccelerationStructures.push_back(accelerationStructure);
     }
 
     void CmdList::BeginRenderPass(std::shared_ptr<RenderPass> renderPass,

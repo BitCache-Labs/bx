@@ -90,6 +90,8 @@ public:
 	List<Vertex> BuildVertices() const;
 	List<Triangle> BuildTriangles() const;
 
+	BlasHandle m_blas = BlasHandle::null;
+
 private:
 	template <typename T>
 	friend class Serial;
@@ -109,5 +111,4 @@ private:
 
 	BufferHandle m_vertexBuffer = BufferHandle::null;
 	BufferHandle m_indexBuffer = BufferHandle::null;
-	BlasHandle m_blas = BlasHandle::null;
 };

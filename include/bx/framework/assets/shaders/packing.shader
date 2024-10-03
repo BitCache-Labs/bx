@@ -88,4 +88,14 @@ vec3 unpackNormalizedXyz10(PackedNormalizedXyz10 packed, uint offset)
     return dirOctQuadDecode(unpack30OctEncodedDir(packed.data, offset));
 }
 
+uvec4 unpack4xU8(uint data)
+{
+    return uvec4(
+        (data & 0x000000ff),
+        (data & 0x0000ff00) >> 8,
+        (data & 0x00ff0000) >> 16,
+        (data & 0xff000000) >> 24
+    );
+}
+
 #endif // PACKING_H

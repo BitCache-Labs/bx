@@ -132,7 +132,7 @@ namespace Vk
         VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
         descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
         descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-        VkAccelerationStructureKHR accelerationStructure = tlas->GetAccelerationStructure();
+        VkAccelerationStructureKHR accelerationStructure = tlas->GetAccelerationStructure()->GetAccelerationStructure();
         descriptorAccelerationStructureInfo.pAccelerationStructures = &accelerationStructure;
 
         VkWriteDescriptorSet writeInfo{};

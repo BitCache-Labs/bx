@@ -1,6 +1,10 @@
 #include "bx/framework/systems/renderer/blas_data_pool.hpp"
 
 #include "bx/framework/resources/mesh.hpp"
+#include "bx/engine/core/hash.hpp"
+#include "bx/framework/systems/renderer/lazy_init.hpp"
+#include "bx/engine/core/file.hpp"
+#include "bx/framework/resources/shader.hpp"
 
 struct BlasDataConstants
 {
@@ -9,6 +13,45 @@ struct BlasDataConstants
     u32 _PADDING0;
     u32 _PADDING1;
 };
+
+struct UpdateAnimatedConstants
+{
+    u32 vertexCount;
+    u32 blasIdx;
+    u32 originalBlasIdx;
+    u32 _PADDING1;
+};
+
+struct UpdateAnimatedPipeline : public LazyInit<UpdateAnimatedPipeline, ComputePipelineHandle>
+{
+    UpdateAnimatedPipeline()
+    {
+        ShaderCreateInfo shaderCreateInfo{};
+        shaderCreateInfo.name = "Blas Data Update Animated Shader";
+        shaderCreateInfo.shaderType = ShaderType::COMPUTE;
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/blas_data_pool/update_animated.comp.shader")));
+        ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
+
+        PipelineLayoutDescriptor pipelineLayoutDescriptor{};
+        pipelineLayoutDescriptor.bindGroupLayouts = {
+            BindGroupLayoutDescriptor(0, {
+                BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()), // constants
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()), // bones
+            }),
+            BlasDataPool::GetBindGroupLayout()
+        };
+
+        ComputePipelineCreateInfo pipelineCreateInfo{};
+        pipelineCreateInfo.name = "Blas Data Update Animated Pipeline";
+        pipelineCreateInfo.layout = pipelineLayoutDescriptor;
+        pipelineCreateInfo.shader = shader;
+        data = Graphics::CreateComputePipeline(pipelineCreateInfo);
+
+        Graphics::DestroyShader(shader);
+    }
+};
+template<>
+std::unique_ptr<UpdateAnimatedPipeline> LazyInit<UpdateAnimatedPipeline, ComputePipelineHandle>::cache = nullptr;
 
 BlasDataPool::BlasDataPool()
 {
@@ -39,7 +82,7 @@ BlasDataPool::BlasDataPool()
     BufferCreateInfo blasVerticesCreateInfo{};
     blasVerticesCreateInfo.name = "Blas Vertices Buffer";
     blasVerticesCreateInfo.size = MAX_BLAS_VERTICES * sizeof(PackedVertex);
-    blasVerticesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST;
+    blasVerticesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST | BufferUsageFlags::VERTEX;
     blasVerticesBuffer = Graphics::CreateBuffer(blasVerticesCreateInfo);
 
     BufferCreateInfo blasEmissiveTriangleIndicesCreateInfo{};
@@ -47,10 +90,14 @@ BlasDataPool::BlasDataPool()
     blasEmissiveTriangleIndicesCreateInfo.size = MAX_BLAS_INSTANCES * sizeof(u32);
     blasEmissiveTriangleIndicesCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST;
     blasEmissiveInstanceIndicesBuffer = Graphics::CreateBuffer(blasEmissiveTriangleIndicesCreateInfo);
+
+    updateAnimatedBindGroup = CreateBindGroup(UpdateAnimatedPipeline::Get());
 }
 
 BlasDataPool::~BlasDataPool()
 {
+    Graphics::DestroyBindGroup(updateAnimatedBindGroup);
+
     Graphics::DestroyBuffer(blasDataConstantsBuffer);
     Graphics::DestroyBuffer(blasAccessorsBuffer);
     Graphics::DestroyBuffer(blasInstancesBuffer);
@@ -73,7 +120,8 @@ BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
         packedVertices[i].weights = vertex.weights;
         packedVertices[i].normal = PackedNormalizedXyz10(vertex.normal);
         packedVertices[i].color = PackedRgb9e5(vertex.color.Xyz());
-        //packedVertices[i].bones = Packing::Pack4xU8(vertex.bones); TODO!
+        u8 bones[4] = { Math::Max(vertex.bones.x, 0), Math::Max(vertex.bones.y, 0), Math::Max(vertex.bones.z, 0), Math::Max(vertex.bones.w, 0) }; // TODO: care about explicit -1 bones?
+        packedVertices[i].bones = Packing::Pack4xU8(bones);
     }
 
     const List<Mesh::Triangle> triangles = mesh.BuildTriangles();
@@ -94,21 +142,125 @@ BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
     return accessor;
 }
 
-u32 BlasDataPool::SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& transform, const Mat4& invTransTransform, u32 materialIdx, b8 isEmissive)
+u32 BlasDataPool::SubmitInstance(const Resource<Mesh>& meshResource, const Mat4& transform, const Mat4& invTransTransform, u32 materialIdx, b8 isEmissive)
 {
+    const Mesh& mesh = meshResource.GetData();
+
     u32 blasIdx;
-    auto accessorIndexIter = blasAccessorIndices.find(resourceHandle);
+    auto accessorIndexIter = blasAccessorIndices.find(meshResource.GetHandle());
     if (accessorIndexIter == blasAccessorIndices.end())
     {
         blasIdx = blasAccessors.size();
 
         BlasAccessor accessor = AllocateBlas(mesh);
         blasAccessors.push_back(accessor);
-        blasAccessorIndices.insert(std::make_pair(resourceHandle, blasIdx));
+        blasAccessorIndices.insert(std::make_pair(meshResource.GetHandle(), blasIdx));
     }
     else
     {
         blasIdx = accessorIndexIter->second;
+    }
+
+    BlasInstance blasInstance{};
+    blasInstance.transform = transform;
+    blasInstance.invTransTransform = invTransTransform;
+    blasInstance.blasIdx = blasIdx;
+    blasInstance.materialIdx = materialIdx;
+    pendingInstances.push_back(blasInstance);
+
+    if (isEmissive)
+    {
+        pendingEmissiveInstanceIndices.push_back(pendingInstances.size() - 1);
+        pendingEmissiveTriangleCount += mesh.GetIndices().size() / 3;
+    }
+
+    return pendingInstances.size() - 1;
+}
+
+u32 BlasDataPool::SubmitAnimatedInstance(const Resource<Mesh>& meshResource, const Animator& animator, EntityId entityId, const Mat4& transform, const Mat4& invTransTransform, u32 materialIdx, b8 isEmissive)
+{
+    Mesh& mesh = meshResource.GetData();
+
+    SizeType combinedResourceHandle = meshResource.GetHandle();
+    hashCombine(combinedResourceHandle, entityId);
+
+    u32 blasIdx;
+    auto accessorIndexIter = blasAccessorIndices.find(combinedResourceHandle);
+    if (accessorIndexIter == blasAccessorIndices.end())
+    {
+        blasIdx = blasAccessors.size();
+
+        BlasAccessor accessor = AllocateBlas(mesh);
+        blasAccessors.push_back(accessor);
+        blasAccessorIndices.insert(std::make_pair(combinedResourceHandle, blasIdx));
+    }
+    else
+    {
+        blasIdx = accessorIndexIter->second;
+    }
+
+    u32 originalBlasIdx;
+    accessorIndexIter = blasAccessorIndices.find(meshResource.GetHandle());
+    if (accessorIndexIter == blasAccessorIndices.end())
+    {
+        originalBlasIdx = blasAccessors.size();
+
+        BlasAccessor accessor = AllocateBlas(mesh);
+        blasAccessors.push_back(accessor);
+        blasAccessorIndices.insert(std::make_pair(meshResource.GetHandle(), originalBlasIdx));
+    }
+    else
+    {
+        originalBlasIdx = accessorIndexIter->second;
+    }
+
+    {
+        UpdateAnimatedConstants updateAnimatedConstants{};
+        updateAnimatedConstants.vertexCount = blasAccessors[blasIdx].vertexCount;
+        updateAnimatedConstants.blasIdx = blasIdx;
+        updateAnimatedConstants.originalBlasIdx = originalBlasIdx;
+
+        BufferCreateInfo updateAnimatedConstantsCreateInfo{};
+        updateAnimatedConstantsCreateInfo.name = "Blas Data Update Animated Constants Buffer";
+        updateAnimatedConstantsCreateInfo.data = &updateAnimatedConstants;
+        updateAnimatedConstantsCreateInfo.size = sizeof(UpdateAnimatedConstants);
+        updateAnimatedConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
+        BufferHandle updateAnimatedConstantsBuffer = Graphics::CreateBuffer(updateAnimatedConstantsCreateInfo);
+
+        BindGroupCreateInfo bindGroupCreateInfo{};
+        bindGroupCreateInfo.name = "Blas Data Update Animated Bind Group";
+        bindGroupCreateInfo.layout = Graphics::GetBindGroupLayout(UpdateAnimatedPipeline::Get(), 0);
+        bindGroupCreateInfo.entries = {
+            BindGroupEntry(0, BindingResource::Buffer(updateAnimatedConstantsBuffer)),
+            BindGroupEntry(1, BindingResource::Buffer(animator.GetBoneBuffer())),
+        };
+        BindGroupHandle bindGroup = Graphics::CreateBindGroup(bindGroupCreateInfo);
+
+        ComputePassDescriptor computePassDescriptor{};
+        computePassDescriptor.name = "Blas Data Update Animated";
+        ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
+        {
+            Graphics::SetComputePipeline(UpdateAnimatedPipeline::Get());
+            Graphics::SetBindGroup(0, bindGroup);
+            Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, updateAnimatedBindGroup);
+            Graphics::DispatchWorkgroups(Math::DivCeil(updateAnimatedConstants.vertexCount, 128), 1, 1);
+        }
+        Graphics::EndComputePass(computePass);
+
+        Graphics::DestroyBindGroup(bindGroup);
+        Graphics::DestroyBuffer(updateAnimatedConstantsBuffer);
+    }
+
+    {
+        BlasCreateInfo blasCreateInfo{};
+        //blasCreateInfo.name = Log::Format("{} Blas", filename);
+        blasCreateInfo.vertexBuffer = BufferSlice(blasVerticesBuffer, blasAccessors[blasIdx].vertexOffset * sizeof(PackedVertex), Optional<u64>::Some(blasAccessors[blasIdx].vertexCount * sizeof(PackedVertex)));
+        blasCreateInfo.vertexFormat = VertexFormat::FLOAT_32X3;
+        blasCreateInfo.vertexStride = sizeof(PackedVertex);
+        blasCreateInfo.indexBuffer = mesh.GetIndexBuffer();
+        blasCreateInfo.indexFormat = IndexFormat::UINT32;
+        Graphics::DestroyBlas(mesh.m_blas);
+        mesh.m_blas = Graphics::CreateBlas(blasCreateInfo);
     }
 
     BlasInstance blasInstance{};

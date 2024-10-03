@@ -1582,7 +1582,18 @@ namespace Packing
 
 	u32 Pack4xU8(u8 data[4])
 	{
-		return (u32)data[0] >> 24 | (u32)data[1] >> 16 | (u32)data[2] >> 8 | (u32)data[3];
+		union
+		{
+			u8 in[4];
+			u32 out;
+		};
+
+		in[0] = data[0];
+		in[1] = data[1];
+		in[2] = data[2];
+		in[3] = data[3];
+
+		return out;
 	}
 }
 

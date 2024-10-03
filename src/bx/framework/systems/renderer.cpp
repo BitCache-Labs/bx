@@ -78,7 +78,45 @@ void Renderer::UpdateTlas()
                 Mat4 matrix = trx.GetMatrix() * mesh->GetMatrix();
 
                 u32 materialIdx = m_materialPool->SubmitInstance(material.GetData(), material.GetHandle());
-                u32 blasInstanceIdx = m_blasDataPool->SubmitInstance(mesh.GetData(), mesh.GetHandle(), matrix, matrix.Inverse().Transpose(), materialIdx, material.GetData().IsEmissive());
+
+                u32 blasInstanceIdx;
+                if (entity.HasComponent<Animator>())
+                {
+                    const Animator& animator = entity.GetComponent<Animator>();
+                    blasInstanceIdx = m_blasDataPool->SubmitAnimatedInstance(mesh, animator, entity.GetId(), matrix, matrix.Inverse().Transpose(), materialIdx, material.GetData().IsEmissive());
+                }
+                else
+                {
+                    blasInstanceIdx = m_blasDataPool->SubmitInstance(mesh, matrix, matrix.Inverse().Transpose(), materialIdx, material.GetData().IsEmissive());
+                }
+
+                //BlasInstance blasInstance{};
+                //blasInstance.transform = matrix;
+                //blasInstance.instanceCustomIndex = blasInstances.size();
+                //blasInstance.mask = 0xFF;
+                //blasInstance.blas = mesh->GetBlas();
+                //blasInstances.push_back(blasInstance);
+
+                mf.m_blasInstanceIndices.push_back(blasInstanceIdx);
+            }
+        });
+
+    EntityManager::ForEach<Transform, MeshFilter, MeshRenderer>(
+        [&](Entity entity, const Transform& trx, MeshFilter& mf, const MeshRenderer& mr)
+        {
+            if (mr.GetMaterialCount() == 0)
+                return;
+
+            SizeType index = 0;
+            for (const auto& mesh : mf.GetMeshes())
+            {
+                const auto& material = mr.GetMaterial(index++);
+                index %= mr.GetMaterialCount();
+
+                if (!mesh || !material)
+                    continue;
+
+                Mat4 matrix = trx.GetMatrix() * mesh->GetMatrix();
 
                 BlasInstance blasInstance{};
                 blasInstance.transform = matrix;
@@ -86,8 +124,6 @@ void Renderer::UpdateTlas()
                 blasInstance.mask = 0xFF;
                 blasInstance.blas = mesh->GetBlas();
                 blasInstances.push_back(blasInstance);
-
-                mf.m_blasInstanceIndices.push_back(blasInstanceIdx);
             }
         });
 

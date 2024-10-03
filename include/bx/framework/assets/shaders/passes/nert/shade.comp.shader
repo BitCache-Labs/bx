@@ -71,7 +71,7 @@ void main()
     vec3 ambientEmissiveContribution = vec3(0.0);
     vec3 baseColorFactor = vec3(0.0);
 
-    vec3 ambientContribution = 0.0 * vec3(0.15, 0.15, 0.17);
+    vec3 ambientContribution = 0.4 * vec3(0.15, 0.15, 0.17);
 
     if (intersection.t != T_MISS)
     {

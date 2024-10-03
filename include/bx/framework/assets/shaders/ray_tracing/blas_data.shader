@@ -47,15 +47,13 @@ layout(BINDING(1, 3), std430) readonly buffer _BlasTriangles
     Triangle blasTriangles[];
 };
 
-layout(BINDING(1, 4), std430) readonly buffer _BlasVertices
+layout(BINDING(1, 4), std430) buffer _BlasVertices
 {
     PackedVertex blasVertices[];
 };
 
 layout(BINDING(1, 5), std430) readonly buffer _BlasEmissiveInstanceIndices
 {
-	// TODO: put these counters in a const buffer
-	// Where element 0 is the total emissive triangle count, element 1 is instance count
 	uint blasEmissiveInstanceIndices[];
 };
 

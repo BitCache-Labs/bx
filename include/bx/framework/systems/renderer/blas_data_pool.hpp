@@ -5,6 +5,8 @@
 #include "bx/engine/core/resource.hpp"
 
 #include "bx/engine/modules/graphics.hpp"
+#include "bx/framework/components/animator.hpp"
+
 
 class Mesh;
 
@@ -46,7 +48,8 @@ public:
 	BlasDataPool();
 	~BlasDataPool();
 
-	u32 SubmitInstance(const Mesh& mesh, ResourceHandle resourceHandle, const Mat4& transform, const Mat4& invTransTransform, u32 materialIdx, b8 isEmissive);
+	u32 SubmitInstance(const Resource<Mesh>& meshResource, const Mat4& transform, const Mat4& invTransTransform, u32 materialIdx, b8 isEmissive);
+	u32 SubmitAnimatedInstance(const Resource<Mesh>& meshResource, const Animator& animator, EntityId entityId, const Mat4& transform, const Mat4& invTransTransform, u32 materialIdx, b8 isEmissive);
 	void Submit();
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline) const;
@@ -77,6 +80,8 @@ private:
 	List<BlasInstance> pendingInstances{};
 	List<u32> pendingEmissiveInstanceIndices{};
 	u32 pendingEmissiveTriangleCount = 0;
+
+	BindGroupHandle updateAnimatedBindGroup;
 
 	BlasAccessor AllocateBlas(const Mesh& mesh);
 };

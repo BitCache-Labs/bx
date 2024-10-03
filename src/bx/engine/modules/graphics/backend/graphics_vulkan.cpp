@@ -214,6 +214,8 @@ bool Graphics::Initialize()
     capabilities.raytracing = s->physicalDevice->RayTracingSuitable();
     s->graphicsCapabilities = capabilities;
 
+    s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
+
     return true;
 }
 
@@ -243,7 +245,7 @@ void Graphics::NewFrame()
 
     // All cmds of the entire frame will be recorded into a single cmd list
     // This is because we designed the graphics module api to act like it's immediate
-    s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
+    if (!s->cmdList) s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
 }
 
 void Graphics::EndFrame()
@@ -775,8 +777,8 @@ const BlasHandle Graphics::CreateBlas(const BlasCreateInfo& createInfo)
 
     u32 blasSize = Blas::RequiredSize(s->device, *s->physicalDevice, geometry, indexCount / 3, flags);
     std::shared_ptr<Blas> blas(new Blas(createInfo.name, s->device, *s->physicalDevice, blasSize));
-    if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
-    blas->Build(*s->uploadCmdList, geometry, rangeInfo, flags);
+    if (!s->cmdList) s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
+    blas->Build(*s->cmdList, geometry, rangeInfo, flags);
 
     s->blases.insert(std::make_pair(blasHandle, blas));
 
@@ -815,7 +817,7 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
         vkInstance.instanceCustomIndex = blasInstance.instanceCustomIndex;
         vkInstance.mask = blasInstance.mask;
         vkInstance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR | VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR; // TODO: ??
-        vkInstance.accelerationStructureReference = blasIter->second->GetBuffer()->GetDeviceAddress();
+        vkInstance.accelerationStructureReference = blasIter->second->GetAccelerationStructure()->GetBuffer()->GetDeviceAddress();
 
         instances.push_back(vkInstance);
     }
@@ -832,8 +834,9 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
     memcpy(bufferData, instances.data(), instancesSize);
     stagingBuffer->Unmap();
 
-    if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
-    s->uploadCmdList->CopyBuffers(stagingBuffer, instancesBuffer);
+    //if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
+    if (!s->cmdList) s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
+    s->cmdList->CopyBuffers(stagingBuffer, instancesBuffer);
 
     VkAccelerationStructureGeometryInstancesDataKHR instancesData{};
     instancesData.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
@@ -856,7 +859,7 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
 
     u32 tlasSize = Tlas::RequiredSize(s->device, *s->physicalDevice, geometry, instances.size(), flags);
     std::shared_ptr<Tlas> tlas(new Tlas(createInfo.name, s->device, *s->physicalDevice, tlasSize));
-    tlas->Build(*s->uploadCmdList, geometry, rangeInfo, flags);
+    tlas->Build(*s->cmdList, geometry, rangeInfo, flags);
 
     // TODO: avoid doing this loop twice
     for (u32 i = 0; i < createInfo.blasInstances.size(); i++)
