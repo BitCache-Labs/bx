@@ -15,10 +15,10 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING0;
 } constants;
 
-layout (BINDING(0, 1), r32f) uniform image2D inImage;
+layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 3), rgba32f) uniform image2D outHistory;
-layout (BINDING(0, 4), r32f) uniform image2D outImage;
+layout (BINDING(0, 4), rgba32f) uniform image2D outImage;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel, out uint blasInstance)
 {
@@ -40,12 +40,12 @@ void main()
     uint currentBlasInstance;
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
 
-    vec3 result = unpackRgb9e5FromFloatBits(imageLoad(inImage, pixel).r);
+    vec3 result = imageLoad(inImage, pixel).rgb;
     float sampleCount = 1.0;
 
     if (currentNormalAndDepth.w == 0.0)
     {
-        imageStore(outImage, pixel, vec4(uintBitsToFloat(packRgb9e5(result).data)));
+        imageStore(outImage, pixel, vec4(result, 1.0));
         imageStore(outHistory, pixel, vec4(fixNan(result), frameCount));
         return;
     }
@@ -75,13 +75,13 @@ void main()
         float weight;
         if (sampleToCurrentSimilarity(currentNormalAndDepth, sampleNormalAndDepth, currentBlasInstance, sampleBlasInstance, weight))
         {
-            result += unpackRgb9e5FromFloatBits(imageLoad(inImage, samplePixel).r) * weight;
+            result += imageLoad(inImage, samplePixel).rgb * weight;
             sampleCount += weight;
         }
     }
 
     result /= sampleCount;
 
-    imageStore(outImage, pixel, vec4(uintBitsToFloat(packRgb9e5(result).data)));
+    imageStore(outImage, pixel, vec4(result, 1.0));
     imageStore(outHistory, pixel, vec4(fixNan(result), frameCount));
 }

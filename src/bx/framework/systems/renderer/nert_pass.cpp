@@ -225,7 +225,7 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                             // intersections
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),                                                         // scene
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // neGbuffer
-                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::R32_FLOAT)),           // outIllumination
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // outIllumination
                 BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // outAmbientEmissiveBaseColor
             }),
             MaterialPool::GetBindGroupLayout(),
@@ -269,7 +269,7 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
 
     TextureCreateInfo illuminationCreateInfo{};
     illuminationCreateInfo.name = "Nert Illumination Texture";
-    illuminationCreateInfo.format = TextureFormat::R32_FLOAT;
+    illuminationCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     illuminationCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::COPY_SRC;
     illuminationCreateInfo.size = Extend3D(width, height, 1);
     illuminationTexture = Graphics::CreateTexture(illuminationCreateInfo);

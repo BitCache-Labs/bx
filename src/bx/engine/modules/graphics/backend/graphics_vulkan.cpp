@@ -52,6 +52,12 @@ true;
 false;
 #endif
 
+//struct TextureView
+//{
+//    TextureHandle handle;
+//    std::shared_ptr<Image> texture;
+//};
+
 struct State : NoCopy
 {
     ~State()
@@ -872,6 +878,7 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
     memcpy(bufferData, instances.data(), instancesSize);
     stagingBuffer->Unmap();
 
+    //if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
     if (!s->cmdList) s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
     s->cmdList->CopyBuffers(stagingBuffer, instancesBuffer);
 

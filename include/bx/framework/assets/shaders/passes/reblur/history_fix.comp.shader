@@ -17,10 +17,10 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING0;
 } constants;
 
-layout (BINDING(0, 1), r32f) uniform image2D inImage;
+layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
 layout (BINDING(0, 2)) uniform sampler2D mippedBlur;
 layout (BINDING(0, 3), rgba32f) uniform image2D outHistory;
-layout (BINDING(0, 4), r32f) uniform image2D outImage;
+layout (BINDING(0, 4), rgba32f) uniform image2D outImage;
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
@@ -32,7 +32,7 @@ void main()
     float frameCount = imageLoad(outHistory, pixel).w;
     bool disoccluded = (frameCount == 0.0);
 
-    vec3 current = unpackRgb9e5FromFloatBits(imageLoad(inImage, pixel).r);
+    vec3 current = imageLoad(inImage, pixel).rgb;
 
     vec3 result = current;
 
@@ -78,7 +78,7 @@ void main()
                 ivec2 samplePixel = pixel + ivec2(x, y);
                 samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
 
-                float sampleLuma = linearToLuma(unpackRgb9e5FromFloatBits(imageLoad(inImage, samplePixel).r));
+                float sampleLuma = linearToLuma(imageLoad(inImage, samplePixel).rgb);
                 m1 += sampleLuma;
                 m2 += sqr(sampleLuma);
             }
@@ -115,7 +115,7 @@ void main()
                 ivec2 samplePixel = pixel + ivec2(x, y);
                 samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
 
-                float sampleLuma = linearToLuma(unpackRgb9e5FromFloatBits(imageLoad(inImage, samplePixel).r));
+                float sampleLuma = linearToLuma(imageLoad(inImage, samplePixel).rgb);
                 m1 += sampleLuma;
                 m2 += sqr(sampleLuma);
             }
@@ -134,6 +134,6 @@ void main()
         result *= lumaFactor; // TODO: incorrect
     }
 
-    imageStore(outImage, pixel, vec4(uintBitsToFloat(packRgb9e5(result).data)));
+    imageStore(outImage, pixel, vec4(result, 1.0));
     //imageStore(outHistory, pixel, vec4(result, frameCount));
 }

@@ -41,11 +41,6 @@ vec3 unpackRgb9e5(PackedRgb9e5 packed)
     return ldexp(rgb, ivec3(packed.data >> 27) - 24);
 }
 
-vec3 unpackRgb9e5FromFloatBits(float data)
-{
-    return unpackRgb9e5(PackedRgb9e5(floatBitsToUint(data)));
-}
-
 // Inspired by https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 vec2 dirOctQuadEncode(vec3 dir)
 {

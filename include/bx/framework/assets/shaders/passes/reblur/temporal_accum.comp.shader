@@ -21,7 +21,7 @@ layout (BINDING(0, 4), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 5), rgba32f) uniform image2D gbufferHistory;
 layout (BINDING(0, 6), rgba32f) uniform image2D neGbufferHistory;
 layout (BINDING(0, 7), rg16f) uniform image2D velocity;
-layout (BINDING(0, 8), r32f) uniform image2D outImage;
+layout (BINDING(0, 8), rgba32f) uniform image2D outImage;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel, out uint blasInstance)
 {
@@ -79,7 +79,7 @@ void main()
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
     if (currentNormalAndDepth.w == 0.0)
     {
-        imageStore(outImage, pixel, vec4(uintBitsToFloat(packRgb9e5(current).data)));
+        imageStore(outImage, pixel, vec4(current, 1.0));
         imageStore(outHistory, pixel, vec4(0.0));
         return;
     }
@@ -112,6 +112,6 @@ void main()
 
     history.rgb = result;
 
-    imageStore(outImage, pixel, vec4(uintBitsToFloat(packRgb9e5(result).data)));
+    imageStore(outImage, pixel, vec4(result, 1.0));
     imageStore(outHistory, pixel, history);
 }
