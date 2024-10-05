@@ -1,81 +1,170 @@
 #pragma once
 
-class Any
+#include <typeinfo>
+#include <utility>
+#include <stdexcept>
+#include <type_traits>
+
+namespace meta
 {
-public:
-//    Any(const MetaType& type, nullptr_t);
-//
-//    // If isOwnerOfObject is true, this object is responsible for calling the appropriate
-//    // destructor, and for freeing the buffer.
-//    Any(const MetaType& type, void* buffer, bool isOwnerOfObject);
-//
-//    // If isOwnerOfObject is true, this object is responsible for calling the appropriate
-//    // destructor, and for freeing the buffer. In this, make sure that the type is either
-//    // trivially destructible, or that the type is reflected, so that the appropriate
-//    // destructor can be called.
-//    Any(TypeInfo typeInfo, void* buffer, bool isOwnerOfObject = false);
-//
-//    /**
-//     * \brief Constructs a Any referencing the object, or owning the object, depending on how it was passed in.
-//     * \tparam T
-//     * \param anyObject If the value was an r-value or moved in, this Any will move-construct the object. Otherwise the Any will be
-//     * non-owning, and reference the existing object.
-//     * \param buffer If anyObject is an r-value or is moved in, the anyObject will be move-constructed to the buffer. If no buffer is provided,
-//     * one will be allocated. This argument is not used if the provided anyObject is not an r-value or moved in.
-//     */
-//    template<typename T>
-//    explicit Any(T&& anyObject, void* buffer = nullptr);
+    class bad_any_cast : public std::bad_cast
+    {
+    public:
+        const char* what() const noexcept override
+        {
+            return "bad any_cast";
+        }
+    };
 
-    /*Any(const Any&) = delete;
-    Any(Any&& other) noexcept;
+    class any
+    {
+    public:
+        // Default constructor
+        any() noexcept : content(nullptr) {}
 
-    ~Any();
+        // Destructor
+        ~any() { delete content; }
 
-    Any& operator=(const Any&) = delete;
-    Any& operator=(Any&& other) noexcept;
+        // Constructor for any type T
+        template<typename T>
+        any(const T& value) : content(new holder<T>(value)) {}
 
-    void AssignFromAnyOfDifferentType(Any&& other);
+        // Move constructor
+        any(any&& other) noexcept : content(other.content)
+        {
+            other.content = nullptr;
+        }
 
-    bool operator==(nullptr_t) const { return mData == nullptr; }
-    bool operator!=(nullptr_t) const { return mData != nullptr; }
+        // Copy constructor
+        any(const any& other) : content(other.content ? other.content->clone() : nullptr) {}
+
+        // Move assignment
+        any& operator=(any&& other) noexcept
+        {
+            if (this != &other)
+            {
+                delete content;
+                content = other.content;
+                other.content = nullptr;
+            }
+            return *this;
+        }
+
+        // Copy assignment
+        any& operator=(const any& other)
+        {
+            if (this != &other)
+            {
+                delete content;
+                content = other.content ? other.content->clone() : nullptr;
+            }
+            return *this;
+        }
+
+        // Assignment operator for any type T
+        template<typename T>
+        any& operator=(const T& value)
+        {
+            any(value).swap(*this);
+            return *this;
+        }
+
+        // Swap function
+        void swap(any& other) noexcept
+        {
+            std::swap(content, other.content);
+        }
+
+        // Clear the held value
+        void reset() noexcept
+        {
+            delete content;
+            content = nullptr;
+        }
+
+        // Check if there's a value stored
+        bool has_value() const noexcept
+        {
+            return content != nullptr;
+        }
+
+        // Get the stored type information
+        const std::type_info& type() const noexcept
+        {
+            return content ? content->type() : typeid(void);
+        }
+
+    private:
+        // Base class for type erasure
+        struct placeholder
+        {
+            virtual ~placeholder() = default;
+            virtual const std::type_info& type() const noexcept = 0;
+            virtual placeholder* clone() const = 0;
+        };
+
+        // Template class for holding a value of type T
+        template<typename T>
+        struct holder : placeholder
+        {
+            holder(const T& value) : held(value) {}
+
+            const std::type_info& type() const noexcept override
+            {
+                return typeid(T);
+            }
+
+            placeholder* clone() const override
+            {
+                return new holder(held);
+            }
+
+            T held;
+        };
+
+        // Pointer to the currently held value
+        placeholder* content;
+
+        // Friend functions to allow access to private members
+        template<typename T>
+        friend T any_cast(const any&);
+        template<typename T>
+        friend T any_cast(any&);
+        template<typename T>
+        friend T any_cast(any&&);
+    };
+
+    // Function to cast `any` back to its original type
+    template<typename T>
+    T any_cast(const any& operand)
+    {
+        if (operand.type() != typeid(T))
+        {
+            throw bad_any_cast();
+        }
+
+        return static_cast<any::holder<typename std::decay<const T>::type>*>(operand.content)->held;
+    }
 
     template<typename T>
-    bool IsExactly() const;
+    T any_cast(any& operand)
+    {
+        if (operand.type() != typeid(T))
+        {
+            throw bad_any_cast();
+        }
 
-    bool IsExactly(TypeId typeId) const;
-
-    template<typename T>
-    T* As();
-
-    template<typename T>
-    const T* As() const;
-
-    const MetaType* TryGetType() const;
-    TypeId GetTypeId() const { return mTypeInfo.mTypeId; }
-    TypeInfo GetTypeInfo() const { return mTypeInfo; }
-
-    bool IsOwner() const { return mTypeInfo.mFlags & TypeInfo::UserBit; }
-
-    const void* GetData() const { return mData; }
-    void* GetData() { return mData; }
-
-    void* Release();*/
-
-private:
-    //friend ReflectAccess;
-    //static MetaType Reflect();
-    
-    /*
-    template<bool CheckIfTypesMatch>
-    void MoveAssign(Any&& other);
-
-    void DestructAndFree();
-
-    bool IsDerivedFrom(TypeId type) const;
+        return static_cast<any::holder<typename std::decay<T>::type>*>(operand.content)->held;
+    }
 
     template<typename T>
-    bool IsDerivedFrom() const;
+    T any_cast(any&& operand)
+    {
+        if (operand.type() != typeid(T))
+        {
+            throw bad_any_cast();
+        }
 
-    TypeInfo mTypeInfo{};*/
-    void* m_pData = nullptr;
-};
+        return std::move(static_cast<any::holder<typename std::decay<T>::type>*>(operand.content)->held);
+    }
+}

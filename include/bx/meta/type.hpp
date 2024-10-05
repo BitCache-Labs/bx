@@ -7,9 +7,10 @@
 #include "bx/core/hash.hpp"
 #include "bx/core/macros.hpp"
 #include "bx/containers/string.hpp"
+#include "bx/containers/list.hpp"
+#include "bx/containers/hash_map.hpp"
 
 #include "bx/meta/meta.hpp"
-//#include "bx/meta/any.hpp"
 
 using TypeId = u32;
 constexpr TypeId INVALID_TYPEID = -1;
@@ -137,14 +138,90 @@ template<typename T>
 CONSTEVAL TypeId MakeStrippedTypeId();
 */
 
-class MetaType
+template <typename TType>
+class TypeImpl
+{
+private:
+	template <typename T>
+	friend class Type;
+
+	static TypeId Id()
+	{
+		static Hash<String> hashFn;
+		static const TypeId id = hashFn(ClassName());
+		return id;
+	}
+
+	static String ClassName()
+	{
+		return BX_FUNCTION;
+		//return wnaabi::type_info<TType>::name_tokens(wnaabi::runtime_visitors::stringify_t{}).str;
+	}
+};
+
+template <typename TType>
+class Type
 {
 public:
-	MetaType(TypeInfo typeInfo, const std::string& name)
-		: mTypeInfo(typeInfo)
-		, mName(name)
-		//, mProperties(std::make_unique<MetaProps>())
+	static TypeId Id()
+	{
+		return TypeImpl<meta::decay_t<TType>>::Id();
+	}
+
+	static String ClassName()
+	{
+		return TypeImpl<meta::decay_t<TType>>::ClassName();
+	}
+};
+
+#include "bx/meta/function.hpp"
+
+class MetaType
+{
+private:
+	MetaType(TypeId typeId, const String& name)
+		: m_typeId(typeId)
+		, m_name(name)
 	{}
+
+public:
+	template <typename T>
+	static MetaType Create(const String& name)
+	{
+		return MetaType(Type<T>::Id(), name);
+	}
+
+	const std::string& GetName() const { return m_name; }
+	u32 GetTypeId() const { return m_typeId; }
+
+	template <typename TFunc, TFunc Func>
+	inline void AddFunction(const String& name)
+	{
+		// Add to the function registry
+		m_functions.insert(std::make_pair(name, MetaFunc::Create<TFunc, Func>(name)));
+	}
+
+	inline MetaFunc GetFunction(const String& name) const
+	{
+		auto it = m_functions.find(name);
+		//if (it == m_functions.end()) return {};
+		BX_ENSURE(it != m_functions.end());
+		return it->second;
+	}
+
+private:
+	TypeId m_typeId{ INVALID_TYPEID };
+	String m_name;
+
+	HashMap<String, MetaFunc> m_functions;
+};
+
+/*
+	//MetaType(TypeInfo typeInfo, const std::string& name)
+	//	: mTypeInfo(typeInfo)
+	//	, mName(name)
+	//	//, mProperties(std::make_unique<MetaProps>())
+	//{}
 
 	template<typename TypeT>
 	struct T {};
@@ -155,7 +232,7 @@ public:
 	template<typename... Args>
 	struct Ctor {};
 
-	/*template<typename TypeT, typename ...Args>
+	template<typename TypeT, typename ...Args>
 	MetaType(T<TypeT>, std::string_view name, Args&& ... args);
 
 	MetaType(MetaType&& other) noexcept;
@@ -341,9 +418,10 @@ private:
 		{
 			return (static_cast<uint64>(k.mOperatorType) << 32) | static_cast<uint64>(k.mNameHash);
 		}
-	};*/
+	};
 
-	TypeInfo mTypeInfo{};
+	//TypeInfo mTypeInfo{};
+	TypeId mTypeId{ INVALID_TYPEID };
 
 	//std::unordered_multimap<FuncKey, MetaFunc, FuncHasher> mFunctions{};
 	//std::vector<MetaField> mFields{};
@@ -354,47 +432,4 @@ private:
 	std::string mName;
 
 	//std::unique_ptr<MetaProps> mProperties;
-};
-
-template <typename TType>
-class TypeImpl
-{
-private:
-	template <typename T>
-	friend class Type;
-
-	static TypeId Id()
-	{
-		static Hash<String> hashFn;
-		static const TypeId id = hashFn(ClassName());
-		return id;
-	}
-
-	static String ClassName()
-	{
-		return BX_FUNCTION;
-		//return wnaabi::type_info<TType>::name_tokens(wnaabi::runtime_visitors::stringify_t{}).str;
-	}
-};
-
-template <typename TType>
-class Type
-{
-public:
-	static TypeId Id()
-	{
-		return TypeImpl<meta::decay_t<TType>>::Id();
-	}
-
-	static String ClassName()
-	{
-		return TypeImpl<meta::decay_t<TType>>::ClassName();
-	}
-
-	static MetaType GetMeta()
-	{
-		TypeInfo typeInfo;
-		MetaType meta(typeInfo, ClassName());
-		return meta;
-	}
-};
+};*/
