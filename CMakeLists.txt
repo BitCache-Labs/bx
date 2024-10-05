@@ -238,6 +238,9 @@ elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
     set (BX_LIBS ${BX_LIBS} vulkan glslang SPIRV imgui_vulkan)
 endif ()
 
+# FSR2
+set (BX_LIBS ${BX_LIBS} fsr2)
+
 # Setup physics backend
 if (BX_PHYSICS_BACKEND STREQUAL "Bullet")
 	set (BX_SRCS ${BX_SRCS}
@@ -295,6 +298,13 @@ endif ()
 add_library (bx STATIC ${BX_SRCS})
 target_link_libraries (bx ${BX_LIBS})
 target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# TODO: clean this up
+add_custom_command(TARGET bx POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/extern/fsr2/bin/ffx_fsr2_api_vk_x64.dll
+		${CMAKE_BINARY_DIR}
+    VERBATIM)
 
 if (MSVC)
 	if (NOT BX_INSTALL)

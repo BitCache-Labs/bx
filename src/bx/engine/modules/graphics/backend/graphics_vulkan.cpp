@@ -52,12 +52,6 @@ true;
 false;
 #endif
 
-//struct TextureView
-//{
-//    TextureHandle handle;
-//    std::shared_ptr<Image> texture;
-//};
-
 struct State : NoCopy
 {
     ~State()
