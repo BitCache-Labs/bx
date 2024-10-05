@@ -22,13 +22,13 @@ struct Vertex
 struct PackedVertex
 {
 	vec3 position;
-	uint _PADDING0;
-	vec3 tangent; // TODO: encode
-	uint texCoord;
-	vec4 weights; // TODO: encode
+	PackedNormalizedXyz10 tangent;
+	uvec2 weights;
 	PackedNormalizedXyz10 normal;
 	PackedRgb9e5 color;
 	uint bones;
+	uint texCoord;
+	uint _PADDING0;
 	uint _PADDING1;
 };
 

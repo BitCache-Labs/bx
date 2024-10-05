@@ -30,15 +30,16 @@ void main()
 
     PackedVertex packedVertex = blasVertices[inVertexId];
     uvec4 boneIndices = unpack4xU8(packedVertex.bones);
-    vec4 weights = packedVertex.weights;
+    vec4 weights = vec4(unpackHalf2x16(packedVertex.weights.x), unpackHalf2x16(packedVertex.weights.y));
     
     mat4 matrix = mat4(0);
+    #pragma unroll
     for (uint i = 0; i < 4; i++)
     {
         matrix += weights[i] * bones[boneIndices[i]];
     }
     packedVertex.position = (matrix * vec4(packedVertex.position, 1.0)).xyz;
-
+    
     vec3 normal = unpackNormalizedXyz10(packedVertex.normal, 0);
     normal = (matrix * vec4(normal, 0.0)).xyz;
     packedVertex.normal = packNormalizedXyz10(normal, 0);

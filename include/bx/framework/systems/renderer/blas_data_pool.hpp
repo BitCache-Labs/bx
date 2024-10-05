@@ -34,13 +34,13 @@ public:
 	struct PackedVertex
 	{
 		Vec3 position;
-		u32 _PADDING0;
-		Vec3 tangent; // TODO: encode
-		u32 texCoord;
-		Vec4 weights; // TODO: encode
+		PackedNormalizedXyz10 tangent;
+		u32 weights[2];
 		PackedNormalizedXyz10 normal;
 		PackedRgb9e5 color;
 		u32 bones;
+		u32 texCoord;
+		u32 _PADDING0;
 		u32 _PADDING1;
 	};
 

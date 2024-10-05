@@ -114,10 +114,13 @@ BlasDataPool::BlasAccessor BlasDataPool::AllocateBlas(const Mesh& mesh)
     {
         const auto& vertex = vertices[i];
         packedVertices[i].position = vertex.position;
-        packedVertices[i].tangent = vertex.tangent;
+        packedVertices[i].tangent = PackedNormalizedXyz10(vertex.tangent);
         f16 uv[2] = { vertex.uv.x, vertex.uv.y };
         packedVertices[i].texCoord = Packing::Pack2xF16(uv);
-        packedVertices[i].weights = vertex.weights;
+        f16 weights0[2] = { vertex.weights.x, vertex.weights.y };
+        f16 weights1[2] = { vertex.weights.z, vertex.weights.w };
+        packedVertices[i].weights[0] = Packing::Pack2xF16(weights0);
+        packedVertices[i].weights[1] = Packing::Pack2xF16(weights1);
         packedVertices[i].normal = PackedNormalizedXyz10(vertex.normal);
         packedVertices[i].color = PackedRgb9e5(vertex.color.Xyz());
         u8 bones[4] = { Math::Max(vertex.bones.x, 0), Math::Max(vertex.bones.y, 0), Math::Max(vertex.bones.z, 0), Math::Max(vertex.bones.w, 0) }; // TODO: care about explicit -1 bones?
