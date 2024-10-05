@@ -7,7 +7,7 @@ message(STATUS "C Compiler Version: ${CMAKE_C_COMPILER_VERSION}")
 
 project (bx)
 
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option (BX_BUILD_EDITOR "Build as editor binaries" OFF)

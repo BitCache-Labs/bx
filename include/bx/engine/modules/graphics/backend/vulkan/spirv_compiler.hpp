@@ -8,7 +8,7 @@
 
 #include "vulkan_api.hpp"
 
-#include <glslang/Include/glslang_c_shader_types.h>
+#include <glslang/Include/Types.h>
 
 namespace Vk
 {
@@ -18,7 +18,7 @@ namespace Vk
         static SpirVCompiler& Instance();
         ~SpirVCompiler();
 
-        List<u32> Compile(const String& name, glslang_stage_t stage, const String& src, const List<ShaderIncludeRange>& includeRanges);
+        List<u32> Compile(const String& name, EShLanguage stage, const String& src, const List<ShaderIncludeRange>& includeRanges);
 
     private:
         SpirVCompiler();

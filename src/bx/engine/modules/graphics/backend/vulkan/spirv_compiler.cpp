@@ -2,9 +2,14 @@
 
 #include "bx/engine/core/macros.hpp"
 
-#include <glslang/Include/glslang_c_interface.h>
-#include <glslang/Public/resource_limits_c.h>
-#include <glslang/Public/ResourceLimits.h>
+//#include <glslang/Include/glslang_c_interface.h>
+//#include <glslang/Public/resource_limits_c.h>
+//#include <glslang/Public/ResourceLimits.h>
+
+#include <glslang/Public/ShaderLang.h>
+#include <glslang/Include/intermediate.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
+#include <glslang/MachineIndependent/localintermediate.h>
 
 static const TBuiltInResource DefaultTBuiltInResource =
 {
@@ -125,13 +130,52 @@ static const TBuiltInResource DefaultTBuiltInResource =
     }
 };
 
-inline glslang_messages_t operator|(glslang_messages_t a, glslang_messages_t b)
-{
-    return static_cast<glslang_messages_t>(static_cast<int>(a) | static_cast<int>(b));
-}
-
 namespace Vk
 {
+    struct HBE_Includer : glslang::TShader::Includer
+    {
+        std::string path;
+        std::set<IncludeResult*> results;
+
+        HBE_Includer(const std::string& path)
+        {
+            this->path = path.substr(0, path.find_last_of("\\/") + 1);
+        }
+
+        IncludeResult* includeSystem(const char* file_path, const char* includer_name, size_t inclusion_depth) override {
+            std::string* source = new std::string();
+            source->erase(std::find(source->begin(), source->end(), '\0'), source->end());
+            IncludeResult* result = new IncludeResult(path, source->c_str(), source->size() - 2, source);
+            results.emplace(result);
+            return result;
+        }
+
+        IncludeResult* includeLocal(const char* file_path, const char* includer_name, size_t inclusion_depth) override {
+            std::string* source = new std::string();
+            source->erase(std::find(source->begin(), source->end(), '\0'), source->end());
+            IncludeResult* result = new IncludeResult(path + file_path, source->c_str(), source->size(), source);
+            results.emplace(result);
+            return result;
+        }
+
+        void releaseInclude(IncludeResult* result) override {
+            if (result != NULL)
+            {
+                results.erase(result);
+                delete (std::string*)result->userData;
+                delete result;
+            }
+        }
+
+        ~HBE_Includer() {
+            for (auto r : results) {
+                delete[] r->headerData;
+                delete r;
+            }
+        }
+    };
+
+
     SpirVCompiler& SpirVCompiler::Instance()
     {
         static SpirVCompiler instance{};
@@ -140,16 +184,113 @@ namespace Vk
 
     SpirVCompiler::SpirVCompiler()
     {
-        glslang_initialize_process();
+        glslang::InitializeProcess();
     }
 
     SpirVCompiler::~SpirVCompiler()
     {
-        glslang_finalize_process();
+        glslang::FinalizeProcess();
     }
 
-    List<u32> SpirVCompiler::Compile(const String& name, glslang_stage_t stage, const String& src, const List<ShaderIncludeRange>& includeRanges)
+    List<u32> SpirVCompiler::Compile(const String& name, EShLanguage stage, const String& src, const List<ShaderIncludeRange>& includeRanges)
     {
+        bool debug = true;
+
+        auto spirv_target = glslang::EShTargetSpv_1_4;
+
+        glslang::TShader shader(stage);
+
+        const char* source_str_ptr = src.c_str();
+        const char* const* source_ptr = &source_str_ptr;
+        int lenght = src.size();
+        shader.setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetVulkan_1_2);
+        shader.setEnvTarget(glslang::EShTargetSpv, spirv_target);
+        shader.setStringsWithLengths(source_ptr, &lenght, 1);
+        shader.setSourceEntryPoint("main");
+        shader.setEntryPoint("main");
+
+        shader.getIntermediate()->setSource(glslang::EShSourceGlsl);
+        shader.getIntermediate()->setEntryPointName("main");
+        if (debug)
+        {
+            shader.getIntermediate()->addSourceText(src.c_str(), src.size());
+            shader.getIntermediate()->setSourceFile(name.c_str());
+        }
+
+        HBE_Includer includer("");
+
+        EShMessages message = static_cast<EShMessages>(EShMessages::EShMsgVulkanRules | EShMessages::EShMsgSpvRules);
+        if (debug)
+        {
+            message = static_cast<EShMessages>(message | EShMessages::EShMsgDebugInfo);
+        }
+
+        if (!shader.parse(&DefaultTBuiltInResource,
+            460,
+            ENoProfile,
+            false,
+            false,
+            message,
+            includer))
+        {
+            String error(shader.getInfoLog());
+
+            String firstErrorLine = error.substr(0, error.find('\n'));
+            i32 lineStart = StringFindNth(firstErrorLine, ":", 2);
+            i32 lineEnd = StringFindNth(firstErrorLine, ":", 3);
+            BX_ENSURE(lineStart >= 0 && lineEnd > lineStart);
+            i32 globalErrorLine = std::stoi(firstErrorLine.substr(lineStart + 1, lineEnd - lineStart));
+
+            u32 localErrorLine = 0;
+            String localErrorFile = "Not Found";
+            for (u32 i = 0; i < includeRanges.size(); i++)
+            {
+                if (globalErrorLine >= includeRanges[i].startLine && globalErrorLine < includeRanges[i].endLine)
+                {
+                    localErrorLine = globalErrorLine - includeRanges[i].startLine;
+                    localErrorFile = includeRanges[i].name;
+                    break;
+                }
+            }
+
+            BX_LOGE("GLSL Parsing: `{}`\n{}\n({}: {})",
+                name,
+                error,
+                localErrorFile.c_str(),
+                localErrorLine);
+            return List<u32>{};
+        }
+
+        glslang::TProgram program;
+        program.addShader(&shader);
+        if (!program.link(message))
+        {
+            BX_LOGE("GLSL Linking: `{}`\n{}\n{}",
+                name,
+                program.getInfoLog(),
+                program.getInfoDebugLog());
+        }
+
+        glslang::SpvOptions options{};
+        if (debug)
+        {
+            options.generateDebugInfo = true;
+            options.stripDebugInfo = false;
+            options.disableOptimizer = true;
+        }
+        else
+        {
+            options.generateDebugInfo = false;
+            options.stripDebugInfo = true;
+            options.disableOptimizer = false;
+        }
+
+        List<u32> spirvData{};
+        glslang::GlslangToSpv(*program.getIntermediate(stage), spirvData, &options);
+        return spirvData;
+
+        /*glslang_messages_t messages = GLSLANG_MSG_HLSL_OFFSETS_BIT | GLSLANG_MSG_VULKAN_RULES_BIT | GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_DEBUG_INFO_BIT;
+
         glslang_input_t input{};
         input.language = GLSLANG_SOURCE_GLSL;
         input.stage = stage;
@@ -162,7 +303,7 @@ namespace Vk
         input.default_profile = GLSLANG_CORE_PROFILE;
         input.force_default_version_and_profile = false;
         input.forward_compatible = false;
-        input.messages = GLSLANG_MSG_HLSL_OFFSETS_BIT | GLSLANG_MSG_VULKAN_RULES_BIT | GLSLANG_MSG_SPV_RULES_BIT;
+        input.messages = messages;
         input.resource = reinterpret_cast<const glslang_resource_t*>(&DefaultTBuiltInResource);
 
         glslang_shader_t* shader = glslang_shader_create(&input);
@@ -212,7 +353,7 @@ namespace Vk
         glslang_program_t* program = glslang_program_create();
         glslang_program_add_shader(program, shader);
 
-        if (!glslang_program_link(program, GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT))
+        if (!glslang_program_link(program, messages))
         {
             BX_LOGE("GLSL Linking: `{}`\n{}\n{}",
                 name,
@@ -239,6 +380,6 @@ namespace Vk
         glslang_program_delete(program);
         glslang_shader_delete(shader);
 
-        return words;
+        return words;*/
     }
 }

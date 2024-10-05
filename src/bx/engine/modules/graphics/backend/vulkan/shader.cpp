@@ -8,21 +8,21 @@
 
 namespace Vk
 {
-    glslang_stage_t GlslangStageFromVkStage(VkShaderStageFlagBits stage)
+    EShLanguage GlslangStageFromVkStage(VkShaderStageFlagBits stage)
     {
         switch (stage)
         {
         case VK_SHADER_STAGE_VERTEX_BIT:
-            return GLSLANG_STAGE_VERTEX;
+            return EShLanguage::EShLangVertex;
         case VK_SHADER_STAGE_GEOMETRY_BIT:
-            return GLSLANG_STAGE_GEOMETRY;
+            return EShLanguage::EShLangGeometry;
         case VK_SHADER_STAGE_FRAGMENT_BIT:
-            return GLSLANG_STAGE_FRAGMENT;
+            return EShLanguage::EShLangFragment;
         case VK_SHADER_STAGE_COMPUTE_BIT:
-            return GLSLANG_STAGE_COMPUTE;
+            return EShLanguage::EShLangCompute;
         default:
             BX_FAIL("Unsupported shader stage.");
-            return GLSLANG_STAGE_VERTEX;
+            return EShLanguage::EShLangCount;
         }
     }
 

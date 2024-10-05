@@ -65,10 +65,10 @@ void main()
         float m2 = 0.0;
 
         #pragma unroll
-        for (int y = -ANTI_FIREFLY_RADIUS; y <= ANTI_FIREFLY_RADIUS; y++)
+        for (int x = -ANTI_FIREFLY_RADIUS; x <= ANTI_FIREFLY_RADIUS; x++)
         {
             #pragma unroll
-            for (int x = -ANTI_FIREFLY_RADIUS; x <= ANTI_FIREFLY_RADIUS; x++)
+            for (int y = -ANTI_FIREFLY_RADIUS; y <= ANTI_FIREFLY_RADIUS; y++)
             {
                 if (abs(x) <= 1 && abs(y) <= 1)
                 {
