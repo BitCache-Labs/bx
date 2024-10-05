@@ -66,7 +66,7 @@ void main()
 
     outPositionHistory = constants.viewProjHistory * model.worldMeshHistory * vec4(skinnedPositionHistory, 1.0);
 
-    outNormal = (model.transInvWorldMesh * vec4(inNormal, 1.0)).xyz;
+    outNormal = (model.transInvWorldMesh * matrix * vec4(inNormal, 1.0)).xyz;
     outTexcoord = inTexcoord;
     outBlasInstanceIdx = model.blasInstanceIdx;
 }

@@ -38,6 +38,10 @@ void main()
         matrix += weights[i] * bones[boneIndices[i]];
     }
     packedVertex.position = (matrix * vec4(packedVertex.position, 1.0)).xyz;
+
+    vec3 normal = unpackNormalizedXyz10(packedVertex.normal, 0);
+    normal = (matrix * vec4(normal, 0.0)).xyz;
+    packedVertex.normal = packNormalizedXyz10(normal, 0);
     
     blasVertices[outVertexId] = packedVertex;
 }
