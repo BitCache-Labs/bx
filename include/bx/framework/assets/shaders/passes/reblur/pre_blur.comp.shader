@@ -15,7 +15,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING0;
 } constants;
 
-layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
+layout (BINDING(0, 1), r32f) uniform image2D inImage;
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 3), rgba32f) uniform image2D outImage;
 
@@ -37,7 +37,7 @@ void main()
     uint currentBlasInstance;
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
 
-    vec3 result = imageLoad(inImage, pixel).rgb;
+    vec3 result = unpackRgb9e5FromFloatBits(imageLoad(inImage, pixel).r);
     float sampleCount = 1.0;
 
     if (currentNormalAndDepth.w == 0.0)
@@ -71,7 +71,7 @@ void main()
         float weight;
         if (sampleToCurrentSimilarity(currentNormalAndDepth, sampleNormalAndDepth, currentBlasInstance, sampleBlasInstance, weight))
         {
-            result += imageLoad(inImage, samplePixel).rgb * weight;
+            result += unpackRgb9e5FromFloatBits(imageLoad(inImage, samplePixel).r) * weight;
             sampleCount += weight;
         }
     }
