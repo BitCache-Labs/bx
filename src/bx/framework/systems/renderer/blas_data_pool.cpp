@@ -252,15 +252,13 @@ u32 BlasDataPool::SubmitAnimatedInstance(const Resource<Mesh>& meshResource, con
     }
 
     {
-        BlasCreateInfo blasCreateInfo{};
-        //blasCreateInfo.name = Log::Format("{} Blas", filename);
-        blasCreateInfo.vertexBuffer = BufferSlice(blasVerticesBuffer, blasAccessors[blasIdx].vertexOffset * sizeof(PackedVertex), Optional<u64>::Some(blasAccessors[blasIdx].vertexCount * sizeof(PackedVertex)));
-        blasCreateInfo.vertexFormat = VertexFormat::FLOAT_32X3;
-        blasCreateInfo.vertexStride = sizeof(PackedVertex);
-        blasCreateInfo.indexBuffer = mesh.GetIndexBuffer();
-        blasCreateInfo.indexFormat = IndexFormat::UINT32;
-        Graphics::DestroyBlas(mesh.m_blas);
-        mesh.m_blas = Graphics::CreateBlas(blasCreateInfo);
+        BlasUpdateInfo blasUpdateInfo{};
+        blasUpdateInfo.vertexBuffer = BufferSlice(blasVerticesBuffer, blasAccessors[blasIdx].vertexOffset * sizeof(PackedVertex), Optional<u64>::Some(blasAccessors[blasIdx].vertexCount * sizeof(PackedVertex)));
+        blasUpdateInfo.vertexFormat = VertexFormat::FLOAT_32X3;
+        blasUpdateInfo.vertexStride = sizeof(PackedVertex);
+        blasUpdateInfo.indexBuffer = mesh.GetIndexBuffer();
+        blasUpdateInfo.indexFormat = IndexFormat::UINT32;
+        Graphics::UpdateBlas(mesh.m_blas, blasUpdateInfo);
     }
 
     BlasInstance blasInstance{};

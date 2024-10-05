@@ -773,7 +773,7 @@ const BlasHandle Graphics::CreateBlas(const BlasCreateInfo& createInfo)
     rangeInfo.primitiveOffset = createInfo.indexBuffer.offset / indexStride;
     rangeInfo.transformOffset = 0;
 
-    VkBuildAccelerationStructureFlagsKHR flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    VkBuildAccelerationStructureFlagsKHR flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
 
     u32 blasSize = Blas::RequiredSize(s->device, *s->physicalDevice, geometry, indexCount / 3, flags);
     std::shared_ptr<Blas> blas(new Blas(createInfo.name, s->device, *s->physicalDevice, blasSize));
@@ -783,6 +783,50 @@ const BlasHandle Graphics::CreateBlas(const BlasCreateInfo& createInfo)
     s->blases.insert(std::make_pair(blasHandle, blas));
 
     return blasHandle;
+}
+
+void Graphics::UpdateBlas(BlasHandle blasHandle, const BlasUpdateInfo& updateInfo)
+{
+    BX_ASSERT(s->graphicsCapabilities.raytracing, "Raytracing is not supported, please check `GraphicsCapabilities` first.");
+
+    auto blasIter = s->blases.find(blasHandle);
+    BX_ENSURE(blasIter != s->blases.end());
+    auto blas = blasIter->second;
+
+    auto vertexBufferIter = s->buffers.find(updateInfo.vertexBuffer.buffer);
+    auto indexBufferIter = s->buffers.find(updateInfo.indexBuffer.buffer);
+    BX_ENSURE(vertexBufferIter != s->buffers.end());
+    BX_ENSURE(indexBufferIter != s->buffers.end());
+
+    u32 indexStride = SizeOfIndexFormat(updateInfo.indexFormat);
+    u32 vertexCount = (updateInfo.vertexBuffer.size.IsSome() ? updateInfo.vertexBuffer.size.Unwrap() : vertexBufferIter->second->Size()) / updateInfo.vertexStride;
+    u32 indexCount = (updateInfo.indexBuffer.size.IsSome() ? updateInfo.indexBuffer.size.Unwrap() : indexBufferIter->second->Size()) / indexStride;
+
+    VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
+    triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+    triangles.vertexData.deviceAddress = vertexBufferIter->second->GetDeviceAddress();
+    triangles.vertexStride = updateInfo.vertexStride;
+    triangles.maxVertex = vertexCount - 1;
+    triangles.vertexFormat = VertexFormatToVk(updateInfo.vertexFormat);
+    triangles.indexData.deviceAddress = indexBufferIter->second->GetDeviceAddress();
+    triangles.indexType = IndexFormatToVk(updateInfo.indexFormat);
+
+    VkAccelerationStructureGeometryKHR geometry{};
+    geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+    geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    geometry.geometry.triangles = triangles;
+
+    VkAccelerationStructureBuildRangeInfoKHR rangeInfo{};
+    rangeInfo.firstVertex = updateInfo.vertexBuffer.offset / updateInfo.vertexStride;
+    rangeInfo.primitiveCount = indexCount / 3;
+    rangeInfo.primitiveOffset = updateInfo.indexBuffer.offset / indexStride;
+    rangeInfo.transformOffset = 0;
+
+    VkBuildAccelerationStructureFlagsKHR flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+
+    if (!s->cmdList) s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
+    blas->Update(*s->cmdList, geometry, rangeInfo, flags);
 }
 
 void Graphics::DestroyBlas(BlasHandle& blas)

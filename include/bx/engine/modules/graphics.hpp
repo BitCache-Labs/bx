@@ -61,6 +61,7 @@ public:
 
 	static const BlasCreateInfo& GetBlasCreateInfo(BlasHandle blas);
 	static const BlasHandle CreateBlas(const BlasCreateInfo& createInfo);
+	static void UpdateBlas(BlasHandle blas, const BlasUpdateInfo& updateInfo);
 	static void DestroyBlas(BlasHandle& blas);
 
 	static const TlasCreateInfo& GetTlasCreateInfo(TlasHandle tlas);

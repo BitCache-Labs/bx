@@ -624,6 +624,15 @@ struct BlasCreateInfo
 	IndexFormat indexFormat = IndexFormat::UINT32;
 };
 
+struct BlasUpdateInfo
+{
+	BufferSlice vertexBuffer{};
+	VertexFormat vertexFormat = VertexFormat::FLOAT_32X3;
+	u32 vertexStride = 0;
+	BufferSlice indexBuffer{};
+	IndexFormat indexFormat = IndexFormat::UINT32;
+};
+
 struct BlasInstance
 {
 	Mat4 transform = Mat4::Identity();
