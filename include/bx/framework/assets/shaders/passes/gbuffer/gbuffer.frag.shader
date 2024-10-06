@@ -17,6 +17,8 @@ layout (BINDING(0, 0), std140) uniform _Constants
     mat4 viewProjHistory;
     vec3 viewPos;
     uint _PADDING0;
+    vec2 jitter;
+    uvec2 resolution;
 } constants;
 
 vec2 calcVelocity(vec4 newPos, vec4 oldPos)

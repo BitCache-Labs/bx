@@ -8,6 +8,9 @@ layout (BINDING(0, 0), std140) uniform _Constants
     mat4 invProj;
     uint width;
     uint height;
+    vec2 jitter;
+    uint _PADDING0;
+    uint _PADDING1;
 } constants;
 
 layout (BINDING(0, 1), std430) writeonly buffer _Rays
@@ -21,7 +24,7 @@ void main()
     ivec2 id = ivec2(gl_GlobalInvocationID.xy);
     if (id.x >= constants.width || id.y >= constants.height) return;
 
-    vec2 pixelCenter = vec2(id.x + 0.5, id.y + 0.5);
+    vec2 pixelCenter = vec2(id.x + 0.5, id.y + 0.5) + constants.jitter;
     vec2 uv = (pixelCenter / vec2(constants.width, constants.height)) * 2.0 - 1.0;
     uv.y = -uv.y;
     vec4 origin = constants.invView * vec4(0.0, 0.0, 0.0, 1.0);

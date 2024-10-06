@@ -46,6 +46,9 @@ struct RaygenConstants
     Mat4 invProj;
     u32 width;
     u32 height;
+    Vec2 jitter;
+    u32 _PADDING0;
+    u32 _PADDING1;
 };
 
 struct ResolveConstants
@@ -405,6 +408,7 @@ void NertPass::UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo)
     raygenConstants.invProj = dispatchInfo.camera.GetInvProjection();
     raygenConstants.width = width;
     raygenConstants.height = height;
+    raygenConstants.jitter = dispatchInfo.camera.GetJitter();
     Graphics::WriteBuffer(raygenConstantsBuffer, 0, &raygenConstants);
 
     ResolveConstants resolveConstants{};

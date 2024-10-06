@@ -23,6 +23,8 @@ layout (BINDING(0, 0), std140) uniform _Constants
     mat4 viewProjHistory;
     vec3 viewPos;
     uint _PADDING0;
+    vec2 jitter;
+    uvec2 resolution;
 } constants;
 
 layout (BINDING(0, 1), std140) uniform _Model
@@ -62,7 +64,7 @@ void main()
 
     outPositionWs = model.worldMesh * vec4(skinnedPosition, 1.0);
     outPosition = constants.viewProj * outPositionWs;
-    gl_Position = outPosition;// ???
+    gl_Position = outPosition + vec4(constants.jitter / vec2(constants.resolution), 0.0, 0.0) * outPosition.w;
 
     outPositionHistory = constants.viewProjHistory * model.worldMeshHistory * vec4(skinnedPositionHistory, 1.0);
 

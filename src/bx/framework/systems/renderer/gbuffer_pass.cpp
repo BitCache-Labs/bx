@@ -16,6 +16,9 @@ struct GBufferConstants
     Mat4 viewProjHistory;
     Vec3 viewPos;
     u32 _PADDING0;
+    Vec2 jitter;
+    u32 width;
+    u32 height;
 };
 
 struct VertexMeshUniform
@@ -247,6 +250,9 @@ void GBufferPass::Dispatch(const Camera& camera)
     constants.viewProj = camera.GetViewProjection();
     constants.viewProjHistory = camera.GetPrevViewProjection();
     Mat4::Decompose(camera.GetView().Inverse(), constants.viewPos, Quat{}, Vec3{});
+    constants.jitter = camera.GetJitter();
+    constants.width = width;
+    constants.height = height;
     Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(GBufferConstants));
 
     RenderPassDescriptor renderPassDescriptor{};

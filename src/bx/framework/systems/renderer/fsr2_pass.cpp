@@ -166,7 +166,10 @@ Fsr2Pass::Fsr2Pass(u32 width, u32 height, u32 outputWidth, u32 outputHeight)
     scratchBuffer = malloc(scratchBufferSize);
     CheckFsr(fsr2.fsr2GetInterfaceVK(&contextDescription.callbacks, scratchBuffer, scratchBufferSize, GraphicsVulkan::GetPhysicalDevice().GetPhysicalDevice(), vkGetDeviceProcAddr));
 
-    contextDescription.flags = FFX_FSR2_ENABLE_DEBUG_CHECKING;
+    contextDescription.flags = FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE;
+#ifdef BX_DEBUG_BUILD
+    contextDescription.flags |= FFX_FSR2_ENABLE_DEBUG_CHECKING;
+#endif
     contextDescription.maxRenderSize.width = width;
     contextDescription.maxRenderSize.height = height;
     contextDescription.displaySize.width = outputWidth;
@@ -220,22 +223,22 @@ void Fsr2Pass::Dispatch(const Camera& camera, TextureHandle colorTarget, Texture
     dispatchDescription.depth = TextureToFfx(depthTarget, depthTargetView, FFX_RESOURCE_STATE_COMPUTE_READ);
     dispatchDescription.motionVectors = TextureToFfx(velocityTarget, velocityTargetView, FFX_RESOURCE_STATE_COMPUTE_READ);
     dispatchDescription.output = TextureToFfx(outputTarget, outputTargetView, FFX_RESOURCE_STATE_UNORDERED_ACCESS);
-    dispatchDescription.jitterOffset = FfxFloatCoords2D{}; // TODO
-    dispatchDescription.motionVectorScale.x = -width;
-    dispatchDescription.motionVectorScale.y = -height;
+    dispatchDescription.jitterOffset.x = -camera.GetJitter().x;
+    dispatchDescription.jitterOffset.y = -camera.GetJitter().y;
+    dispatchDescription.motionVectorScale.x = width;
+    dispatchDescription.motionVectorScale.y = height;
     dispatchDescription.renderSize.width = width;
     dispatchDescription.renderSize.height = height;
-    dispatchDescription.enableSharpening = false;
-    dispatchDescription.sharpness = 0.0;
-    dispatchDescription.frameTimeDelta = 1.0 / 15.0; // TODO
+    dispatchDescription.enableSharpening = true;
+    dispatchDescription.sharpness = 0.3;
+    dispatchDescription.frameTimeDelta = (1.0 / 60.0) * 1000.0; // TODO
     dispatchDescription.preExposure = 1.0;
     dispatchDescription.reset = false;
-    dispatchDescription.cameraNear = FLT_MAX; // TODO
-    dispatchDescription.cameraFar = camera.GetZNear();
+    dispatchDescription.cameraNear = camera.GetZNear();
+    dispatchDescription.cameraFar = camera.GetZFar();
     dispatchDescription.cameraFovAngleVertical = camera.GetFov();
     dispatchDescription.viewSpaceToMetersFactor = 1.0;
-    dispatchDescription.enableAutoReactive = false; // TODO?
-    //dispatchDescription.colorOpaqueOnly = TextureToFfx(abledoTarget);
+    dispatchDescription.enableAutoReactive = false;
 
     CheckFsr(fsr2.fsr2ContextDispatch(&fsr2Context, &dispatchDescription));
 }

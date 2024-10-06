@@ -32,6 +32,8 @@ public:
 		m_dirty = true;
 	}
 
+	inline const Vec2& GetJitter() const { return m_jitter; }
+
 	inline const Mat4& GetView() const { return m_view; }
 	inline const Mat4& GetInvView() const { return m_invView; }
 	inline const Mat4& GetPrevInvView() const { return m_prevInvView; }
@@ -61,6 +63,11 @@ public:
 		m_prevViewProj = m_viewProj;
 		m_viewProj = m_projection * m_view;
 		m_invViewProj = m_viewProj.Inverse();
+
+		// TODO: improve
+		float r0 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+		float r1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+		m_jitter = (Vec2(r0, r1) * 2.0 - 1.0) * 0.5;
 	}
 
 private:
@@ -76,6 +83,8 @@ private:
 	f32 m_aspect = 1.0f;
 	f32 m_zNear = 0.01f;
 	f32 m_zFar = 1000.0f;
+
+	Vec2 m_jitter = Vec2::Zero();
 
 	Mat4 m_view = Mat4::Identity();
 	Mat4 m_invView = Mat4::Identity();

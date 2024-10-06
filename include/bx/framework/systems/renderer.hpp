@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <bx/engine/core/ecs.hpp>
@@ -39,7 +40,7 @@ private:
 	void Update() override;
 	void Render() override;
 
-	f32 renderResolution = 0.3;
+	f32 renderResolution = 0.7;
 	u32 frameIdx = 0;
 
 	TextureHandle m_colorTarget = TextureHandle::null;
