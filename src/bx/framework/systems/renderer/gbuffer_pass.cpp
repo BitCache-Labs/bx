@@ -231,6 +231,11 @@ TextureViewHandle GBufferPass::GetColorTargetHistoryView() const
     return colorTargetView[frameIdx % 2 != 0];
 }
 
+TextureHandle GBufferPass::GetVelocityTarget() const
+{
+    return velocityTarget;
+}
+
 TextureViewHandle GBufferPass::GetVelocityTargetView() const
 {
     return velocityTargetView;

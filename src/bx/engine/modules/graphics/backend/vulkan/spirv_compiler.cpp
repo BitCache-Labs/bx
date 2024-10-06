@@ -203,7 +203,7 @@ namespace Vk
         const char* source_str_ptr = src.c_str();
         const char* const* source_ptr = &source_str_ptr;
         int lenght = src.size();
-        shader.setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetVulkan_1_2);
+        shader.setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetVulkan_1_3);
         shader.setEnvTarget(glslang::EShTargetSpv, spirv_target);
         shader.setStringsWithLengths(source_ptr, &lenght, 1);
         shader.setSourceEntryPoint("main");

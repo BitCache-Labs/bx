@@ -20,6 +20,7 @@ public:
 
 	TextureViewHandle GetColorTargetView() const;
 	TextureViewHandle GetColorTargetHistoryView() const;
+	TextureHandle GetVelocityTarget() const;
 	TextureViewHandle GetVelocityTargetView() const;
 
 	void Dispatch(const Camera& camera);

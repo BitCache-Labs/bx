@@ -29,7 +29,7 @@
 #define ECS_MAX_COMPONENTS 64
 #endif
 
-using EntityId = UUID;
+using EntityId = Uuid;
 constexpr EntityId INVALID_ENTITY_ID = 0;
 
 class Entity;

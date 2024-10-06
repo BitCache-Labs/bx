@@ -132,7 +132,7 @@ void ImGuiImpl::Shutdown()
 #if defined BX_GRAPHICS_OPENGL_BACKEND
     ImGui_ImplOpenGL3_Shutdown();
 #elif defined BX_GRAPHICS_VULKAN_BACKEND
-    GraphicsVulkan::WaitIdle();
+    GraphicsVulkan::GetDevice()->WaitIdle();
     ImGui_ImplVulkan_Shutdown();
 #endif
 
@@ -161,7 +161,7 @@ void ImGuiImpl::EndFrame()
 #if defined BX_GRAPHICS_OPENGL_BACKEND
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 #elif defined BX_GRAPHICS_VULKAN_BACKEND
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), GraphicsVulkan::RawCommandBuffer());
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), GraphicsVulkan::GetCurrentCommandList()->GetCommandBuffer());
 #endif
 
     // Update and Render additional Platform Windows

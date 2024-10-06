@@ -27,6 +27,10 @@ add_subdirectory (portaudio)
 # VulkanMemoryAllocator lib
 add_subdirectory (VulkanMemoryAllocator)
 
+# FSR2
+add_library (fsr2 INTERFACE)
+target_include_directories (fsr2 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/fsr2/include)
+
 # Wren lib
 add_library (wren STATIC
 	"wren/src/optional/wren_opt_meta.c"

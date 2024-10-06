@@ -41,7 +41,7 @@ namespace Vk
         if (info.depthFormat.IsSome()) {
             VkImageLayout depthStencilLayout = GetDepthStencilLayout(info.depthFormat.Unwrap());
             
-            depthAttachmentRef.layout = depthStencilLayout;
+            depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;// depthStencilLayout;
 
             VkAttachmentDescription depthAttachment{};
             depthAttachment.format = info.depthFormat.Unwrap();
@@ -50,8 +50,8 @@ namespace Vk
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-            depthAttachment.initialLayout = depthStencilLayout;
-            depthAttachment.finalLayout = depthStencilLayout;
+            depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;// depthStencilLayout;
+            depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;// depthStencilLayout;
             attachements.push_back(depthAttachment);
         }
 

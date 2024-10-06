@@ -126,6 +126,7 @@ set (BX_SRCS
 	"src/bx/engine/core/object.cpp"
 	"src/bx/engine/core/profiler.cpp"
 	"src/bx/engine/core/resource.cpp"
+	"src/bx/engine/core/shared_library.cpp"
 	"src/bx/engine/core/stream.cpp"
 	"src/bx/engine/core/thread.cpp"
 	"src/bx/engine/core/time.cpp"
@@ -161,6 +162,7 @@ set (BX_SRCS
 	"src/bx/framework/resources/skeleton.cpp"
 	"src/bx/framework/resources/texture.cpp"
 	"src/bx/framework/systems/renderer/blas_data_pool.cpp"
+	"src/bx/framework/systems/renderer/fsr2_pass.cpp"
 	"src/bx/framework/systems/renderer/gbuffer_pass.cpp"
 	"src/bx/framework/systems/renderer/id_pass.cpp"
 	"src/bx/framework/systems/renderer/material_pool.cpp"
@@ -306,6 +308,12 @@ add_custom_command(TARGET bx POST_BUILD
 		${CMAKE_BINARY_DIR}
     VERBATIM)
 
+add_custom_command(TARGET bx POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/extern/fsr2/bin/ffx_fsr2_api_x64.dll
+		${CMAKE_BINARY_DIR}
+    VERBATIM)
+
 if (MSVC)
 	if (NOT BX_INSTALL)
 		target_compile_options(bx PUBLIC "/Zi")
@@ -316,6 +324,8 @@ endif ()
 
 if (BX_INSTALL)
 	add_compile_definitions (BX_INSTALL)
+
+	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/extern/fsr2/bin/ffx_fsr2_api_vk_x64.dll ${CMAKE_CURRENT_SOURCE_DIR}/extern/fsr2/bin/ffx_fsr2_api_x64.dll DESTINATION bin)
 
 	# Copy game contents to install dir
 	install(DIRECTORY ${CMAKE_SOURCE_DIR}/game DESTINATION bin)

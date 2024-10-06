@@ -1401,6 +1401,37 @@ void Graphics::DebugDraw(const Mat4& viewProj, const DebugDrawAttribs& attribs, 
 {
 }
 
+std::shared_ptr<Vk::Device> GraphicsVulkan::GetDevice()
+{
+    return s->device;
+}
+
+const Vk::PhysicalDevice& GraphicsVulkan::GetPhysicalDevice()
+{
+    return *s->physicalDevice;
+}
+
+std::shared_ptr<Vk::CmdList> GraphicsVulkan::GetCurrentCommandList()
+{
+    return s->cmdList;
+}
+
+std::shared_ptr<Vk::Image> GraphicsVulkan::GetImage(TextureHandle texture)
+{
+    auto textureIter = s->textures.find(texture);
+    BX_ENSURE(textureIter != s->textures.end());
+
+    return textureIter->second;
+}
+
+std::shared_ptr<Vk::ImageView> GraphicsVulkan::GetImageView(TextureViewHandle textureView)
+{
+    auto textureViewIter = s->textureViews.find(textureView);
+    BX_ENSURE(textureViewIter != s->textureViews.end());
+
+    return textureViewIter->second;
+}
+
 // TODO: this can go when there's a imgui render impl using the higher level graphics module api
 
 #include <backends/imgui_impl_vulkan.h>
@@ -1442,14 +1473,4 @@ std::shared_ptr<DescriptorSet> GraphicsVulkan::TextureAsDescriptorSet(TextureVie
 u32 GraphicsVulkan::GetCurrentFrameIdx()
 {
     return s->swapchain->GetCurrentFrameIdx();
-}
-
-VkCommandBuffer GraphicsVulkan::RawCommandBuffer()
-{
-    return s->cmdList->GetCommandBuffer();
-}
-
-void GraphicsVulkan::WaitIdle()
-{
-    s->device->WaitIdle();
 }

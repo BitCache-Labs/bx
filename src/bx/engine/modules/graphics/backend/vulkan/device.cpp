@@ -25,6 +25,7 @@ namespace Vk
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.fillModeNonSolid = VK_TRUE;
         deviceFeatures.samplerAnisotropy = VK_TRUE;
+        deviceFeatures.shaderInt16 = VK_TRUE;
 
         VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{};
         rayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
@@ -36,14 +37,17 @@ namespace Vk
         accelerationStructureFeatures.accelerationStructure = true;
         accelerationStructureFeatures.pNext = &rayQueryFeatures;
 
-        VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures{};
-        bufferDeviceAddressFeatures.sType =
-            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR;
-        bufferDeviceAddressFeatures.bufferDeviceAddress = true;
-        bufferDeviceAddressFeatures.bufferDeviceAddressCaptureReplay = true;
+        VkPhysicalDeviceVulkan12Features deviceFeatures12{};
+        deviceFeatures12.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        deviceFeatures12.shaderFloat16 = VK_TRUE;
+        deviceFeatures12.bufferDeviceAddress = VK_TRUE;
+        deviceFeatures12.descriptorIndexing = VK_TRUE;
+        deviceFeatures12.bufferDeviceAddressCaptureReplay = VK_TRUE;
 
-        if (physicalDevice.RayTracingSuitable()) {
-            bufferDeviceAddressFeatures.pNext = &accelerationStructureFeatures;
+        if (physicalDevice.RayTracingSuitable())
+        {
+            deviceFeatures12.pNext = &accelerationStructureFeatures;
         }
 
         List<const char*> extensions = deviceExtensions;
@@ -54,9 +58,7 @@ namespace Vk
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        if (physicalDevice.RayTracingSuitable()) {
-            createInfo.pNext = &bufferDeviceAddressFeatures;
-        }
+        createInfo.pNext = &deviceFeatures12;
         createInfo.pQueueCreateInfos = &queueCreateInfo;
         createInfo.queueCreateInfoCount = 1;
         createInfo.pEnabledFeatures = &deviceFeatures;

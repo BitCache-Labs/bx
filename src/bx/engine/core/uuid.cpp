@@ -3,7 +3,7 @@
 #include <ctime>
 #include <cstdint>
 
-UUID GenUUID::MakeUUID()
+Uuid GenUUID::MakeUUID()
 {
     // Get current time since epoch in seconds
     u64 timePart = static_cast<u64>(time(nullptr));

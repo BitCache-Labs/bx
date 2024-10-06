@@ -149,8 +149,10 @@ void Renderer::RecreateRenderTargets()
 {
     if (Window::WasResized() || !m_colorTarget)
     {
-        i32 w, h;
-        Window::GetSize(&w, &h);
+        i32 windowWidth, windowHeight;
+        Window::GetSize(&windowWidth, &windowHeight);
+        i32 w = (float)windowWidth * renderResolution;
+        i32 h = (float)windowHeight * renderResolution;
 
         TextureCreateInfo colorTargetCreateInfo{};
         colorTargetCreateInfo.name = "Color Target";
@@ -163,8 +165,8 @@ void Renderer::RecreateRenderTargets()
         TextureCreateInfo depthTargetCreateInfo{};
         depthTargetCreateInfo.name = "Depth Target";
         depthTargetCreateInfo.size = Extend3D(w, h, 1);
-        depthTargetCreateInfo.format = TextureFormat::DEPTH24_PLUS_STENCIL8; // TODO: fix non-stencil format!!
-        depthTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT;
+        depthTargetCreateInfo.format = TextureFormat::DEPTH32_FLOAT;
+        depthTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING;
         if (m_depthTarget) Graphics::DestroyTexture(m_depthTarget);
         m_depthTarget = Graphics::CreateTexture(depthTargetCreateInfo);
 
@@ -176,8 +178,10 @@ void Renderer::RebuildPasses()
 {
     if (m_dirtyPasses)
     {
-        i32 w, h;
-        Window::GetSize(&w, &h);
+        i32 windowWidth, windowHeight;
+        Window::GetSize(&windowWidth, &windowHeight);
+        i32 w = (float)windowWidth * renderResolution;
+        i32 h = (float)windowHeight * renderResolution;
 
         m_gbufferPass = std::unique_ptr<GBufferPass>(new GBufferPass(m_depthTarget));
 
@@ -189,6 +193,7 @@ void Renderer::RebuildPasses()
         m_nertPass = std::unique_ptr<NertPass>(new NertPass(nertCreateInfo));
 
         m_taaPass = std::unique_ptr<TaaPass>(new TaaPass(w, h));
+        m_fsr2Pass = std::unique_ptr<Fsr2Pass>(new Fsr2Pass(w, h, windowWidth, windowHeight));
 
         m_dirtyPasses = false;
     }
@@ -260,12 +265,16 @@ void Renderer::Render()
             m_taaPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_gbufferPass->GetColorTargetHistoryView(), m_gbufferPass->GetVelocityTargetView());
         }
 
+        if (fsr2)
+        {
+            // TODO: use taa output as input
+            m_fsr2Pass->Dispatch(m_cameras.back(), m_colorTarget, m_depthTarget, m_gbufferPass->GetVelocityTarget());
+        }
+
         m_gbufferPass->NextFrame();
     }
 
-    TextureHandle finalColor = taa ? m_taaPass->GetResolvedColorTarget() : m_colorTarget;
-
-    PresentPass presentPass(finalColor);
+    PresentPass presentPass(GetFinalColorTarget());
     presentPass.Dispatch();
 
     frameIdx++;
@@ -274,8 +283,24 @@ void Renderer::Render()
 TextureHandle Renderer::GetEditorCameraColorTarget()
 {
 #ifdef BX_EDITOR_BUILD
-    return taa ? m_taaPass->GetResolvedColorTarget() : m_colorTarget;
+    return GetFinalColorTarget();
 #else
     return TextureHandle::null;
 #endif
+}
+
+TextureHandle Renderer::GetFinalColorTarget()
+{
+    if (fsr2)
+    {
+        return m_fsr2Pass->GetResolvedColorTarget();
+    }
+    else if (taa)
+    {
+        return m_taaPass->GetResolvedColorTarget();
+    }
+    else
+    {
+        return m_colorTarget;
+    }
 }

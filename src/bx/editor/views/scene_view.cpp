@@ -336,6 +336,10 @@ void SceneView::Present(bool& show)
     ImGui::SameLine();
     ImGui::Checkbox("##TAA", &SystemManager::GetSystem<Renderer>().taa);
 
+    ImGui::Text("FSR2: ");
+    ImGui::SameLine();
+    ImGui::Checkbox("##FSR2", &SystemManager::GetSystem<Renderer>().fsr2);
+
     ImGui::Text("RT Restir: ");
     ImGui::SameLine();
     ImGui::Checkbox("##RTRestir", &SystemManager::GetSystem<Renderer>().restir);

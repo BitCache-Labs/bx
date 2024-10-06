@@ -11,6 +11,7 @@
 #include "bx/framework/systems/renderer/taa_pass.hpp"
 #include "bx/framework/systems/renderer/material_pool.hpp"
 #include "bx/framework/systems/renderer/sky.hpp"
+#include "bx/framework/systems/renderer/fsr2_pass.hpp"
 
 class SceneView;
 
@@ -24,6 +25,7 @@ public:
 	b8 hybrid = true;
 	b8 unbiased = false;
 	b8 taa = false;
+	b8 fsr2 = true;
 	b8 restir = true;
 	b8 denoise = true;
 	b8 antiFirefly = true;
@@ -37,6 +39,7 @@ private:
 	void Update() override;
 	void Render() override;
 
+	f32 renderResolution = 0.3;
 	u32 frameIdx = 0;
 
 	TextureHandle m_colorTarget = TextureHandle::null;
@@ -48,12 +51,15 @@ private:
 	std::unique_ptr<GBufferPass> m_gbufferPass = nullptr;
 	std::unique_ptr<NertPass> m_nertPass = nullptr;
 	std::unique_ptr<TaaPass> m_taaPass = nullptr;
+	std::unique_ptr<Fsr2Pass> m_fsr2Pass = nullptr;
 	std::unique_ptr<BlasDataPool> m_blasDataPool = nullptr;
 	std::unique_ptr<MaterialPool> m_materialPool = nullptr;
 	std::unique_ptr<Sky> m_sky = nullptr;
 
 	List<Camera> m_cameras{};
 	OptionalView<Camera> m_editorCamera = OptionalView<Camera>::None();
+
+	TextureHandle GetFinalColorTarget();
 
 	void UpdateCameras();
 	void UpdateTlas();
