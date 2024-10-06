@@ -38,5 +38,5 @@ void main()
     float blasInstanceIdx = uintBitsToFloat((uint(gl_FrontFacing) << 31) | inBlasInstanceIdx);
 
     outColor = vec4(oneOverSqrDepth, packedNormal, packedTexcoord, blasInstanceIdx);
-    outVelocity = calcVelocity(inPosition, inPositionHistory) * 100.0;
+    outVelocity = calcVelocity(inPosition, inPositionHistory);
 }

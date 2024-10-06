@@ -236,7 +236,8 @@ void Fsr2Pass::Dispatch(const Camera& camera, TextureHandle colorTarget, Texture
     dispatchDescription.reset = false;
     dispatchDescription.cameraNear = camera.GetZNear();
     dispatchDescription.cameraFar = camera.GetZFar();
-    dispatchDescription.cameraFovAngleVertical = camera.GetFov();
+    f32 verticalFov = 2.0 * atanf(tanf(camera.GetFov() / 2.0) / camera.GetAspect());
+    dispatchDescription.cameraFovAngleVertical = verticalFov;
     dispatchDescription.viewSpaceToMetersFactor = 1.0;
     dispatchDescription.enableAutoReactive = false;
 

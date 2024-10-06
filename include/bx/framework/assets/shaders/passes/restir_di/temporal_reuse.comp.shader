@@ -82,7 +82,7 @@ void main()
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     
-    vec2 velocity = imageLoad(velocity, pixel).rg / 100.0;
+    vec2 velocity = imageLoad(velocity, pixel).rg;
     ivec2 prevPixel = ivec2(vec2(pixel) - (vec2(constants.resolution) * velocity));
     if (prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y || prevPixel.x < 0 || prevPixel.y < 0)
     {

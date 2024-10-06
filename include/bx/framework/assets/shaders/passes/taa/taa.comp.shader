@@ -38,7 +38,7 @@ void main()
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
 
-    vec2 velocity = imageLoad(velocityTarget, pixel).rg / 100.0;
+    vec2 velocity = imageLoad(velocityTarget, pixel).rg;
     ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
 
     vec3 current = imageLoad(colorTarget, pixel).rgb;

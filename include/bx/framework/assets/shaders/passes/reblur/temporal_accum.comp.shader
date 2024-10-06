@@ -84,7 +84,7 @@ void main()
         return;
     }
 
-    vec2 velocity = imageLoad(velocity, pixel).rg / 100.0;
+    vec2 velocity = imageLoad(velocity, pixel).rg;
     ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
 
     vec4 history = imageLoad(history, prevPixel);
