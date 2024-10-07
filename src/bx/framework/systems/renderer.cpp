@@ -33,16 +33,19 @@ void Renderer::UpdateCameras()
 {
     m_cameras.clear();
 
+    i32 windowWidth, windowHeight;
+    Window::GetSize(&windowWidth, &windowHeight);
+    i32 w = (float)windowWidth * renderResolution;
+    i32 h = (float)windowHeight * renderResolution;
+
     EntityManager::ForEach<Transform, Camera>(
         [&](Entity entity, const Transform& trx, Camera& camera)
         {
             // TODO: this shit nasty, just call camera.update()?
-            i32 width, height;
-            Window::GetSize(&width, &height);
-            camera.SetAspect((f32)width / (height == 0 ? 1.0f : (f32)height));
+            camera.SetAspect((f32)w / (h == 0 ? 1.0f : (f32)h));
             Vec3 fwd = trx.GetRotation() * Vec3::Forward();
             camera.SetView(Mat4::LookAt(trx.GetPosition(), trx.GetPosition() + fwd, Vec3::Up()));
-            camera.Update();
+            camera.Update(w, windowWidth);
 
             m_cameras.push_back(camera);
         });

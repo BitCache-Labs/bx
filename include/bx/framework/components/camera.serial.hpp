@@ -24,7 +24,7 @@ struct Serial<Camera>
 		ar(cereal::make_nvp("zNear", data.m_zNear));
 		ar(cereal::make_nvp("zFar", data.m_zFar));
 
-		data.Update();
+		data.Update(1920, 1920);
 	}
 };
 

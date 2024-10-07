@@ -134,6 +134,20 @@ namespace Math
 	{
 		return static_cast<u32>(floor(log2(Max(width, height)))) + 1;
 	}
+
+	static float Halton(u32 index, u32 base)
+	{
+		f32 f = 1.0f, result = 0.0f;
+
+		for (u32 currentIndex = index; currentIndex > 0;) {
+
+			f /= (f32)base;
+			result = result + f * (f32)(currentIndex % base);
+			currentIndex = (u32)(floorf((f32)(currentIndex) / (f32)(base)));
+		}
+
+		return result;
+	}
 }
 
 struct Vec2

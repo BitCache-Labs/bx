@@ -40,7 +40,7 @@ private:
 	void Update() override;
 	void Render() override;
 
-	f32 renderResolution = 0.7;
+	f32 renderResolution = 0.4;
 	u32 frameIdx = 0;
 
 	TextureHandle m_colorTarget = TextureHandle::null;

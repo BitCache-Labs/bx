@@ -159,7 +159,7 @@ void SceneView::Render(const ImVec2& size)
         g_idDepthTarget = Graphics::CreateTexture(idDepthTargetCreateInfo);
     }
 
-    g_sceneCam.Update();
+    g_sceneCam.Update(g_sceneSize.x, g_sceneSize.x);
 
     EntityManager::ForEach<Transform>(
         [&](Entity entity, Transform& trx)

@@ -51,24 +51,7 @@ public:
 	inline const Mat4& GetInvViewProjection() const { return m_invViewProj; }
 	inline const Mat4& GetPrevViewProjection() const { return m_prevViewProj; }
 
-	inline void Update()
-	{
-		if (!m_dirty)
-			return;
-
-		m_projection = Mat4::Perspective(m_fov, m_aspect, m_zNear, m_zFar);
-		m_prevInvProjection = m_invProjection;
-		m_invProjection = m_projection.Inverse();
-
-		m_prevViewProj = m_viewProj;
-		m_viewProj = m_projection * m_view;
-		m_invViewProj = m_viewProj.Inverse();
-
-		// TODO: improve
-		float r0 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-		float r1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-		m_jitter = (Vec2(r0, r1) * 2.0 - 1.0) * 0.5;
-	}
+	void Update(u32 renderWidth, u32 displayWidth);
 
 private:
 	template <typename T>
@@ -84,6 +67,7 @@ private:
 	f32 m_zNear = 0.01f;
 	f32 m_zFar = 1000.0f;
 
+	u32 frameIdx = 0;
 	Vec2 m_jitter = Vec2::Zero();
 
 	Mat4 m_view = Mat4::Identity();
