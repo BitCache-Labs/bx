@@ -23,6 +23,8 @@ public:
 		ar(cereal::make_nvp("shader", data.m_shader));
 		ar(cereal::make_nvp("textures", data.m_textures));
 		ar(cereal::make_nvp("isEmissive", data.m_isEmissive));
+		ar(cereal::make_nvp("isMirror", data.m_isMirror));
+		ar(cereal::make_nvp("baseColorFactor", data.m_baseColorFactor));
 		ar(cereal::make_nvp("emissiveFactor", data.m_emissiveFactor));
 	}
 
@@ -32,6 +34,8 @@ public:
 		ar(cereal::make_nvp("shader", data.m_shader));
 		ar(cereal::make_nvp("textures", data.m_textures));
 		ar(cereal::make_nvp("isEmissive", data.m_isEmissive));
+		ar(cereal::make_nvp("isMirror", data.m_isMirror));
+		ar(cereal::make_nvp("baseColorFactor", data.m_baseColorFactor));
 		ar(cereal::make_nvp("emissiveFactor", data.m_emissiveFactor));
 	}
 };

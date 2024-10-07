@@ -10,7 +10,7 @@ struct MaterialDescriptor
 	vec3 baseColorFactor;
 	uint baseColorTexture;
     vec3 emissiveFactor;
-    uint _PADDING0;
+    bool isMirror;
 };
 
 struct SampledMaterial

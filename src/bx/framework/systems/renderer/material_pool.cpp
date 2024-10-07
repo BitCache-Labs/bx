@@ -46,6 +46,8 @@ MaterialPool::MaterialDescriptor MaterialPool::UpdateMaterial(const Material& ma
         materialDescriptor.baseColorTexture = textureIdx;
     }
 
+    materialDescriptor.isMirror = material.IsMirror();
+
     if (material.IsEmissive())
     {
         materialDescriptor.emissiveFactor = material.GetEmissiveFactor();
@@ -119,5 +121,16 @@ BindGroupHandle MaterialPool::CreateBindGroup(ComputePipelineHandle pipeline) co
         BindGroupEntry(0, BindingResource::Buffer(materialDescriptorsBuffer)),
         BindGroupEntry(1, BindingResource::TextureViewArray(textureViews))
     };
-    return Graphics::CreateBindGroup(createInfo);
+
+    BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
+
+    for (u32 i = 0; i < MAX_TEXTURES; i++)
+    {
+        if (textures[i])
+        {
+            Graphics::DestroyTextureView(textureViews[i]);
+        }
+    }
+
+    return bindGroup;
 }

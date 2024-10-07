@@ -96,7 +96,9 @@ struct IntersectPipeline : public LazyInit<IntersectPipeline, ComputePipelineHan
                 BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),                                                 // scene
                 BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)), // gbuffer
                 BindGroupLayoutEntry(8, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)), // neGbuffer
-            })
+            }),
+            BlasDataPool::GetBindGroupLayout(),
+            MaterialPool::GetBindGroupLayout(),
         };
 
         ComputePipelineCreateInfo pipelineCreateInfo{};
@@ -530,9 +532,17 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     computePassDescriptor.name = "Nert Intersect";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
+        BindGroupHandle blasDataPoolGroup = dispatchInfo.blasDataPool.CreateBindGroup(IntersectPipeline::Get());
+        BindGroupHandle materialPoolGroup = dispatchInfo.materialPool.CreateBindGroup(IntersectPipeline::Get());
+
         Graphics::SetComputePipeline(IntersectPipeline::Get());
         Graphics::SetBindGroup(0, intersectBindGroup);
+        Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, blasDataPoolGroup);
+        Graphics::SetBindGroup(MaterialPool::BIND_GROUP_SET, materialPoolGroup);
         Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+
+        Graphics::DestroyBindGroup(blasDataPoolGroup);
+        Graphics::DestroyBindGroup(materialPoolGroup);
     }
     Graphics::EndComputePass(computePass);
 

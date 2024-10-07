@@ -21,6 +21,7 @@ public:
 	inline void SetEmissiveFactor(const Vec3& emissiveFactor) { m_emissiveFactor = emissiveFactor; }
 
 	inline b8 IsEmissive() const { return m_isEmissive; }
+	inline b8 IsMirror() const { return m_isMirror; }
 
 	inline Resource<Texture>& GetTexture(const String& name) { return m_textures[name]; }
 	inline void RemoveTexture(const String& name) { m_textures.erase(m_textures.find(name)); }
@@ -52,6 +53,7 @@ private:
 	Vec3 m_emissiveFactor = Vec3::One();
 
 	b8 m_isEmissive = false;
+	b8 m_isMirror = false;
 
 	HashMap<String, Resource<Texture>> m_textures;
 };

@@ -833,12 +833,22 @@ public:
 				textureName = "";
 			}
 
+			if (ImGui::ColorEdit3("Base Color Factor", &data.m_baseColorFactor[0]))
+			{
+				changed = true;
+			}
+
 			if (ImGui::ColorEdit3("Emissive Factor", &data.m_emissiveFactor[0]))
 			{
 				changed = true;
 			}
 
 			if (ImGui::Checkbox("Is Emissive", &data.m_isEmissive))
+			{
+				changed = true;
+			}
+
+			if (ImGui::Checkbox("Is Mirror", &data.m_isMirror))
 			{
 				changed = true;
 			}
