@@ -201,19 +201,19 @@ public:
 		m_functions.insert(std::make_pair(name, MetaFunc::Create<TFunc, Func>(name)));
 	}
 
-	inline MetaFunc GetFunction(const String& name) const
-	{
-		auto it = m_functions.find(name);
-		//if (it == m_functions.end()) return {};
-		BX_ENSURE(it != m_functions.end());
-		return it->second;
-	}
+	//inline MetaFunc GetFunction(const String& name) const
+	//{
+	//	auto it = m_functions.find(name);
+	//	//if (it == m_functions.end()) return {};
+	//	BX_ENSURE(it != m_functions.end());
+	//	return it->second;
+	//}
 
 private:
 	TypeId m_typeId{ INVALID_TYPEID };
 	String m_name;
 
-	HashMap<String, MetaFunc> m_functions;
+	//HashMap<String, MetaFunc> m_functions;
 };
 
 /*

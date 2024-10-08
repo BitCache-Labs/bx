@@ -168,3 +168,5 @@ namespace meta
         return std::move(static_cast<any::holder<typename std::decay<T>::type>*>(operand.content)->held);
     }
 }
+
+using Any = meta::any;
