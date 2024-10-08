@@ -1,4 +1,4 @@
-#include <bx/meta/reflect.hpp>
+//#include <bx/meta/reflect.hpp>
 
 #include <bx/platform/window.hpp>
 

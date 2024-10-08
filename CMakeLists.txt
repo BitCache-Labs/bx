@@ -59,7 +59,7 @@ set (BX_SRCS
 set (BX_REFLECT_SRCS
 	"src/bx/core/reflect.cpp"
 	"src/bx/math/reflect.cpp"
-	"src/bx/meta/reflect.cpp"
+	#"src/bx/meta/reflect.cpp"
 	"src/bx/platform/reflect.cpp"
 )
 

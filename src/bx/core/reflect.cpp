@@ -1,4 +1,4 @@
-#include <bx/meta/reflect.hpp>
+//#include <bx/meta/reflect.hpp>
 
 #include <bx/core/application.hpp>
 
