@@ -1,5 +1,16 @@
 #pragma once
 
+#include <rttr/rttr_enable.h>
+
+class Plugin2
+{
+	RTTR_ENABLE()
+
+public:
+	virtual bool Initialize() = 0;
+	virtual void Shutdown() = 0;
+};
+
 struct Plugin
 {
 	using InitializeFn = bool(*)();

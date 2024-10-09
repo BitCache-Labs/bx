@@ -34,6 +34,7 @@ message ("BX audio backend: ${BX_AUDIO_BACKEND}")
 # External libraries
 add_subdirectory (extern)
 set (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+add_subdirectory (wren)
 
 # Setup bx library
 set (BX_SRCS
@@ -54,6 +55,13 @@ set (BX_SRCS
 	"src/bx/platform/imgui.cpp"
 	"src/bx/platform/input.cpp"
 	"src/bx/platform/window.cpp"
+
+	"src/bx/engine/data.cpp"
+	"src/bx/engine/ecs.cpp"
+	"src/bx/engine/engine.cpp"
+	"src/bx/engine/resource.cpp"
+	"src/bx/engine/application.cpp"
+	"src/bx/engine/script.cpp"
 )
 
 set (BX_REFLECT_SRCS
@@ -63,7 +71,7 @@ set (BX_REFLECT_SRCS
 	"src/bx/platform/reflect.cpp"
 )
 
-set (BX_LIBS cereal fmt glm imgui)
+set (BX_LIBS rttr_core_lib cereal fmt glm imgui wren)# file_embed)
 
 add_library (bx STATIC ${BX_SRCS})
 target_link_libraries (bx PUBLIC ${BX_LIBS})
@@ -189,6 +197,18 @@ if (BX_BUILD_EDITOR)
 		"src/bx/editor/command.cpp"
 		"src/bx/editor/selection.cpp"
 		"src/bx/editor/view.cpp"
+
+		"src/bx/editor/assets.cpp"
+		"src/bx/editor/asset_importer.cpp"
+		"src/bx/editor/toolbar.cpp"
+
+		"src/bx/editor/views/assets_view.cpp"
+		"src/bx/editor/views/console_view.cpp"
+		"src/bx/editor/views/data_view.cpp"
+		"src/bx/editor/views/entity_view.cpp"
+		"src/bx/editor/views/profiler_view.cpp"
+		"src/bx/editor/views/script_view.cpp"
+		"src/bx/editor/views/settings_view.cpp"
 	)
     target_link_libraries(bx PUBLIC implot IconFontCppHeaders FontAwesome FreeFonts)
 endif()

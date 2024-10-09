@@ -41,3 +41,6 @@
 [submodule "extern/implot"]
 	path = extern/implot
 	url = https://github.com/epezent/implot.git
+[submodule "extern/rttr"]
+	path = extern/rttr
+	url = https://github.com/rttrorg/rttr.git
