@@ -29,6 +29,7 @@ struct FogPipeline : public LazyInit<FogPipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
             })
         };
 
@@ -60,7 +61,7 @@ FogPass::~FogPass()
     Graphics::DestroyBuffer(constantBuffer);
 }
 
-void FogPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView)
+void FogPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle ambientEmissiveBaseColorView)
 {
     FogConstants constants{};
     constants.width = width;
@@ -78,6 +79,7 @@ void FogPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureV
         BindGroupEntry(0, BindingResource::Buffer(constantBuffer)),
         BindGroupEntry(1, BindingResource::TextureView(colorTargetView)),
         BindGroupEntry(2, BindingResource::TextureView(gbufferView)),
+        BindGroupEntry(3, BindingResource::TextureView(ambientEmissiveBaseColorView)),
     };
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
 

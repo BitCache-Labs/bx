@@ -13,6 +13,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
 
 layout (BINDING(0, 1), rgba32f) uniform image2D image;
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
+layout (BINDING(0, 3), rgba32f) uniform image2D ambientEmissiveBaseColor;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {
@@ -31,11 +32,12 @@ void main()
     vec4 normalAndDepth = getPixelNormalAndDepth(pixel);
 
     vec3 color = imageLoad(image, pixel).rgb;
-    float luma = linearToLuma(color);
+    vec3 emissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(ambientEmissiveBaseColor, pixel).y)));
+    float luma = linearToLuma(emissive);
 
-    float fogIntensity = (constants.fogEnd - normalAndDepth.w) / (constants.fogEnd - constants.fogStart);
+    float adjustedFogEnd = constants.fogEnd * (luma + 1.0);
+    float fogIntensity = (adjustedFogEnd - normalAndDepth.w) / (adjustedFogEnd - constants.fogStart);
     fogIntensity = sqr(1.0 - saturate(fogIntensity));
-    fogIntensity *= saturate(1.0 / luma);
     color = mix(color, vec3(0.1), fogIntensity);
 
     imageStore(image, pixel, vec4(color, 1.0));

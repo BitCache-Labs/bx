@@ -264,7 +264,7 @@ void Renderer::Render()
         };
         m_nertPass->Dispatch(dispatchInfo);
 
-        m_fogPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView());
+        m_fogPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
 
         if (taa)
         {

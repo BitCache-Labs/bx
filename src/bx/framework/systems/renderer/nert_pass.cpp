@@ -392,6 +392,11 @@ NertPass::~NertPass()
     Graphics::DestroyBuffer(shadeConstantsBuffer);
 }
 
+TextureViewHandle NertPass::GetAmbientEmissiveBaseColorTextureView() const
+{
+    return ambientEmissiveBaseColorTextureView;
+}
+
 void NertPass::SetTlas(TlasHandle tlas)
 {
     createInfo.tlas = tlas;
