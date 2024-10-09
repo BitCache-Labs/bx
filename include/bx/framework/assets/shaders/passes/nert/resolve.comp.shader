@@ -21,11 +21,12 @@ void main()
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
 
     vec4 currentPacked = imageLoad(ambientEmissiveBaseColor, pixel);
-    vec3 currentAmbientEmissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(currentPacked.x)));
-    vec3 currentBaseColorFactor = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(currentPacked.y)));
+    vec3 currentAmbient = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(currentPacked.x)));
+    vec3 currentEmissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(currentPacked.y)));
+    vec3 currentBaseColorFactor = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(currentPacked.z)));
 
     vec3 resolvedLighting = imageLoad(denoisedIllumination, pixel).rgb;
 
-    vec3 resolved = resolvedLighting * currentBaseColorFactor + currentAmbientEmissive;
+    vec3 resolved = resolvedLighting * currentBaseColorFactor + currentAmbient + currentEmissive;
     imageStore(outImage, pixel, vec4(resolved, 1.0));
 }

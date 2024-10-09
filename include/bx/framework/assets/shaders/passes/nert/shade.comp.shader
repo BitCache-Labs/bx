@@ -68,10 +68,11 @@ void main()
     vec3 throughput = vec3(1.0);
 
     vec3 lightingContribution = vec3(0.0);
-    vec3 ambientEmissiveContribution = vec3(0.0);
+    vec3 ambientContribution = vec3(0.0);
+    vec3 emissiveContribution = vec3(0.0);
     vec3 baseColorFactor = vec3(0.0);
 
-    vec3 ambientContribution = 0.4 * vec3(0.15, 0.15, 0.17);
+    vec3 ambientFactor = 0.4 * vec3(0.15, 0.15, 0.17);
 
     if (intersection.t != T_MISS)
     {
@@ -111,7 +112,7 @@ void main()
 
         if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
         {
-            ambientEmissiveContribution += throughput * material.emissiveFactor;
+            emissiveContribution += throughput * material.emissiveFactor;
         }
         
         if (ReservoirData_isValid(reservoirData))
@@ -129,15 +130,15 @@ void main()
             lightingContribution += throughput * radiance * reservoir.contributionWeight;
         }
 
-        ambientEmissiveContribution += throughput * baseColorFactor * ambientContribution;
+        ambientContribution += throughput * baseColorFactor * ambientFactor;
     }
 
     imageStore(outIllumination, pixel, vec4(lightingContribution, 1.0));
 
     vec4 packedAmbientEmissiveBaseColor = vec4(
-        uintBitsToFloat(packRgb9e5(ambientEmissiveContribution).data),
+        uintBitsToFloat(packRgb9e5(ambientContribution).data),
+        uintBitsToFloat(packRgb9e5(emissiveContribution).data),
         uintBitsToFloat(packRgb9e5(baseColorFactor).data),
-        0.0,
         0.0
     );
     imageStore(outAmbientEmissiveBaseColor, pixel, packedAmbientEmissiveBaseColor);

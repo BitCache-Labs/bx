@@ -196,6 +196,7 @@ void Renderer::RebuildPasses()
         m_nertPass = std::unique_ptr<NertPass>(new NertPass(nertCreateInfo));
 
         m_taaPass = std::unique_ptr<TaaPass>(new TaaPass(w, h));
+        m_fogPass = std::unique_ptr<FogPass>(new FogPass(w, h));
         m_fsr2Pass = std::unique_ptr<Fsr2Pass>(new Fsr2Pass(w, h, windowWidth, windowHeight));
 
         m_dirtyPasses = false;
@@ -262,6 +263,8 @@ void Renderer::Render()
             m_gbufferPass->GetVelocityTargetView()
         };
         m_nertPass->Dispatch(dispatchInfo);
+
+        m_fogPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView());
 
         if (taa)
         {

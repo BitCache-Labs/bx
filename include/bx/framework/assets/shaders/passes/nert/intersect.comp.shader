@@ -49,8 +49,6 @@ void main()
 
     Ray ray = unpackRay(rays[id]);
 
-    // TODO: use gbuffer for first bounce
-
     vec3 finalHitPos;
     float totalDepth = 0.0;
     vec3 finalNormal = vec3(0.0);
@@ -78,10 +76,8 @@ void main()
 
             BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
 
-            if (materialDescriptors[blasInstance.materialIdx].isMirror)
-            {
-                hitMirror = true;
-            }
+            bool isMirror = materialDescriptors[blasInstance.materialIdx].isMirror;
+            hitMirror = hitMirror || isMirror;
 
             vec3 normal;
             if (hitMirror)
@@ -112,7 +108,7 @@ void main()
                 }
             }
 
-            if (materialDescriptors[blasInstance.materialIdx].isMirror)
+            if (isMirror)
             {
                 ray.direction = reflect(ray.direction, normal);
                 ray.origin = finalHitPos;

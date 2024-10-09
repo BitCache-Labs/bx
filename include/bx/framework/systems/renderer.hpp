@@ -13,6 +13,7 @@
 #include "bx/framework/systems/renderer/material_pool.hpp"
 #include "bx/framework/systems/renderer/sky.hpp"
 #include "bx/framework/systems/renderer/fsr2_pass.hpp"
+#include "bx/framework/systems/renderer/fog_pass.hpp"
 
 class SceneView;
 
@@ -53,6 +54,7 @@ private:
 	std::unique_ptr<NertPass> m_nertPass = nullptr;
 	std::unique_ptr<TaaPass> m_taaPass = nullptr;
 	std::unique_ptr<Fsr2Pass> m_fsr2Pass = nullptr;
+	std::unique_ptr<FogPass> m_fogPass = nullptr;
 	std::unique_ptr<BlasDataPool> m_blasDataPool = nullptr;
 	std::unique_ptr<MaterialPool> m_materialPool = nullptr;
 	std::unique_ptr<Sky> m_sky = nullptr;
