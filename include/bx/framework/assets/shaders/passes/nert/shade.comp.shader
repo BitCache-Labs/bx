@@ -75,63 +75,61 @@ void main()
 
     if (intersection.t != T_MISS)
     {
+        BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
+        BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
+
+        Triangle triangle = blasTriangles[intersection.primitiveIdx + blasAccessor.triangleOffset];
+        PackedVertex vertex0 = blasVertices[triangle.i0 + blasAccessor.vertexOffset];
+        PackedVertex vertex1 = blasVertices[triangle.i1 + blasAccessor.vertexOffset];
+        PackedVertex vertex2 = blasVertices[triangle.i2 + blasAccessor.vertexOffset];
+
+        vec3 normal0 = unpackNormalizedXyz10(vertex0.normal, 0);
+        vec3 normal1 = unpackNormalizedXyz10(vertex1.normal, 0);
+        vec3 normal2 = unpackNormalizedXyz10(vertex2.normal, 0);
+        vec2 texCoord0 = unpackHalf2x16(vertex0.texCoord);
+        vec2 texCoord1 = unpackHalf2x16(vertex1.texCoord);
+        vec2 texCoord2 = unpackHalf2x16(vertex2.texCoord);
+
+        vec3 barycentrics = barycentricsFromUv(intersection.uv);
+        vec3 normal = normalize(normal0 * barycentrics.x
+            + normal1 * barycentrics.y
+            + normal2 * barycentrics.z);
+        vec2 texCoord = texCoord0 * barycentrics.x
+            + texCoord1 * barycentrics.y
+            + texCoord2 * barycentrics.z;
+
+        // Correct normal for transform and backface hits
+        mat4 invTransTransform = blasInstance.invTransTransform;
+        normal = normalize((invTransTransform * vec4(normal, 1.0)).xyz);
+        if (!intersection.frontFace)
         {
-            BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
-            BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
-
-            Triangle triangle = blasTriangles[intersection.primitiveIdx + blasAccessor.triangleOffset];
-            PackedVertex vertex0 = blasVertices[triangle.i0 + blasAccessor.vertexOffset];
-            PackedVertex vertex1 = blasVertices[triangle.i1 + blasAccessor.vertexOffset];
-            PackedVertex vertex2 = blasVertices[triangle.i2 + blasAccessor.vertexOffset];
-
-            vec3 normal0 = unpackNormalizedXyz10(vertex0.normal, 0);
-            vec3 normal1 = unpackNormalizedXyz10(vertex1.normal, 0);
-            vec3 normal2 = unpackNormalizedXyz10(vertex2.normal, 0);
-            vec2 texCoord0 = unpackHalf2x16(vertex0.texCoord);
-            vec2 texCoord1 = unpackHalf2x16(vertex1.texCoord);
-            vec2 texCoord2 = unpackHalf2x16(vertex2.texCoord);
-
-            vec3 barycentrics = barycentricsFromUv(intersection.uv);
-            vec3 normal = normalize(normal0 * barycentrics.x
-                + normal1 * barycentrics.y
-                + normal2 * barycentrics.z);
-            vec2 texCoord = texCoord0 * barycentrics.x
-                + texCoord1 * barycentrics.y
-                + texCoord2 * barycentrics.z;
-
-            // Correct normal for transform and backface hits
-            mat4 invTransTransform = blasInstance.invTransTransform;
-            normal = normalize((invTransTransform * vec4(normal, 1.0)).xyz);
-            if (!intersection.frontFace)
-            {
-                normal = -normal;
-            }
-            
-            SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
-            baseColorFactor = diffuseBsdfEval(material.baseColorFactor); // TODO: rename
-
-            if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
-            {
-                ambientEmissiveContribution += throughput * material.emissiveFactor;
-            }
-            
-            if (ReservoirData_isValid(reservoirData))
-            {
-                vec3 brdfContribution = bsdfContribution(vec3(1.0), normal, direction, 1.0);
-                vec3 intensity = lightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
-
-                float visibility = 0.0;
-                if (dot(normal, direction) > 0.0)
-                {
-                    visibility = traceValidationRay(Scene, origin, direction, normal, tMax) ? 0.0 : 1.0;
-                }
-
-                vec3 radiance = visibility * intensity * brdfContribution;
-                lightingContribution += throughput * radiance * reservoir.contributionWeight;
-            }
-
-            ambientEmissiveContribution += throughput * baseColorFactor * ambientContribution;
+            normal = -normal;
         }
+        
+        SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
+        baseColorFactor = diffuseBsdfEval(material.baseColorFactor); // TODO: rename
+
+        if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
+        {
+            ambientEmissiveContribution += throughput * material.emissiveFactor;
+        }
+        
+        if (ReservoirData_isValid(reservoirData))
+        {
+            vec3 brdfContribution = bsdfContribution(vec3(1.0), normal, direction, 1.0);
+            vec3 intensity = lightIntensity(reservoirData.triangleLightSource, reservoirData.blasInstance, direction, tMax);
+
+            float visibility = 0.0;
+            if (dot(normal, direction) > 0.0)
+            {
+                visibility = traceValidationRay(Scene, origin, direction, normal, tMax) ? 0.0 : 1.0;
+            }
+
+            vec3 radiance = visibility * intensity * brdfContribution;
+            lightingContribution += throughput * radiance * reservoir.contributionWeight;
+        }
+
+        ambientEmissiveContribution += throughput * baseColorFactor * ambientContribution;
     }
 
     imageStore(outIllumination, pixel, vec4(lightingContribution, 1.0));

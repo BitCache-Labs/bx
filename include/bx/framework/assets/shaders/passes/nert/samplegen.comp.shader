@@ -19,8 +19,7 @@
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
-    uint width;
-    uint height;
+    uvec2 resolution;
     uint seed;
     uint _PADDING0;
 } constants;
@@ -49,7 +48,7 @@ layout(BINDING(0, 5)) uniform accelerationStructureEXT Scene;
 RisResult ris(inout uint rngState,
     vec3 baseColor, mat3 worldToTangent, mat3 tangentToWorld,
     vec3 normal, bool frontFace,
-    vec3 x1, vec3 x0)
+    vec3 x1)
 {
 #if 0
     LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
@@ -62,7 +61,7 @@ RisResult ris(inout uint rngState,
     return RisResult(reservoirData, reservoir);
 #else
 
-    const uint M_AREA = 16;
+    const uint M_AREA = 32;
 
     ReservoirData reservoirData = ReservoirData(0, 0, vec2(0.0), 0.0);
     Reservoir reservoir = Reservoir_default();
@@ -121,8 +120,8 @@ void main()
     Intersection intersection = intersections[pid];
     Ray ray = unpackRay(rays[pid]);
 
-    if (intersection.t != T_MISS) // TODO: remove, should never be the case
     {
+        ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
@@ -172,7 +171,7 @@ void main()
         RisResult risResult = ris(rngState,
             material.baseColorFactor, worldToTangent, tangentToWorld,
             normal, intersection.frontFace,
-            intersectionPos, ray.origin);
+            intersectionPos);
 
         outRestirReservoirs[pid] = Reservoir_toPacked(risResult.reservoir);
         outRestirReservoirData[pid] = ReservoirData_toPacked(risResult.reservoirData);

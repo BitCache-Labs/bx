@@ -16,7 +16,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING1;
 } constants;
 
-layout (BINDING(0, 1), std430) readonly buffer _Rays
+layout (BINDING(0, 1), std430) buffer _Rays
 {
     PackedRay rays[];
 };
@@ -45,12 +45,16 @@ void main()
 {
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= constants.resolution.x * constants.resolution.y) return;
+    ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
 
     Ray ray = unpackRay(rays[id]);
 
     // TODO: use gbuffer for first bounce
 
     vec3 finalHitPos;
+    float totalDepth = 0.0;
+    vec3 finalNormal = vec3(0.0);
+    bool hitMirror = false;
     Intersection intersection;
 
     uint hitDepth = 0;
@@ -70,9 +74,17 @@ void main()
 	        intersection.frontFace = rayQueryGetIntersectionFrontFaceEXT(rayQuery, true);
 
             finalHitPos = ray.origin + ray.direction * intersection.t;
+            totalDepth += intersection.t;
 
             BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
+
             if (materialDescriptors[blasInstance.materialIdx].isMirror)
+            {
+                hitMirror = true;
+            }
+
+            vec3 normal;
+            if (hitMirror)
             {
                 BlasAccessor blasAccessor = blasAccessors[blasInstance.blasIdx];
 
@@ -86,18 +98,22 @@ void main()
                 vec3 normal2 = unpackNormalizedXyz10(vertex2.normal, 0);
 
                 vec3 barycentrics = barycentricsFromUv(intersection.uv);
-                vec3 normal = normalize(normal0 * barycentrics.x
+                normal = normalize(normal0 * barycentrics.x
                     + normal1 * barycentrics.y
                     + normal2 * barycentrics.z);
 
                 // Correct normal for transform and backface hits
                 mat4 invTransTransform = blasInstance.invTransTransform;
                 normal = normalize((invTransTransform * vec4(normal, 1.0)).xyz);
+                finalNormal = normal;
                 if (!intersection.frontFace)
                 {
                     normal = -normal;
                 }
+            }
 
+            if (materialDescriptors[blasInstance.materialIdx].isMirror)
+            {
                 ray.direction = reflect(ray.direction, normal);
                 ray.origin = finalHitPos;
             }
@@ -105,8 +121,6 @@ void main()
             {
                 break;
             }
-            // TODO: check material on hit, if mirror or portal, keep going
-            // when reaching final hit update multi-bounce gbuffer
         }
         else
         {
@@ -120,9 +134,20 @@ void main()
         uint sampleIdx = atomicAdd(sampleCount, 1u);
         samplePixelMapping[sampleIdx] = id;
 
-        ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
         imageStore(neGbuffer, pixel, vec4(finalHitPos, uintBitsToFloat(hitDepth)));
+
+        if (hitMirror)
+        {
+            vec4 currentGbufferData = imageLoad(gbuffer, pixel);
+            float oneOverSqrDepth = (totalDepth > 0.0) ? (1.0 / totalDepth) : totalDepth;
+            float packedNormal = uintBitsToFloat(packNormalizedXyz10(finalNormal, 0).data);
+            float packedTexcoord = currentGbufferData.z;
+            float blasInstanceIdx = uintBitsToFloat((uint(intersection.frontFace) << 31) | intersection.blasInstanceIdx);
+
+            imageStore(gbuffer, pixel, vec4(oneOverSqrDepth, packedNormal, packedTexcoord, blasInstanceIdx));
+        }
     }
 
     intersections[id] = intersection;
+    rays[id] = packRay(ray);
 }

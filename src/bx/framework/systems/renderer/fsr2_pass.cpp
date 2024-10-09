@@ -225,8 +225,8 @@ void Fsr2Pass::Dispatch(const Camera& camera, TextureHandle colorTarget, Texture
     dispatchDescription.output = TextureToFfx(outputTarget, outputTargetView, FFX_RESOURCE_STATE_UNORDERED_ACCESS);
     dispatchDescription.jitterOffset.x = -camera.GetJitter().x;
     dispatchDescription.jitterOffset.y = -camera.GetJitter().y;
-    dispatchDescription.motionVectorScale.x = width;
-    dispatchDescription.motionVectorScale.y = height;
+    dispatchDescription.motionVectorScale.x = static_cast<f32>(width) * 0.5;
+    dispatchDescription.motionVectorScale.y = static_cast<f32>(height) * 0.5;
     dispatchDescription.renderSize.width = width;
     dispatchDescription.renderSize.height = height;
     dispatchDescription.enableSharpening = true;
