@@ -197,6 +197,7 @@ void Renderer::RebuildPasses()
 
         m_taaPass = std::unique_ptr<TaaPass>(new TaaPass(w, h));
         m_fogPass = std::unique_ptr<FogPass>(new FogPass(w, h));
+        m_ssaoPass = std::unique_ptr<SsaoPass>(new SsaoPass(w, h));
         m_fsr2Pass = std::unique_ptr<Fsr2Pass>(new Fsr2Pass(w, h, windowWidth, windowHeight));
 
         m_dirtyPasses = false;
@@ -263,6 +264,12 @@ void Renderer::Render()
             m_gbufferPass->GetVelocityTargetView()
         };
         m_nertPass->Dispatch(dispatchInfo);
+
+        if (ssao)
+        {
+            m_ssaoPass->seed = frameIdx;
+            m_ssaoPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
+        }
 
         m_fogPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
 

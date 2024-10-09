@@ -14,6 +14,7 @@
 #include "bx/framework/systems/renderer/sky.hpp"
 #include "bx/framework/systems/renderer/fsr2_pass.hpp"
 #include "bx/framework/systems/renderer/fog_pass.hpp"
+#include "bx/framework/systems/renderer/ssao_pass.hpp"
 
 class SceneView;
 
@@ -28,6 +29,7 @@ public:
 	b8 unbiased = false;
 	b8 taa = false;
 	b8 fsr2 = true;
+	b8 ssao = true;
 	b8 restir = true;
 	b8 denoise = true;
 	b8 antiFirefly = true;
@@ -55,6 +57,7 @@ private:
 	std::unique_ptr<TaaPass> m_taaPass = nullptr;
 	std::unique_ptr<Fsr2Pass> m_fsr2Pass = nullptr;
 	std::unique_ptr<FogPass> m_fogPass = nullptr;
+	std::unique_ptr<SsaoPass> m_ssaoPass = nullptr;
 	std::unique_ptr<BlasDataPool> m_blasDataPool = nullptr;
 	std::unique_ptr<MaterialPool> m_materialPool = nullptr;
 	std::unique_ptr<Sky> m_sky = nullptr;

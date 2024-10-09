@@ -172,6 +172,7 @@ set (BX_SRCS
 	"src/bx/framework/systems/renderer/reblur_pass.cpp"
 	"src/bx/framework/systems/renderer/restir_di_pass.cpp"
 	"src/bx/framework/systems/renderer/sky.cpp"
+	"src/bx/framework/systems/renderer/ssao_pass.cpp"
 	"src/bx/framework/systems/renderer/taa_pass.cpp"
 	"src/bx/framework/systems/renderer/wfpt_pass.cpp"
 	"src/bx/framework/systems/renderer/write_indirect_args_pass.cpp"
