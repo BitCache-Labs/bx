@@ -5,12 +5,12 @@
 #include "bx/engine/core/file.hpp"
 #include "bx/framework/resources/shader.hpp"
 
-struct DownsampleConstants
+struct BloomConstants
 {
-    u32 width;
-    u32 height;
-    f32 fogStart;
-    f32 fogEnd;
+    u32 srcWidth;
+    u32 srcHeight;
+    u32 dstWidth;
+    u32 dstHeight;
 };
 
 struct DownsamplePipeline : public LazyInit<DownsamplePipeline, ComputePipelineHandle>
@@ -27,9 +27,8 @@ struct DownsamplePipeline : public LazyInit<DownsamplePipeline, ComputePipelineH
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
-                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),
-                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
-                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),
             })
         };
 
@@ -49,6 +48,8 @@ std::unique_ptr<DownsamplePipeline> LazyInit<DownsamplePipeline, ComputePipeline
 BloomPass::BloomPass(u32 width, u32 height)
     : width(width), height(height)
 {
+    mipCount = Math::MipLevelsFromDims(width, height);
+
     BufferCreateInfo constantBufferCreateInfo{};
     constantBufferCreateInfo.name = "Bloom Pass Constant Buffer";
     constantBufferCreateInfo.size = sizeof(BloomConstants);
@@ -58,7 +59,7 @@ BloomPass::BloomPass(u32 width, u32 height)
     TextureCreateInfo mippedColorTargetCreateInfo{};
     mippedColorTargetCreateInfo.name = "Bloom Pass Mipped Color Target Texture";
     mippedColorTargetCreateInfo.size = Extend3D(width, height, 1);
-    mippedColorTargetCreateInfo.mipLevelCount = Math::MipLevelsFromDims(width, height);
+    mippedColorTargetCreateInfo.mipLevelCount = mipCount;
     mippedColorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     mippedColorTargetCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::TEXTURE_BINDING;
     mippedColorTarget = Graphics::CreateTexture(mippedColorTargetCreateInfo);
@@ -70,43 +71,62 @@ BloomPass::~BloomPass()
     Graphics::DestroyTexture(mippedColorTarget);
 }
 
-void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle ambientEmissiveBaseColorView)
+void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
 {
-    BloomConstants constants{};
-    constants.width = width;
-    constants.height = height;
-    constants.fogStart = 5.0;
-    constants.fogEnd = 30.0;
-    Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(BloomConstants));
+    Graphics::CopyTexture(colorTarget, mippedColorTarget);
 
-    TextureViewHandle colorTargetView = Graphics::CreateTextureView(colorTarget);
+    f32 mipWidth = static_cast<f32>(width);
+    f32 mipHeight = static_cast<f32>(height);
 
-    BindGroupCreateInfo createInfo{};
-    createInfo.name = "Bloom BindGroup";
-    createInfo.layout = Graphics::GetBindGroupLayout(BloomPipeline::Get(), 0);
-    createInfo.entries = {
-        BindGroupEntry(0, BindingResource::Buffer(constantBuffer)),
-        BindGroupEntry(1, BindingResource::TextureView(colorTargetView)),
-        BindGroupEntry(2, BindingResource::TextureView(gbufferView)),
-        BindGroupEntry(3, BindingResource::TextureView(ambientEmissiveBaseColorView)),
-    };
-    BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
-
-    ComputePassDescriptor computePassDescriptor{};
-    computePassDescriptor.name = "Bloom";
-    ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
+    for (u32 i = 0; i < mipCount - 3; i++) // TODO: go all the way?
     {
-        Graphics::SetComputePipeline(BloomPipeline::Get());
-        Graphics::SetBindGroup(0, bindGroup);
-        Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
-    }
-    Graphics::EndComputePass(computePass);
+        mipWidth *= 0.5;
+        mipHeight *= 0.5;
+        u32 mipWidthInt = static_cast<u32>(mipWidth);
+        u32 mipHeightInt = static_cast<u32>(mipHeight);
+        
+        BloomConstants constants{};
+        constants.srcWidth = width;
+        constants.srcHeight = height;
+        constants.dstWidth = mipWidthInt;
+        constants.dstHeight = mipHeightInt;
+        Graphics::WriteBufferImmediate(constantBuffer, 0, &constants, sizeof(BloomConstants));
 
-    Graphics::DestroyTextureView(colorTargetView);
-    Graphics::DestroyBindGroup(bindGroup);
+        TextureViewCreateInfo srcViewCreateInfo{};
+        srcViewCreateInfo.texture = mippedColorTarget;
+        srcViewCreateInfo.baseMipLevel = i;
+        TextureViewHandle srcView = Graphics::CreateTextureView(srcViewCreateInfo);
+
+        TextureViewCreateInfo dstViewCreateInfo{};
+        dstViewCreateInfo.texture = mippedColorTarget;
+        dstViewCreateInfo.baseMipLevel = i + 1;
+        TextureViewHandle dstView = Graphics::CreateTextureView(dstViewCreateInfo);
+
+        BindGroupCreateInfo createInfo{};
+        createInfo.name = "Bloom Downsample BindGroup";
+        createInfo.layout = Graphics::GetBindGroupLayout(DownsamplePipeline::Get(), 0);
+        createInfo.entries = {
+            BindGroupEntry(0, BindingResource::Buffer(constantBuffer)),
+            BindGroupEntry(1, BindingResource::TextureView(srcView)),
+            BindGroupEntry(2, BindingResource::TextureView(dstView)),
+        };
+        BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
+
+        ComputePassDescriptor computePassDescriptor{};
+        computePassDescriptor.name = "Bloom Downsample";
+        ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
+        {
+            Graphics::SetComputePipeline(DownsamplePipeline::Get());
+            Graphics::SetBindGroup(0, bindGroup);
+            Graphics::DispatchWorkgroups(Math::DivCeil(mipWidthInt, 16), Math::DivCeil(mipHeightInt, 16), 1);
+        }
+        Graphics::EndComputePass(computePass);
+
+        Graphics::DestroyBindGroup(bindGroup);
+    }
 }
 
 void BloomPass::ClearPipelineCache()
 {
-    BloomPipeline::Clear();
+    DownsamplePipeline::Clear();
 }

@@ -87,6 +87,8 @@ public:
 	static void EndComputePass(ComputePassHandle& computePass);
 
 	// TODO: merge these two, make SizeType optional??
+	static void WriteBufferImmediate(BufferHandle buffer, u64 offset, const void* data);
+	static void WriteBufferImmediate(BufferHandle buffer, u64 offset, const void* data, SizeType size);
 	static void WriteBuffer(BufferHandle buffer, u64 offset, const void* data);
 	static void WriteBuffer(BufferHandle buffer, u64 offset, const void* data, SizeType size);
 	static void ClearBuffer(BufferHandle buffer);

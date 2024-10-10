@@ -1262,7 +1262,7 @@ void Graphics::EndComputePass(ComputePassHandle& computePass)
     s->boundComputePipeline = ComputePipelineHandle::null;
 }
 
-void WriteBuffer(const std::shared_ptr<Buffer>& buffer, const void* data, const BufferCreateInfo& createInfo, Optional<SizeType> optionalSize, u32 offset)
+void WriteBuffer(const std::shared_ptr<Buffer>& buffer, const void* data, const BufferCreateInfo& createInfo, Optional<SizeType> optionalSize, u32 offset, b8 immediate)
 {
     BX_ASSERT(createInfo.usageFlags & BufferUsageFlags::COPY_DST, "Buffer must be created with BufferUsageFlags::COPY_DST when writing to.");
 
@@ -1276,8 +1276,38 @@ void WriteBuffer(const std::shared_ptr<Buffer>& buffer, const void* data, const 
     memcpy(bufferData, data, size);
     stagingBuffer->Unmap();
 
-    if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
-    s->uploadCmdList->CopyBuffers(stagingBuffer, buffer, offset);
+    if (immediate)
+    {
+        if (!s->cmdList) s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
+        s->cmdList->CopyBuffers(stagingBuffer, buffer, offset);
+    }
+    else
+    {
+        if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
+        s->uploadCmdList->CopyBuffers(stagingBuffer, buffer, offset);
+    }
+}
+
+void Graphics::WriteBufferImmediate(BufferHandle buffer, u64 offset, const void* data)
+{
+    BX_ENSURE(buffer && data);
+
+    auto bufferIter = s->buffers.find(buffer);
+    BX_ENSURE(bufferIter != s->buffers.end());
+    auto& createInfo = GetBufferCreateInfo(buffer);
+
+    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::None(), offset, true);
+}
+
+void Graphics::WriteBufferImmediate(BufferHandle buffer, u64 offset, const void* data, SizeType size)
+{
+    BX_ENSURE(buffer && data);
+
+    auto bufferIter = s->buffers.find(buffer);
+    BX_ENSURE(bufferIter != s->buffers.end());
+    auto& createInfo = GetBufferCreateInfo(buffer);
+
+    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::Some(size), offset, true);
 }
 
 void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data)
@@ -1288,7 +1318,7 @@ void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data)
     BX_ENSURE(bufferIter != s->buffers.end());
     auto& createInfo = GetBufferCreateInfo(buffer);
 
-    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::None(), offset);
+    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::None(), offset, false);
 }
 
 void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data, SizeType size)
@@ -1299,7 +1329,7 @@ void Graphics::WriteBuffer(BufferHandle buffer, u64 offset, const void* data, Si
     BX_ENSURE(bufferIter != s->buffers.end());
     auto& createInfo = GetBufferCreateInfo(buffer);
 
-    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::Some(size), offset);
+    ::WriteBuffer(bufferIter->second, data, createInfo, Optional<SizeType>::Some(size), offset, false);
 }
 
 void Graphics::ClearBuffer(BufferHandle buffer)
