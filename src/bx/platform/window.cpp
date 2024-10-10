@@ -1,31 +1,37 @@
 #include "bx/platform/window.hpp"
+#include <bx/core/macros.hpp>
 
-#include <bx/core/log.hpp>
-#include <bx/core/profiler.hpp>
+#include <rttr/type>
+#include <rttr/registration>
+#include <stdexcept>
+#include <iostream>
 
-#include <stdlib.h>
-
-static int screenWidth = 1;
-static int screenHeight = 1;
-
-int Screen::GetWidth()
+Window& Window::Get()
 {
-	return screenWidth;
+    static std::shared_ptr<Window> instance;
+    if (!instance)
+    {
+        const auto& derived = rttr::type::get<Window>().get_derived_classes();
+        if (derived.size() == 0)
+            throw std::runtime_error("No derived Window class found.");
+    
+        const auto& type = *derived.begin();
+        rttr::variant var = type.create();
+        instance = var.get_value<std::shared_ptr<Window>>();
+    }
+    return *instance;
 }
 
-int Screen::GetHeight()
+RTTR_PLUGIN_REGISTRATION
 {
-	return screenHeight;
-}
-
-void Screen::SetWidth(int width)
-{
-	screenWidth = width;
-	//Data::SetInt("Width", width, DataTarget::SYSTEM);
-}
-
-void Screen::SetHeight(int height)
-{
-	screenHeight = height;
-	//Data::SetInt("Height", height, DataTarget::SYSTEM);
+    rttr::registration::class_<Window>("Window");
+        //.method("Initialize", &Window::Initialize)
+        //.method("Reload", &Window::Reload)
+        //.method("Shutdown", &Window::Shutdown)
+        //.method("IsOpen", &Window::IsOpen)
+        //.method("PollEvents", &Window::PollEvents)
+        //.method("Display", &Window::Display)
+        //.method("GetSize", &Window::GetSize)
+        //.method("SetCursorMode", &Window::SetCursorMode)
+        //.method("GetProcAddress", &Window::GetProcAddress);
 }

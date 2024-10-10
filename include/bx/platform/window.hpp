@@ -1,35 +1,39 @@
 #pragma once
 
-#include "bx/meta/enum.hpp"
+#include <bx/bx.hpp>
+#include <rttr/rttr_enable.h>
 
-typedef void (*WindowGLProc)(void);
+using WindowGLProc = void(*)(void);
 
-// TODO: remove this class
-class Screen
+enum struct BX_API CursorMode
 {
-public:
-	static int GetWidth();
-	static int GetHeight();
-
-	static void SetWidth(int width);
-	static void SetHeight(int height);
+	NORMAL,
+	HIDDEN,
+	DISABLED,
+	CAPTURED
 };
 
-ENUM(CursorMode, NORMAL, HIDDEN, DISABLED, CAPTURED);
-
-class Window
+class BX_API Window
 {
+	RTTR_ENABLE()
+
 public:
-	static bool Initialize();
-	static void Reload();
-	static void Shutdown();
+	static Window& Get();
 
-	static bool IsOpen();
-	static void PollEvents();
-	static void Display();
+public:
+	Window() = default;
+	virtual ~Window() = default;
 
-	static void GetSize(int* width, int* height);
-	static void SetCursorMode(CursorMode mode);
+	virtual bool Initialize() = 0;
+	virtual void Reload() = 0;
+	virtual void Shutdown() = 0;
 
-	static WindowGLProc GetProcAddress(const char* name);
+	virtual bool IsOpen() = 0;
+	virtual void PollEvents() = 0;
+	virtual void Display() = 0;
+
+	virtual void GetSize(int* width, int* height) = 0;
+	virtual void SetCursorMode(CursorMode mode) = 0;
+
+	virtual WindowGLProc GetProcAddress(const char* name) = 0;
 };

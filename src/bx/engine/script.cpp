@@ -153,15 +153,16 @@ static WrenLoadModuleResult WrenLoadModule(WrenVM* vm, const char* name)
 	String moduleName = name;
 	if (s_wrenModulesSource.find(moduleName) == s_wrenModulesSource.end())
 	{
-		String filepath;
-		if (!File::Find("[assets]", String(name) + ".wren", filepath))
-		{
-			BX_LOGE("Module '{}' can not be found!", name);
-			return res;
-		}
-
-		String moduleSrc = File::ReadTextFile(filepath);
-		s_wrenModulesSource.insert(std::make_pair(moduleName, moduleSrc));
+		return res;
+		//String filepath;
+		//if (!File::Find("[assets]", String(name) + ".wren", filepath))
+		//{
+		//	BX_LOGE("Module '{}' can not be found!", name);
+		//	return res;
+		//}
+		//
+		//String moduleSrc = File::ReadTextFile(filepath);
+		//s_wrenModulesSource.insert(std::make_pair(moduleName, moduleSrc));
 	}
 
 	res.source = s_wrenModulesSource[moduleName].c_str();
@@ -290,20 +291,20 @@ extern "C" {
 
 static void Configure()
 {
-	LOAD_ENGINE_MODULE(core);
-	LOAD_ENGINE_MODULE(device);
-	LOAD_ENGINE_MODULE(math);
-	LOAD_ENGINE_MODULE(graphics);
-	LOAD_ENGINE_MODULE(physics);
-	LOAD_ENGINE_MODULE(audio);
-	LOAD_ENGINE_MODULE(ecs);
-	LOAD_ENGINE_MODULE(framework);
-
-	File::FindEach("[assets]", ".wren",
-		[](const String& path, const String& name)
-		{
-			WrenCompile(s_vm, name.c_str(), File::ReadTextFile(path).c_str());
-		});
+	//LOAD_ENGINE_MODULE(core);
+	//LOAD_ENGINE_MODULE(device);
+	//LOAD_ENGINE_MODULE(math);
+	//LOAD_ENGINE_MODULE(graphics);
+	//LOAD_ENGINE_MODULE(physics);
+	//LOAD_ENGINE_MODULE(audio);
+	//LOAD_ENGINE_MODULE(ecs);
+	//LOAD_ENGINE_MODULE(framework);
+	//
+	//File::FindEach("[assets]", ".wren",
+	//	[](const String& path, const String& name)
+	//	{
+	//		WrenCompile(s_vm, name.c_str(), File::ReadTextFile(path).c_str());
+	//	});
 
 	for (auto& it : s_foreignClassRegistry)
 	{
@@ -610,13 +611,13 @@ static void BindApi()
 		}
 		Script::EndClass();
 
-		Script::BeginClass("File");
-		{
-			Script::BindFunction<decltype(&File::ReadTextFile), &File::ReadTextFile>(true, "readTextFile(_)");
-			Script::BindFunction<decltype(&File::WriteTextFile), &File::WriteTextFile>(true, "writeTextFile(_,_)");
-			Script::BindFunction<decltype(&File::Exists), &File::Exists>(true, "exists(_)");
-		}
-		Script::EndClass();
+		//Script::BeginClass("File");
+		//{
+		//	Script::BindFunction<decltype(&File::ReadTextFile), &File::ReadTextFile>(true, "readTextFile(_)");
+		//	Script::BindFunction<decltype(&File::WriteTextFile), &File::WriteTextFile>(true, "writeTextFile(_,_)");
+		//	Script::BindFunction<decltype(&File::Exists), &File::Exists>(true, "exists(_)");
+		//}
+		//Script::EndClass();
 
 		//Script::BeginClass<MetaResource>("Resource");
 		//{
@@ -637,115 +638,115 @@ static void BindApi()
 
 	Script::BeginModule("device");
 	{
-		Script::BeginClass<GamepadButton, i32>("GamepadButton");
-		{
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_SOUTH>("south");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_EAST>("east");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_WEST>("west");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_NORTH>("north");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::SHOULDER_LEFT>("shoulderLeft");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::SHOULDER_RIGHT>("shoulderRight");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_SELECT>("select");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_START>("start");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::STICK_LEFT>("leftStickPress");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::STICK_RIGHT>("rightStickPress");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::DPAD_UP>("dPadUp");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::DPAD_RIGHT>("dPadRight");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::DPAD_DOWN>("dPadDown");
-			Script::BindEnumVal<GamepadButton, i32, GamepadButton::DPAD_LEFT>("dPadLeft");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<GamepadAxis, i32>("GamepadAxis");
-		{
-			Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::STICK_LEFT_X>("leftStickX");
-			Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::STICK_LEFT_Y>("leftStickY");
-			Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::STICK_RIGHT_X>("rightStickX");
-			Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::STICK_RIGHT_Y>("rightStickY");
-			Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::TRIGGER_LEFT>("leftTrigger");
-			Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::TRIGGER_RIGHT>("rightTrigger");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<MouseButton, i32>("MouseButton");
-		{
-			Script::BindEnumVal<MouseButton, i32, MouseButton::MOUSE_BUTTON_LEFT>("left");
-			Script::BindEnumVal<MouseButton, i32, MouseButton::MOUSE_BUTTON_RIGHT>("right");
-			Script::BindEnumVal<MouseButton, i32, MouseButton::MOUSE_BUTTON_MIDDLE>("middle");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<Key, i32>("Key");
-		{
-			Script::BindEnumVal<Key, i32, Key::RIGHT>("right");
-			Script::BindEnumVal<Key, i32, Key::LEFT>("left");
-			Script::BindEnumVal<Key, i32, Key::DOWN>("down");
-			Script::BindEnumVal<Key, i32, Key::UP>("up");
-			Script::BindEnumVal<Key, i32, Key::SPACE>("space");
-			Script::BindEnumVal<Key, i32, Key::ESCAPE>("escape");
-			Script::BindEnumVal<Key, i32, Key::ENTER>("enter");
-
-			Script::BindEnumVal<Key, i32, Key::A>("a");
-			Script::BindEnumVal<Key, i32, Key::B>("b");
-			Script::BindEnumVal<Key, i32, Key::C>("c");
-			Script::BindEnumVal<Key, i32, Key::D>("d");
-			Script::BindEnumVal<Key, i32, Key::E>("e");
-			Script::BindEnumVal<Key, i32, Key::F>("f");
-			Script::BindEnumVal<Key, i32, Key::G>("g");
-			Script::BindEnumVal<Key, i32, Key::H>("h");
-			Script::BindEnumVal<Key, i32, Key::I>("i");
-			Script::BindEnumVal<Key, i32, Key::J>("j");
-			Script::BindEnumVal<Key, i32, Key::K>("k");
-			Script::BindEnumVal<Key, i32, Key::L>("l");
-			Script::BindEnumVal<Key, i32, Key::M>("m");
-			Script::BindEnumVal<Key, i32, Key::N>("n");
-			Script::BindEnumVal<Key, i32, Key::O>("o");
-			Script::BindEnumVal<Key, i32, Key::P>("p");
-			Script::BindEnumVal<Key, i32, Key::Q>("q");
-			Script::BindEnumVal<Key, i32, Key::R>("r");
-			Script::BindEnumVal<Key, i32, Key::S>("s");
-			Script::BindEnumVal<Key, i32, Key::T>("t");
-			Script::BindEnumVal<Key, i32, Key::U>("u");
-			Script::BindEnumVal<Key, i32, Key::V>("v");
-			Script::BindEnumVal<Key, i32, Key::W>("w");
-			Script::BindEnumVal<Key, i32, Key::X>("x");
-			Script::BindEnumVal<Key, i32, Key::Y>("y");
-			Script::BindEnumVal<Key, i32, Key::Z>("z");
-		}
-		Script::EndClass();
-
-		Script::BeginClass("Input");
-		{
-			Script::BindFunction<decltype(&Input::GetAxis), &Input::GetAxis>(true, "getAxis(_)");
-			Script::BindFunction<decltype(&Input::GetButton), &Input::GetButton>(true, "getButton(_)");
-			Script::BindFunction<decltype(&Input::GetButtonOnce), &Input::GetButtonOnce>(true, "getButtonOnce(_)");
-
-			Script::BindFunction<decltype(&Input::GetKey), &Input::GetKey>(true, "getKey(_)");
-			Script::BindFunction<decltype(&Input::GetKeyOnce), &Input::GetKeyOnce>(true, "getKeyOnce(_)");
-
-			Script::BindFunction<decltype(&Input::GetMouse), &Input::GetMouse>(true, "getMouse()");
-			Script::BindFunction<decltype(&Input::GetMouseButton), &Input::GetMouseButton>(true, "getMouseButton(_)");
-			Script::BindFunction<decltype(&Input::GetMouseButtonOnce), &Input::GetMouseButtonOnce>(true, "getMouseButtonOnce(_)");
-			Script::BindFunction<decltype(&Input::GetMouseX), &Input::GetMouseX>(true, "getMouseX()");
-			Script::BindFunction<decltype(&Input::GetMouseY), &Input::GetMouseY>(true, "getMouseY()");
-
-			Script::BindFunction<decltype(&Input::GetNumTouches), &Input::GetNumTouches>(true, "getNumTouches()");
-			Script::BindFunction<decltype(&Input::GetTouchId), &Input::GetTouchId>(true, "getTouchId(_)");
-			Script::BindFunction<decltype(&Input::GetTouchX), &Input::GetTouchX>(true, "getTouchX(_)");
-			Script::BindFunction<decltype(&Input::GetTouchY), &Input::GetTouchY>(true, "getTouchY(_)");
-
-			Script::BindFunction<decltype(&Input::SetPadVibration), &Input::SetPadVibration>(true, "setPadVibration(_,_)");
-			Script::BindFunction<decltype(&Input::SetPadLightbarColor), &Input::SetPadLightbarColor>(true, "setPadLightbarColor(_,_,_)");
-			Script::BindFunction<decltype(&Input::ResetPadLightbarColor), &Input::ResetPadLightbarColor>(true, "resetPadLightbarColor()");
-		}
-		Script::EndClass();
-
-		Script::BeginClass("Screen");
-		{
-			Script::BindFunction<decltype(&Screen::GetWidth), &Screen::GetWidth>(true, "width");
-			Script::BindFunction<decltype(&Screen::GetHeight), &Screen::GetHeight>(true, "height");
-		}
-		Script::EndClass();
+		//Script::BeginClass<GamepadButton, i32>("GamepadButton");
+		//{
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_SOUTH>("south");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_EAST>("east");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_WEST>("west");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_NORTH>("north");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::SHOULDER_LEFT>("shoulderLeft");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::SHOULDER_RIGHT>("shoulderRight");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_SELECT>("select");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::BUTTON_START>("start");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::STICK_LEFT>("leftStickPress");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::STICK_RIGHT>("rightStickPress");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::DPAD_UP>("dPadUp");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::DPAD_RIGHT>("dPadRight");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::DPAD_DOWN>("dPadDown");
+		//	Script::BindEnumVal<GamepadButton, i32, GamepadButton::DPAD_LEFT>("dPadLeft");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<GamepadAxis, i32>("GamepadAxis");
+		//{
+		//	Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::STICK_LEFT_X>("leftStickX");
+		//	Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::STICK_LEFT_Y>("leftStickY");
+		//	Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::STICK_RIGHT_X>("rightStickX");
+		//	Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::STICK_RIGHT_Y>("rightStickY");
+		//	Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::TRIGGER_LEFT>("leftTrigger");
+		//	Script::BindEnumVal<GamepadAxis, i32, GamepadAxis::TRIGGER_RIGHT>("rightTrigger");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<MouseButton, i32>("MouseButton");
+		//{
+		//	Script::BindEnumVal<MouseButton, i32, MouseButton::MOUSE_BUTTON_LEFT>("left");
+		//	Script::BindEnumVal<MouseButton, i32, MouseButton::MOUSE_BUTTON_RIGHT>("right");
+		//	Script::BindEnumVal<MouseButton, i32, MouseButton::MOUSE_BUTTON_MIDDLE>("middle");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<Key, i32>("Key");
+		//{
+		//	Script::BindEnumVal<Key, i32, Key::RIGHT>("right");
+		//	Script::BindEnumVal<Key, i32, Key::LEFT>("left");
+		//	Script::BindEnumVal<Key, i32, Key::DOWN>("down");
+		//	Script::BindEnumVal<Key, i32, Key::UP>("up");
+		//	Script::BindEnumVal<Key, i32, Key::SPACE>("space");
+		//	Script::BindEnumVal<Key, i32, Key::ESCAPE>("escape");
+		//	Script::BindEnumVal<Key, i32, Key::ENTER>("enter");
+		//
+		//	Script::BindEnumVal<Key, i32, Key::A>("a");
+		//	Script::BindEnumVal<Key, i32, Key::B>("b");
+		//	Script::BindEnumVal<Key, i32, Key::C>("c");
+		//	Script::BindEnumVal<Key, i32, Key::D>("d");
+		//	Script::BindEnumVal<Key, i32, Key::E>("e");
+		//	Script::BindEnumVal<Key, i32, Key::F>("f");
+		//	Script::BindEnumVal<Key, i32, Key::G>("g");
+		//	Script::BindEnumVal<Key, i32, Key::H>("h");
+		//	Script::BindEnumVal<Key, i32, Key::I>("i");
+		//	Script::BindEnumVal<Key, i32, Key::J>("j");
+		//	Script::BindEnumVal<Key, i32, Key::K>("k");
+		//	Script::BindEnumVal<Key, i32, Key::L>("l");
+		//	Script::BindEnumVal<Key, i32, Key::M>("m");
+		//	Script::BindEnumVal<Key, i32, Key::N>("n");
+		//	Script::BindEnumVal<Key, i32, Key::O>("o");
+		//	Script::BindEnumVal<Key, i32, Key::P>("p");
+		//	Script::BindEnumVal<Key, i32, Key::Q>("q");
+		//	Script::BindEnumVal<Key, i32, Key::R>("r");
+		//	Script::BindEnumVal<Key, i32, Key::S>("s");
+		//	Script::BindEnumVal<Key, i32, Key::T>("t");
+		//	Script::BindEnumVal<Key, i32, Key::U>("u");
+		//	Script::BindEnumVal<Key, i32, Key::V>("v");
+		//	Script::BindEnumVal<Key, i32, Key::W>("w");
+		//	Script::BindEnumVal<Key, i32, Key::X>("x");
+		//	Script::BindEnumVal<Key, i32, Key::Y>("y");
+		//	Script::BindEnumVal<Key, i32, Key::Z>("z");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass("Input");
+		//{
+		//	Script::BindFunction<decltype(&Input::GetAxis), &Input::GetAxis>(true, "getAxis(_)");
+		//	Script::BindFunction<decltype(&Input::GetButton), &Input::GetButton>(true, "getButton(_)");
+		//	Script::BindFunction<decltype(&Input::GetButtonOnce), &Input::GetButtonOnce>(true, "getButtonOnce(_)");
+		//
+		//	Script::BindFunction<decltype(&Input::GetKey), &Input::GetKey>(true, "getKey(_)");
+		//	Script::BindFunction<decltype(&Input::GetKeyOnce), &Input::GetKeyOnce>(true, "getKeyOnce(_)");
+		//
+		//	Script::BindFunction<decltype(&Input::GetMouse), &Input::GetMouse>(true, "getMouse()");
+		//	Script::BindFunction<decltype(&Input::GetMouseButton), &Input::GetMouseButton>(true, "getMouseButton(_)");
+		//	Script::BindFunction<decltype(&Input::GetMouseButtonOnce), &Input::GetMouseButtonOnce>(true, "getMouseButtonOnce(_)");
+		//	Script::BindFunction<decltype(&Input::GetMouseX), &Input::GetMouseX>(true, "getMouseX()");
+		//	Script::BindFunction<decltype(&Input::GetMouseY), &Input::GetMouseY>(true, "getMouseY()");
+		//
+		//	Script::BindFunction<decltype(&Input::GetNumTouches), &Input::GetNumTouches>(true, "getNumTouches()");
+		//	Script::BindFunction<decltype(&Input::GetTouchId), &Input::GetTouchId>(true, "getTouchId(_)");
+		//	Script::BindFunction<decltype(&Input::GetTouchX), &Input::GetTouchX>(true, "getTouchX(_)");
+		//	Script::BindFunction<decltype(&Input::GetTouchY), &Input::GetTouchY>(true, "getTouchY(_)");
+		//
+		//	Script::BindFunction<decltype(&Input::SetPadVibration), &Input::SetPadVibration>(true, "setPadVibration(_,_)");
+		//	Script::BindFunction<decltype(&Input::SetPadLightbarColor), &Input::SetPadLightbarColor>(true, "setPadLightbarColor(_,_,_)");
+		//	Script::BindFunction<decltype(&Input::ResetPadLightbarColor), &Input::ResetPadLightbarColor>(true, "resetPadLightbarColor()");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass("Screen");
+		//{
+		//	Script::BindFunction<decltype(&Screen::GetWidth), &Screen::GetWidth>(true, "width");
+		//	Script::BindFunction<decltype(&Screen::GetHeight), &Screen::GetHeight>(true, "height");
+		//}
+		//Script::EndClass();
 	}
 	Script::EndModule();
 
@@ -871,119 +872,119 @@ static void BindApi()
 
 	Script::BeginModule("graphics");
 	{
-		Script::BeginClass<TextureFormat, i32>("TextureFormat");
-		{
-			Script::BindEnumVal<TextureFormat, i32, TextureFormat::UNKNOWN>("unknown");
-			Script::BindEnumVal<TextureFormat, i32, TextureFormat::RGBA8_UNORM>("rgba8_unorm");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<PipelineTopology, i32>("GeomTopology");
-		{
-			Script::BindEnumVal<PipelineTopology, i32, PipelineTopology::UNDEFINED>("undefined");
-			Script::BindEnumVal<PipelineTopology, i32, PipelineTopology::POINTS>("points");
-			Script::BindEnumVal<PipelineTopology, i32, PipelineTopology::LINES>("lines");
-			Script::BindEnumVal<PipelineTopology, i32, PipelineTopology::TRIANGLES>("triangles");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<PipelineFaceCull, i32>("FaceCull");
-		{
-			Script::BindEnumVal<PipelineFaceCull, i32, PipelineFaceCull::NONE>("none");
-			Script::BindEnumVal<PipelineFaceCull, i32, PipelineFaceCull::CW>("cw");
-			Script::BindEnumVal<PipelineFaceCull, i32, PipelineFaceCull::CCW>("ccw");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<ShaderType, i32>("ShaderType");
-		{
-			Script::BindEnumVal<ShaderType, i32, ShaderType::UNKNOWN>("none");
-			Script::BindEnumVal<ShaderType, i32, ShaderType::VERTEX>("vertex");
-			Script::BindEnumVal<ShaderType, i32, ShaderType::PIXEL>("pixel");
-			Script::BindEnumVal<ShaderType, i32, ShaderType::GEOMETRY>("geometry");
-			Script::BindEnumVal<ShaderType, i32, ShaderType::COMPUTE>("compute");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<GraphicsClearFlags, i32>("ClearFlags");
-		{
-			Script::BindEnumVal<GraphicsClearFlags, i32, GraphicsClearFlags::NONE>("none");
-			Script::BindEnumVal<GraphicsClearFlags, i32, GraphicsClearFlags::DEPTH>("depth");
-			Script::BindEnumVal<GraphicsClearFlags, i32, GraphicsClearFlags::STENCIL>("stencil");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<GraphicsValueType, i32>("ValueType");
-		{
-			Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::UNDEFINED>("undefined");
-			Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::INT8>("int8");
-			Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::INT16>("int16");
-			Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::INT32>("int32");
-			Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::UINT8>("uint8");
-			Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::UINT16>("uint16");
-			Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::UINT32>("uint32");
-			Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::FLOAT16>("float16");
-			Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::FLOAT32>("float32");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<BufferUsage, i32>("UsageFlags");
-		{
-			Script::BindEnumVal<BufferUsage, i32, BufferUsage::IMMUTABLE>("immutable");
-			Script::BindEnumVal<BufferUsage, i32, BufferUsage::DEFAULT>("default");
-			Script::BindEnumVal<BufferUsage, i32, BufferUsage::DYNAMIC>("dynamic");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<BufferType, i32>("BindFlags");
-		{
-			Script::BindEnumVal<BufferType, i32, BufferType::VERTEX_BUFFER>("vertex");
-			Script::BindEnumVal<BufferType, i32, BufferType::INDEX_BUFFER>("index");
-			Script::BindEnumVal<BufferType, i32, BufferType::UNIFORM_BUFFER>("uniform");
-		}
-		Script::EndClass();
-
-		Script::BeginClass<BufferAccess, i32>("CpuAccessFlags");
-		{
-			Script::BindEnumVal<BufferAccess, i32, BufferAccess::NONE>("none");
-			Script::BindEnumVal<BufferAccess, i32, BufferAccess::READ>("read");
-			Script::BindEnumVal<BufferAccess, i32, BufferAccess::WRITE>("write");
-		}
-		Script::EndClass();
-
-		Script::BeginClass("Graphics");
-		{
-			Script::BindFunction<decltype(&Graphics::GetColorBufferFormat), &Graphics::GetColorBufferFormat>(true, "getColorBufferFormat()");
-			Script::BindFunction<decltype(&Graphics::GetDepthBufferFormat), &Graphics::GetDepthBufferFormat>(true, "getDepthBufferFormat()");
-
-			//Script::BindFunction<decltype(&Graphics::CreateCubemap), &Graphics::CreateCubemap>(true, "createCubemap(_)");
-			//Script::BindFunction<decltype(&Graphics::CreateMesh), &Graphics::CreateMesh>(true, "createMesh(_)");
-			//
-			//Script::BindFunction<decltype(&Graphics::BatchBegin), &Graphics::BatchBegin>(true, "batchBegin()");
-			//Script::BindFunction<decltype(&Graphics::BatchInstance), &Graphics::BatchInstance>(true, "batchInstance(_,_)");
-			//Script::BindFunction<decltype(&Graphics::BatchDraw), &Graphics::BatchDraw>(true, "batchDraw(_,_)");
-			//Script::BindFunction<decltype(&Graphics::BatchEnd), &Graphics::BatchEnd>(true, "batchEnd()");
-			//
-			//Script::BindFunction<decltype(&Graphics::DrawBegin), &Graphics::DrawBegin>(true, "drawBegin(_)");
-			//Script::BindFunction<decltype(&Graphics::DrawSetFloat), &Graphics::DrawSetFloat>(true, "drawSetFloat(_,_)");
-			//Script::BindFunction<decltype(&Graphics::DrawSetVec2), &Graphics::DrawSetVec2>(true, "drawSetVec2(_,_)");
-			//Script::BindFunction<decltype(&Graphics::DrawSetVec3), &Graphics::DrawSetVec3>(true, "drawSetVec3(_,_)");
-			//Script::BindFunction<decltype(&Graphics::DrawSetVec4), &Graphics::DrawSetVec4>(true, "drawSetVec4(_,_)");
-			//Script::BindFunction<decltype(&Graphics::DrawSetMat4), &Graphics::DrawSetMat4>(true, "drawSetMat4(_,_)");
-			//Script::BindFunction<decltype(&Graphics::DrawBindTexture2D), &Graphics::DrawBindTexture2D>(true, "drawBindTexture(_,_,_)");
-			//Script::BindFunction<decltype(&Graphics::DrawBindCubemap), &Graphics::DrawBindCubemap>(true, "drawBindCubemap(_,_,_)");
-			//Script::BindFunction<decltype(&Graphics::DrawEnd), &Graphics::DrawEnd>(true, "drawEnd(_)");
-			//
-			//Script::BindFunction<decltype(&Graphics::ConvoluteEnvMap), &Graphics::ConvoluteEnvMap>(true, "convoluteEnvMap(_,_,_)");
-			//Script::BindFunction<decltype(&Graphics::PrefilterEnvMap), &Graphics::PrefilterEnvMap>(true, "prefilterEnvMap(_,_,_)");
-			//Script::BindFunction<decltype(&Graphics::GenBrdfLut), &Graphics::GenBrdfLut>(true, "genBrdfLut(_,_)");
-			//
-			//Script::BindFunction<decltype(&Graphics::DrawScreen), &Graphics::DrawScreen>(true, "drawScreen(_,_)");
-			//Script::BindFunction<decltype(&Graphics::DrawSkybox), &Graphics::DrawSkybox>(true, "drawSkybox(_,_,_,_)");
-
-			Script::BindFunction<decltype(&Graphics::DebugLine), &Graphics::DebugLine>(true, "debugLine(_,_,_,_)");
-		}
-		Script::EndClass();
+		//Script::BeginClass<TextureFormat, i32>("TextureFormat");
+		//{
+		//	Script::BindEnumVal<TextureFormat, i32, TextureFormat::UNKNOWN>("unknown");
+		//	Script::BindEnumVal<TextureFormat, i32, TextureFormat::RGBA8_UNORM>("rgba8_unorm");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<PipelineTopology, i32>("GeomTopology");
+		//{
+		//	Script::BindEnumVal<PipelineTopology, i32, PipelineTopology::UNDEFINED>("undefined");
+		//	Script::BindEnumVal<PipelineTopology, i32, PipelineTopology::POINTS>("points");
+		//	Script::BindEnumVal<PipelineTopology, i32, PipelineTopology::LINES>("lines");
+		//	Script::BindEnumVal<PipelineTopology, i32, PipelineTopology::TRIANGLES>("triangles");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<PipelineFaceCull, i32>("FaceCull");
+		//{
+		//	Script::BindEnumVal<PipelineFaceCull, i32, PipelineFaceCull::NONE>("none");
+		//	Script::BindEnumVal<PipelineFaceCull, i32, PipelineFaceCull::CW>("cw");
+		//	Script::BindEnumVal<PipelineFaceCull, i32, PipelineFaceCull::CCW>("ccw");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<ShaderType, i32>("ShaderType");
+		//{
+		//	Script::BindEnumVal<ShaderType, i32, ShaderType::UNKNOWN>("none");
+		//	Script::BindEnumVal<ShaderType, i32, ShaderType::VERTEX>("vertex");
+		//	Script::BindEnumVal<ShaderType, i32, ShaderType::PIXEL>("pixel");
+		//	Script::BindEnumVal<ShaderType, i32, ShaderType::GEOMETRY>("geometry");
+		//	Script::BindEnumVal<ShaderType, i32, ShaderType::COMPUTE>("compute");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<GraphicsClearFlags, i32>("ClearFlags");
+		//{
+		//	Script::BindEnumVal<GraphicsClearFlags, i32, GraphicsClearFlags::NONE>("none");
+		//	Script::BindEnumVal<GraphicsClearFlags, i32, GraphicsClearFlags::DEPTH>("depth");
+		//	Script::BindEnumVal<GraphicsClearFlags, i32, GraphicsClearFlags::STENCIL>("stencil");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<GraphicsValueType, i32>("ValueType");
+		//{
+		//	Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::UNDEFINED>("undefined");
+		//	Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::INT8>("int8");
+		//	Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::INT16>("int16");
+		//	Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::INT32>("int32");
+		//	Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::UINT8>("uint8");
+		//	Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::UINT16>("uint16");
+		//	Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::UINT32>("uint32");
+		//	Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::FLOAT16>("float16");
+		//	Script::BindEnumVal<GraphicsValueType, i32, GraphicsValueType::FLOAT32>("float32");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<BufferUsage, i32>("UsageFlags");
+		//{
+		//	Script::BindEnumVal<BufferUsage, i32, BufferUsage::IMMUTABLE>("immutable");
+		//	Script::BindEnumVal<BufferUsage, i32, BufferUsage::DEFAULT>("default");
+		//	Script::BindEnumVal<BufferUsage, i32, BufferUsage::DYNAMIC>("dynamic");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<BufferType, i32>("BindFlags");
+		//{
+		//	Script::BindEnumVal<BufferType, i32, BufferType::VERTEX_BUFFER>("vertex");
+		//	Script::BindEnumVal<BufferType, i32, BufferType::INDEX_BUFFER>("index");
+		//	Script::BindEnumVal<BufferType, i32, BufferType::UNIFORM_BUFFER>("uniform");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass<BufferAccess, i32>("CpuAccessFlags");
+		//{
+		//	Script::BindEnumVal<BufferAccess, i32, BufferAccess::NONE>("none");
+		//	Script::BindEnumVal<BufferAccess, i32, BufferAccess::READ>("read");
+		//	Script::BindEnumVal<BufferAccess, i32, BufferAccess::WRITE>("write");
+		//}
+		//Script::EndClass();
+		//
+		//Script::BeginClass("Graphics");
+		//{
+		//	Script::BindFunction<decltype(&Graphics::GetColorBufferFormat), &Graphics::GetColorBufferFormat>(true, "getColorBufferFormat()");
+		//	Script::BindFunction<decltype(&Graphics::GetDepthBufferFormat), &Graphics::GetDepthBufferFormat>(true, "getDepthBufferFormat()");
+		//
+		//	//Script::BindFunction<decltype(&Graphics::CreateCubemap), &Graphics::CreateCubemap>(true, "createCubemap(_)");
+		//	//Script::BindFunction<decltype(&Graphics::CreateMesh), &Graphics::CreateMesh>(true, "createMesh(_)");
+		//	//
+		//	//Script::BindFunction<decltype(&Graphics::BatchBegin), &Graphics::BatchBegin>(true, "batchBegin()");
+		//	//Script::BindFunction<decltype(&Graphics::BatchInstance), &Graphics::BatchInstance>(true, "batchInstance(_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::BatchDraw), &Graphics::BatchDraw>(true, "batchDraw(_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::BatchEnd), &Graphics::BatchEnd>(true, "batchEnd()");
+		//	//
+		//	//Script::BindFunction<decltype(&Graphics::DrawBegin), &Graphics::DrawBegin>(true, "drawBegin(_)");
+		//	//Script::BindFunction<decltype(&Graphics::DrawSetFloat), &Graphics::DrawSetFloat>(true, "drawSetFloat(_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::DrawSetVec2), &Graphics::DrawSetVec2>(true, "drawSetVec2(_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::DrawSetVec3), &Graphics::DrawSetVec3>(true, "drawSetVec3(_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::DrawSetVec4), &Graphics::DrawSetVec4>(true, "drawSetVec4(_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::DrawSetMat4), &Graphics::DrawSetMat4>(true, "drawSetMat4(_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::DrawBindTexture2D), &Graphics::DrawBindTexture2D>(true, "drawBindTexture(_,_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::DrawBindCubemap), &Graphics::DrawBindCubemap>(true, "drawBindCubemap(_,_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::DrawEnd), &Graphics::DrawEnd>(true, "drawEnd(_)");
+		//	//
+		//	//Script::BindFunction<decltype(&Graphics::ConvoluteEnvMap), &Graphics::ConvoluteEnvMap>(true, "convoluteEnvMap(_,_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::PrefilterEnvMap), &Graphics::PrefilterEnvMap>(true, "prefilterEnvMap(_,_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::GenBrdfLut), &Graphics::GenBrdfLut>(true, "genBrdfLut(_,_)");
+		//	//
+		//	//Script::BindFunction<decltype(&Graphics::DrawScreen), &Graphics::DrawScreen>(true, "drawScreen(_,_)");
+		//	//Script::BindFunction<decltype(&Graphics::DrawSkybox), &Graphics::DrawSkybox>(true, "drawSkybox(_,_,_,_)");
+		//
+		//	Script::BindFunction<decltype(&Graphics::DebugLine), &Graphics::DebugLine>(true, "debugLine(_,_,_,_)");
+		//}
+		//Script::EndClass();
 
 		//Script::BeginClass<Shader>("Shader");
 		//{

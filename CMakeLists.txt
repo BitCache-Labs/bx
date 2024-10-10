@@ -6,10 +6,12 @@ message(STATUS "C Compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "C Compiler Version: ${CMAKE_C_COMPILER_VERSION}")
 
 project (bx)
+set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option (BX_BUILD_EDITOR "Build as editor binaries" OFF)
+option (BX_BUILD_EDITOR "Build as editor binaries" ON)
 option (BX_INSTALL "Install binaries" OFF)
-#option (BUILD_TESTS "Build the test binaries" ON)
+option (BX_BUILD_TESTS "Build the test binaries" ON)
 
 # Define options for platform backend
 set (BX_PLATFORM_BACKEND "Common" CACHE STRING "Choose the platform backend: Common")
@@ -33,49 +35,47 @@ message ("BX audio backend: ${BX_AUDIO_BACKEND}")
 
 # External libraries
 add_subdirectory (extern)
-set (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-add_subdirectory (wren)
+#set (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+#add_subdirectory (wren)
 
 # Setup bx library
 set (BX_SRCS
 	"src/bx/core/log.cpp"
 	"src/bx/core/memory.cpp"
 	"src/bx/core/object.cpp"
-	"src/bx/core/plugin.cpp"
 	"src/bx/core/profiler.cpp"
-	"src/bx/core/application.cpp"
 	"src/bx/core/time.cpp"
 	"src/bx/core/uuid.cpp"
 
 	"src/bx/math/math.cpp"
 
 	# TODO: These shouldn't really exist, left here for compatibility while porting
-	"src/bx/platform/audio.cpp"
+	#"src/bx/platform/audio.cpp"
 	"src/bx/platform/graphics.cpp"
-	"src/bx/platform/imgui.cpp"
-	"src/bx/platform/input.cpp"
+	#"src/bx/platform/imgui.cpp"
+	#"src/bx/platform/input.cpp"
 	"src/bx/platform/window.cpp"
 
 	"src/bx/engine/data.cpp"
 	"src/bx/engine/ecs.cpp"
-	"src/bx/engine/engine.cpp"
+	
 	"src/bx/engine/resource.cpp"
 	"src/bx/engine/application.cpp"
 	"src/bx/engine/script.cpp"
+	"src/bx/engine/plugin.cpp"
+	"src/bx/engine/application.cpp"
 )
 
-set (BX_REFLECT_SRCS
-	"src/bx/core/reflect.cpp"
-	"src/bx/math/reflect.cpp"
-	#"src/bx/meta/reflect.cpp"
-	"src/bx/platform/reflect.cpp"
-)
+set (BX_LIBS rttr_core cereal fmt glm imgui wren)# file_embed)
 
-set (BX_LIBS rttr_core_lib cereal fmt glm imgui wren)# file_embed)
-
-add_library (bx STATIC ${BX_SRCS})
+add_library (bx SHARED ${BX_SRCS} "src/bx/core/module.cpp")
 target_link_libraries (bx PUBLIC ${BX_LIBS})
 target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(bx PRIVATE BX_EXPORT)
+
+if (MSVC)
+    target_compile_options(bx PRIVATE /bigobj)
+endif()
 
 if (BX_INSTALL)
 	set (PROJECT_PATH_DIR ".")
@@ -105,36 +105,29 @@ else ()
 endif ()
 # ---------------------------------------
 
-if (BX_BUILD_EDITOR)
-    target_compile_definitions (bx PUBLIC BX_EDITOR_BUILD)
-endif ()
-
 # Setup platform backend
-if (BX_PLATFORM_BACKEND STREQUAL "Common")
-    message(STATUS "Using the common platform backend")
-	target_compile_definitions(bx PUBLIC BX_PLATFORM_COMMON_BACKEND)
-    target_link_libraries(bx-platform-common PRIVATE bx)
-	target_link_libraries(bx PUBLIC bx-platform-common)
+#if (BX_PLATFORM_BACKEND STREQUAL "Common")
+#    message(STATUS "Using the common platform backend")
+#	target_compile_definitions(bx PUBLIC BX_PLATFORM_COMMON_BACKEND)
+#    target_link_libraries(bx-platform-common PRIVATE bx)
+#	target_link_libraries(bx PUBLIC bx-platform-common)
+#
+#elseif (BX_PLATFORM_BACKEND STREQUAL "Custom")
+#    message(STATUS "Using a custom platform backend")
+#	target_compile_definitions(bx PUBLIC BX_PLATFORM_CUSTOM_BACKEND)
+#
+#else ()
+#    message(FATAL_ERROR "Unknown platform backend: ${BX_PLATFORM_BACKEND}")
+#endif ()
+#
 
-elseif (BX_PLATFORM_BACKEND STREQUAL "Custom")
-    message(STATUS "Using a custom platform backend")
-	target_compile_definitions(bx PUBLIC BX_PLATFORM_CUSTOM_BACKEND)
+# Add the backends directory to build the backend libraries
+add_subdirectory(backends)
 
-else ()
-    message(FATAL_ERROR "Unknown platform backend: ${BX_PLATFORM_BACKEND}")
-endif ()
-
-# Setup window backend
+# Configure the window backend based on selection
 if (BX_WINDOW_BACKEND STREQUAL "GLFW")
     message(STATUS "Using GLFW as the window backend")
     target_compile_definitions(bx PUBLIC BX_WINDOW_GLFW_BACKEND)
-
-	# ImGui GLFW (TODO: temporary solution until a fully custom solution is made)
-	add_library (imgui_glfw STATIC "extern/imgui/backends/imgui_impl_glfw.cpp")
-	target_link_libraries(imgui_glfw imgui glfw)
-
-    target_link_libraries(bx-platform-glfw PRIVATE bx imgui_glfw)
-	target_link_libraries(bx PUBLIC bx-platform-glfw)
 
 elseif (BX_WINDOW_BACKEND STREQUAL "Custom")
     message(STATUS "Using a custom window backend")
@@ -144,89 +137,110 @@ else ()
     message(FATAL_ERROR "Unknown window backend: ${BX_WINDOW_BACKEND}")
 endif ()
 
-# Setup graphics backend
-if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
-    message(STATUS "Using OpenGL as the graphics backend")
-    target_compile_definitions(bx PUBLIC BX_GRAPHICS_OPENGL_BACKEND)
-
-	# ImGui OpenGL3 (TODO: temporary solution until a fully custom solution is made)
-	add_library (imgui_opengl3 STATIC "extern/imgui/backends/imgui_impl_opengl3.cpp")
-	target_link_libraries(imgui_opengl3 imgui)
-
-	target_link_libraries(bx-platform-opengl PRIVATE bx imgui_opengl3)
-	target_link_libraries (bx PUBLIC bx-platform-opengl)
-
-#elseif (BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
-#    message(STATUS "Using OpenGLES as the graphics backend")
-#    target_compile_definitions(bx-platform PUBLIC BX_GRAPHICS_OPENGLES_BACKEND)
 #
-#elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
-#    message(STATUS "Using Vulkan as the graphics backend")
-#    target_compile_definitions(bx-platform PUBLIC BX_GRAPHICS_VULKAN_BACKEND)
+## Setup graphics backend
+#if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
+#    message(STATUS "Using OpenGL as the graphics backend")
+#    target_compile_definitions(bx PUBLIC BX_GRAPHICS_OPENGL_BACKEND)
+#
+#	# ImGui OpenGL3 (TODO: temporary solution until a fully custom solution is made)
+#	add_library (imgui_opengl3 STATIC "extern/imgui/backends/imgui_impl_opengl3.cpp")
+#	target_link_libraries(imgui_opengl3 imgui)
+#
+#	target_link_libraries(bx-platform-opengl PRIVATE bx imgui_opengl3)
+#	target_link_libraries (bx PUBLIC bx-platform-opengl)
+#
+##elseif (BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
+##    message(STATUS "Using OpenGLES as the graphics backend")
+##    target_compile_definitions(bx-platform PUBLIC BX_GRAPHICS_OPENGLES_BACKEND)
+##
+##elseif (BX_GRAPHICS_BACKEND STREQUAL "Vulkan")
+##    message(STATUS "Using Vulkan as the graphics backend")
+##    target_compile_definitions(bx-platform PUBLIC BX_GRAPHICS_VULKAN_BACKEND)
+#
+#elseif (BX_GRAPHICS_BACKEND STREQUAL "Custom")
+#    message(STATUS "Using a custom graphics backend")
+#    target_compile_definitions(bx PUBLIC BX_GRAPHICS_CUSTOM_BACKEND)
+#
+#else ()
+#    message(FATAL_ERROR "Unknown graphics backend: ${GRAPHICS_BACKEND}")
+#endif ()
+#
+## Setup audio backend
+#if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
+#    message(STATUS "Using PortAudio as the audio backend")
+#    target_compile_definitions(bx PUBLIC BX_AUDIO_PORTAUDIO_BACKEND)
+#	target_link_libraries(bx-platform-portaudio PRIVATE bx)
+#	target_link_libraries(bx PUBLIC bx-platform-portaudio)
+#
+#elseif (BX_AUDIO_BACKEND STREQUAL "Custom")
+#    message(STATUS "Using a custom audio backend")
+#    target_compile_definitions(bx PUBLIC BX_AUDIO_CUSTOM_BACKEND)
+#
+#else ()
+#    message(FATAL_ERROR "Unknown audio backend: ${WINDOW_BACKEND}")
+#endif ()
 
-elseif (BX_GRAPHICS_BACKEND STREQUAL "Custom")
-    message(STATUS "Using a custom graphics backend")
-    target_compile_definitions(bx PUBLIC BX_GRAPHICS_CUSTOM_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown graphics backend: ${GRAPHICS_BACKEND}")
-endif ()
-
-# Setup audio backend
-if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
-    message(STATUS "Using PortAudio as the audio backend")
-    target_compile_definitions(bx PUBLIC BX_AUDIO_PORTAUDIO_BACKEND)
-	target_link_libraries(bx-platform-portaudio PRIVATE bx)
-	target_link_libraries(bx PUBLIC bx-platform-portaudio)
-
-elseif (BX_AUDIO_BACKEND STREQUAL "Custom")
-    message(STATUS "Using a custom audio backend")
-    target_compile_definitions(bx PUBLIC BX_AUDIO_CUSTOM_BACKEND)
-
-else ()
-    message(FATAL_ERROR "Unknown audio backend: ${WINDOW_BACKEND}")
-endif ()
+# Set the output directory for bx-editor and bx
+#set_target_properties(bx PROPERTIES
+#    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+#    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+#)
 
 # Editor sources and libraries
 if (BX_BUILD_EDITOR)
-	set (BX_REFLECT_SRCS ${BX_REFLECT_SRCS}
-		"src/bx/editor/reflect.cpp"
-	)
+	target_compile_definitions (bx PUBLIC BX_EDITOR_BUILD)
 
-    target_sources(bx PRIVATE
-		"src/bx/editor/command.cpp"
-		"src/bx/editor/selection.cpp"
-		"src/bx/editor/view.cpp"
+    #target_sources(bx PRIVATE
+	#	#"src/bx/editor/command.cpp"
+	#	#"src/bx/editor/selection.cpp"
+	#	#"src/bx/editor/view.cpp"
+	#	#
+	#	#"src/bx/editor/assets.cpp"
+	#	#"src/bx/editor/asset_importer.cpp"
+	#	#"src/bx/editor/toolbar.cpp"
+	#
+	#	#"src/bx/editor/views/assets_view.cpp"
+	#	#"src/bx/editor/views/console_view.cpp"
+	#	#"src/bx/editor/views/data_view.cpp"
+	#	#"src/bx/editor/views/entity_view.cpp"
+	#	#"src/bx/editor/views/profiler_view.cpp"
+	#	#"src/bx/editor/views/script_view.cpp"
+	#	#"src/bx/editor/views/settings_view.cpp"
+	#)
+    #target_link_libraries(bx PUBLIC implot IconFontCppHeaders FontAwesome FreeFonts)
 
-		"src/bx/editor/assets.cpp"
-		"src/bx/editor/asset_importer.cpp"
-		"src/bx/editor/toolbar.cpp"
+	if(WIN32)
+		add_executable (bx-editor "src/bx/runtime/editor.cpp" "resources/bx.rc" "src/bx/core/module.cpp")
+	#elseif(APPLE)
+	#elseif(UNIX)
+	else()
+		add_executable (bx-editor "src/bx/runtime/editor.cpp")
+	endif()
 
-		"src/bx/editor/views/assets_view.cpp"
-		"src/bx/editor/views/console_view.cpp"
-		"src/bx/editor/views/data_view.cpp"
-		"src/bx/editor/views/entity_view.cpp"
-		"src/bx/editor/views/profiler_view.cpp"
-		"src/bx/editor/views/script_view.cpp"
-		"src/bx/editor/views/settings_view.cpp"
-	)
-    target_link_libraries(bx PUBLIC implot IconFontCppHeaders FontAwesome FreeFonts)
+	target_link_libraries (bx-editor bx)
+
+	#set_target_properties(bx-editor PROPERTIES
+	#	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+	#	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+	#)
 endif()
 
-# Link the reflect obj lib
-add_library(bx-reflect OBJECT ${BX_REFLECT_SRCS})
-target_include_directories (bx-reflect PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(bx-reflect PRIVATE ${BX_LIBS})
-target_link_libraries(bx PRIVATE $<TARGET_OBJECTS:bx-reflect>)
+if (BX_BUILD_TESTS)
+	enable_testing()
+	add_subdirectory(tests)
+endif ()
 
+if (BX_INSTALL)
+	install(TARGETS bx bx-editor
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include)
 
-# TODO: Clean this up
-#if (MSVC)
-#	target_compile_options(bx PUBLIC "/ZI")
-#	target_link_options(bx PUBLIC "/INCREMENTAL")
-#endif ()
+	# TODO: Implement this properly
+#	install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 #
-#if (BX_INSTALL)
 #	# Copy game contents to install dir
 #	install(DIRECTORY ${CMAKE_SOURCE_DIR}/game DESTINATION bin)
 #
@@ -241,4 +255,4 @@ target_link_libraries(bx PRIVATE $<TARGET_OBJECTS:bx-reflect>)
 #	if (MSVC)
 #		target_link_options(bx INTERFACE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
 #	endif ()
-#endif ()
+endif ()

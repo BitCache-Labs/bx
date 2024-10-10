@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef NETWORK_IMPL
 class Network
 {
 public:
@@ -13,3 +14,4 @@ private:
 	static void Reload() {}
 	static void Shutdown() {}
 };
+#endif

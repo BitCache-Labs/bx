@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef INPUT_IMPL
 #include <bx/meta/enum.hpp>
 
 // TODO: Move this to window module
@@ -215,3 +216,4 @@ public:
 	/// </summary>
 	static void ResetPadLightbarColor();
 };
+#endif

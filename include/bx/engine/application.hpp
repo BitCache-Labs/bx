@@ -1,12 +1,19 @@
 #pragma once
 
+#include <bx/bx.hpp>
+
 struct AppConfig
 {
+	AppConfig(int argc, char** argv)
+		: argc(argc)
+		, argv(argv)
+	{}
+
 	int argc = 0;
 	char** argv = nullptr;
 };
 
-class Application
+class BX_API Application
 {
 public:
 	static int Launch(const AppConfig& config);
@@ -15,8 +22,5 @@ public:
 	static void Close();
 
 	static void Reload();
-
-private:
-	static bool Configure(const AppConfig& config);
 	static void Tick();
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bx/bx.hpp>
 #include "bx/core/byte_types.hpp"
 #include "bx/containers/string.hpp"
 
@@ -12,7 +13,7 @@
 
 enum struct LogLevel { LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR };
 
-struct LogEntry
+struct BX_API LogEntry
 {
 	LogEntry() {}
 	LogEntry(LogLevel level, const String& message)
@@ -22,7 +23,7 @@ struct LogEntry
 	String message;
 };
 
-class Log
+class BX_API Log
 {
 public:
 	// TODO: This should be in String.hpp

@@ -1,41 +1,201 @@
-#include <bx/core/application.hpp>
+#include <bx/engine/application.hpp>
 
 #include "bx/engine/data.hpp"
 #include "bx/engine/resource.hpp"
 #include "bx/engine/script.hpp"
 
-#include <bx/core/plugin.hpp>
+#include <bx/engine/plugin.hpp>
 #include <bx/core/memory.hpp>
 #include <bx/core/log.hpp>
 #include <bx/core/time.hpp>
 #include <bx/core/profiler.hpp>
+#include <bx/core/module.hpp>
 
-#include <bx/platform/file.hpp>
-#include <bx/platform/input.hpp>
+//#include <bx/platform/file.hpp>
+//#include <bx/platform/input.hpp>
 #include <bx/platform/window.hpp>
-#include <bx/platform/graphics.hpp>
-#include <bx/platform/audio.hpp>
-#include <bx/platform/imgui.hpp>
+//#include <bx/platform/graphics.hpp>
+//#include <bx/platform/audio.hpp>
+//#include <bx/platform/imgui.hpp>
+
+//#ifdef BX_EDITOR_BUILD
+//#include <bx/editor/assets.hpp>
+//#include <bx/editor/toolbar.hpp>
+//#include <bx/editor/view.hpp>
+//#include <bx/editor/views/profiler_view.hpp>
+//#include <bx/editor/views/data_view.hpp>
+//#include <bx/editor/views/assets_view.hpp>
+//#include <bx/editor/views/settings_view.hpp>
+//#include <bx/editor/views/console_view.hpp>
+//
+//#define IMGUI_DEFINE_MATH_OPERATORS
+//#include <imgui.h>
+//#include <imgui_internal.h>
+//#include <implot.h>
+//#include <IconsFontAwesome5.h>
+
+//static void InitializeImGui()
+//{
+//	ImPlot::CreateContext();
+//
+//	ImGuiIO& io = ImGui::GetIO();
+//
+//	const float uiScale = 1.0f;
+//	const float fontSize = 14.0f;
+//	const float iconSize = 12.0f;
+//
+//	ImFontConfig config;
+//	config.OversampleH = 8;
+//	config.OversampleV = 8;
+//	io.Fonts->AddFontFromFileTTF(FREE_FONTS_DROID_SANS, fontSize * uiScale, &config);
+//
+//	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 }; // will not be copied by AddFont* so keep in scope.
+//	config.MergeMode = true;
+//	config.OversampleH = 8;
+//	config.OversampleV = 8;
+//	io.Fonts->AddFontFromFileTTF(FONT_AWESOME_6_FREE_SOLID_900, iconSize * uiScale, &config, icons_ranges);
+//}
+//
+//static void EngineMenuBar()
+//{
+//	if (ImGui::BeginMainMenuBar())
+//	{
+//		if (ImGui::BeginMenu("Views"))
+//		{
+//			if (ImGui::MenuItem("Assets"))
+//			{
+//				//ViewManager::AddView(new AssetsView());
+//			}
+//
+//			ImGui::Separator();
+//
+//			if (ImGui::MenuItem("Profiler"))
+//			{
+//				ViewManager::AddView(new ProfilerView());
+//			}
+//
+//			ImGui::EndMenu();
+//		}
+//		ImGui::EndMainMenuBar();
+//	}
+//
+//	ImGui::ShowDemoWindow();
+//}
+//#endif
+
+static bool g_running = true;
+
+bool Application::IsRunning()
+{
+	return g_running && Window::Get().IsOpen();
+}
+
+void Application::Close()
+{
+	g_running = false;
+}
+
+void Application::Reload()
+{
+	PluginManager::Reload();
 
 #ifdef BX_EDITOR_BUILD
-#include <bx/editor/assets.hpp>
-#include <bx/editor/toolbar.hpp>
-#include <bx/editor/views/profiler_view.hpp>
-#include <bx/editor/views/data_view.hpp>
-#include <bx/editor/views/assets_view.hpp>
-#include <bx/editor/views/settings_view.hpp>
-#include <bx/editor/views/console_view.hpp>
+	//ViewManager::Reload();
 #endif
+}
+
+int Application::Launch(const AppConfig& config)
+{
+#ifdef MEMORY_CUSTOM_CONTAINERS
+	Memory::Initialize();
+#endif
+
+	Module::Load();
+
+	Time::Initialize();
+	//File::Initialize();
+	//
+	Window::Get().Initialize();
+	//Input::Initialize();
+	//Graphics::Initialize();
+	//ImGuiImpl::Initialize();
+	//Audio::Initialize();
+
+	//Data::Initialize();
+	//ResourceManager::Initialize();
+	//Script::Initialize();
+
+#ifdef BX_EDITOR_BUILD
+	//InitializeImGui();
+
+	//AssetManager::Initialize();
+
+	//ViewManager::AddMenuBarCallback(&EngineMenuBar);
+	//ViewManager::Initialize();
+
+	String scenePath = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+	if (!scenePath.empty())
+	{
+		scenePath = Data::GetString("Main Scene", "[assets]/main.scene", DataTarget::GAME);
+		Data::SetString("Current Scene", scenePath, DataTarget::EDITOR);
+	}
+
+	Reload();
+	//Scene::Load(scenePath);
+#else
+	Window::Get().SetCursorMode(CursorMode::DISABLED);
+
+	const String& mainScene = Data::GetString("Main Scene", "[assets]/main.scene", DataTarget::GAME);
+	//Scene::Load(mainScene);
+#endif
+
+	if (!PluginManager::Initialize())
+	{
+		BX_LOGE("Failed to initialize plugins!");
+		return EXIT_FAILURE;
+	}
+
+	while (IsRunning())
+	{
+		Tick();
+	}
+
+	PluginManager::Shutdown();
+
+#ifdef BX_EDITOR_BUILD
+	//ViewManager::Shutdown();
+	//AssetManager::Shutdown();
+#endif
+
+	//Script::Shutdown();
+	//ResourceManager::Shutdown();
+	//Data::Shutdown();
+
+	//Audio::Shutdown();
+	//ImGuiImpl::Shutdown();
+	//Graphics::Shutdown();
+	//Input::Shutdown();
+	Window::Get().Shutdown();
+
+	//File::Shutdown();
+	//Time::Shutdown();
+
+#ifdef MEMORY_CUSTOM_CONTAINERS
+	Memory::Shutdown();
+#endif
+
+	return EXIT_SUCCESS;
+}
 
 void Application::Tick()
 {
 	//PROFILE_SECTION("Application");
 
 	Profiler::Update();
-	Script::CollectGarbage();
+	//Script::CollectGarbage();
 	Time::Update();
-	Window::PollEvents();
-	Input::Poll();
+	Window::Get().PollEvents();
+	//Input::Poll();
 
 #ifdef BX_EDITOR_BUILD
 //	if (Toolbar::IsPlaying() && (Toolbar::ConsumeNextFrame() || !Toolbar::IsPaused()))
@@ -50,8 +210,8 @@ void Application::Tick()
 //	Script::Update();
 #endif
 
-	Graphics::NewFrame();
-	ImGuiImpl::NewFrame();
+	//Graphics::NewFrame();
+	//ImGuiImpl::NewFrame();
 
 #ifdef BX_EDITOR_BUILD
 //	if (Toolbar::IsPlaying() && !Toolbar::IsPaused())
@@ -60,18 +220,18 @@ void Application::Tick()
 //		Script::Render();
 //	}
 //	Toolbar::Present();
-	ViewManager::Present();
+	//ViewManager::Present();
 #else
 //	SystemManager::Render();
 //	Script::Render();
 #endif
 
-	ImGuiImpl::EndFrame();
-	Graphics::EndFrame();
+	//ImGuiImpl::EndFrame();
+	//Graphics::EndFrame();
 
-	Window::Display();
+	Window::Get().Display();
 
 #ifdef BX_EDITOR_BUILD
-	AssetManager::Refresh();
+	//AssetManager::Refresh();
 #endif
 }

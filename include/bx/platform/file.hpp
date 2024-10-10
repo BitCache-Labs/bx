@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef FILE_IMPL
 #include "bx/core/byte_types.hpp"
 #include "bx/containers/list.hpp"
 #include "bx/containers/string.hpp"
@@ -50,3 +51,4 @@ public:
 	static String ReadTextFile(const String& filename);
 	static bool WriteTextFile(const String& filename, const String& text);
 };
+#endif

@@ -3,7 +3,7 @@
 #include "bx/engine/data.hpp"
 #include "bx/engine/script.hpp"
 
-#include <bx/core/application.hpp>
+#include <bx/engine/application.hpp>
 #include <bx/core/time.hpp>
 #include <bx/core/version.hpp>
 #include <bx/platform/window.hpp>

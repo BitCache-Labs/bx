@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef AUDIO_IMPL
 #include <bx/containers/list.hpp>
 #include <bx/math/math.hpp>
 
@@ -33,3 +34,4 @@ public:
 	static void PlayAudio(const AudioHandle channel, const AudioHandle audio);
 	static void StopAudio(const AudioHandle channel, const AudioHandle audio);
 };
+#endif

@@ -36,13 +36,13 @@ void Data::Shutdown()
 
 void Data::Save(DataTarget target)
 {
-	auto filepath = File::GetPath(GetFilepath(target));
-	std::ofstream ofs(filepath);
-	if (!ofs.is_open())
-		return;
-	
-	cereal::JSONOutputArchive archive(ofs);
-	archive(GetDatabase(target));
+	//auto filepath = File::GetPath(GetFilepath(target));
+	//std::ofstream ofs(filepath);
+	//if (!ofs.is_open())
+	//	return;
+	//
+	//cereal::JSONOutputArchive archive(ofs);
+	//archive(GetDatabase(target));
 }
 
 void Data::Load(DataTarget target)
@@ -51,13 +51,13 @@ void Data::Load(DataTarget target)
 	Data::Save(target);
 #endif
 
-	auto filepath = File::GetPath(GetFilepath(target));
-	std::ifstream ifs(filepath);
-	if (!ifs.is_open())
-		return;
-
-	cereal::JSONInputArchive archive(ifs);
-	archive(GetDatabase(target));
+	//auto filepath = File::GetPath(GetFilepath(target));
+	//std::ifstream ifs(filepath);
+	//if (!ifs.is_open())
+	//	return;
+	//
+	//cereal::JSONInputArchive archive(ifs);
+	//archive(GetDatabase(target));
 }
 
 const String& Data::GetFilepath(DataTarget target)

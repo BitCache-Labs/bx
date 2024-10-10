@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef IMGUI_IMPL
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -25,3 +26,4 @@ private:
 	static void NewFrame_Graphics();
 	static void EndFrame_Graphics();
 };
+#endif

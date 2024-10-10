@@ -7,186 +7,283 @@
 #include <bx/core/profiler.hpp>
 #include <bx/containers/pool.hpp>
 
-struct DebugLineData
+#include <rttr/type>
+#include <rttr/registration>
+#include <stdexcept>
+#include <iostream>
+
+Graphics& Graphics::Get()
 {
-    DebugLineData() {}
-	DebugLineData(const Vec3& a, const Vec3& b, u32 c, f32 l)
-		: a(a), b(b), color(c), lifespan(l) {}
+    static Graphics* instance = nullptr;
+    if (!instance)
+    {
+        const auto& derived = rttr::type::get<Graphics>().get_derived_classes();
+        if (derived.size() == 0)
+            throw std::runtime_error("No derived Graphics class found.");
 
-    Vec3 a = Vec3(0, 0, 0);
-    Vec3 b = Vec3(0, 0, 0);
-    u32 color = 0;
-    f32 lifespan = 0.0f;
-};
+        const auto& type = *derived.begin();
+        rttr::variant var = type.create();
 
-static List<DebugLineData> g_debugLines;
-static List<DebugLineData> g_debugLinesBuffer;
-
-static List<DebugVertex> g_debugVertices;
+        BX_ENSURE(var.is_type<Graphics*>());
+        instance = var.get_value<Graphics*>();
+    }
+    return *instance;
+}
 
 void Graphics::DebugLine(const Vec3& a, const Vec3& b, u32 color, f32 lifespan)
 {
-    g_debugLines.emplace_back(a, b, color, lifespan);
+    m_debugLines.emplace_back(a, b, color, lifespan);
 }
 
 void Graphics::UpdateDebugLines()
 {
-    g_debugVertices.clear();
+    m_debugVertices.clear();
 
-    g_debugLinesBuffer.clear();
-    g_debugLinesBuffer.reserve(g_debugLines.size());
-    for (auto& line : g_debugLines)
+    m_debugLinesBuffer.clear();
+    m_debugLinesBuffer.reserve(m_debugLines.size());
+    for (auto& line : m_debugLines)
     {
-        g_debugVertices.emplace_back(line.a, line.color);
-        g_debugVertices.emplace_back(line.b, line.color);
-    
+        m_debugVertices.emplace_back(line.a, line.color);
+        m_debugVertices.emplace_back(line.b, line.color);
+
         line.lifespan -= Time::GetDeltaTime();
         if (line.lifespan > 0.0f)
-            g_debugLinesBuffer.emplace_back(line);
+            m_debugLinesBuffer.emplace_back(line);
     }
-    g_debugLines = g_debugLinesBuffer;
+    m_debugLines = m_debugLinesBuffer;
 }
 
 void Graphics::DrawDebugLines(const Mat4& viewProj)
 {
     DebugDrawAttribs attribs;
-    DebugDraw(viewProj, attribs, g_debugVertices);
+    DebugDraw(viewProj, attribs, m_debugVertices);
 }
 
 void Graphics::ClearDebugLines()
 {
-    g_debugLines.clear();
+    m_debugLines.clear();
 }
 
-// TODO: Should the backend be implemented like this?
-/*bool Graphics::Initialize(void* device)
+RTTR_PLUGIN_REGISTRATION
 {
-    auto& backend = GetBackend();
-    return backend.Initialize_Impl(device);
-}
+    /*
+    rttr::registration::enumeration<GraphicsClearFlags>("GraphicsClearFlags")
+    (
+        rttr::value("NONE", GraphicsClearFlags::NONE),
+        rttr::value("DEPTH", GraphicsClearFlags::DEPTH),
+        rttr::value("STENCIL", GraphicsClearFlags::STENCIL)
+    );
 
-void Graphics::Shutdown()
-{
-    auto& backend = GetBackend();
-    backend.Shutdown_Impl();
-}
+    rttr::registration::enumeration<GraphicsValueType>("GraphicsValueType")
+    (
+        rttr::value("UNDEFINED", GraphicsValueType::UNDEFINED),
+        rttr::value("INT8", GraphicsValueType::INT8),
+        rttr::value("INT16", GraphicsValueType::INT16),
+        rttr::value("INT32", GraphicsValueType::INT32),
+        rttr::value("UINT8", GraphicsValueType::UINT8),
+        rttr::value("UINT16", GraphicsValueType::UINT16),
+        rttr::value("UINT32", GraphicsValueType::UINT32),
+        rttr::value("FLOAT16", GraphicsValueType::FLOAT16),
+        rttr::value("FLOAT32", GraphicsValueType::FLOAT32)
+    );
 
-void Graphics::Reload()
-{
-    auto& backend = GetBackend();
-    backend.Reload_Impl();
-}
+    rttr::registration::enumeration<ShaderType>("ShaderType")
+    (
+        rttr::value("UNKNOWN", ShaderType::UNKNOWN),
+        rttr::value("VERTEX", ShaderType::VERTEX),
+        rttr::value("PIXEL", ShaderType::PIXEL),
+        rttr::value("GEOMETRY", ShaderType::GEOMETRY),
+        rttr::value("COMPUTE", ShaderType::COMPUTE)
+    );
 
-void Graphics::SwapBuffers()
-{
-    auto& backend = GetBackend();
-    backend.SwapBuffers_Impl();
-}
+    rttr::registration::enumeration<BufferType>("BufferType")
+    (
+        rttr::value("VERTEX_BUFFER", BufferType::VERTEX_BUFFER),
+        rttr::value("INDEX_BUFFER", BufferType::INDEX_BUFFER),
+        rttr::value("UNIFORM_BUFFER", BufferType::UNIFORM_BUFFER),
+        rttr::value("STORAGE_BUFFER", BufferType::STORAGE_BUFFER)
+    );
 
-void Graphics::Render()
-{
-    auto& backend = GetBackend();
-    backend.Render_Impl();
-}
+    rttr::registration::enumeration<BufferUsage>("BufferUsage")
+    (
+        rttr::value("IMMUTABLE", BufferUsage::IMMUTABLE),
+        rttr::value("DEFAULT", BufferUsage::DEFAULT),
+        rttr::value("DYNAMIC", BufferUsage::DYNAMIC)
+    );
 
-TextureFormat Graphics::GetColorBufferFormat()
-{
-    auto& backend = GetBackend();
-    return backend.GetColorBufferFormat_Impl();
-}
+    rttr::registration::enumeration<BufferAccess>("BufferAccess")
+    (
+        rttr::value("NONE", BufferAccess::NONE),
+        rttr::value("READ", BufferAccess::READ),
+        rttr::value("WRITE", BufferAccess::WRITE)
+    );
 
-TextureFormat Graphics::GetDepthBufferFormat()
-{
-    auto& backend = GetBackend();
-    return backend.GetDepthBufferFormat_Impl();
-}
+    rttr::registration::enumeration<TextureFormat>("TextureFormat")
+    (
+        rttr::value("UNKNOWN", TextureFormat::UNKNOWN),
+        rttr::value("RGB8_UNORM", TextureFormat::RGB8_UNORM),
+        rttr::value("RGBA8_UNORM", TextureFormat::RGBA8_UNORM),
+        rttr::value("RG32_UINT", TextureFormat::RG32_UINT),
+        rttr::value("D24_UNORM_S8_UINT", TextureFormat::D24_UNORM_S8_UINT)
+    );
 
-GraphicsHandle Graphics::GetCurrentBackBufferRT()
-{
-    auto& backend = GetBackend();
-    return backend.GetCurrentBackBufferRT_Impl();
-}
+    rttr::registration::enumeration<TextureFlags>("TextureFlags")
+    (
+        rttr::value("NONE", TextureFlags::NONE),
+        rttr::value("SHADER_RESOURCE", TextureFlags::SHADER_RESOURCE),
+        rttr::value("RENDER_TARGET", TextureFlags::RENDER_TARGET),
+        rttr::value("DEPTH_STENCIL", TextureFlags::DEPTH_STENCIL)
+    );
 
-GraphicsHandle Graphics::GetDepthBuffer()
-{
-    auto& backend = GetBackend();
-    return backend.GetDepthBuffer_Impl();
-}
+    rttr::registration::enumeration<ResourceBindingType>("ResourceBindingType")
+    (
+        rttr::value("UNKNOWN", ResourceBindingType::UNKNOWN),
+        rttr::value("TEXTURE", ResourceBindingType::TEXTURE),
+        rttr::value("UNIFORM_BUFFER", ResourceBindingType::UNIFORM_BUFFER),
+        rttr::value("STORAGE_BUFFER", ResourceBindingType::STORAGE_BUFFER)
+    );
 
-GraphicsHandle Graphics::CreateShader(const ShaderInfo& info)
-{
-    auto& backend = GetBackend();
-    return GetBackend().CreateShader_Impl(info);
-}
+    rttr::registration::enumeration<ResourceBindingAccess>("ResourceBindingAccess")
+    (
+        rttr::value("STATIC", ResourceBindingAccess::STATIC),
+        rttr::value("MUTABLE", ResourceBindingAccess::MUTABLE),
+        rttr::value("DYNAMIC", ResourceBindingAccess::DYNAMIC)
+    );
 
-GraphicsHandle Graphics::CreatePipeline(const PipelineInfo& info)
-{
-    auto& backend = GetBackend();
-    return backend.CreatePipeline_Impl(info);
-}
+    rttr::registration::enumeration<PipelineTopology>("PipelineTopology")
+    (
+        rttr::value("UNDEFINED", PipelineTopology::UNDEFINED),
+        rttr::value("POINTS", PipelineTopology::POINTS),
+        rttr::value("LINES", PipelineTopology::LINES),
+        rttr::value("TRIANGLES", PipelineTopology::TRIANGLES)
+    );
 
-void Graphics::ClearRenderTarget(const GraphicsHandle rt, const f32 clearColor[4])
-{
-    auto& backend = GetBackend();
-    backend.ClearRenderTarget_Impl(rt, clearColor);
-}
+    rttr::registration::enumeration<PipelineFaceCull>("PipelineFaceCull")
+    (
+        rttr::value("NONE", PipelineFaceCull::NONE),
+        rttr::value("CW", PipelineFaceCull::CW),
+        rttr::value("CCW", PipelineFaceCull::CCW)
+    );
 
-void Graphics::ClearDepthStencil(const GraphicsHandle dt, ClearFlags flags, f32 depth, i32 stencil)
-{
-    auto& backend = GetBackend();
-    backend.ClearDepthStencil_Impl(dt, flags, depth, stencil);
-}
+    rttr::registration::class_<ShaderInfo>("ShaderInfo")
+        .constructor<>()
+        .property("shaderType", &ShaderInfo::shaderType)
+        .property("source", &ShaderInfo::source);
 
-GraphicsHandle Graphics::CreateBuffer(const BufferInfo& info)
-{
-    auto& backend = GetBackend();
-    return backend.CreateBuffer_Impl(info);
-}
+    rttr::registration::class_<BufferInfo>("BufferInfo")
+        .constructor<>()
+        .property("strideBytes", &BufferInfo::strideBytes)
+        .property("type", &BufferInfo::type)
+        .property("usage", &BufferInfo::usage)
+        .property("access", &BufferInfo::access);
 
-GraphicsHandle Graphics::CreateBuffer(const BufferInfo& info, const BufferData& data)
-{
-    auto& backend = GetBackend();
-    return backend.CreateBuffer_Impl(info, data);
-}
+    rttr::registration::class_<TextureInfo>("TextureInfo")
+        .constructor<>()
+        .property("format", &TextureInfo::format)
+        .property("width", &TextureInfo::width)
+        .property("height", &TextureInfo::height)
+        .property("flags", &TextureInfo::flags);
 
-void Graphics::UpdateBuffer(const GraphicsHandle buffer, const BufferData& data)
-{
-    auto& backend = GetBackend();
-    backend.UpdateBuffer_Impl(buffer, data);
-}
+    rttr::registration::class_<BufferData>("BufferData")
+        .constructor<>()
+        .property("pData", &BufferData::pData)
+        .property("dataSize", &BufferData::dataSize);
 
-void Graphics::SetStaticVariable(const GraphicsHandle pipeline, ShaderType shaderType, const char* name, const GraphicsHandle buffer)
-{
-    auto& backend = GetBackend();
-    backend.SetStaticVariable_Impl(pipeline, shaderType, name, buffer);
-}
+    rttr::registration::class_<ResourceBindingElement>("ResourceBindingElement")
+        .constructor<>()
+        .property("shaderType", &ResourceBindingElement::shaderType)
+        .property("name", &ResourceBindingElement::name)
+        .property("count", &ResourceBindingElement::count)
+        .property("type", &ResourceBindingElement::type)
+        .property("access", &ResourceBindingElement::access);
 
-void Graphics::SetPipeline(const GraphicsHandle pipeline)
-{
-    auto& backend = GetBackend();
-    backend.SetPipeline_Impl(pipeline);
-}
+    rttr::registration::class_<ResourceBindingInfo>("ResourceBindingInfo")
+        .constructor<>()
+        .property("resources", &ResourceBindingInfo::resources)
+        .property("numResources", &ResourceBindingInfo::numResources);
 
-void Graphics::SetVertexBuffers(i32 i, i32 count, const GraphicsHandle* pBuffers, const u64* offset)
-{
-    auto& backend = GetBackend();
-    backend.SetVertexBuffers_Impl(i, count, pBuffers, offset);
-}
+    rttr::registration::class_<LayoutElement>("LayoutElement")
+        .constructor<>()
+        .property("inputIndex", &LayoutElement::inputIndex)
+        .property("bufferSlot", &LayoutElement::bufferSlot)
+        .property("numComponents", &LayoutElement::numComponents)
+        .property("valueType", &LayoutElement::valueType)
+        .property("isNormalized", &LayoutElement::isNormalized)
+        .property("relativeOffset", &LayoutElement::relativeOffset)
+        .property("instanceDataStepRate", &LayoutElement::instanceDataStepRate);
 
-void Graphics::SetIndexBuffer(const GraphicsHandle buffer, i32 i)
-{
-    auto& backend = GetBackend();
-    backend.SetIndexBuffer_Impl(buffer, i);
-}
+    rttr::registration::class_<PipelineInfo>("PipelineInfo")
+        .constructor<>()
+        .property("numRenderTargets", &PipelineInfo::numRenderTargets)
+        .property("renderTargetFormats", &PipelineInfo::renderTargetFormats)
+        .property("depthStencilFormat", &PipelineInfo::depthStencilFormat)
+        .property("topology", &PipelineInfo::topology)
+        .property("faceCull", &PipelineInfo::faceCull)
+        .property("depthEnable", &PipelineInfo::depthEnable)
+        .property("blendEnable", &PipelineInfo::blendEnable)
+        .property("vertShader", &PipelineInfo::vertShader)
+        .property("pixelShader", &PipelineInfo::pixelShader)
+        .property("layoutElements", &PipelineInfo::layoutElements)
+        .property("numElements", &PipelineInfo::numElements);
 
-void Graphics::Draw(const DrawAttribs& attribs)
-{
-    auto& backend = GetBackend();
-    backend.Draw_Impl(attribs);
-}
+    rttr::registration::class_<DrawAttribs>("DrawAttribs")
+        .constructor<>()
+        .property("numVertices", &DrawAttribs::numVertices);
 
-void Graphics::DrawIndexed(const DrawIndexedAttribs& attribs)
-{
-    auto& backend = GetBackend();
-    backend.DrawIndexed_Impl(attribs);
-}*/
+    rttr::registration::class_<DrawIndexedAttribs>("DrawIndexedAttribs")
+        .constructor<>()
+        .property("indexType", &DrawIndexedAttribs::indexType)
+        .property("numIndices", &DrawIndexedAttribs::numIndices);
+
+    rttr::registration::class_<DebugVertex>("DebugVertex")
+        .constructor<>()
+        .property("vert", &DebugVertex::vert)
+        .property("col", &DebugVertex::col);
+
+    rttr::registration::class_<DebugDrawAttribs>("DebugDrawAttribs")
+        .constructor<>();
+
+    rttr::registration::class_<Graphics>("Graphics")
+        .method("Initialize", &Graphics::Initialize)
+        .method("Reload", &Graphics::Reload)
+        .method("Shutdown", &Graphics::Shutdown)
+        .method("NewFrame", &Graphics::NewFrame)
+        .method("EndFrame", &Graphics::EndFrame)
+        .method("GetColorBufferFormat", &Graphics::GetColorBufferFormat)
+        .method("GetDepthBufferFormat", &Graphics::GetDepthBufferFormat)
+        .method("GetCurrentBackBufferRT", &Graphics::GetCurrentBackBufferRT)
+        .method("GetDepthBuffer", &Graphics::GetDepthBuffer)
+        .method("SetRenderTarget", &Graphics::SetRenderTarget)
+        .method("ReadPixels", &Graphics::ReadPixels)
+        .method("SetViewport", &Graphics::SetViewport)
+        .method("ClearRenderTarget", &Graphics::ClearRenderTarget)
+        .method("ClearDepthStencil", &Graphics::ClearDepthStencil)
+        .method("CreateShader", rttr::select_overload<GraphicsHandle(const ShaderInfo&)>(&Graphics::CreateShader))
+        .method("DestroyShader", &Graphics::DestroyShader)
+        .method("CreateTexture", rttr::select_overload<GraphicsHandle(const TextureInfo&)>(&Graphics::CreateTexture))
+        .method("CreateTexture", rttr::select_overload<GraphicsHandle(const TextureInfo&, const BufferData&)>(&Graphics::CreateTexture))
+        .method("DestroyTexture", &Graphics::DestroyTexture)
+        .method("CreateResourceBinding", &Graphics::CreateResourceBinding)
+        .method("DestroyResourceBinding", &Graphics::DestroyResourceBinding)
+        .method("BindResource", &Graphics::BindResource)
+        .method("CreatePipeline", &Graphics::CreatePipeline)
+        .method("DestroyPipeline", &Graphics::DestroyPipeline)
+        .method("SetPipeline", &Graphics::SetPipeline)
+        .method("CommitResources", &Graphics::CommitResources)
+        .method("CreateBuffer", rttr::select_overload<GraphicsHandle(const BufferInfo&)>(&Graphics::CreateBuffer))
+        .method("CreateBuffer", rttr::select_overload<GraphicsHandle(const BufferInfo&, const BufferData&)>(&Graphics::CreateBuffer))
+        .method("DestroyBuffer", &Graphics::DestroyBuffer)
+        .method("UpdateBuffer", &Graphics::UpdateBuffer)
+        .method("SetVertexBuffers", &Graphics::SetVertexBuffers)
+        .method("SetIndexBuffer", &Graphics::SetIndexBuffer)
+        .method("Draw", &Graphics::Draw)
+        .method("DrawIndexed", &Graphics::DrawIndexed)
+        .method("DebugLine", &Graphics::DebugLine)
+        .method("UpdateDebugLines", &Graphics::UpdateDebugLines)
+        .method("DrawDebugLines", &Graphics::DrawDebugLines)
+        .method("ClearDebugLines", &Graphics::ClearDebugLines)
+        .method("DebugDraw", &Graphics::DebugDraw);
+        */
+
+    rttr::registration::class_<Graphics>("Graphics");
+}

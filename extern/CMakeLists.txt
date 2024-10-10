@@ -1,19 +1,23 @@
 # RTTR lib
-set (BUILD_RTTR_DYNAMIC OFF)
+#set (BUILD_RTTR_DYNAMIC ON)
 set (BUILD_UNIT_TESTS OFF)
-set (BUILD_STATIC ON)
-set (BUILD_WITH_STATIC_RUNTIME_LIBS OFF)
-set (BUILD_WITH_RTTI OFF)
+#set (BUILD_STATIC ON)
+#set (BUILD_WITH_STATIC_RUNTIME_LIBS ON)
+#set (BUILD_WITH_RTTI OFF)
 set (BUILD_BENCHMARKS OFF)
 set (BUILD_EXAMPLES OFF)
-set (BUILD_DOCUMENTATION OFF)
-set (BUILD_INSTALLER OFF)
-set (BUILD_PACKAGE OFF)
-set (USE_PCH OFF)
-set (CUSTOM_DOXYGEN_STYLE OFF)
-set (BUILD_WEBSITE_DOCU OFF)
+#set (BUILD_DOCUMENTATION OFF)
+#set (BUILD_INSTALLER ON)
+#set (BUILD_PACKAGE OFF)
+#set (USE_PCH OFF)
+#set (CUSTOM_DOXYGEN_STYLE OFF)
+#set (BUILD_WEBSITE_DOCU OFF)
 
 add_subdirectory (rttr)
+
+#add_library(rttr INTERFACE)
+#target_link_libraries(rttr INTERFACE rttr_core_lib_s)
+#target_include_directories(rttr INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/rttr/src)
 
 # Cereal lib
 set (BUILD_DOC OFF)
@@ -57,21 +61,21 @@ add_library (imgui STATIC ${imgui_src})
 target_include_directories (imgui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
 # Platform specific libs
-if (BX_PLATFORM_BACKEND STREQUAL "Common")
-	add_subdirectory (bx-platform-common)
-endif ()
-
-if (BX_WINDOW_BACKEND STREQUAL "GLFW")
-	add_subdirectory (bx-platform-glfw)
-endif ()
-
-if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
-    add_subdirectory (bx-platform-opengl)
-endif ()
-
-if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
-    add_subdirectory (bx-platform-portaudio)
-endif ()
+#if (BX_PLATFORM_BACKEND STREQUAL "Common")
+#	add_subdirectory (bx-platform-common)
+#endif ()
+#
+#if (BX_WINDOW_BACKEND STREQUAL "GLFW")
+#	add_subdirectory (bx-platform-glfw)
+#endif ()
+#
+#if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
+#    add_subdirectory (bx-platform-opengl)
+#endif ()
+#
+#if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
+#    add_subdirectory (bx-platform-portaudio)
+#endif ()
 
 if (BX_BUILD_EDITOR)
 #	# STB lib
