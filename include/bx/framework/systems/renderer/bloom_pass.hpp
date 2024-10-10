@@ -6,25 +6,19 @@
 
 #include "bx/framework/components/camera.hpp"
 
-class SsaoPass : NoCopy
+class BloomPass : NoCopy
 {
 public:
-	SsaoPass(u32 width, u32 height);
-	~SsaoPass();
+	BloomPass(u32 width, u32 height);
+	~BloomPass();
 
 	void Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle ambientEmissiveBaseColorView);
 
 	static void ClearPipelineCache();
 
-	u32 sampleCount = 16;
-	b8 reducedBias = true;
-	u32 seed = 1337;
-	f32 intensity = 1.0;
-	f32 depthOffset = 0.05;
-	f32 radius = 1.0;
-
 private:
 	u32 width, height;
 
 	BufferHandle constantBuffer;
+	TextureHandle mippedColorTarget;
 };

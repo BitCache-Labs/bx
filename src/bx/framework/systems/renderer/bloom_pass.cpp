@@ -1,30 +1,26 @@
-#include "bx/framework/systems/renderer/ssao_pass.hpp"
+#include "bx/framework/systems/renderer/bloom_pass.hpp"
 
 #include "bx/framework/systems/renderer/lazy_init.hpp"
 
 #include "bx/engine/core/file.hpp"
 #include "bx/framework/resources/shader.hpp"
 
-struct SsaoConstants
+struct DownsampleConstants
 {
     u32 width;
     u32 height;
-    u32 sampleCount;
-    b32 reducedBias;
-    u32 seed;
-    f32 intensity;
-    f32 depthOffset;
-    f32 radius;
+    f32 fogStart;
+    f32 fogEnd;
 };
 
-struct SsaoPipeline : public LazyInit<SsaoPipeline, ComputePipelineHandle>
+struct DownsamplePipeline : public LazyInit<DownsamplePipeline, ComputePipelineHandle>
 {
-    SsaoPipeline()
+    DownsamplePipeline()
     {
         ShaderCreateInfo shaderCreateInfo{};
-        shaderCreateInfo.name = "SSAO Shader";
+        shaderCreateInfo.name = "Downsample Shader";
         shaderCreateInfo.shaderType = ShaderType::COMPUTE;
-        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/ssao/ssao.comp.shader")));
+        shaderCreateInfo.src = ResolveShaderIncludes(File::ReadTextFile(File::GetPath("[engine]/shaders/passes/bloom/downsample.comp.shader")));
         ShaderHandle shader = Graphics::CreateShader(shaderCreateInfo);
 
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
@@ -38,7 +34,7 @@ struct SsaoPipeline : public LazyInit<SsaoPipeline, ComputePipelineHandle>
         };
 
         ComputePipelineCreateInfo pipelineCreateInfo{};
-        pipelineCreateInfo.name = "SSAO Pipeline";
+        pipelineCreateInfo.name = "Downsample Pipeline";
         pipelineCreateInfo.layout = pipelineLayoutDescriptor;
         pipelineCreateInfo.shader = shader;
         data = Graphics::CreateComputePipeline(pipelineCreateInfo);
@@ -48,41 +44,46 @@ struct SsaoPipeline : public LazyInit<SsaoPipeline, ComputePipelineHandle>
 };
 
 template<>
-std::unique_ptr<SsaoPipeline> LazyInit<SsaoPipeline, ComputePipelineHandle>::cache = nullptr;
+std::unique_ptr<DownsamplePipeline> LazyInit<DownsamplePipeline, ComputePipelineHandle>::cache = nullptr;
 
-SsaoPass::SsaoPass(u32 width, u32 height)
+BloomPass::BloomPass(u32 width, u32 height)
     : width(width), height(height)
 {
     BufferCreateInfo constantBufferCreateInfo{};
-    constantBufferCreateInfo.name = "Ssao Pass Constant Buffer";
-    constantBufferCreateInfo.size = sizeof(SsaoConstants);
+    constantBufferCreateInfo.name = "Bloom Pass Constant Buffer";
+    constantBufferCreateInfo.size = sizeof(BloomConstants);
     constantBufferCreateInfo.usageFlags = BufferUsageFlags::COPY_DST | BufferUsageFlags::UNIFORM;
     constantBuffer = Graphics::CreateBuffer(constantBufferCreateInfo);
+
+    TextureCreateInfo mippedColorTargetCreateInfo{};
+    mippedColorTargetCreateInfo.name = "Bloom Pass Mipped Color Target Texture";
+    mippedColorTargetCreateInfo.size = Extend3D(width, height, 1);
+    mippedColorTargetCreateInfo.mipLevelCount = Math::MipLevelsFromDims(width, height);
+    mippedColorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
+    mippedColorTargetCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::TEXTURE_BINDING;
+    mippedColorTarget = Graphics::CreateTexture(mippedColorTargetCreateInfo);
 }
 
-SsaoPass::~SsaoPass()
+BloomPass::~BloomPass()
 {
     Graphics::DestroyBuffer(constantBuffer);
+    Graphics::DestroyTexture(mippedColorTarget);
 }
 
-void SsaoPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle ambientEmissiveBaseColorView)
+void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle ambientEmissiveBaseColorView)
 {
-    SsaoConstants constants{};
+    BloomConstants constants{};
     constants.width = width;
     constants.height = height;
-    constants.sampleCount = sampleCount;
-    constants.reducedBias = reducedBias;
-    constants.seed = seed;
-    constants.intensity = intensity;
-    constants.depthOffset = depthOffset;
-    constants.radius = radius;
-    Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(SsaoConstants));
+    constants.fogStart = 5.0;
+    constants.fogEnd = 30.0;
+    Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(BloomConstants));
 
     TextureViewHandle colorTargetView = Graphics::CreateTextureView(colorTarget);
 
     BindGroupCreateInfo createInfo{};
-    createInfo.name = "Ssao BindGroup";
-    createInfo.layout = Graphics::GetBindGroupLayout(SsaoPipeline::Get(), 0);
+    createInfo.name = "Bloom BindGroup";
+    createInfo.layout = Graphics::GetBindGroupLayout(BloomPipeline::Get(), 0);
     createInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(constantBuffer)),
         BindGroupEntry(1, BindingResource::TextureView(colorTargetView)),
@@ -92,10 +93,10 @@ void SsaoPass::Dispatch(const Camera& camera, TextureHandle colorTarget, Texture
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
 
     ComputePassDescriptor computePassDescriptor{};
-    computePassDescriptor.name = "Ssao";
+    computePassDescriptor.name = "Bloom";
     ComputePassHandle computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
-        Graphics::SetComputePipeline(SsaoPipeline::Get());
+        Graphics::SetComputePipeline(BloomPipeline::Get());
         Graphics::SetBindGroup(0, bindGroup);
         Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
     }
@@ -105,7 +106,7 @@ void SsaoPass::Dispatch(const Camera& camera, TextureHandle colorTarget, Texture
     Graphics::DestroyBindGroup(bindGroup);
 }
 
-void SsaoPass::ClearPipelineCache()
+void BloomPass::ClearPipelineCache()
 {
-    SsaoPipeline::Clear();
+    BloomPipeline::Clear();
 }

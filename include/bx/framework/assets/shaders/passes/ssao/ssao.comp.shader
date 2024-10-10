@@ -14,9 +14,9 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint sampleCount;
     bool reducedBias;
     uint seed;
-    uint _PADDING0;
-    uint _PADDING1;
-    uint _PADDING2;
+    float intensity;
+    float depthOffset;
+    float radius;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D image;
@@ -48,7 +48,7 @@ void main()
     vec3 color = imageLoad(image, pixel).rgb;
     
     float screenRadius = constants.resolution.x / 130.0;
-    float radius = screenRadius;
+    float radius = screenRadius * constants.radius;
     float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed) * 0.5;
     ivec2 pixelSeed = pixel;
     uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed));
@@ -86,12 +86,13 @@ void main()
             vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
 
             float rangeCheck = smoothstep(0.0, 1.0, radius / abs(normalAndDepth.w - sampleNormalAndDepth.w));
-            occlusion += (normalAndDepth.w >= sampleNormalAndDepth.w + 0.025 ? 1.0 : 0.0) * rangeCheck;
+            occlusion += (normalAndDepth.w >= sampleNormalAndDepth.w + constants.depthOffset ? 1.0 : 0.0) * rangeCheck;
             sampleCount += 1.0;
         }
     }
 
     occlusion = 1.0 - (occlusion / sampleCount);
+    occlusion *= constants.intensity;
     color *= mix(occlusion, 1.0, luma);
 
     imageStore(image, pixel, vec4(color, 1.0));
