@@ -26,7 +26,6 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
 {
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
-    uint id = uint(pixel.y * constants.resolution.x + pixel.x);
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
 
     vec4 normalAndDepth = getPixelNormalAndDepth(pixel);

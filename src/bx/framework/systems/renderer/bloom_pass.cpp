@@ -77,17 +77,20 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
 
     f32 mipWidth = static_cast<f32>(width);
     f32 mipHeight = static_cast<f32>(height);
+    u32 mipWidthInt = static_cast<u32>(mipWidth);
+    u32 mipHeightInt = static_cast<u32>(mipHeight);
 
     for (u32 i = 0; i < mipCount - 3; i++) // TODO: go all the way?
     {
+        BloomConstants constants{};
+        constants.srcWidth = mipWidthInt;
+        constants.srcHeight = mipHeightInt;
+
         mipWidth *= 0.5;
         mipHeight *= 0.5;
-        u32 mipWidthInt = static_cast<u32>(mipWidth);
-        u32 mipHeightInt = static_cast<u32>(mipHeight);
+        mipWidthInt = static_cast<u32>(mipWidth);
+        mipHeightInt = static_cast<u32>(mipHeight);
         
-        BloomConstants constants{};
-        constants.srcWidth = width;
-        constants.srcHeight = height;
         constants.dstWidth = mipWidthInt;
         constants.dstHeight = mipHeightInt;
         Graphics::WriteBufferImmediate(constantBuffer, 0, &constants, sizeof(BloomConstants));

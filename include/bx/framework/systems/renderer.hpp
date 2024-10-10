@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <bx/engine/core/ecs.hpp>
@@ -15,6 +14,7 @@
 #include "bx/framework/systems/renderer/fsr2_pass.hpp"
 #include "bx/framework/systems/renderer/fog_pass.hpp"
 #include "bx/framework/systems/renderer/ssao_pass.hpp"
+#include "bx/framework/systems/renderer/bloom_pass.hpp"
 
 class SceneView;
 
@@ -58,6 +58,7 @@ private:
 	std::unique_ptr<Fsr2Pass> m_fsr2Pass = nullptr;
 	std::unique_ptr<FogPass> m_fogPass = nullptr;
 	std::unique_ptr<SsaoPass> m_ssaoPass = nullptr;
+	std::unique_ptr<BloomPass> m_bloomPass = nullptr;
 	std::unique_ptr<BlasDataPool> m_blasDataPool = nullptr;
 	std::unique_ptr<MaterialPool> m_materialPool = nullptr;
 	std::unique_ptr<Sky> m_sky = nullptr;
