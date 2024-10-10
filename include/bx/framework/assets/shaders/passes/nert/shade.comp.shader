@@ -112,7 +112,7 @@ void main()
 
         if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
         {
-            emissiveContribution += throughput * material.emissiveFactor;
+            emissiveContribution += throughput * material.emissiveFactor * 40.0;
         }
         
         if (ReservoirData_isValid(reservoirData))

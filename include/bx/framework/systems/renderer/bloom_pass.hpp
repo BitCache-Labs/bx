@@ -16,10 +16,13 @@ public:
 
 	static void ClearPipelineCache();
 
+	f32 intensity = 0.01;
+
 private:
 	u32 width, height;
 	u32 mipCount;
 
 	BufferHandle constantBuffer;
+	BufferHandle resolveConstantBuffer;
 	TextureHandle mippedColorTarget;
 };

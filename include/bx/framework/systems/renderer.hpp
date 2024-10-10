@@ -30,6 +30,7 @@ public:
 	b8 taa = false;
 	b8 fsr2 = true;
 	b8 ssao = true;
+	b8 bloom = true;
 	b8 restir = true;
 	b8 denoise = true;
 	b8 antiFirefly = true;
