@@ -342,7 +342,7 @@ void SceneView::Present(bool& show)
 
     ImGui::Text("SSAO: ");
     ImGui::SameLine();
-    ImGui::Checkbox("##SSAO", &SystemManager::GetSystem<Renderer>().ssao);
+    ImGui::Checkbox("##SSAO", &SystemManager::GetSystem<Renderer>().ssaoInfo.enabled);
 
     ImGui::Text("Bloom: ");
     ImGui::SameLine();

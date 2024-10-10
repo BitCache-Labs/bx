@@ -34,7 +34,7 @@ void main()
     vec3 emissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(ambientEmissiveBaseColor, pixel).y)));
     float luma = linearToLuma(emissive);
 
-    float adjustedFogEnd = constants.fogEnd * (luma + 1.0);
+    float adjustedFogEnd = constants.fogEnd * ((luma * 0.1) + 1.0);
     float fogIntensity = (adjustedFogEnd - normalAndDepth.w) / (adjustedFogEnd - constants.fogStart);
     fogIntensity = sqr(1.0 - saturate(fogIntensity));
     color = mix(color, vec3(0.1), fogIntensity);

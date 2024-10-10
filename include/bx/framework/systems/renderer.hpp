@@ -18,6 +18,14 @@
 
 class SceneView;
 
+struct SsaoInfo
+{
+	b8 enabled = true;
+	f32 intensity = 1.0;
+	f32 offset = 0.0;
+	f32 radius = 1.4;
+};
+
 class Renderer : public System
 {
 public:
@@ -29,11 +37,12 @@ public:
 	b8 unbiased = false;
 	b8 taa = false;
 	b8 fsr2 = true;
-	b8 ssao = true;
 	b8 bloom = true;
 	b8 restir = true;
 	b8 denoise = true;
 	b8 antiFirefly = true;
+
+	SsaoInfo ssaoInfo{};
 
 private:
 	friend class SceneView;

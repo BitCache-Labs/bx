@@ -37,6 +37,7 @@ public:
 	NertPass(const NertCreateInfo& createInfo);
 	~NertPass();
 
+	TextureViewHandle GetNeGbufferTextureView() const;
 	TextureViewHandle GetAmbientEmissiveBaseColorTextureView() const;
 
 	void SetTlas(TlasHandle tlas);

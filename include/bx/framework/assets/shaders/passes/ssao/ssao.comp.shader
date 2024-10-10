@@ -22,6 +22,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
 layout (BINDING(0, 1), rgba32f) uniform image2D image;
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 3), rgba32f) uniform image2D ambientEmissiveBaseColor;
+layout (BINDING(0, 4), rgba32f) uniform image2D neGbuffer;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {
@@ -45,6 +46,7 @@ void main()
     }
 
     vec4 normalAndDepth = getPixelNormalAndDepth(pixel);
+    vec3 centerPosition = imageLoad(neGbuffer, pixel).rgb;
     vec3 color = imageLoad(image, pixel).rgb;
     
     float screenRadius = constants.resolution.x / 130.0;
@@ -81,19 +83,27 @@ void main()
             validSample = (sampleLuma < LUMA_THRESHOLD);
         }
 
+        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
+        vec3 samplePosition = imageLoad(neGbuffer, samplePixel).rgb;
+
+        //validSample = validSample && dot(samplePosition - centerPosition, normalAndDepth.xyz) > 0.0;
+
         if (validSample)
         {
-            vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
 
-            float rangeCheck = smoothstep(0.0, 1.0, radius / abs(normalAndDepth.w - sampleNormalAndDepth.w));
-            occlusion += (normalAndDepth.w >= sampleNormalAndDepth.w + constants.depthOffset ? 1.0 : 0.0) * rangeCheck;
+            //occlusion += saturate((normalAndDepth.w - (sampleNormalAndDepth.w + constants.depthOffset)) * 1.0);
+
+            float rangeCheck = smoothstep(1.0, 0.0, abs(normalAndDepth.w - sampleNormalAndDepth.w));
+
+            float check = saturate(dot(samplePosition - centerPosition, normalAndDepth.xyz) * 10.0);// > 0.0 ? 1.0 : 0.0;
+            occlusion += (normalAndDepth.w >= sampleNormalAndDepth.w + constants.depthOffset ? 1.0 : 0.0) * check * rangeCheck;
             sampleCount += 1.0;
         }
     }
 
-    occlusion = 1.0 - (occlusion / sampleCount);
-    occlusion *= constants.intensity;
-    color *= mix(occlusion, 1.0, luma);
+    occlusion = 1.0 - (sampleCount > 0.0 ? (occlusion / sampleCount) : 0.0);
+    occlusion = mix(occlusion, 1.0, luma);
+    color *= mix(1.0, occlusion, constants.intensity);
 
     imageStore(image, pixel, vec4(color, 1.0));
 }

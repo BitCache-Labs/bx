@@ -392,6 +392,11 @@ NertPass::~NertPass()
     Graphics::DestroyBuffer(shadeConstantsBuffer);
 }
 
+TextureViewHandle NertPass::GetNeGbufferTextureView() const
+{
+    return neGbufferView[frameIdx % 2 == 0];
+}
+
 TextureViewHandle NertPass::GetAmbientEmissiveBaseColorTextureView() const
 {
     return ambientEmissiveBaseColorTextureView;

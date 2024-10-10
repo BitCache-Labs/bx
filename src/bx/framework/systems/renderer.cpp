@@ -266,10 +266,13 @@ void Renderer::Render()
         };
         m_nertPass->Dispatch(dispatchInfo);
 
-        if (ssao)
+        if (ssaoInfo.enabled)
         {
+            m_ssaoPass->intensity = ssaoInfo.intensity;
+            m_ssaoPass->depthOffset = ssaoInfo.offset;
+            m_ssaoPass->radius = ssaoInfo.radius;
             m_ssaoPass->seed = frameIdx;
-            m_ssaoPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
+            m_ssaoPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetNeGbufferTextureView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
         }
 
         m_fogPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
