@@ -199,7 +199,7 @@ void Renderer::RebuildPasses()
         m_fogPass = std::unique_ptr<FogPass>(new FogPass(w, h));
         m_ssaoPass = std::unique_ptr<SsaoPass>(new SsaoPass(w, h));
         m_fsr2Pass = std::unique_ptr<Fsr2Pass>(new Fsr2Pass(w, h, windowWidth, windowHeight));
-        m_bloomPass = std::unique_ptr<BloomPass>(new BloomPass(w, h));
+        m_bloomPass = std::unique_ptr<BloomPass>(new BloomPass(windowWidth, windowHeight));
 
         m_dirtyPasses = false;
     }
@@ -282,20 +282,17 @@ void Renderer::Render()
             m_taaPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_gbufferPass->GetColorTargetHistoryView(), m_gbufferPass->GetVelocityTargetView());
         }
 
-        if (bloom)
-        {
-            m_bloomPass->Dispatch(m_cameras.back(), m_colorTarget);
-        }
-
         if (fsr2)
         {
             // TODO: use taa output as input
             m_fsr2Pass->Dispatch(m_cameras.back(), m_colorTarget, m_depthTarget, m_gbufferPass->GetVelocityTarget());
         }
 
-        //Graphics::CopyTexture(m_fsr2Pass->GetResolvedColorTarget(), m_colorTarget);
+        if (bloom)
+        {
+            m_bloomPass->Dispatch(m_cameras.back(), m_fsr2Pass->GetResolvedColorTarget());
+        }
         
-
         m_gbufferPass->NextFrame();
     }
 

@@ -23,6 +23,6 @@ void main()
     vec3 bloom = imageLoad(src, pixel).rgb;
     vec3 current = imageLoad(dst, pixel).rgb;
 
-    vec3 result = mix(current, bloom, constants.intensity);
+    vec3 result = mix(current, bloom, constants.intensity / 100.0);
     imageStore(dst, pixel, vec4(result, 1.0));
 }

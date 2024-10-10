@@ -37,7 +37,7 @@ namespace BloomPipelines
             pipelineLayoutDescriptor.bindGroupLayouts = {
                 BindGroupLayoutDescriptor(0, {
                     BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
-                    BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                    BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
                     BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),
                 })
             };
@@ -66,7 +66,7 @@ namespace BloomPipelines
             pipelineLayoutDescriptor.bindGroupLayouts = {
                 BindGroupLayoutDescriptor(0, {
                     BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
-                    BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                    BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
                     BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),
                 })
             };
@@ -162,7 +162,9 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
     u32 mipWidthInt = static_cast<u32>(mipWidth);
     u32 mipHeightInt = static_cast<u32>(mipHeight);
 
-    for (u32 i = 0; i < mipCount - 3; i++) // TODO: go all the way?
+    // TODO: use sampler with clamp instead of repeat
+
+    for (u32 i = 0; i < mipCount; i++)
     {
         BloomConstants constants{};
         constants.srcWidth = mipWidthInt;
@@ -180,11 +182,13 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         TextureViewCreateInfo srcViewCreateInfo{};
         srcViewCreateInfo.texture = mippedColorTarget;
         srcViewCreateInfo.baseMipLevel = i;
+        srcViewCreateInfo.mipLevelCount = Optional<u32>::Some(1);
         TextureViewHandle srcView = Graphics::CreateTextureView(srcViewCreateInfo);
 
         TextureViewCreateInfo dstViewCreateInfo{};
         dstViewCreateInfo.texture = mippedColorTarget;
         dstViewCreateInfo.baseMipLevel = i + 1;
+        dstViewCreateInfo.mipLevelCount = Optional<u32>::Some(1);
         TextureViewHandle dstView = Graphics::CreateTextureView(dstViewCreateInfo);
 
         BindGroupCreateInfo createInfo{};
@@ -212,7 +216,7 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         Graphics::DestroyBindGroup(bindGroup);
     }
 
-    for (i32 i = mipCount - 3; i >= 1; i--)
+    for (i32 i = mipCount; i >= 1; i--)
     {
         BloomConstants constants{};
         constants.srcWidth = mipWidthInt;
@@ -230,11 +234,13 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         TextureViewCreateInfo srcViewCreateInfo{};
         srcViewCreateInfo.texture = mippedColorTarget;
         srcViewCreateInfo.baseMipLevel = i;
+        srcViewCreateInfo.mipLevelCount = Optional<u32>::Some(1);
         TextureViewHandle srcView = Graphics::CreateTextureView(srcViewCreateInfo);
 
         TextureViewCreateInfo dstViewCreateInfo{};
         dstViewCreateInfo.texture = mippedColorTarget;
         dstViewCreateInfo.baseMipLevel = i - 1;
+        dstViewCreateInfo.mipLevelCount = Optional<u32>::Some(1);
         TextureViewHandle dstView = Graphics::CreateTextureView(dstViewCreateInfo);
 
         BindGroupCreateInfo createInfo{};
@@ -261,8 +267,6 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         Graphics::DestroyTextureView(dstView);
         Graphics::DestroyBindGroup(bindGroup);
     }
-
-    //Graphics::CopyTexture(mippedColorTarget, colorTarget); return;
 
     ResolveConstants resolveConstants{};
     resolveConstants.width = width;
