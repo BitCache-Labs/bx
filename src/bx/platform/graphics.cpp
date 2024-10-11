@@ -1,5 +1,5 @@
 #include "bx/platform/graphics.hpp"
-#include "bx/platform/file.hpp"
+#include "bx/core/file.hpp"
 
 #include <bx/core/log.hpp>
 #include <bx/core/time.hpp>

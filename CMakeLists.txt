@@ -33,23 +33,19 @@ set (BX_AUDIO_BACKEND "PortAudio" CACHE STRING "Choose the audio backend: PortAu
 set_property (CACHE BX_AUDIO_BACKEND PROPERTY STRINGS "PortAudio" "Custom")
 message ("BX audio backend: ${BX_AUDIO_BACKEND}")
 
-# External libraries
-add_subdirectory (extern)
-#set (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-#add_subdirectory (wren)
-
 # Setup bx library
 set (BX_SRCS
+	"src/bx/core/file.cpp"
 	"src/bx/core/log.cpp"
 	"src/bx/core/memory.cpp"
 	"src/bx/core/object.cpp"
 	"src/bx/core/profiler.cpp"
+	"src/bx/core/thread.cpp"
 	"src/bx/core/time.cpp"
 	"src/bx/core/uuid.cpp"
 
 	"src/bx/math/math.cpp"
 
-	# TODO: These shouldn't really exist, left here for compatibility while porting
 	#"src/bx/platform/audio.cpp"
 	"src/bx/platform/graphics.cpp"
 	#"src/bx/platform/imgui.cpp"
@@ -66,10 +62,7 @@ set (BX_SRCS
 	"src/bx/engine/application.cpp"
 )
 
-set (BX_LIBS rttr_core cereal fmt glm imgui wren)# file_embed)
-
 add_library (bx SHARED ${BX_SRCS} "src/bx/core/module.cpp")
-target_link_libraries (bx PUBLIC ${BX_LIBS})
 target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(bx PRIVATE BX_EXPORT)
 
@@ -105,6 +98,15 @@ else ()
 endif ()
 # ---------------------------------------
 
+# External libraries
+
+add_subdirectory (extern)
+#set (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+#add_subdirectory (wren)
+
+set (BX_LIBS rttr cereal fmt glm imgui wren)# file_embed)
+target_link_libraries (bx PUBLIC ${BX_LIBS})
+
 # Setup platform backend
 #if (BX_PLATFORM_BACKEND STREQUAL "Common")
 #    message(STATUS "Using the common platform backend")
@@ -120,9 +122,6 @@ endif ()
 #    message(FATAL_ERROR "Unknown platform backend: ${BX_PLATFORM_BACKEND}")
 #endif ()
 #
-
-# Add the backends directory to build the backend libraries
-add_subdirectory(backends)
 
 # Configure the window backend based on selection
 if (BX_WINDOW_BACKEND STREQUAL "GLFW")

@@ -28,16 +28,6 @@
 [submodule "extern/bx-platform-common"]
 	path = extern/bx-platform-common
 	url = https://github.com/BitCache-Labs/bx-platform-common.git
-
-[submodule "extern/bx-platform-glfw"]
-	path = extern/bx-platform-glfw
-	url = https://github.com/BitCache-Labs/bx-platform-glfw.git
-[submodule "extern/bx-platform-portaudio"]
-	path = extern/bx-platform-portaudio
-	url = https://github.com/BitCache-Labs/bx-platform-portaudio.git
-[submodule "extern/bx-platform-opengl"]
-	path = extern/bx-platform-opengl
-	url = https://github.com/BitCache-Labs/bx-platform-opengl.git
 [submodule "extern/implot"]
 	path = extern/implot
 	url = https://github.com/epezent/implot.git

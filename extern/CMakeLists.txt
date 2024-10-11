@@ -1,23 +1,38 @@
 # RTTR lib
-#set (BUILD_RTTR_DYNAMIC ON)
-set (BUILD_UNIT_TESTS OFF)
-#set (BUILD_STATIC ON)
-#set (BUILD_WITH_STATIC_RUNTIME_LIBS ON)
-#set (BUILD_WITH_RTTI OFF)
-set (BUILD_BENCHMARKS OFF)
-set (BUILD_EXAMPLES OFF)
-#set (BUILD_DOCUMENTATION OFF)
-#set (BUILD_INSTALLER ON)
-#set (BUILD_PACKAGE OFF)
-#set (USE_PCH OFF)
-#set (CUSTOM_DOXYGEN_STYLE OFF)
-#set (BUILD_WEBSITE_DOCU OFF)
+set(BUILD_RTTR_DYNAMIC ON CACHE BOOL "Build RTTR as a shared library (ON) or static library (OFF)")
+set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build RTTR unit tests")
+set(BUILD_STATIC OFF CACHE BOOL "Build RTTR as a static library")
+set(BUILD_WITH_STATIC_RUNTIME_LIBS OFF CACHE BOOL "Use static runtime libraries for RTTR")
+set(BUILD_WITH_RTTI OFF CACHE BOOL "Disable RTTI support in RTTR")
+set(BUILD_BENCHMARKS OFF CACHE BOOL "Disable building RTTR benchmarks")
+set(BUILD_EXAMPLES OFF CACHE BOOL "Disable building RTTR examples")
+set(BUILD_DOCUMENTATION OFF CACHE BOOL "Disable building RTTR documentation")
+set(BUILD_INSTALLER OFF CACHE BOOL "Disable building RTTR installer")
+set(BUILD_PACKAGE OFF CACHE BOOL "Disable building RTTR package")
+set(USE_PCH ON CACHE BOOL "Enable precompiled headers for RTTR")
+set(CUSTOM_DOXYGEN_STYLE OFF CACHE BOOL "Disable custom Doxygen styling for RTTR documentation")
+set(BUILD_WEBSITE_DOCU OFF CACHE BOOL "Disable building website documentation for RTTR")
 
-add_subdirectory (rttr)
+add_subdirectory(rttr)
 
-#add_library(rttr INTERFACE)
-#target_link_libraries(rttr INTERFACE rttr_core_lib_s)
-#target_include_directories(rttr INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/rttr/src)
+# Create an alias for the rttr library
+if (BUILD_STATIC)
+    add_library(rttr ALIAS rttr_core_lib)
+else ()
+    add_library(rttr ALIAS rttr_core)
+
+    # Define the path to the DLL and the output directory
+    set(RTTR_DLL_PATH "$<TARGET_FILE:rttr_core>")
+
+    # Define a custom target to copy the DLL
+    add_custom_target(copy_rttr_dll ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${RTTR_DLL_PATH}"
+            "${CMAKE_BINARY_DIR}"
+        COMMENT "Copying RTTR DLL to the output directory"
+        VERBATIM
+    )
+endif()
 
 # Cereal lib
 set (BUILD_DOC OFF)
@@ -64,11 +79,11 @@ target_include_directories (imgui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 #if (BX_PLATFORM_BACKEND STREQUAL "Common")
 #	add_subdirectory (bx-platform-common)
 #endif ()
-#
-#if (BX_WINDOW_BACKEND STREQUAL "GLFW")
-#	add_subdirectory (bx-platform-glfw)
-#endif ()
-#
+
+if (BX_WINDOW_BACKEND STREQUAL "GLFW")
+	add_subdirectory (bx-platform-glfw)
+endif ()
+
 #if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
 #    add_subdirectory (bx-platform-opengl)
 #endif ()

@@ -8,7 +8,7 @@
 #include <bx/math/math.hpp>
 #include <bx/containers/string.hpp>
 #include <bx/containers/hash_map.hpp>
-#include <bx/platform/file.hpp>
+#include <bx/core/file.hpp>
 #include <bx/platform/input.hpp>
 #include <bx/platform/audio.hpp>
 #include <bx/platform/graphics.hpp>

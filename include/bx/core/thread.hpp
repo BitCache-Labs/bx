@@ -1,6 +1,5 @@
 #pragma once
 
-#ifdef THREAD_IMPL
 #include <thread>
 #include <queue>
 #include <functional>
@@ -27,4 +26,3 @@ private:
 
 	std::thread m_thread;
 };
-#endif

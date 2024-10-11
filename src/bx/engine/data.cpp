@@ -2,7 +2,7 @@
 
 #include <bx/core/log.hpp>
 #include <bx/math/math.hpp>
-#include <bx/platform/file.hpp>
+#include <bx/core/file.hpp>
 #include <bx/containers/hash_map.serial.hpp>
 
 #include <cereal/cereal.hpp>
