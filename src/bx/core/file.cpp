@@ -58,7 +58,6 @@ static List<String> StringSplit(const String& source, const char* delimiter, boo
 
 void File::Initialize()
 {
-	/*
 #if defined(BX_PLATFORM_WINDOWS) || defined(BX_PLATFORM_LINUX)
 	AddWildcard("[assets]", BX_PROJECT_PATH"/game/assets");
 	AddWildcard("[settings]", BX_PROJECT_PATH"/game/settings");
@@ -108,7 +107,6 @@ void File::Initialize()
 #ifdef BX_EDITOR_BUILD
 	AddWildcard("[editor]", BX_PROJECT_PATH"/editor");
 #endif
-*/
 }
 
 List<char> File::ReadBinaryFile(const String& filename)

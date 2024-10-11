@@ -1,17 +1,24 @@
 // TODO: This should be in bx-engine, its left here until imgui implementation
 // can be fully done with the bx-platform window and graphics APIs
 
-#include "bx/platform/imgui.hpp"
-#include "bx/platform/file.hpp"
+#include "bx/engine/imgui.hpp"
+#include "bx/core/file.hpp"
 
 #include <bx/core/macros.hpp>
 #include <bx/core/profiler.hpp>
+
+#include <bx/platform/window.hpp>
+#include <bx/platform/graphics.hpp>
+
+static ImGuiContext* g_ImGuiContext = nullptr;
 
 bool ImGuiImpl::Initialize()
 {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    g_ImGuiContext = ImGui::GetCurrentContext();
+
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;        // Enable Gamepad Controls
@@ -32,10 +39,10 @@ bool ImGuiImpl::Initialize()
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
 
-    if (!Initialize_Window())
+    if (!Window::Get().InitializeImGui())
         return false;
 
-    if (!Initialize_Graphics())
+    if (!Graphics::Get().InitializeImGui())
         return false;
 
     //ImGui::CreateContext();
@@ -92,21 +99,26 @@ void ImGuiImpl::Reload()
 
 void ImGuiImpl::Shutdown()
 {
-    Shutdown_Graphics();
-    Shutdown_Window();
+    Graphics::Get().ShutdownImGui();
+    Window::Get().ShutdownImGui();
     ImGui::DestroyContext();
 }
 
 void ImGuiImpl::NewFrame()
 {
-    NewFrame_Window();
-    NewFrame_Graphics();
+    Window::Get().NewFrameImGui();
+    Graphics::Get().NewFrameImGui();
     ImGui::NewFrame();
 }
 
 void ImGuiImpl::EndFrame()
 {
     ImGui::Render();
-    EndFrame_Graphics();
-    EndFrame_Window();
+    Graphics::Get().EndFrameImGui();
+    Window::Get().EndFrameImGui();
+}
+
+ImGuiContext* ImGuiImpl::GetCurrentContext()
+{
+    return g_ImGuiContext;
 }

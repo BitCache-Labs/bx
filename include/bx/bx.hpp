@@ -1,10 +1,10 @@
 #pragma once
 
 #ifdef _WIN32
-#ifdef BX_EXPORT
-#define BX_API __declspec(dllexport)
+#ifdef BUILD_SHARED
+#define API __declspec(dllexport)
 #else
-#define BX_API __declspec(dllimport)
+#define API __declspec(dllimport)
 #endif
 #else
 #define BX_API

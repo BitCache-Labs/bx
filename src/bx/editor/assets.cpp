@@ -2,8 +2,8 @@
 
 #include <bx/containers/hash_map.hpp>
 
-#include <bx/platform/thread.hpp>
-#include <bx/platform/file.hpp>
+#include <bx/core/thread.hpp>
+#include <bx/core/file.hpp>
 
 static Tree<Asset> g_assetTree;
 static Tree<Asset> g_assetTreeCopy;

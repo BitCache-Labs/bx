@@ -3,7 +3,7 @@
 #include <bx/bx.hpp>
 #include <rttr/rttr_enable.h>
 
-using WindowGLProc = void(*)(void);
+typedef void (*WindowGLProc)(void);
 
 enum struct BX_API CursorMode
 {
@@ -36,4 +36,10 @@ public:
 	virtual void SetCursorMode(CursorMode mode) = 0;
 
 	virtual WindowGLProc GetProcAddress(const char* name) = 0;
+
+	// ImGui calls (tmp solution until imgui is fully done via interface)
+	virtual bool InitializeImGui() = 0;
+	virtual void ShutdownImGui() = 0;
+	virtual void NewFrameImGui() = 0;
+	virtual void EndFrameImGui() = 0;
 };

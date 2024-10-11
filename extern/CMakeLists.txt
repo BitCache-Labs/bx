@@ -32,6 +32,13 @@ else ()
         COMMENT "Copying RTTR DLL to the output directory"
         VERBATIM
     )
+
+	if (BX_INSTALL)
+		install(FILES "${RTTR_DLL_PATH}"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"  # Or another relevant subdirectory, like lib or bin
+		COMPONENT runtime
+)
+	endif()
 endif()
 
 # Cereal lib
@@ -64,7 +71,7 @@ add_library (wren STATIC
 target_include_directories (wren PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/include ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/optional ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/vm)
 
 # ImGui lib
-set (imgui_src STATIC
+set (imgui_srcs
 	"imgui/imgui.cpp"
 	"imgui/imgui_demo.cpp"
 	"imgui/imgui_draw.cpp"
@@ -72,25 +79,30 @@ set (imgui_src STATIC
 	"imgui/imgui_widgets.cpp"
 	"imgui/misc/cpp/imgui_stdlib.cpp"
 )
-add_library (imgui STATIC ${imgui_src})
+
+#if (BUILD_STATIC)
+	add_library (imgui STATIC ${imgui_srcs})
+
+#else ()
+#    add_library (imgui SHARED ${imgui_srcs})
+#
+#    # Define the path to the DLL and the output directory
+#    set(IMGUI_DLL_PATH "$<TARGET_FILE:imgui>")
+#
+#    # Define a custom target to copy the DLL
+#    add_custom_target(copy_imgui_dll ALL
+#        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#            "${IMGUI_DLL_PATH}"
+#            "${CMAKE_BINARY_DIR}"
+#        COMMENT "Copying IMGUI DLL to the output directory"
+#        VERBATIM
+#    )
+#endif()
+
 target_include_directories (imgui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
-# Platform specific libs
-#if (BX_PLATFORM_BACKEND STREQUAL "Common")
-#	add_subdirectory (bx-platform-common)
-#endif ()
-
-if (BX_WINDOW_BACKEND STREQUAL "GLFW")
-	add_subdirectory (bx-platform-glfw)
-endif ()
-
-#if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
-#    add_subdirectory (bx-platform-opengl)
-#endif ()
-#
-#if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
-#    add_subdirectory (bx-platform-portaudio)
-#endif ()
+# BX common platform libs
+add_subdirectory (bx-platform-common)
 
 if (BX_BUILD_EDITOR)
 #	# STB lib
@@ -125,6 +137,12 @@ if (BX_BUILD_EDITOR)
 	add_library (FreeFonts INTERFACE)
 	target_compile_definitions (FreeFonts INTERFACE FREE_FONTS_DROID_SANS="${CMAKE_CURRENT_SOURCE_DIR}/free-fonts/Droid/Droid Sans/TTF/DroidSans.ttf")
 endif ()
+
+# Set the output directory for bx-editor and bx
+#set_target_properties(bx PROPERTIES
+#    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+#    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+#)
 
 # GoogleTest
 set (gtest_force_shared_crt ON)

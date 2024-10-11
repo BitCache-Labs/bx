@@ -1,37 +1,43 @@
 #pragma once
 
-#ifdef AUDIO_IMPL
+#include <bx/bx.hpp>
 #include <bx/containers/list.hpp>
 #include <bx/math/math.hpp>
+
+#include <rttr/rttr_enable.h>
 
 using AudioHandle = u64;
 constexpr AudioHandle AUDIO_INVALID_HANDLE = -1;
 
-struct ChannelInfo
+struct BX_API ChannelInfo
 {
 };
 
-struct AudioInfo
+struct BX_API AudioInfo
 {
 	List<f32> samples;
 };
 
-class Audio
+class BX_API Audio
 {
+	RTTR_ENABLE()
+
 public:
-	static bool Initialize();
-	static void Reload();
-	static void Shutdown();
+	static Audio& Get();
 
-	static AudioHandle GetDefaultChannel();
+public:
+	virtual bool Initialize() = 0;
+	virtual void Reload() = 0;
+	virtual void Shutdown() = 0;
 
-	static void CreateChannel(const ChannelInfo& info);
-	static void DestroyChannel(const AudioHandle channel);
-	static void SetChannelVolume(const AudioHandle channel, f32 volume);
+	virtual AudioHandle GetDefaultChannel() = 0;
 
-	static void CreateAudio(const AudioInfo& info);
-	static void DestroyAudio(const AudioHandle audio);
-	static void PlayAudio(const AudioHandle channel, const AudioHandle audio);
-	static void StopAudio(const AudioHandle channel, const AudioHandle audio);
+	virtual void CreateChannel(const ChannelInfo& info) = 0;
+	virtual void DestroyChannel(const AudioHandle channel) = 0;
+	virtual void SetChannelVolume(const AudioHandle channel, f32 volume) = 0;
+
+	virtual void CreateAudio(const AudioInfo& info) = 0;
+	virtual void DestroyAudio(const AudioHandle audio) = 0;
+	virtual void PlayAudio(const AudioHandle channel, const AudioHandle audio) = 0;
+	virtual void StopAudio(const AudioHandle channel, const AudioHandle audio) = 0;
 };
-#endif

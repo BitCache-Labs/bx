@@ -1,9 +1,10 @@
 #pragma once
 
 #include <bx/bx.hpp>
-#include <bx/math/math.hpp>
-#include <bx/meta/enum.hpp>
 #include <bx/core/macros.hpp>
+#include <bx/containers/list.hpp>
+#include <bx/meta/enum.hpp>
+#include <bx/math/math.hpp>
 
 #include <rttr/rttr_enable.h>
 
@@ -143,31 +144,31 @@ struct BX_API DrawIndexedAttribs
 	u32 numIndices = 0;
 };
 
-struct BX_API DebugVertex
-{
-	DebugVertex() {}
-	DebugVertex(const Vec3& vert, u32 col)
-		: vert(vert), col(col) {}
-
-	Vec3 vert{ 0, 0, 0 };
-	u32 col{ 0 };
-};
-
-struct BX_API DebugDrawAttribs
-{
-};
-
-struct BX_API DebugLineData
-{
-	DebugLineData() {}
-	DebugLineData(const Vec3& a, const Vec3& b, u32 c, f32 l)
-		: a(a), b(b), color(c), lifespan(l) {}
-
-	Vec3 a = Vec3(0, 0, 0);
-	Vec3 b = Vec3(0, 0, 0);
-	u32 color = 0;
-	f32 lifespan = 0.0f;
-};
+//struct BX_API DebugVertex
+//{
+//	DebugVertex() {}
+//	DebugVertex(const Vec3& vert, u32 col)
+//		: vert(vert), col(col) {}
+//
+//	Vec3 vert{ 0, 0, 0 };
+//	u32 col{ 0 };
+//};
+//
+//struct BX_API DebugDrawAttribs
+//{
+//};
+//
+//struct BX_API DebugLineData
+//{
+//	DebugLineData() {}
+//	DebugLineData(const Vec3& a, const Vec3& b, u32 c, f32 l)
+//		: a(a), b(b), color(c), lifespan(l) {}
+//
+//	Vec3 a = Vec3(0, 0, 0);
+//	Vec3 b = Vec3(0, 0, 0);
+//	u32 color = 0;
+//	f32 lifespan = 0.0f;
+//};
 
 class BX_API Graphics
 {
@@ -229,17 +230,23 @@ public:
 	virtual void DrawIndexed(const DrawIndexedAttribs& attribs) = 0;
 
 	// Debug draw utilities
-	virtual void DebugLine(const Vec3& a, const Vec3& b, u32 color = 0xFFFFFFFF, f32 lifespan = 0.0f) = 0;
+	//virtual void DebugLine(const Vec3& a, const Vec3& b, u32 color = 0xFFFFFFFF, f32 lifespan = 0.0f) = 0;
+	//
+	//virtual void UpdateDebugLines() = 0;
+	//virtual void DrawDebugLines(const Mat4& viewProj) = 0;
+	//virtual void ClearDebugLines() = 0;
+	//
+	//virtual void DebugDraw(const Mat4& viewProj, const DebugDrawAttribs& attribs, const List<DebugVertex>& vertices) = 0;
 
-	virtual void UpdateDebugLines() = 0;
-	virtual void DrawDebugLines(const Mat4& viewProj) = 0;
-	virtual void ClearDebugLines() = 0;
-
-	virtual void DebugDraw(const Mat4& viewProj, const DebugDrawAttribs& attribs, const List<DebugVertex>& vertices) = 0;
+	// ImGui calls (tmp solution until imgui is fully done via interface)
+	virtual bool InitializeImGui() = 0;
+	virtual void ShutdownImGui() = 0;
+	virtual void NewFrameImGui() = 0;
+	virtual void EndFrameImGui() = 0;
 
 private:
-	List<DebugLineData> m_debugLines;
-	List<DebugLineData> m_debugLinesBuffer;
-
-	List<DebugVertex> m_debugVertices;
+	//List<DebugLineData> m_debugLines;
+	//List<DebugLineData> m_debugLinesBuffer;
+	//
+	//List<DebugVertex> m_debugVertices;
 };

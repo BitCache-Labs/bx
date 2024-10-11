@@ -1,10 +1,11 @@
-#include "bx/platform/graphics.hpp"
-#include "bx/core/file.hpp"
+#include <bx/platform/graphics.hpp>
 
+#include <bx/core/file.hpp>
 #include <bx/core/log.hpp>
 #include <bx/core/time.hpp>
 #include <bx/core/guard.hpp>
 #include <bx/core/profiler.hpp>
+#include <bx/core/module.hpp>
 #include <bx/containers/pool.hpp>
 
 #include <rttr/type>
@@ -14,59 +15,11 @@
 
 Graphics& Graphics::Get()
 {
-    static Graphics* instance = nullptr;
-    if (!instance)
-    {
-        const auto& derived = rttr::type::get<Graphics>().get_derived_classes();
-        if (derived.size() == 0)
-            throw std::runtime_error("No derived Graphics class found.");
-
-        const auto& type = *derived.begin();
-        rttr::variant var = type.create();
-
-        BX_ENSURE(var.is_type<Graphics*>());
-        instance = var.get_value<Graphics*>();
-    }
-    return *instance;
-}
-
-void Graphics::DebugLine(const Vec3& a, const Vec3& b, u32 color, f32 lifespan)
-{
-    m_debugLines.emplace_back(a, b, color, lifespan);
-}
-
-void Graphics::UpdateDebugLines()
-{
-    m_debugVertices.clear();
-
-    m_debugLinesBuffer.clear();
-    m_debugLinesBuffer.reserve(m_debugLines.size());
-    for (auto& line : m_debugLines)
-    {
-        m_debugVertices.emplace_back(line.a, line.color);
-        m_debugVertices.emplace_back(line.b, line.color);
-
-        line.lifespan -= Time::GetDeltaTime();
-        if (line.lifespan > 0.0f)
-            m_debugLinesBuffer.emplace_back(line);
-    }
-    m_debugLines = m_debugLinesBuffer;
-}
-
-void Graphics::DrawDebugLines(const Mat4& viewProj)
-{
-    DebugDrawAttribs attribs;
-    DebugDraw(viewProj, attribs, m_debugVertices);
-}
-
-void Graphics::ClearDebugLines()
-{
-    m_debugLines.clear();
+    return Module::Get<Graphics>();
 }
 
 RTTR_PLUGIN_REGISTRATION
 {
-    /*
     rttr::registration::enumeration<GraphicsClearFlags>("GraphicsClearFlags")
     (
         rttr::value("NONE", GraphicsClearFlags::NONE),
@@ -235,13 +188,13 @@ RTTR_PLUGIN_REGISTRATION
         .property("indexType", &DrawIndexedAttribs::indexType)
         .property("numIndices", &DrawIndexedAttribs::numIndices);
 
-    rttr::registration::class_<DebugVertex>("DebugVertex")
-        .constructor<>()
-        .property("vert", &DebugVertex::vert)
-        .property("col", &DebugVertex::col);
-
-    rttr::registration::class_<DebugDrawAttribs>("DebugDrawAttribs")
-        .constructor<>();
+    //rttr::registration::class_<DebugVertex>("DebugVertex")
+    //    .constructor<>()
+    //    .property("vert", &DebugVertex::vert)
+    //    .property("col", &DebugVertex::col);
+    //
+    //rttr::registration::class_<DebugDrawAttribs>("DebugDrawAttribs")
+    //    .constructor<>();
 
     rttr::registration::class_<Graphics>("Graphics")
         .method("Initialize", &Graphics::Initialize)
@@ -278,12 +231,49 @@ RTTR_PLUGIN_REGISTRATION
         .method("SetIndexBuffer", &Graphics::SetIndexBuffer)
         .method("Draw", &Graphics::Draw)
         .method("DrawIndexed", &Graphics::DrawIndexed)
-        .method("DebugLine", &Graphics::DebugLine)
-        .method("UpdateDebugLines", &Graphics::UpdateDebugLines)
-        .method("DrawDebugLines", &Graphics::DrawDebugLines)
-        .method("ClearDebugLines", &Graphics::ClearDebugLines)
-        .method("DebugDraw", &Graphics::DebugDraw);
-        */
+        //.method("DebugLine", &Graphics::DebugLine)
+        //.method("UpdateDebugLines", &Graphics::UpdateDebugLines)
+        //.method("DrawDebugLines", &Graphics::DrawDebugLines)
+        //.method("ClearDebugLines", &Graphics::ClearDebugLines)
+        //.method("DebugDraw", &Graphics::DebugDraw)
+        .method("InitializeImGui", &Graphics::InitializeImGui)
+        .method("ShutdownImGui", &Graphics::ShutdownImGui)
+        .method("NewFrameImGui", &Graphics::NewFrameImGui)
+        .method("EndFrameImGui", &Graphics::EndFrameImGui);
 
     rttr::registration::class_<Graphics>("Graphics");
 }
+
+//void Graphics::DebugLine(const Vec3& a, const Vec3& b, u32 color, f32 lifespan)
+//{
+//    m_debugLines.emplace_back(a, b, color, lifespan);
+//}
+//
+//void Graphics::UpdateDebugLines()
+//{
+//    m_debugVertices.clear();
+//
+//    m_debugLinesBuffer.clear();
+//    m_debugLinesBuffer.reserve(m_debugLines.size());
+//    for (auto& line : m_debugLines)
+//    {
+//        m_debugVertices.emplace_back(line.a, line.color);
+//        m_debugVertices.emplace_back(line.b, line.color);
+//
+//        line.lifespan -= Time::GetDeltaTime();
+//        if (line.lifespan > 0.0f)
+//            m_debugLinesBuffer.emplace_back(line);
+//    }
+//    m_debugLines = m_debugLinesBuffer;
+//}
+//
+//void Graphics::DrawDebugLines(const Mat4& viewProj)
+//{
+//    DebugDrawAttribs attribs;
+//    DebugDraw(viewProj, attribs, m_debugVertices);
+//}
+//
+//void Graphics::ClearDebugLines()
+//{
+//    m_debugLines.clear();
+//}

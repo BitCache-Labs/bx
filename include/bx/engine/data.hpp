@@ -1,6 +1,6 @@
 #pragma once
 
-#include <bx/meta/enum.hpp>
+#include <bx/bx.hpp>
 #include <bx/core/guard.hpp>
 #include <bx/containers/string.hpp>
 #include <bx/containers/list.hpp>
@@ -13,34 +13,38 @@
 // a hashmap for every supported type. Possibly a generic abstract table?
 
 #ifdef BX_EDITOR_BUILD
-ENUM(DataTarget,
+enum struct BX_API DataTarget
+{
 	NONE = 0,
 	SYSTEM = 1,
 	GAME = 2,
 	PLAYER = 3,
 	DEBUG = 4,
 	EDITOR = 5
-	);
+};
 #else
-ENUM(DataTarget,
+enum struct BX_API DataTarget
+{
 	NONE = 0,
 	SYSTEM = 1,
 	GAME = 2,
 	PLAYER = 3,
 	DEBUG = 4
-);
+};
 #endif
 
-ENUM(DataType,
+enum struct BX_API DataType
+{
 	NONE = 0,
 	BOOL = 1,
 	INT = 2,
 	UINT = 3,
 	FLOAT = 4,
 	DOUBLE = 5,
-	STRING = 6);
+	STRING = 6
+};
 
-struct DataRecord
+struct BX_API DataRecord
 {
 	String name = "";
 	DataTarget target = DataTarget::NONE;
@@ -51,7 +55,7 @@ struct DataRecord
 	template <class Archive> void serialize(Archive& archive) { archive(name, target, type, active); }
 };
 
-class Database
+class BX_API Database
 {
 public:
 	template <typename T>
@@ -86,7 +90,7 @@ inline HashMap<String, double>& Database::GetStorage<double>() { return m_double
 template <>
 inline HashMap<String, String>& Database::GetStorage<String>() { return m_strings; };
 
-class Data
+class BX_API Data
 {
 public:
 	static void Initialize();

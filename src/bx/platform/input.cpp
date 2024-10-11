@@ -1,5 +1,13 @@
-/*#include "bx/core/input.hpp"
+#include <bx/platform/input.hpp>
 
+#include <bx/core/module.hpp>
+
+Input& Input::Get()
+{
+	return Module::Get<Input>();
+}
+
+/*
 #include "bx/core/macros.hpp"
 #include "bx/core/guard.hpp"
 #include "bx/core/profiler.hpp"

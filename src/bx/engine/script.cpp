@@ -1,3 +1,4 @@
+#ifdef SCRIPT_IMPL
 #include "bx/engine/script.hpp"
 #include "bx/engine/data.hpp"
 #include "bx/engine/ecs.hpp"
@@ -1408,3 +1409,4 @@ void Script::CollectGarbage()
 	PROFILE_FUNCTION();
 	wrenCollectGarbage(s_vm);
 }
+#endif

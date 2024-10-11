@@ -1,17 +1,17 @@
 #pragma once
 
-#ifdef NETWORK_IMPL
-class Network
+#include <bx/bx.hpp>
+#include <rttr/rttr_enable.h>
+
+class BX_API Network
 {
+	RTTR_ENABLE()
+
 public:
-	// TODO
+	static Network& Get();
 
-private:
-	friend class Runtime;
-	friend class Module;
-
-	static bool Initialize() { return true; }
-	static void Reload() {}
-	static void Shutdown() {}
+public:
+	virtual bool Initialize() = 0;
+	virtual void Reload() = 0;
+	virtual void Shutdown() = 0;
 };
-#endif

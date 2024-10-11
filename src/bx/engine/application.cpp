@@ -11,77 +11,77 @@
 #include <bx/core/profiler.hpp>
 #include <bx/core/module.hpp>
 
-//#include <bx/platform/file.hpp>
-//#include <bx/platform/input.hpp>
+#include <bx/core/file.hpp>
+#include <bx/platform/input.hpp>
 #include <bx/platform/window.hpp>
-//#include <bx/platform/graphics.hpp>
+#include <bx/platform/graphics.hpp>
 //#include <bx/platform/audio.hpp>
-//#include <bx/platform/imgui.hpp>
+#include <bx/engine/imgui.hpp>
 
-//#ifdef BX_EDITOR_BUILD
-//#include <bx/editor/assets.hpp>
-//#include <bx/editor/toolbar.hpp>
-//#include <bx/editor/view.hpp>
-//#include <bx/editor/views/profiler_view.hpp>
+#ifdef BX_EDITOR_BUILD
+#include <bx/editor/assets.hpp>
+#include <bx/editor/toolbar.hpp>
+#include <bx/editor/view.hpp>
+#include <bx/editor/views/profiler_view.hpp>
 //#include <bx/editor/views/data_view.hpp>
 //#include <bx/editor/views/assets_view.hpp>
 //#include <bx/editor/views/settings_view.hpp>
 //#include <bx/editor/views/console_view.hpp>
-//
-//#define IMGUI_DEFINE_MATH_OPERATORS
-//#include <imgui.h>
-//#include <imgui_internal.h>
-//#include <implot.h>
-//#include <IconsFontAwesome5.h>
 
-//static void InitializeImGui()
-//{
-//	ImPlot::CreateContext();
-//
-//	ImGuiIO& io = ImGui::GetIO();
-//
-//	const float uiScale = 1.0f;
-//	const float fontSize = 14.0f;
-//	const float iconSize = 12.0f;
-//
-//	ImFontConfig config;
-//	config.OversampleH = 8;
-//	config.OversampleV = 8;
-//	io.Fonts->AddFontFromFileTTF(FREE_FONTS_DROID_SANS, fontSize * uiScale, &config);
-//
-//	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 }; // will not be copied by AddFont* so keep in scope.
-//	config.MergeMode = true;
-//	config.OversampleH = 8;
-//	config.OversampleV = 8;
-//	io.Fonts->AddFontFromFileTTF(FONT_AWESOME_6_FREE_SOLID_900, iconSize * uiScale, &config, icons_ranges);
-//}
-//
-//static void EngineMenuBar()
-//{
-//	if (ImGui::BeginMainMenuBar())
-//	{
-//		if (ImGui::BeginMenu("Views"))
-//		{
-//			if (ImGui::MenuItem("Assets"))
-//			{
-//				//ViewManager::AddView(new AssetsView());
-//			}
-//
-//			ImGui::Separator();
-//
-//			if (ImGui::MenuItem("Profiler"))
-//			{
-//				ViewManager::AddView(new ProfilerView());
-//			}
-//
-//			ImGui::EndMenu();
-//		}
-//		ImGui::EndMainMenuBar();
-//	}
-//
-//	ImGui::ShowDemoWindow();
-//}
-//#endif
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <implot.h>
+#include <IconsFontAwesome5.h>
+
+static void InitializeImGui()
+{
+	ImPlot::CreateContext();
+
+	ImGuiIO& io = ImGui::GetIO();
+
+	const float uiScale = 1.0f;
+	const float fontSize = 14.0f;
+	const float iconSize = 12.0f;
+
+	ImFontConfig config;
+	config.OversampleH = 8;
+	config.OversampleV = 8;
+	io.Fonts->AddFontFromFileTTF(FREE_FONTS_DROID_SANS, fontSize * uiScale, &config);
+
+	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 }; // will not be copied by AddFont* so keep in scope.
+	config.MergeMode = true;
+	config.OversampleH = 8;
+	config.OversampleV = 8;
+	io.Fonts->AddFontFromFileTTF(FONT_AWESOME_6_FREE_SOLID_900, iconSize * uiScale, &config, icons_ranges);
+}
+
+static void EngineMenuBar()
+{
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Views"))
+		{
+			if (ImGui::MenuItem("Assets"))
+			{
+				//ViewManager::AddView(new AssetsView());
+			}
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Profiler"))
+			{
+				ViewManager::AddView(new ProfilerView());
+			}
+
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+
+	ImGui::ShowDemoWindow();
+}
+#endif
 
 static bool g_running = true;
 
@@ -100,7 +100,7 @@ void Application::Reload()
 	PluginManager::Reload();
 
 #ifdef BX_EDITOR_BUILD
-	//ViewManager::Reload();
+	ViewManager::Reload();
 #endif
 }
 
@@ -113,24 +113,24 @@ int Application::Launch(const AppConfig& config)
 	Module::Load();
 
 	Time::Initialize();
-	//File::Initialize();
-	//
+	File::Initialize();
+	
 	Window::Get().Initialize();
-	//Input::Initialize();
-	//Graphics::Initialize();
-	//ImGuiImpl::Initialize();
+	Input::Get().Initialize();
+	Graphics::Get().Initialize();
+	ImGuiImpl::Initialize();
 	//Audio::Initialize();
 
-	//Data::Initialize();
-	//ResourceManager::Initialize();
+	Data::Initialize();
+	ResourceManager::Initialize();
 	//Script::Initialize();
 
 #ifdef BX_EDITOR_BUILD
-	//InitializeImGui();
+	InitializeImGui();
 
-	//AssetManager::Initialize();
+	AssetManager::Initialize();
 
-	//ViewManager::AddMenuBarCallback(&EngineMenuBar);
+	ViewManager::AddMenuBarCallback(&EngineMenuBar);
 	//ViewManager::Initialize();
 
 	String scenePath = Data::GetString("Current Scene", "", DataTarget::EDITOR);
@@ -164,17 +164,17 @@ int Application::Launch(const AppConfig& config)
 
 #ifdef BX_EDITOR_BUILD
 	//ViewManager::Shutdown();
-	//AssetManager::Shutdown();
+	AssetManager::Shutdown();
 #endif
 
 	//Script::Shutdown();
-	//ResourceManager::Shutdown();
-	//Data::Shutdown();
+	ResourceManager::Shutdown();
+	Data::Shutdown();
 
 	//Audio::Shutdown();
-	//ImGuiImpl::Shutdown();
-	//Graphics::Shutdown();
-	//Input::Shutdown();
+	ImGuiImpl::Shutdown();
+	Graphics::Get().Shutdown();
+	Input::Get().Shutdown();
 	Window::Get().Shutdown();
 
 	//File::Shutdown();
@@ -195,7 +195,7 @@ void Application::Tick()
 	//Script::CollectGarbage();
 	Time::Update();
 	Window::Get().PollEvents();
-	//Input::Poll();
+	Input::Get().Poll();
 
 #ifdef BX_EDITOR_BUILD
 //	if (Toolbar::IsPlaying() && (Toolbar::ConsumeNextFrame() || !Toolbar::IsPaused()))
@@ -210,8 +210,8 @@ void Application::Tick()
 //	Script::Update();
 #endif
 
-	//Graphics::NewFrame();
-	//ImGuiImpl::NewFrame();
+	Graphics::Get().NewFrame();
+	ImGuiImpl::NewFrame();
 
 #ifdef BX_EDITOR_BUILD
 //	if (Toolbar::IsPlaying() && !Toolbar::IsPaused())
@@ -220,18 +220,18 @@ void Application::Tick()
 //		Script::Render();
 //	}
 //	Toolbar::Present();
-	//ViewManager::Present();
+	ViewManager::Present();
 #else
 //	SystemManager::Render();
 //	Script::Render();
 #endif
 
-	//ImGuiImpl::EndFrame();
-	//Graphics::EndFrame();
+	ImGuiImpl::EndFrame();
+	Graphics::Get().EndFrame();
 
 	Window::Get().Display();
 
 #ifdef BX_EDITOR_BUILD
-	//AssetManager::Refresh();
+	AssetManager::Refresh();
 #endif
 }

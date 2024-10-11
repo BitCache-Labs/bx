@@ -1,152 +1,348 @@
 #pragma once
 
-#include "bx/containers/string.hpp"
-#include "bx/containers/list.hpp"
+#include <type_traits>
 
-//#include <cereal/cereal.hpp>
-namespace cereal { class access; }
-
-#include <sstream>
-#include <regex>
-
-namespace enum_detail
+namespace Enum
 {
-	template <typename T>
-	static List<T> get_handles(const char* args)
-	{
-		List<T> handles;
+    // Enable implicit conversion from EnumT to its underlying type
+    template <typename EnumT>
+    constexpr typename std::enable_if_t<std::is_enum_v<EnumT>, std::underlying_type_t<EnumT>>
+        as_value(EnumT e) noexcept
+    {
+        return static_cast<std::underlying_type_t<EnumT>>(e);
+    }
 
-		std::string input = args;
-
-		if (input.find('=') != std::string::npos)
-		{
-			// Regular expression to match "name = value" pairs
-			std::regex re(R"(\s*([^=]+)\s*=\s*([0-9]+)\s*)");
-			std::sregex_iterator iter(input.begin(), input.end(), re);
-			std::sregex_iterator end;
-
-			// Iterate through all matches
-			for (; iter != end; ++iter)
-			{
-				std::smatch match = *iter;
-				String name = match[1].str();
-				int value = std::stoi(match[2].str());
-
-				// Trim whitespace from the name
-				name.erase(name.find_last_not_of(" \n\r\t") + 1);
-				name.erase(0, name.find_first_not_of(" \n\r\t"));
-
-				handles.emplace_back(T{ name, value });
-			}
-		}
-		else
-		{
-			// Regular expression to match names separated by commas
-			std::regex re(R"(\s*([^,]+)\s*)");
-			std::sregex_iterator iter(input.begin(), input.end(), re);
-			std::sregex_iterator end;
-
-			int i = 0;
-			for (; iter != end; ++iter) {
-				std::smatch match = *iter;
-				String name = match[1].str();
-				int value = i++;
-
-				// Trim whitespace from the name
-				name.erase(name.find_last_not_of(" \n\r\t") + 1);
-				name.erase(0, name.find_first_not_of(" \n\r\t"));
-
-				handles.emplace_back(T{ name, value });
-			}
-		}
-
-		return handles;
-	}
-
-	template <typename T>
-	static List<const char*> split_names(const List<T>& handles)
-	{
-		List<const char*> names;
-		for (const auto& handle : handles)
-			names.emplace_back(handle.name.c_str());
-		return names;
-	}
-
-	template <typename T>
-	static List<int> split_values(const List<T>& handles)
-	{
-		List<int> values;
-		for (const auto& handle : handles)
-			values.emplace_back(handle.value);
-		return values;
-	}
-
-	template <typename T>
-	static int get_index(const List<T>& handles, int value)
-	{
-		for (int i = 0; i < handles.size(); ++i)
-			if (handles[i].value == value)
-				return i;
-		return 0;
-	}
-
-	// TODO: Make this solution constexpr and template only.
-	//// See: https://stackoverflow.com/questions/7124969/recursive-variadic-template-to-print-out-the-contents-of-a-parameter-pack
-	//template <std::size_t Count>
-	//static std::array<std::string, Count> get_names(const char* args)
-	//{
-	//    std::array<std::string, Count> names;
-	//
-	//    std::string nameArgs = args;
-	//    std::string temp;
-	//    std::istringstream ss(nameArgs);
-	//    for (std::size_t i = 0; i < Count; ++i)
-	//    {
-	//        std::getline(ss, temp, ',');
-	//        while (temp.front() == ' ')
-	//            temp.erase(0, 1);
-	//        names[i] = temp;
-	//    }
-	//
-	//    return names;
-	//}
-	//// See: https://stackoverflow.com/questions/2124339/c-preprocessor-va-args-number-of-arguments
-	//template<typename ...Args>
-	//static constexpr std::size_t va_count(Args&&...) { return sizeof...(Args); }
+    // Enable implicit conversion from underlying type back to EnumT
+    template <typename EnumT>
+    constexpr typename std::enable_if_t<std::is_enum_v<EnumT>, EnumT>
+        as_type(std::underlying_type_t<EnumT> value) noexcept
+    {
+        return static_cast<EnumT>(value);
+    }
 }
 
-#ifndef MEMORY_CUSTOM_CONTAINERS
+namespace Enum
+{
+    // Detection traits for bitwise and comparison operators for EnumT, EnumT
+    template <typename, typename T, typename = void> struct has_bitwise_and : std::false_type {};
+    template <typename T> struct has_bitwise_and<decltype(void(std::declval<T>()& std::declval<T>())), T, void> : std::true_type {};
 
-// See: https://stackoverflow.com/questions/21295935/can-a-c-enum-class-have-methods
-#define ENUM(Enum, ...) \
-    struct Enum \
-    { \
-        enum Value { __VA_ARGS__ }; \
-        Enum() = default; \
-        constexpr Enum(Value v) : value(v) { } \
-        constexpr Enum(int v) : value((Value)v) { } \
-        operator Value() const { return value; } \
-		explicit operator bool() = delete; \
-        constexpr bool operator ==(Enum rhs) const { return value == rhs.value; } \
-        constexpr bool operator !=(Enum rhs) const { return value != rhs.value; } \
-        constexpr bool operator ==(Value rhs) const { return value == rhs; } \
-        constexpr bool operator !=(Value rhs) const { return value != rhs; } \
-		struct Handle { String name; int value; }; \
-		inline int GetIndex() const { return enum_detail::get_index(GetHandles(), (int)value); } \
-		static const List<const char*>& GetNames() { static List<const char*> names = enum_detail::split_names<Handle>(GetHandles()); return names; } \
-		static const List<int>& GetValues() { static List<int> values = enum_detail::split_values<Handle>(GetHandles()); return values; } \
-		static const List<Handle>& GetHandles() { static List<Handle> handles = enum_detail::get_handles<Handle>(#__VA_ARGS__); return handles; } \
-        private: \
-		friend struct std::hash<Enum>; \
-        friend class cereal::access; \
-		template<class Archive> void serialize(Archive& archive) { archive(value); } \
-		Value value; \
-    }; \
-	namespace std { template <> struct hash<Enum> { inline std::size_t operator()(const Enum& e) const { return e.value; } }; }
+    template <typename, typename T, typename = void> struct has_bitwise_or : std::false_type {};
+    template <typename T> struct has_bitwise_or<decltype(void(std::declval<T>() | std::declval<T>())), T, void> : std::true_type {};
 
-#else
+    template <typename, typename T, typename = void> struct has_bitwise_xor : std::false_type {};
+    template <typename T> struct has_bitwise_xor<decltype(void(std::declval<T>() ^ std::declval<T>())), T, void> : std::true_type {};
 
-#define ENUM_HASH(Enum) \
-template <> struct Hash<Enum> { inline SizeType operator()(const Enum& e) const { return e.value; } };
+    template <typename, typename T, typename = void> struct has_bitwise_not : std::false_type {};
+    template <typename T> struct has_bitwise_not<decltype(void(~std::declval<T>())), T, void> : std::true_type {};
 
-#endif
+    template <typename, typename T, typename = void> struct has_compound_and : std::false_type {};
+    template <typename T> struct has_compound_and<decltype(void(std::declval<T&>() &= std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_compound_or : std::false_type {};
+    template <typename T> struct has_compound_or<decltype(void(std::declval<T&>() |= std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_compound_xor : std::false_type {};
+    template <typename T> struct has_compound_xor<decltype(void(std::declval<T&>() ^= std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_greater_equal : std::false_type {};
+    template <typename T> struct has_greater_equal<decltype(void(std::declval<T>() >= std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_less_equal : std::false_type {};
+    template <typename T> struct has_less_equal<decltype(void(std::declval<T>() <= std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_greater : std::false_type {};
+    template <typename T> struct has_greater<decltype(void(std::declval<T>() > std::declval<T>())), T, void> : std::true_type{};
+
+    template <typename, typename T, typename = void> struct has_less : std::false_type {};
+    template <typename T> struct has_less<decltype(void(std::declval<T>() < std::declval<T>())), T, void> : std::true_type{};
+}
+
+// Bitwise AND operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_and<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator&(EnumT lhs, EnumT rhs) noexcept
+{
+    return Enum::as_value(lhs) & Enum::as_value(rhs);
+}
+
+// Bitwise OR operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_or<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator|(EnumT lhs, EnumT rhs) noexcept
+{
+    return Enum::as_value(lhs) | Enum::as_value(rhs);
+}
+
+// Bitwise XOR operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_xor<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator^(EnumT lhs, EnumT rhs) noexcept
+{
+    return Enum::as_value(lhs) ^ Enum::as_value(rhs);
+}
+
+// Bitwise NOT operator for EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_not<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator~(EnumT e) noexcept
+{
+    return ~Enum::as_value(e);
+}
+
+// Compound assignment AND operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_compound_and<void, EnumT>::value, EnumT&>
+operator&=(EnumT& lhs, EnumT rhs) noexcept
+{
+    lhs = Enum::as_type<EnumT>(Enum::as_value(lhs) & Enum::as_value(rhs));
+    return lhs;
+}
+
+// Compound assignment OR operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_compound_or<void, EnumT>::value, EnumT&>
+operator|=(EnumT& lhs, EnumT rhs) noexcept
+{
+    lhs = Enum::as_type<EnumT>(Enum::as_value(lhs) | Enum::as_value(rhs));
+    return lhs;
+}
+
+// Compound assignment XOR operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_compound_xor<void, EnumT>::value, EnumT&>
+operator^=(EnumT& lhs, EnumT rhs) noexcept
+{
+    lhs = Enum::as_type<EnumT>(Enum::as_value(lhs) ^ Enum::as_value(rhs));
+    return lhs;
+}
+
+// Greater or equal comparison operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_greater_equal<void, EnumT>::value, bool>
+operator>=(EnumT lhs, EnumT rhs) noexcept
+{
+    return Enum::as_value(lhs) >= Enum::as_value(rhs);
+}
+
+// Less or equal comparison operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_less_equal<void, EnumT>::value, bool>
+operator<=(EnumT lhs, EnumT rhs) noexcept
+{
+    return Enum::as_value(lhs) <= Enum::as_value(rhs);
+}
+
+// Greater than comparison operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_greater<void, EnumT>::value, bool>
+operator>(EnumT lhs, EnumT rhs) noexcept
+{
+    return Enum::as_value(lhs) > Enum::as_value(rhs);
+}
+
+// Less than comparison operator for EnumT, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_less<void, EnumT>::value, bool>
+operator<(EnumT lhs, EnumT rhs) noexcept
+{
+    return Enum::as_value(lhs) < Enum::as_value(rhs);
+}
+
+namespace Enum
+{
+    // Detection traits for bitwise and comparison operators for EnumT, UnderlyingType
+    template <typename, typename T, typename = void> struct has_bitwise_and_enum_underlying : std::false_type {};
+    template <typename T> struct has_bitwise_and_enum_underlying<decltype(void(std::declval<T>()& std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_bitwise_or_enum_underlying : std::false_type {};
+    template <typename T> struct has_bitwise_or_enum_underlying<decltype(void(std::declval<T>() | std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_bitwise_xor_enum_underlying : std::false_type {};
+    template <typename T> struct has_bitwise_xor_enum_underlying<decltype(void(std::declval<T>() ^ std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_compound_and_enum_underlying : std::false_type {};
+    template <typename T> struct has_compound_and_enum_underlying<decltype(void(std::declval<T&>() &= std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_compound_or_enum_underlying : std::false_type {};
+    template <typename T> struct has_compound_or_enum_underlying<decltype(void(std::declval<T&>() |= std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_compound_xor_enum_underlying : std::false_type {};
+    template <typename T> struct has_compound_xor_enum_underlying<decltype(void(std::declval<T&>() ^= std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_greater_equal_enum_underlying : std::false_type {};
+    template <typename T> struct has_greater_equal_enum_underlying<decltype(void(std::declval<T>() >= std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_less_equal_enum_underlying : std::false_type {};
+    template <typename T> struct has_less_equal_enum_underlying<decltype(void(std::declval<T>() <= std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_greater_enum_underlying : std::false_type {};
+    template <typename T> struct has_greater_enum_underlying<decltype(void(std::declval<T>() > std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type{};
+
+    template <typename, typename T, typename = void> struct has_less_enum_underlying : std::false_type {};
+    template <typename T> struct has_less_enum_underlying<decltype(void(std::declval<T>() < std::declval<std::underlying_type_t<T>>())), T, void> : std::true_type{};
+}
+
+// Bitwise AND operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_and_enum_underlying<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator&(EnumT lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    return Enum::as_value(lhs) & rhs;
+}
+
+// Bitwise OR operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_or_enum_underlying<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator|(EnumT lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    return Enum::as_value(lhs) | rhs;
+}
+
+// Bitwise XOR operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_xor_enum_underlying<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator^(EnumT lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    return Enum::as_value(lhs) ^ rhs;
+}
+
+// Compound assignment AND operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_compound_and_enum_underlying<void, EnumT>::value, EnumT&>
+operator&=(EnumT& lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    lhs = Enum::as_type<EnumT>(Enum::as_value(lhs) & rhs);
+    return lhs;
+}
+
+// Compound assignment OR operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_compound_or_enum_underlying<void, EnumT>::value, EnumT&>
+operator|=(EnumT& lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    lhs = Enum::as_type<EnumT>(Enum::as_value(lhs) | rhs);
+    return lhs;
+}
+
+// Compound assignment XOR operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_compound_xor_enum_underlying<void, EnumT>::value, EnumT&>
+operator^=(EnumT& lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    lhs = Enum::as_type<EnumT>(Enum::as_value(lhs) ^ rhs);
+    return lhs;
+}
+
+// Greater or equal comparison operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_greater_equal_enum_underlying<void, EnumT>::value, bool>
+operator>=(EnumT lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    return Enum::as_value(lhs) >= rhs;
+}
+
+// Less or equal comparison operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_less_equal_enum_underlying<void, EnumT>::value, bool>
+operator<=(EnumT lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    return Enum::as_value(lhs) <= rhs;
+}
+
+// Greater than comparison operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_greater_enum_underlying<void, EnumT>::value, bool>
+operator>(EnumT lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    return Enum::as_value(lhs) > rhs;
+}
+
+// Less than comparison operator for EnumT, UnderlyingType
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_less_enum_underlying<void, EnumT>::value, bool>
+operator<(EnumT lhs, std::underlying_type_t<EnumT> rhs) noexcept
+{
+    return Enum::as_value(lhs) < rhs;
+}
+
+namespace Enum
+{
+    // Detection traits for bitwise and comparison operators for UnderlyingType, EnumT
+    template <typename, typename T, typename = void> struct has_bitwise_and_underlying_enum : std::false_type {};
+    template <typename T> struct has_bitwise_and_underlying_enum<decltype(void(std::declval<std::underlying_type_t<T>>()& std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_bitwise_or_underlying_enum : std::false_type {};
+    template <typename T> struct has_bitwise_or_underlying_enum<decltype(void(std::declval<std::underlying_type_t<T>>() | std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_bitwise_xor_underlying_enum : std::false_type {};
+    template <typename T> struct has_bitwise_xor_underlying_enum<decltype(void(std::declval<std::underlying_type_t<T>>() ^ std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_greater_equal_underlying_enum : std::false_type {};
+    template <typename T> struct has_greater_equal_underlying_enum<decltype(void(std::declval<std::underlying_type_t<T>>() >= std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_less_equal_underlying_enum : std::false_type {};
+    template <typename T> struct has_less_equal_underlying_enum<decltype(void(std::declval<std::underlying_type_t<T>>() <= std::declval<T>())), T, void> : std::true_type {};
+
+    template <typename, typename T, typename = void> struct has_greater_underlying_enum : std::false_type {};
+    template <typename T> struct has_greater_underlying_enum<decltype(void(std::declval<std::underlying_type_t<T>>() > std::declval<T>())), T, void> : std::true_type{};
+
+    template <typename, typename T, typename = void> struct has_less_underlying_enum : std::false_type {};
+    template <typename T> struct has_less_underlying_enum<decltype(void(std::declval<std::underlying_type_t<T>>() < std::declval<T>())), T, void> : std::true_type{};
+}
+
+// Bitwise AND operator for UnderlyingType, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_and_underlying_enum<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator&(std::underlying_type_t<EnumT> lhs, EnumT rhs) noexcept
+{
+    return lhs & Enum::as_value(rhs);
+}
+
+// Bitwise OR operator for UnderlyingType, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_or_underlying_enum<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator|(std::underlying_type_t<EnumT> lhs, EnumT rhs) noexcept
+{
+    return lhs | Enum::as_value(rhs);
+}
+
+// Bitwise XOR operator for UnderlyingType, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_bitwise_xor_underlying_enum<void, EnumT>::value, std::underlying_type_t<EnumT>>
+operator^(std::underlying_type_t<EnumT> lhs, EnumT rhs) noexcept
+{
+    return lhs ^ Enum::as_value(rhs);
+}
+
+// Greater or equal comparison operator for UnderlyingType, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_greater_equal_underlying_enum<void, EnumT>::value, bool>
+operator>=(std::underlying_type_t<EnumT> lhs, EnumT rhs) noexcept
+{
+    return lhs >= Enum::as_value(rhs);
+}
+
+// Less or equal comparison operator for UnderlyingType, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_less_equal_underlying_enum<void, EnumT>::value, bool>
+operator<=(std::underlying_type_t<EnumT> lhs, EnumT rhs) noexcept
+{
+    return lhs <= Enum::as_value(rhs);
+}
+
+// Greater than comparison operator for UnderlyingType, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_greater_underlying_enum<void, EnumT>::value, bool>
+operator>(std::underlying_type_t<EnumT> lhs, EnumT rhs) noexcept
+{
+    return lhs > Enum::as_value(rhs);
+}
+
+// Less than comparison operator for UnderlyingType, EnumT
+template <typename EnumT>
+constexpr std::enable_if_t<std::is_enum_v<EnumT> && !Enum::has_less_underlying_enum<void, EnumT>::value, bool>
+operator<(std::underlying_type_t<EnumT> lhs, EnumT rhs) noexcept
+{
+    return lhs < Enum::as_value(rhs);
+}

@@ -1,3 +1,4 @@
+#ifdef SCRIPT_IMPL
 #pragma once
 
 #include <bx/meta/meta.hpp>
@@ -790,3 +791,4 @@ void Script::BindEnumVal(const char* signature)
 {
 	RegisterFunction(true, signature, ScriptEnumVal<T, U, Val>::Get);
 }
+#endif
