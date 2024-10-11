@@ -15,7 +15,7 @@
 #include <bx/platform/input.hpp>
 #include <bx/platform/window.hpp>
 #include <bx/platform/graphics.hpp>
-//#include <bx/platform/audio.hpp>
+#include <bx/platform/audio.hpp>
 #include <bx/engine/imgui.hpp>
 
 #ifdef BX_EDITOR_BUILD
@@ -110,20 +110,20 @@ int Application::Launch(const AppConfig& config)
 	Memory::Initialize();
 #endif
 
-	Module::Load();
-
 	Time::Initialize();
 	File::Initialize();
+	Data::Initialize();
+
+	ResourceManager::Initialize();
+	//Script::Initialize();
+
+	Module::Load();
 	
 	Window::Get().Initialize();
 	Input::Get().Initialize();
 	Graphics::Get().Initialize();
-	ImGuiImpl::Initialize();
-	//Audio::Initialize();
-
-	Data::Initialize();
-	ResourceManager::Initialize();
-	//Script::Initialize();
+	ImGuiManager::Initialize();
+	Audio::Get().Initialize();
 
 #ifdef BX_EDITOR_BUILD
 	InitializeImGui();
@@ -167,16 +167,15 @@ int Application::Launch(const AppConfig& config)
 	AssetManager::Shutdown();
 #endif
 
-	//Script::Shutdown();
-	ResourceManager::Shutdown();
-	Data::Shutdown();
-
-	//Audio::Shutdown();
-	ImGuiImpl::Shutdown();
+	Audio::Get().Shutdown();
+	ImGuiManager::Shutdown();
 	Graphics::Get().Shutdown();
 	Input::Get().Shutdown();
 	Window::Get().Shutdown();
 
+	//Script::Shutdown();
+	ResourceManager::Shutdown();
+	Data::Shutdown();
 	//File::Shutdown();
 	//Time::Shutdown();
 
@@ -195,7 +194,7 @@ void Application::Tick()
 	//Script::CollectGarbage();
 	Time::Update();
 	Window::Get().PollEvents();
-	Input::Get().Poll();
+	Input::Get().PollEvents();
 
 #ifdef BX_EDITOR_BUILD
 //	if (Toolbar::IsPlaying() && (Toolbar::ConsumeNextFrame() || !Toolbar::IsPaused()))
@@ -211,7 +210,7 @@ void Application::Tick()
 #endif
 
 	Graphics::Get().NewFrame();
-	ImGuiImpl::NewFrame();
+	ImGuiManager::NewFrame();
 
 #ifdef BX_EDITOR_BUILD
 //	if (Toolbar::IsPlaying() && !Toolbar::IsPaused())
@@ -226,7 +225,7 @@ void Application::Tick()
 //	Script::Render();
 #endif
 
-	ImGuiImpl::EndFrame();
+	ImGuiManager::EndFrame();
 	Graphics::Get().EndFrame();
 
 	Window::Get().Display();

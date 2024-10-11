@@ -110,7 +110,7 @@ public:
 	virtual void Reload() = 0;
 	virtual void Shutdown() = 0;
 
-	virtual void Poll() = 0;
+	virtual void PollEvents() = 0;
 
 	/// <summary>
 	/// Returns the current floating-point value of a given gamepad axis.

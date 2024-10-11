@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bx/bx.hpp>
+
 #include <rttr/registration.h>
 #include <rttr/library.h>
 #include <iostream>
@@ -7,7 +9,7 @@
 #include <string>
 #include <vector>
 
-class Module
+class BX_API Module
 {
 public:
     static void Load()

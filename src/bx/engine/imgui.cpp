@@ -12,7 +12,7 @@
 
 static ImGuiContext* g_ImGuiContext = nullptr;
 
-bool ImGuiImpl::Initialize()
+bool ImGuiManager::Initialize()
 {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -93,32 +93,36 @@ bool ImGuiImpl::Initialize()
     return true;
 }
 
-void ImGuiImpl::Reload()
+void ImGuiManager::Reload()
 {
 }
 
-void ImGuiImpl::Shutdown()
+void ImGuiManager::Shutdown()
 {
     Graphics::Get().ShutdownImGui();
     Window::Get().ShutdownImGui();
     ImGui::DestroyContext();
 }
 
-void ImGuiImpl::NewFrame()
+void ImGuiManager::NewFrame()
 {
+    PROFILE_FUNCTION();
+
     Window::Get().NewFrameImGui();
     Graphics::Get().NewFrameImGui();
     ImGui::NewFrame();
 }
 
-void ImGuiImpl::EndFrame()
+void ImGuiManager::EndFrame()
 {
+    PROFILE_FUNCTION();
+
     ImGui::Render();
     Graphics::Get().EndFrameImGui();
     Window::Get().EndFrameImGui();
 }
 
-ImGuiContext* ImGuiImpl::GetCurrentContext()
+ImGuiContext* ImGuiManager::GetCurrentContext()
 {
     return g_ImGuiContext;
 }

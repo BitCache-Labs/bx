@@ -41,8 +41,10 @@ void ProfilerView::OnReload()
 
 void ProfilerView::OnPresent()
 {
+    //Old icon: ICON_FA_CHART_PIE
+
     ImGui::PushID(this);
-    ImGui::Begin(ICON_FA_CHART_PIE"  Profiler", &m_open, ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin(ICON_FA_STOPWATCH"  Profiler", &m_open, ImGuiWindowFlags_NoCollapse);
     
     // TODO: Fix moving frame number
     //m_frame++;

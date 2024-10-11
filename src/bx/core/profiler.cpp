@@ -13,7 +13,11 @@ struct ProfilerEntry
 };
 
 static HashMap<String, ProfilerData> s_data;
-static HashMap<String, ProfilerEntry> s_entries;
+//static HashMap<String, ProfilerEntry> s_entries;
+
+#include <map>
+static std::map<String, ProfilerEntry> s_entries;
+
 static Timer timer;
 static f32 g_time = 0;
 

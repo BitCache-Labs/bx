@@ -7,7 +7,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-class BX_API ImGuiImpl
+class BX_API ImGuiManager
 {
 public:
 	static bool Initialize();
