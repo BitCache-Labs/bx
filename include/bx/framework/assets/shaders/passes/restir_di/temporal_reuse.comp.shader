@@ -77,14 +77,11 @@ void main()
 
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
 
-    vec2 velocity = imageLoad(velocity, pixel).rg;
+    vec2 velocity = imageLoad(velocity, pixel).xy;
     ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
-    if (prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y || prevPixel.x < 0 || prevPixel.y < 0)
-    {
-        prevPixel = pixel;
-    }
+    prevPixel = clamp(prevPixel, ivec2(0), ivec2(constants.resolution) - 1);
     uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
-
+    
     {
         Reservoir outputReservoir = Reservoir_default();
         ReservoirData outputReservoirData = ReservoirData_default();
@@ -98,7 +95,7 @@ void main()
         Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
 
         { // Current
-            bool currentValid = centerNormalAndDepth.w != 0.0;
+            bool currentValid = centerNormalAndDepth.w != 0.0 && ReservoirData_isValid(reservoirData);
             if (!currentValid)
             {
                 reservoirData.p_hat = 0.0;
@@ -116,17 +113,23 @@ void main()
             ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
             Reservoir sampledReservoir = Reservoir_fromPacked(restirReservoirsHistory[prevId]);
 
-            sampledReservoir.sampleCount = min(20.0 * reservoir.sampleCount, sampledReservoir.sampleCount);
-            sampledReservoirData.p_hat = 0.0;
+            float MAX_SAMPLE_COUNT = 64.0;
+            if (sampledReservoir.sampleCount > MAX_SAMPLE_COUNT * reservoir.sampleCount)
+            {
+                sampledReservoir.weightSum *= MAX_SAMPLE_COUNT * reservoir.sampleCount / sampledReservoir.sampleCount;
+                sampledReservoir.sampleCount = MAX_SAMPLE_COUNT * reservoir.sampleCount;
+            }
 
-            bool historyValid = sampleNormalAndDepthHistory.w != 0.0;
+            bool historyValid = sampleNormalAndDepthHistory.w != 0.0 && ReservoirData_isValid(sampledReservoirData);
             historyValid = historyValid && dot(normal, sampleNormalAndDepthHistory.xyz) >= 0.5;
+
+            sampledReservoirData.p_hat = 0.0;
 
             if (historyValid)
             {
                 vec3 direction;
                 float tMax;
-                if (reservoirData.triangleLightSource != U32_MAX)
+                if (sampledReservoirData.triangleLightSource != U32_MAX)
                 {
                     mat4 lightTransform = blasInstances[sampledReservoirData.blasInstance].transform;
                     LightSample reconstructedLightSample = sampleTriangleLight(sampledReservoirData.triangleLightSource, sampledReservoirData.hitUv, lightTransform, origin, 0.0);
@@ -135,7 +138,7 @@ void main()
                 }
                 else
                 {
-                    direction = sampleSunDirection(reservoirData.hitUv);
+                    direction = sampleSunDirection(sampledReservoirData.hitUv);
                     tMax = SUN_DISTANCE;
                 }
                 
@@ -173,7 +176,5 @@ void main()
 
         restirReservoirs[id] = Reservoir_toPacked(outputReservoir);
         restirReservoirData[id] = ReservoirData_toPacked(outputReservoirData);
-        restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
-        restirReservoirDataHistory[id] = ReservoirData_toPacked(outputReservoirData);
     }
 }

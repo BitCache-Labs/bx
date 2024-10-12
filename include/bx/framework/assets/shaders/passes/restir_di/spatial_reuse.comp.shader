@@ -74,30 +74,32 @@ void main()
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     
     vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
-    if (centerNormalAndDepth.w == 0.0)
-    {
-        outRestirReservoirs[id] = Reservoir_toPacked(reservoir);
-        outRestirReservoirData[id] = ReservoirData_toPacked(reservoirData);
-        restirReservoirsHistory[id] = Reservoir_toPacked(reservoir);
-        restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
-        return;
-    }
     vec3 origin = getPositionWs(pixel, centerNormalAndDepth.w);
     vec3 normal = centerNormalAndDepth.xyz;
     
     Reservoir outputReservoir = Reservoir_default();
+    ReservoirData outputReservoirData = ReservoirData_default();
 
-    Reservoir_update(outputReservoir,
+    if (centerNormalAndDepth.w == 0.0 || !ReservoirData_isValid(reservoirData))
+    {
+        reservoirData.p_hat = 0.0;
+    }
+    
+    if (Reservoir_update(outputReservoir,
             reservoirData.p_hat * reservoir.contributionWeight * reservoir.sampleCount,
-            reservoir.sampleCount, rngState);
+            reservoir.sampleCount, rngState))
+    {
+        outputReservoirData = reservoirData;
+    }
 
-    float screenRadius = constants.resolution.x / 30.0;
-    float radius = screenRadius;
+#if 1
+    float screenRadius = constants.resolution.x / 15.0;
+    float radius = screenRadius * ((constants.spatialIndex == 0) ? 2.0 : 1.0);
     float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex) * 0.5;
-    ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 3) : (pixel >> 2);
+    ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 2) : (pixel >> 1);
     uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + constants.spatialIndex));
     float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
-
+    
     #pragma unroll
     for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
     {
@@ -105,15 +107,14 @@ void main()
         float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
     
         ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
-        uint flatOffset = offset.y * constants.resolution.x + offset.x;
         ivec2 samplePixel = pixel + offset;
-        uint sampleId = id + flatOffset;
-        samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
+        samplePixel = clamp(samplePixel, ivec2(0), ivec2(constants.resolution) - 1);
+        uint sampleId = samplePixel.y * constants.resolution.x + samplePixel.x;
     
         ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
     
         vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
-        if (sampleNormalAndDepth.w == 0.0)
+        if (sampleNormalAndDepth.w == 0.0 || !ReservoirData_isValid(sampledReservoirData))
         {
             continue;
         }
@@ -122,7 +123,7 @@ void main()
     
         vec3 direction;
         float tMax;
-        if (reservoirData.triangleLightSource != U32_MAX)
+        if (sampledReservoirData.triangleLightSource != U32_MAX)
         {
             mat4 lightTransform = blasInstances[sampledReservoirData.blasInstance].transform;
             LightSample reconstructedLightSample = sampleTriangleLight(sampledReservoirData.triangleLightSource, sampledReservoirData.hitUv, lightTransform, origin, 0.0);
@@ -131,10 +132,10 @@ void main()
         }
         else
         {
-            direction = sampleSunDirection(reservoirData.hitUv);
+            direction = sampleSunDirection(sampledReservoirData.hitUv);
             tMax = SUN_DISTANCE;
         }
-
+    
         if (dot(direction, normal) > 0.0)
         {
             vec3 brdfEval = diffuseBsdfEval(vec3(0.7, 0.7, 0.7)); // TODO: pass basecolor around?
@@ -147,29 +148,32 @@ void main()
             {
                 visibility = traceValidationRay(Scene, origin, direction, normal, tMax) ? 0.0 : 1.0;
             }
-
+    
             sampledReservoirData.p_hat = length(visibility * brdfContribution * intensity);
         }
         else
         {
             sampledReservoirData.p_hat = 0.0;
         }
-
+    
         if (Reservoir_update(outputReservoir,
             sampledReservoirData.p_hat * sampledReservoir.contributionWeight * sampledReservoir.sampleCount,
             sampledReservoir.sampleCount, rngState))
         {
-            reservoirData = sampledReservoirData;
+            outputReservoirData = sampledReservoirData;
         }
     }
+#endif
 
-    outputReservoir.contributionWeight = (reservoirData.p_hat > 0.0) ? ((1.0 / reservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount) : 0.0;
+    if (outputReservoirData.p_hat > 0.0 && outputReservoir.sampleCount > 0.0)
+        outputReservoir.contributionWeight = (1.0 / outputReservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount;
+    else
+        outputReservoir.contributionWeight = 0.0;
     
     Reservoir_clampContributionWeight(outputReservoir, RESERVOIR_CONTRIBUTION_CLAMP);
 
     outRestirReservoirs[id] = Reservoir_toPacked(outputReservoir);
-    outRestirReservoirData[id] = ReservoirData_toPacked(reservoirData);
-    
+    outRestirReservoirData[id] = ReservoirData_toPacked(outputReservoirData);
     restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
-    restirReservoirDataHistory[id] = ReservoirData_toPacked(reservoirData);
+    restirReservoirDataHistory[id] = ReservoirData_toPacked(outputReservoirData);
 }

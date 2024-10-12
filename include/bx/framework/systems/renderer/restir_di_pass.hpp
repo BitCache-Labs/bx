@@ -15,8 +15,8 @@ class Restir : NoCopy
 public:
 	struct PackedReservoir
 	{
-		u32 sampleCountAndContributionWeight;
-		f32 weightSum;
+		f32 sampleCount;
+		f32 contributionWeight;
 	};
 
 	struct PackedReservoirData
