@@ -24,5 +24,5 @@ private:
 
 	BufferHandle constantBuffer;
 	BufferHandle resolveConstantBuffer;
-	TextureHandle mippedColorTarget;
+	List<TextureHandle> mippedColorTargets;
 };

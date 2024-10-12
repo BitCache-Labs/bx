@@ -182,7 +182,7 @@ Fsr2Pass::Fsr2Pass(u32 width, u32 height, u32 outputWidth, u32 outputHeight)
     outputTargetCreateInfo.name = "Fsr2 Output Target";
     outputTargetCreateInfo.size = Extend3D(outputWidth, outputHeight, 1);
     outputTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
-    outputTargetCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::TEXTURE_BINDING;
+    outputTargetCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::COPY_SRC;
     outputTarget = Graphics::CreateTexture(outputTargetCreateInfo);
 }
 

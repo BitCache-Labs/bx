@@ -137,25 +137,37 @@ BloomPass::BloomPass(u32 width, u32 height)
     resolveConstantBufferCreateInfo.usageFlags = BufferUsageFlags::COPY_DST | BufferUsageFlags::UNIFORM;
     resolveConstantBuffer = Graphics::CreateBuffer(resolveConstantBufferCreateInfo);
 
+    f32 mipWidth = static_cast<f32>(width);
+    f32 mipHeight = static_cast<f32>(height);
+
     TextureCreateInfo mippedColorTargetCreateInfo{};
-    mippedColorTargetCreateInfo.name = "Bloom Pass Mipped Color Target Texture";
-    mippedColorTargetCreateInfo.size = Extend3D(width, height, 1);
-    mippedColorTargetCreateInfo.mipLevelCount = mipCount;
     mippedColorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     mippedColorTargetCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::TEXTURE_BINDING;
-    mippedColorTarget = Graphics::CreateTexture(mippedColorTargetCreateInfo);
+    for (u32 i = 0; i < mipCount; i++)
+    {
+        mippedColorTargetCreateInfo.name = Log::Format("Bloom Pass Mipped Color Target {} Texture", i);
+        mippedColorTargetCreateInfo.size = Extend3D(static_cast<u32>(mipWidth), static_cast<u32>(mipHeight), 1);
+        mippedColorTargets.push_back(Graphics::CreateTexture(mippedColorTargetCreateInfo));
+
+        mipWidth *= 0.5;
+        mipHeight *= 0.5;
+    }
 }
 
 BloomPass::~BloomPass()
 {
     Graphics::DestroyBuffer(constantBuffer);
     Graphics::DestroyBuffer(resolveConstantBuffer);
-    Graphics::DestroyTexture(mippedColorTarget);
+
+    for (u32 i = 0; i < mippedColorTargets.size(); i++)
+    {
+        Graphics::DestroyTexture(mippedColorTargets[i]);
+    }
 }
 
 void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
 {
-    Graphics::CopyTexture(colorTarget, mippedColorTarget);
+    Graphics::CopyTexture(colorTarget, mippedColorTargets[0]);
 
     f32 mipWidth = static_cast<f32>(width);
     f32 mipHeight = static_cast<f32>(height);
@@ -164,7 +176,7 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
 
     // TODO: use sampler with clamp instead of repeat
 
-    for (u32 i = 0; i < mipCount; i++)
+    for (u32 i = 0; i < mipCount - 1; i++)
     {
         BloomConstants constants{};
         constants.srcWidth = mipWidthInt;
@@ -179,17 +191,8 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         constants.dstHeight = mipHeightInt;
         Graphics::WriteBufferImmediate(constantBuffer, 0, &constants, sizeof(BloomConstants));
 
-        TextureViewCreateInfo srcViewCreateInfo{};
-        srcViewCreateInfo.texture = mippedColorTarget;
-        srcViewCreateInfo.baseMipLevel = i;
-        srcViewCreateInfo.mipLevelCount = Optional<u32>::Some(1);
-        TextureViewHandle srcView = Graphics::CreateTextureView(srcViewCreateInfo);
-
-        TextureViewCreateInfo dstViewCreateInfo{};
-        dstViewCreateInfo.texture = mippedColorTarget;
-        dstViewCreateInfo.baseMipLevel = i + 1;
-        dstViewCreateInfo.mipLevelCount = Optional<u32>::Some(1);
-        TextureViewHandle dstView = Graphics::CreateTextureView(dstViewCreateInfo);
+        TextureViewHandle srcView = Graphics::CreateTextureView(mippedColorTargets[i]);
+        TextureViewHandle dstView = Graphics::CreateTextureView(mippedColorTargets[i + 1]);
 
         BindGroupCreateInfo createInfo{};
         createInfo.name = "Bloom Downsample BindGroup";
@@ -216,7 +219,7 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         Graphics::DestroyBindGroup(bindGroup);
     }
 
-    for (i32 i = mipCount; i >= 1; i--)
+    for (i32 i = mipCount - 1; i >= 1; i--)
     {
         BloomConstants constants{};
         constants.srcWidth = mipWidthInt;
@@ -231,17 +234,8 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         constants.dstHeight = mipHeightInt;
         Graphics::WriteBufferImmediate(constantBuffer, 0, &constants, sizeof(BloomConstants));
 
-        TextureViewCreateInfo srcViewCreateInfo{};
-        srcViewCreateInfo.texture = mippedColorTarget;
-        srcViewCreateInfo.baseMipLevel = i;
-        srcViewCreateInfo.mipLevelCount = Optional<u32>::Some(1);
-        TextureViewHandle srcView = Graphics::CreateTextureView(srcViewCreateInfo);
-
-        TextureViewCreateInfo dstViewCreateInfo{};
-        dstViewCreateInfo.texture = mippedColorTarget;
-        dstViewCreateInfo.baseMipLevel = i - 1;
-        dstViewCreateInfo.mipLevelCount = Optional<u32>::Some(1);
-        TextureViewHandle dstView = Graphics::CreateTextureView(dstViewCreateInfo);
+        TextureViewHandle srcView = Graphics::CreateTextureView(mippedColorTargets[i]);
+        TextureViewHandle dstView = Graphics::CreateTextureView(mippedColorTargets[i - 1]);
 
         BindGroupCreateInfo createInfo{};
         createInfo.name = "Bloom Upsample BindGroup";
@@ -274,7 +268,7 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
     resolveConstants.intensity = intensity;
     Graphics::WriteBuffer(resolveConstantBuffer, 0, &resolveConstants);
 
-    TextureViewHandle srcView = Graphics::CreateTextureView(mippedColorTarget);
+    TextureViewHandle srcView = Graphics::CreateTextureView(mippedColorTargets[0]);
     TextureViewHandle dstView = Graphics::CreateTextureView(colorTarget);
 
     BindGroupCreateInfo createInfo{};
