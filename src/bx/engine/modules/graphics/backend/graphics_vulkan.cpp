@@ -47,7 +47,7 @@ using namespace Vk;
 
 constexpr bool ENABLE_VALIDATION =
 #ifdef _DEBUG
-false;
+true;
 #else
 false;
 #endif

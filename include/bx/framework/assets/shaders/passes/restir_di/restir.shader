@@ -23,6 +23,11 @@ struct PackedReservoirData
     float p_hat;
 };
 
+ReservoirData ReservoirData_default()
+{
+    return ReservoirData(0, 0, vec2(0.0), 0.0);
+}
+
 bool ReservoirData_isValid(ReservoirData self)
 {
     return self.p_hat != 0.0;

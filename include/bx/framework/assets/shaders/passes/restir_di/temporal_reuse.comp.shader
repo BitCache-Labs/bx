@@ -77,83 +77,103 @@ void main()
 
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
 
-    vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
-
-    ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
-    Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
-    
     vec2 velocity = imageLoad(velocity, pixel).rg;
-    ivec2 prevPixel = ivec2(vec2(pixel) - (vec2(constants.resolution) * velocity));
+    ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
     if (prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y || prevPixel.x < 0 || prevPixel.y < 0)
     {
         prevPixel = pixel;
     }
     uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
 
-    ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
-
-    vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(prevPixel);
-
-    if (sampleNormalAndDepthHistory.w != 0.0 && centerNormalAndDepth.w != 0.0)
     {
         Reservoir outputReservoir = Reservoir_default();
-        
-        Reservoir_update(outputReservoir,
-            reservoirData.p_hat * reservoir.contributionWeight * reservoir.sampleCount,
-            reservoir.sampleCount, rngState);
-        
-        vec3 origin = getPositionWs(pixel, centerNormalAndDepth.w);
-        vec3 normal = centerNormalAndDepth.xyz;
-        
-        Reservoir sampledReservoir = Reservoir_fromPackedClamped(restirReservoirsHistory[prevId], RESERVOIR_M_CLAMP);
+        ReservoirData outputReservoirData = ReservoirData_default();
 
-        vec3 direction;
-        float tMax;
-        if (reservoirData.triangleLightSource != U32_MAX)
-        {
-            mat4 lightTransform = blasInstances[sampledReservoirData.blasInstance].transform;
-            LightSample reconstructedLightSample = sampleTriangleLight(sampledReservoirData.triangleLightSource, sampledReservoirData.hitUv, lightTransform, origin, 0.0);
-            direction = reconstructedLightSample.sampleDirection;
-            tMax = reconstructedLightSample.hitT;
-        }
-        else
-        {
-            direction = sampleSunDirection(reservoirData.hitUv);
-            tMax = SUN_DISTANCE;
-        }
-        
-        if (dot(direction, normal) > 0.0)
-        {
-            vec3 brdfEval = diffuseBsdfEval(vec3(0.7, 0.7, 0.7)); // TODO: pass basecolor around?
-            vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0);
-            vec3 intensity = lightIntensity(sampledReservoirData.triangleLightSource, sampledReservoirData.blasInstance,
-                direction, tMax);
-        
-            float visibility = 1.0;
-            if (constants.unbiased)
+        vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
+        vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(prevPixel);
+        vec3 origin = getPositionWs(pixel, centerNormalAndDepth.w); // TODO: fix for mirrors
+        vec3 normal = centerNormalAndDepth.xyz;
+
+        ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
+        Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
+
+        { // Current
+            bool currentValid = centerNormalAndDepth.w != 0.0;
+            if (!currentValid)
             {
-                visibility = traceValidationRay(Scene, origin, direction, normal, tMax) ? 0.0 : 1.0;
+                reservoirData.p_hat = 0.0;
+            }
+            
+            if (Reservoir_update(outputReservoir,
+                reservoirData.p_hat * reservoir.contributionWeight * reservoir.sampleCount,
+                reservoir.sampleCount, rngState))
+            {
+                outputReservoirData = reservoirData;
+            }
+        }
+
+        { // History
+            ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
+            Reservoir sampledReservoir = Reservoir_fromPacked(restirReservoirsHistory[prevId]);
+
+            sampledReservoir.sampleCount = min(20.0 * reservoir.sampleCount, sampledReservoir.sampleCount);
+            sampledReservoirData.p_hat = 0.0;
+
+            bool historyValid = sampleNormalAndDepthHistory.w != 0.0;
+            historyValid = historyValid && dot(normal, sampleNormalAndDepthHistory.xyz) >= 0.5;
+
+            if (historyValid)
+            {
+                vec3 direction;
+                float tMax;
+                if (reservoirData.triangleLightSource != U32_MAX)
+                {
+                    mat4 lightTransform = blasInstances[sampledReservoirData.blasInstance].transform;
+                    LightSample reconstructedLightSample = sampleTriangleLight(sampledReservoirData.triangleLightSource, sampledReservoirData.hitUv, lightTransform, origin, 0.0);
+                    direction = reconstructedLightSample.sampleDirection;
+                    tMax = reconstructedLightSample.hitT;
+                }
+                else
+                {
+                    direction = sampleSunDirection(reservoirData.hitUv);
+                    tMax = SUN_DISTANCE;
+                }
+                
+                if (dot(direction, normal) > 0.0)
+                {
+                    vec3 brdfEval = diffuseBsdfEval(vec3(0.7, 0.7, 0.7)); // TODO: pass basecolor around?
+                    vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0);
+                    vec3 intensity = lightIntensity(sampledReservoirData.triangleLightSource, sampledReservoirData.blasInstance,
+                        direction, tMax);
+                
+                    float visibility = 1.0;
+                    if (constants.unbiased)
+                    {
+                        visibility = traceValidationRay(Scene, origin, direction, normal, tMax) ? 0.0 : 1.0;
+                    }
+
+                    sampledReservoirData.p_hat = length(visibility * brdfContribution * intensity);
+                }
             }
 
-            sampledReservoirData.p_hat = length(visibility * brdfContribution * intensity);
-        }
-        else
-        {
-            sampledReservoirData.p_hat = 0.0;
-        }
-
-        if (Reservoir_update(outputReservoir,
-            sampledReservoirData.p_hat * sampledReservoir.contributionWeight * sampledReservoir.sampleCount,
-            sampledReservoir.sampleCount, rngState))
-        {
-            reservoirData = sampledReservoirData;
+            if (Reservoir_update(outputReservoir,
+                sampledReservoirData.p_hat * sampledReservoir.contributionWeight * sampledReservoir.sampleCount,
+                sampledReservoir.sampleCount, rngState))
+            {
+                outputReservoirData = sampledReservoirData;
+            }
         }
         
-        outputReservoir.contributionWeight = (reservoirData.p_hat > 0.0) ? ((1.0 / reservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount) : 0.0;
+        if (outputReservoirData.p_hat > 0.0 && outputReservoir.sampleCount > 0.0)
+            outputReservoir.contributionWeight = (1.0 / outputReservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount;
+        else
+            outputReservoir.contributionWeight = 0.0;
 
         Reservoir_clampContributionWeight(outputReservoir, RESERVOIR_CONTRIBUTION_CLAMP);
 
         restirReservoirs[id] = Reservoir_toPacked(outputReservoir);
-        restirReservoirData[id] = ReservoirData_toPacked(reservoirData);
+        restirReservoirData[id] = ReservoirData_toPacked(outputReservoirData);
+        restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
+        restirReservoirDataHistory[id] = ReservoirData_toPacked(outputReservoirData);
     }
 }
