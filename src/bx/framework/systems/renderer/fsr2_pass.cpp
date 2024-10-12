@@ -166,7 +166,8 @@ Fsr2Pass::Fsr2Pass(u32 width, u32 height, u32 outputWidth, u32 outputHeight)
     scratchBuffer = malloc(scratchBufferSize);
     CheckFsr(fsr2.fsr2GetInterfaceVK(&contextDescription.callbacks, scratchBuffer, scratchBufferSize, GraphicsVulkan::GetPhysicalDevice().GetPhysicalDevice(), vkGetDeviceProcAddr));
 
-    contextDescription.flags = FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE;
+    contextDescription.flags = FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE | FFX_FSR2_ENABLE_DEPTH_INVERTED |
+        FFX_FSR2_ENABLE_DEPTH_INFINITE;
 #ifdef BX_DEBUG_BUILD
     contextDescription.flags |= FFX_FSR2_ENABLE_DEBUG_CHECKING;
 #endif
@@ -229,15 +230,14 @@ void Fsr2Pass::Dispatch(const Camera& camera, TextureHandle colorTarget, Texture
     dispatchDescription.motionVectorScale.y = -static_cast<f32>(height);
     dispatchDescription.renderSize.width = width;
     dispatchDescription.renderSize.height = height;
-    dispatchDescription.enableSharpening = true;
-    dispatchDescription.sharpness = 0.3;
-    dispatchDescription.frameTimeDelta = (1.0 / 60.0) * 1000.0; // TODO
+    dispatchDescription.enableSharpening = false;
+    dispatchDescription.sharpness = 0.0;
+    dispatchDescription.frameTimeDelta = (1.0 / 100.0) * 1000.0; // TODO
     dispatchDescription.preExposure = 1.0;
     dispatchDescription.reset = false;
-    dispatchDescription.cameraNear = camera.GetZNear();
-    dispatchDescription.cameraFar = camera.GetZFar();
-    f32 verticalFov = 2.0 * atanf(tanf(camera.GetFov() / 2.0) / camera.GetAspect());
-    dispatchDescription.cameraFovAngleVertical = verticalFov;
+    dispatchDescription.cameraNear = FLT_MAX;
+    dispatchDescription.cameraFar = camera.GetZNear();
+    dispatchDescription.cameraFovAngleVertical = camera.GetFov();
     dispatchDescription.viewSpaceToMetersFactor = 1.0;
     dispatchDescription.enableAutoReactive = false;
 

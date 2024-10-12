@@ -4,7 +4,7 @@
 #include "[engine]/shaders/color_helpers.shader"
 #include "[engine]/shaders/sampling.shader"
 
-const int ANTI_FIREFLY_RADIUS = 4;
+const int ANTI_FIREFLY_RADIUS = 6;
 const float ANTI_FIREFLY_SCALE = 0.5;
 
 const int FAST_HISTORY_RADIUS = 2; // or 1

@@ -113,7 +113,7 @@ void main()
             ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
             Reservoir sampledReservoir = Reservoir_fromPacked(restirReservoirsHistory[prevId]);
 
-            float MAX_SAMPLE_COUNT = 64.0;
+            float MAX_SAMPLE_COUNT = 32.0;
             if (sampledReservoir.sampleCount > MAX_SAMPLE_COUNT * reservoir.sampleCount)
             {
                 sampledReservoir.weightSum *= MAX_SAMPLE_COUNT * reservoir.sampleCount / sampledReservoir.sampleCount;
