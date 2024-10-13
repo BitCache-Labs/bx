@@ -26,6 +26,7 @@ namespace Vk
         ~DescriptorSet();
 
         void SetBuffer(uint32_t binding, VkDescriptorType type, std::shared_ptr<Buffer> buffer);
+        void SetSampler(u32 binding, std::shared_ptr<Sampler> sampler);
         void SetImage(uint32_t binding, VkDescriptorType type, std::shared_ptr<ImageView> image,
             std::shared_ptr<Sampler> sampler);
         void SetImageArray(u32 binding, VkDescriptorType type, const List<std::shared_ptr<ImageView>> images, std::shared_ptr<Sampler> sampler);

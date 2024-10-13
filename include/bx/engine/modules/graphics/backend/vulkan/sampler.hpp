@@ -10,8 +10,12 @@ namespace Vk
     class Device;
     class PhysicalDevice;
 
-    struct SamplerInfo {
+    struct SamplerInfo
+    {
         VkFilter filterMode = VK_FILTER_LINEAR;
+        VkSamplerAddressMode addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VkSamplerAddressMode addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VkSamplerAddressMode addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     };
 
     class Sampler : NoCopy {

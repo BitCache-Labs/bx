@@ -239,7 +239,7 @@ namespace Vk
 		}
 	}
 
-	VkDescriptorType BindingTypeToVk(BindingType type)
+	VkDescriptorType BindingTypeToVk(BindingType type, b8 defaultSampler)
 	{
 		switch (type)
 		{
@@ -250,7 +250,7 @@ namespace Vk
 		case BindingType::SAMPLER:
 			return VK_DESCRIPTOR_TYPE_SAMPLER;
 		case BindingType::TEXTURE:
-			return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			return defaultSampler ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 		case BindingType::STORAGE_TEXTURE:
 			return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		case BindingType::ACCELERATION_STRUCTURE:
@@ -402,6 +402,24 @@ namespace Vk
 				BX_FAIL("Cull mode not supported.");
 				return VK_CULL_MODE_NONE;
 			}
+		}
+	}
+
+	VkSamplerAddressMode SamplerAddressModeToVk(const SamplerAddressMode& mode)
+	{
+		switch (mode)
+		{
+		case SamplerAddressMode::CLAMP_TO_EDGE:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case SamplerAddressMode::REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case SamplerAddressMode::MIRROR_REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		case SamplerAddressMode::CLAMP_TO_BORDER:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		default:
+			BX_FAIL("Sampler address mode not supported.");
+			return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
 		}
 	}
 

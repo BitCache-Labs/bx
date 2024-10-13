@@ -139,8 +139,8 @@ namespace Math
 	{
 		f32 f = 1.0f, result = 0.0f;
 
-		for (u32 currentIndex = index; currentIndex > 0;) {
-
+		for (u32 currentIndex = index; currentIndex > 0;)
+		{
 			f /= (f32)base;
 			result = result + f * (f32)(currentIndex % base);
 			currentIndex = (u32)(floorf((f32)(currentIndex) / (f32)(base)));

@@ -40,7 +40,7 @@ void main()
     uint currentBlasInstance;
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel, currentBlasInstance);
 
-    vec3 result = texture(inImage, vec2(pixel) / vec2(constants.resolution), 0.0).rgb;
+    vec3 result = textureLod(inImage, vec2(pixel) / vec2(constants.resolution), 0.0).rgb;
     float sampleCount = 1.0;
 
     if (currentNormalAndDepth.w == 0.0)

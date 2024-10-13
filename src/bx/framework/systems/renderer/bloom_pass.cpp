@@ -37,8 +37,9 @@ namespace BloomPipelines
             pipelineLayoutDescriptor.bindGroupLayouts = {
                 BindGroupLayoutDescriptor(0, {
                     BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
-                    BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
-                    BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),
+                    BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT, false)),
+                    BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),
+                    BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),
                 })
             };
 
@@ -66,8 +67,9 @@ namespace BloomPipelines
             pipelineLayoutDescriptor.bindGroupLayouts = {
                 BindGroupLayoutDescriptor(0, {
                     BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
-                    BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
-                    BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),
+                    BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT, false)),
+                    BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),
+                    BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),
                 })
             };
 
@@ -125,6 +127,13 @@ BloomPass::BloomPass(u32 width, u32 height)
 {
     mipCount = Math::MipLevelsFromDims(width, height);
 
+    SamplerCreateInfo samplerCreateInfo{};
+    samplerCreateInfo.name = "Bloom Pass Sampler";
+    samplerCreateInfo.addressModeU = SamplerAddressMode::CLAMP_TO_EDGE;
+    samplerCreateInfo.addressModeV = SamplerAddressMode::CLAMP_TO_EDGE;
+    samplerCreateInfo.addressModeW = SamplerAddressMode::CLAMP_TO_EDGE;
+    sampler = Graphics::CreateSampler(samplerCreateInfo);
+
     BufferCreateInfo constantBufferCreateInfo{};
     constantBufferCreateInfo.name = "Bloom Pass Constant Buffer";
     constantBufferCreateInfo.size = sizeof(BloomConstants);
@@ -156,6 +165,7 @@ BloomPass::BloomPass(u32 width, u32 height)
 
 BloomPass::~BloomPass()
 {
+    Graphics::DestroySampler(sampler);
     Graphics::DestroyBuffer(constantBuffer);
     Graphics::DestroyBuffer(resolveConstantBuffer);
 
@@ -200,7 +210,8 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         createInfo.entries = {
             BindGroupEntry(0, BindingResource::Buffer(constantBuffer)),
             BindGroupEntry(1, BindingResource::TextureView(srcView)),
-            BindGroupEntry(2, BindingResource::TextureView(dstView)),
+            BindGroupEntry(2, BindingResource::Sampler(sampler)),
+            BindGroupEntry(3, BindingResource::TextureView(dstView)),
         };
         BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
 
@@ -243,7 +254,8 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         createInfo.entries = {
             BindGroupEntry(0, BindingResource::Buffer(constantBuffer)),
             BindGroupEntry(1, BindingResource::TextureView(srcView)),
-            BindGroupEntry(2, BindingResource::TextureView(dstView)),
+            BindGroupEntry(2, BindingResource::Sampler(sampler)),
+            BindGroupEntry(3, BindingResource::TextureView(dstView)),
         };
         BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
 

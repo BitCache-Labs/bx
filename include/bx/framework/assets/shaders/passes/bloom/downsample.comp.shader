@@ -10,8 +10,9 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uvec2 dstResolution;
 } constants;
 
-layout (BINDING(0, 1)) uniform sampler2D src;
-layout (BINDING(0, 2), rgba32f) uniform image2D dst;
+layout (BINDING(0, 1)) uniform texture2D srcTexture;
+layout (BINDING(0, 2)) uniform sampler clampSampler;
+layout (BINDING(0, 3), rgba32f) uniform image2D dst;
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
@@ -23,22 +24,22 @@ void main()
     float x = 1.0 / constants.srcResolution.x;
     float y = 1.0 / constants.srcResolution.y;
 
-    vec3 a = texture(src, vec2(texCoord.x - 2*x, texCoord.y + 2*y)).rgb;
-    vec3 b = texture(src, vec2(texCoord.x,       texCoord.y + 2*y)).rgb;
-    vec3 c = texture(src, vec2(texCoord.x + 2*x, texCoord.y + 2*y)).rgb;
+    vec3 a = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x - 2*x, texCoord.y + 2*y)).rgb;
+    vec3 b = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x,       texCoord.y + 2*y)).rgb;
+    vec3 c = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x + 2*x, texCoord.y + 2*y)).rgb;
 
-    vec3 d = texture(src, vec2(texCoord.x - 2*x, texCoord.y)).rgb;
-    vec3 e = texture(src, vec2(texCoord.x,       texCoord.y)).rgb;
-    vec3 f = texture(src, vec2(texCoord.x + 2*x, texCoord.y)).rgb;
+    vec3 d = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x - 2*x, texCoord.y)).rgb;
+    vec3 e = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x,       texCoord.y)).rgb;
+    vec3 f = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x + 2*x, texCoord.y)).rgb;
 
-    vec3 g = texture(src, vec2(texCoord.x - 2*x, texCoord.y - 2*y)).rgb;
-    vec3 h = texture(src, vec2(texCoord.x,       texCoord.y - 2*y)).rgb;
-    vec3 i = texture(src, vec2(texCoord.x + 2*x, texCoord.y - 2*y)).rgb;
+    vec3 g = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x - 2*x, texCoord.y - 2*y)).rgb;
+    vec3 h = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x,       texCoord.y - 2*y)).rgb;
+    vec3 i = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x + 2*x, texCoord.y - 2*y)).rgb;
 
-    vec3 j = texture(src, vec2(texCoord.x - x, texCoord.y + y)).rgb;
-    vec3 k = texture(src, vec2(texCoord.x + x, texCoord.y + y)).rgb;
-    vec3 l = texture(src, vec2(texCoord.x - x, texCoord.y - y)).rgb;
-    vec3 m = texture(src, vec2(texCoord.x + x, texCoord.y - y)).rgb;
+    vec3 j = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x - x, texCoord.y + y)).rgb;
+    vec3 k = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x + x, texCoord.y + y)).rgb;
+    vec3 l = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x - x, texCoord.y - y)).rgb;
+    vec3 m = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x + x, texCoord.y - y)).rgb;
 
     vec3 downsample = e*0.125;
     downsample += (a+c+g+i)*0.03125;

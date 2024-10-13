@@ -14,13 +14,14 @@ namespace Vk
 	VkImageLayout TextureFormatToVkImageLayout(TextureFormat format);
 	VkImageType TextureDimensionToVk(TextureDimension dimension);
 	VkShaderStageFlagBits ShaderTypeToVk(ShaderType type);
-	VkDescriptorType BindingTypeToVk(BindingType type);
+	VkDescriptorType BindingTypeToVk(BindingType type, b8 defaultSampler);
 	VkShaderStageFlags ShaderStageFlagsToVk(ShaderStageFlags stageFlags);
 	VkFormat VertexFormatToVk(const VertexFormat& format);
 	VkIndexType IndexFormatToVk(const IndexFormat& format);
 	VkFrontFace FrontFaceToVk(const FrontFace& frontFace);
 	VkPrimitiveTopology PrimitiveTopologyToVk(const PrimitiveTopology& topology);
 	VkCullModeFlags CullModeToVk(const Optional<Face>& cullMode);
+	VkSamplerAddressMode SamplerAddressModeToVk(const SamplerAddressMode& mode);
 
 	TextureFormat TextureFormatFromVk(VkFormat format);
 }

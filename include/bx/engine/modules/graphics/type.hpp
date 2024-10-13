@@ -355,7 +355,7 @@ struct BindingTypeDescriptor
 	static BindingTypeDescriptor UniformBuffer();
 	static BindingTypeDescriptor StorageBuffer(b8 readOnly = true);
 	static BindingTypeDescriptor Sampler();
-	static BindingTypeDescriptor Texture(TextureSampleType sampleType, TextureViewDimension viewDimension = TextureViewDimension::D2, b8 multisampled = false);
+	static BindingTypeDescriptor Texture(TextureSampleType sampleType, b8 defaultSampler = true, TextureViewDimension viewDimension = TextureViewDimension::D2, b8 multisampled = false);
 	static BindingTypeDescriptor StorageTexture(StorageTextureAccess access, TextureFormat format, TextureViewDimension viewDimension = TextureViewDimension::D2);
 	static BindingTypeDescriptor AccelerationStructure();
 
@@ -382,6 +382,7 @@ struct BindingTypeDescriptor
 		struct
 		{
 			TextureSampleType sampleType = TextureSampleType::FLOAT;
+			b8 defaultSampler = true;
 			TextureViewDimension viewDimension = TextureViewDimension::D2;
 			b8 multisampled = false;
 			u32 _padding[1];
@@ -549,11 +550,11 @@ struct SamplerCreateInfo
 {
 	String name = "Sampler";
 
-	SamplerAddressMode addressModeU = SamplerAddressMode::CLAMP_TO_EDGE;
-	SamplerAddressMode addressModeV = SamplerAddressMode::CLAMP_TO_EDGE;
-	SamplerAddressMode addressModeW = SamplerAddressMode::CLAMP_TO_EDGE;
-	FilterMode magFilter;
-	FilterMode minFilter;
+	SamplerAddressMode addressModeU = SamplerAddressMode::REPEAT;
+	SamplerAddressMode addressModeV = SamplerAddressMode::REPEAT;
+	SamplerAddressMode addressModeW = SamplerAddressMode::REPEAT;
+	FilterMode magFilter = FilterMode::LINEAR;
+	FilterMode minFilter = FilterMode::LINEAR;
 	f32 lodMinClamp = 0.0f;
 	f32 lodMaxClamp = 32.0f;
 	u16 anisotropyClamp = 1;

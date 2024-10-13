@@ -58,6 +58,24 @@ namespace Vk
         vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
     }
 
+    void DescriptorSet::SetSampler(u32 binding, std::shared_ptr<Sampler> sampler)
+    {
+        trackedSamplers[binding] = sampler;
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.sampler = sampler->GetSampler();
+
+        VkWriteDescriptorSet writeInfo{};
+        writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeInfo.dstSet = this->descriptorSet;
+        writeInfo.dstBinding = binding;
+        writeInfo.descriptorCount = 1;
+        writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        writeInfo.pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets(this->device->GetDevice(), 1, &writeInfo, 0, nullptr);
+    }
+
     void DescriptorSet::SetImage(uint32_t binding, VkDescriptorType type,
         std::shared_ptr<ImageView> image, std::shared_ptr<Sampler> sampler)
     {

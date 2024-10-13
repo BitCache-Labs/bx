@@ -18,9 +18,9 @@ namespace Vk
         createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         createInfo.magFilter = info.filterMode;
         createInfo.minFilter = info.filterMode;
-        createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        createInfo.addressModeU = info.addressModeU;
+        createInfo.addressModeV = info.addressModeV;
+        createInfo.addressModeW = info.addressModeW;
         createInfo.anisotropyEnable = VK_TRUE;
         createInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
         createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;

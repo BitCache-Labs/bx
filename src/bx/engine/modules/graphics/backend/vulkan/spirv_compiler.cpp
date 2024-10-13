@@ -194,7 +194,11 @@ namespace Vk
 
     List<u32> SpirVCompiler::Compile(const String& name, EShLanguage stage, const String& src, const List<ShaderIncludeRange>& includeRanges)
     {
+#ifdef BX_DEBUG_BUILD
         bool debug = true;
+#else
+        bool debug = false;
+#endif
 
         auto spirv_target = glslang::EShTargetSpv_1_4;
 
@@ -272,6 +276,7 @@ namespace Vk
         }
 
         glslang::SpvOptions options{};
+        options.validate = true;
         if (debug)
         {
             options.generateDebugInfo = true;

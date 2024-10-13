@@ -77,6 +77,7 @@ struct State : NoCopy
     HashMap<BufferHandle, std::shared_ptr<Buffer>> buffers;
     HashMap<TextureHandle, std::shared_ptr<Image>> textures;
     HashMap<TextureViewHandle, std::shared_ptr<ImageView>> textureViews;
+    HashMap<SamplerHandle, std::shared_ptr<Sampler>> samplers;
     HashMap<ShaderHandle, std::shared_ptr<Shader>> shaders;
     HashMap<GraphicsPipelineHandle, HashMap<RenderPassInfo, std::shared_ptr<GraphicsPipeline>>> graphicsPipelines;
     HashMap<GraphicsPipelineHandle, const HashMap<u32, std::shared_ptr<DescriptorSetLayout>>> graphicsPipelineLayouts;
@@ -400,15 +401,32 @@ void Graphics::DestroyTextureView(TextureViewHandle& textureView)
     s->textureViewHandlePool.Destroy(textureView);
 }
 
-SamplerHandle Graphics::CreateSampler(const SamplerCreateInfo& create)
+SamplerHandle Graphics::CreateSampler(const SamplerCreateInfo& createInfo)
 {
-    BX_FAIL("TODO");
-    return SamplerHandle::null;
+    // TODO: validate create info
+
+    SamplerHandle samplerHandle = s->samplerHandlePool.Create();
+
+    s_createInfoCache->samplerCreateInfos.insert(std::make_pair(samplerHandle, createInfo));
+
+    SamplerInfo info{};
+    info.addressModeU = SamplerAddressModeToVk(createInfo.addressModeU);
+    info.addressModeV = SamplerAddressModeToVk(createInfo.addressModeV);
+    info.addressModeW = SamplerAddressModeToVk(createInfo.addressModeW);
+
+    std::shared_ptr<Sampler> sampler(new Sampler(createInfo.name, s->device, *s->physicalDevice, info));
+    s->samplers.insert(std::make_pair(samplerHandle, sampler));
+
+    return samplerHandle;
 }
 
 void Graphics::DestroySampler(SamplerHandle& sampler)
 {
-    BX_FAIL("TODO");
+    BX_ENSURE(sampler);
+
+    s->samplers.erase(sampler);
+    s_createInfoCache->samplerCreateInfos.erase(sampler);
+    s->samplerHandlePool.Destroy(sampler);
 }
 
 BufferHandle Graphics::CreateBuffer(const BufferCreateInfo& _createInfo)
@@ -529,7 +547,7 @@ GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCr
             VkDescriptorSetLayoutBinding binding{};
             binding.binding = entry.binding;
             binding.descriptorCount = entry.count.IsSome() ? entry.count.Unwrap() : 1;
-            binding.descriptorType = BindingTypeToVk(entry.type.type);
+            binding.descriptorType = BindingTypeToVk(entry.type.type, entry.type.texture.defaultSampler);
             binding.stageFlags = ShaderStageFlagsToVk(entry.visibility);
             bindings.push_back(binding);
         }
@@ -571,7 +589,7 @@ ComputePipelineHandle Graphics::CreateComputePipeline(const ComputePipelineCreat
             VkDescriptorSetLayoutBinding binding{};
             binding.binding = entry.binding;
             binding.descriptorCount = entry.count.IsSome() ? entry.count.Unwrap() : 1;
-            binding.descriptorType = BindingTypeToVk(entry.type.type);
+            binding.descriptorType = BindingTypeToVk(entry.type.type, entry.type.texture.defaultSampler);
             binding.stageFlags = ShaderStageFlagsToVk(entry.visibility);
             bindings.push_back(binding);
         }
@@ -673,6 +691,14 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
 
             VkDescriptorType type = layout->GetDescriptorType(entry.binding);
             descriptorSet->SetBuffer(entry.binding, type, bufferIter->second);
+            break;
+        }
+        case BindingResourceType::SAMPLER:
+        {
+            auto samplerIter = s->samplers.find(entry.resource.sampler);
+            BX_ENSURE(samplerIter != s->samplers.end());
+
+            descriptorSet->SetSampler(entry.binding, samplerIter->second);
             break;
         }
         case BindingResourceType::TEXTURE_VIEW:
