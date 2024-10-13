@@ -85,8 +85,10 @@ void main()
     }
 
     vec2 velocity = imageLoad(velocity, globalPixel).rg;
-    ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
-    ivec2 globalPrevPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
+    ivec2 prevPixel = ivec2(round(vec2(pixel) - vec2(constants.resolution) * velocity));
+    ivec2 globalPrevPixel = ivec2(round(vec2(globalPixel) - vec2(constants.globalResolution) * velocity));
+    //ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
+    //ivec2 globalPrevPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
 
     vec4 history = imageLoad(history, prevPixel);
 
@@ -106,8 +108,8 @@ void main()
 
     if (dot(result, current) < 0.5 && history.w >= MAX_ACCUMULATED_FRAMES * 0.1)
     {
-        history.w = min(history.w, MAX_ACCUMULATED_FRAMES * 0.5);
-        history.w *= mix(0.3, 1.0, dot(result, current));
+        //history.w = min(history.w, MAX_ACCUMULATED_FRAMES * 0.5);
+        history.w *= mix(0.8, 1.0, dot(result, current));
         result = mix(history.rgb, current, 1.0 / (1.0 + history.w));
     }
 

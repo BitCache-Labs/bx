@@ -6,7 +6,7 @@
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/random.shader"
 
-const uint NUM_SPATIAL_SAMPLES = 8;
+const uint NUM_SPATIAL_SAMPLES = 5;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -18,7 +18,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING2;
 } constants;
 
-layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
+layout (BINDING(0, 1)) uniform sampler2D inImage;
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 3), rgba32f) uniform image2D outImage;
 
@@ -40,7 +40,7 @@ void main()
     uint currentBlasInstance;
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel, currentBlasInstance);
 
-    vec3 result = imageLoad(inImage, pixel).rgb;
+    vec3 result = texture(inImage, vec2(pixel) / vec2(constants.resolution), 0.0).rgb;
     float sampleCount = 1.0;
 
     if (currentNormalAndDepth.w == 0.0)
@@ -49,33 +49,39 @@ void main()
         return;
     }
 
-    float screenRadius = (constants.resolution.x / 1920.0) * 10.0;
+    float screenRadius = (constants.resolution.x / 1920.0) * 15.0;
     float radius = screenRadius;
     float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + 0) * 0.5;
-    ivec2 pixelSeed = pixel >> 3;
+    ivec2 pixelSeed = pixel >> 0;
     uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + 0));
     float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
     
     #pragma unroll
-    for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
+    for (int x = -1; x <= 1; x++)
     {
-        float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
-        float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
-    
-        ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
-        uint flatOffset = offset.y * constants.resolution.x + offset.x;
-        ivec2 samplePixel = pixel + offset;
-        samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
-        ivec2 globalSamplePixel = rescaleResolution(samplePixel, constants.resolution, constants.globalResolution);
-    
-        uint sampleBlasInstance;
-        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(globalSamplePixel, sampleBlasInstance);
-    
-        float weight;
-        if (sampleToCurrentSimilarity(currentNormalAndDepth, sampleNormalAndDepth, currentBlasInstance, sampleBlasInstance, weight))
+        #pragma unroll
+        for (int y = -1; y <= 1; y++)
         {
-            result += imageLoad(inImage, samplePixel).rgb * weight;
-            sampleCount += weight;
+            if (x == 0 && y == 0)
+            {
+                continue;
+            }
+
+            ivec2 offset = ivec2(x, y);
+            uint flatOffset = offset.y * constants.resolution.x + offset.x;
+            ivec2 samplePixel = pixel + offset;
+            samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
+            ivec2 globalSamplePixel = rescaleResolution(samplePixel, constants.resolution, constants.globalResolution);
+            
+            uint sampleBlasInstance;
+            vec4 sampleNormalAndDepth = getPixelNormalAndDepth(globalSamplePixel, sampleBlasInstance);
+            
+            float weight;
+            if (sampleToCurrentSimilarity(currentNormalAndDepth, sampleNormalAndDepth, currentBlasInstance, sampleBlasInstance, weight))
+            {
+                result += textureLod(inImage, vec2(samplePixel) / vec2(constants.resolution), 1.0).rgb * weight;
+                sampleCount += weight;
+            }
         }
     }
 

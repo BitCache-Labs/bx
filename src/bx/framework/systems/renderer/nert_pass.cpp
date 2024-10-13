@@ -292,6 +292,7 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     illuminationCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     illuminationCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::COPY_SRC;
     illuminationCreateInfo.size = Extend3D(lightingWidth, lightingHeight, 1);
+    illuminationCreateInfo.mipLevelCount = Math::MipLevelsFromDims(lightingWidth, lightingHeight);
     illuminationTexture = Graphics::CreateTexture(illuminationCreateInfo);
     illuminationTextureView = Graphics::CreateTextureView(illuminationTexture);
 

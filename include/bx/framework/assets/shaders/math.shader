@@ -101,7 +101,7 @@ vec3 _refract(vec3 uv, vec3 normal, float ior)
 
 ivec2 rescaleResolution(ivec2 pixel, uvec2 inResolution, uvec2 outResolution)
 {
-     return ivec2(vec2(pixel) / vec2(inResolution) * vec2(outResolution));
+     return ivec2(round(vec2(pixel) / vec2(inResolution) * vec2(outResolution)));
 }
 
 // http://jcgt.org/published/0006/01/01/
