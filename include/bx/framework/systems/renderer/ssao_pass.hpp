@@ -16,7 +16,7 @@ public:
 
 	static void ClearPipelineCache();
 
-	u32 sampleCount = 16;
+	u32 sampleCount = 8;
 	b8 reducedBias = true;
 	u32 seed = 1337;
 	f32 intensity = 1.0;

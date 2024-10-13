@@ -52,7 +52,7 @@ public:
 	b8 restir = true;
 	b8 denoise = true;
 	b8 antiFirefly = true;
-	f32 lightingUpscaleFactor = 1.5;
+	f32 lightingUpscaleFactor = 2.0;
 
 private:
 	NertCreateInfo createInfo;

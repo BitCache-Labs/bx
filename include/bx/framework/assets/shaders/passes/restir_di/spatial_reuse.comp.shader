@@ -44,7 +44,7 @@ vec4 getPixelNormalAndDepth(ivec2 pixel)
 vec3 getPositionWs(ivec2 pixel, float depth)
 {
     vec2 pixelCenter = vec2(pixel.x + 0.5, pixel.y + 0.5);
-    vec2 uv = (pixelCenter / vec2(constants.resolution)) * 2.0 - 1.0;
+    vec2 uv = (pixelCenter / vec2(constants.globalResolution)) * 2.0 - 1.0;
     uv.y = -uv.y;
     vec4 origin = constants.invView * vec4(0.0, 0.0, 0.0, 1.0);
     vec4 target = constants.invProj * vec4(uv, 1.0, 1.0);
@@ -93,8 +93,8 @@ void main()
     }
 
 #if 1
-    float screenRadius = constants.resolution.x / 15.0;
-    float radius = screenRadius * ((constants.spatialIndex == 0) ? 2.0 : 1.0);
+    //float screenRadius = constants.resolution.x / 15.0;
+    float radius = 30.0 * ((constants.spatialIndex == 0) ? 2.0 : 1.0);;// screenRadius * ((constants.spatialIndex == 0) ? 2.0 : 1.0);
     float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex) * 0.5;
     ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 2) : (pixel >> 1);
     uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + constants.spatialIndex));
