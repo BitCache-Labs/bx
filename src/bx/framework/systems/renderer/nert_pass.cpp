@@ -61,18 +61,26 @@ struct ResolveConstants
 
 struct SamplegenConstants
 {
+    u32 globalWidth;
+    u32 globalHeight;
     u32 width;
     u32 height;
     u32 seed;
     u32 _PADDING0;
+    u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct NertShadeConstants
 {
+    u32 globalWidth;
+    u32 globalHeight;
     u32 width;
     u32 height;
     u32 sampleNumber;
+    u32 _PADDING0;
     u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct IntersectPipeline : public LazyInit<IntersectPipeline, ComputePipelineHandle>
@@ -158,9 +166,13 @@ struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                                 // constants
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),   // ambientEmissiveBaseColor
-                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // denoisedIllumination
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),                                               // denoisedIllumination
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),        // outImage
-            })
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                             // intersections
+            }),
+            MaterialPool::GetBindGroupLayout(),
+            BlasDataPool::GetBindGroupLayout(),
+            Sky::GetBindGroupLayout(),
         };
 
         ComputePipelineCreateInfo pipelineCreateInfo{};
@@ -261,6 +273,9 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     width = colorTargetCreateInfo.size.width;
     height = colorTargetCreateInfo.size.height;
 
+    lightingWidth = static_cast<u32>(ceilf(static_cast<f32>(width) / lightingUpscaleFactor));
+    lightingHeight = static_cast<u32>(ceilf(static_cast<f32>(height) / lightingUpscaleFactor));
+
     TextureCreateInfo neGbufferCreateInfo{};
     neGbufferCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     neGbufferCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING;
@@ -275,8 +290,8 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     TextureCreateInfo illuminationCreateInfo{};
     illuminationCreateInfo.name = "Nert Illumination Texture";
     illuminationCreateInfo.format = TextureFormat::RGBA32_FLOAT;
-    illuminationCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::COPY_SRC;
-    illuminationCreateInfo.size = Extend3D(width, height, 1);
+    illuminationCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::COPY_SRC;
+    illuminationCreateInfo.size = Extend3D(lightingWidth, lightingHeight, 1);
     illuminationTexture = Graphics::CreateTexture(illuminationCreateInfo);
     illuminationTextureView = Graphics::CreateTextureView(illuminationTexture);
 
@@ -360,8 +375,8 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     shadeConstantsCreateInfo.usageFlags = BufferUsageFlags::UNIFORM;
     shadeConstantsBuffer = Graphics::CreateBuffer(shadeConstantsCreateInfo);
 
-    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height));
-    reblurPass = std::unique_ptr<ReblurPass>(new ReblurPass(width, height));
+    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, lightingWidth, lightingHeight));
+    reblurPass = std::unique_ptr<ReblurPass>(new ReblurPass(lightingWidth, lightingHeight));
 }
 
 NertPass::~NertPass()
@@ -429,14 +444,18 @@ void NertPass::UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo)
     Graphics::WriteBuffer(resolveConstantsBuffer, 0, &resolveConstants);
 
     SamplegenConstants samplegenConstants{};
-    samplegenConstants.width = width;
-    samplegenConstants.height = height;
+    samplegenConstants.globalWidth = width;
+    samplegenConstants.globalHeight = height;
+    samplegenConstants.width = lightingWidth;
+    samplegenConstants.height = lightingHeight;
     samplegenConstants.seed = seed;
     Graphics::WriteBuffer(samplegenConstantsBuffer, 0, &samplegenConstants);
 
     NertShadeConstants shadeConstants{};
-    shadeConstants.width = width;
-    shadeConstants.height = height;
+    shadeConstants.globalWidth = width;
+    shadeConstants.globalHeight = height;
+    shadeConstants.width = lightingWidth;
+    shadeConstants.height = lightingHeight;
     shadeConstants.sampleNumber = accumulationFrameIdx;
     Graphics::WriteBuffer(shadeConstantsBuffer, 0, &shadeConstants);
 }
@@ -481,6 +500,7 @@ BindGroupHandle NertPass::CreateResolveBindGroup(const NertDispatchInfo& dispatc
         BindGroupEntry(1, BindingResource::TextureView(ambientEmissiveBaseColorTextureView)),
         BindGroupEntry(2, BindingResource::TextureView(illuminationTextureView)),
         BindGroupEntry(3, BindingResource::TextureView(colorTargetView)),
+        BindGroupEntry(4, BindingResource::Buffer(intersectionsBuffer)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
@@ -556,8 +576,8 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     }
     Graphics::EndComputePass(computePass);
 
-    WriteIndirectArgsPass writeIndirectArgs(128);
-    writeIndirectArgs.Dispatch(indirectArgsBuffer, sampleCountBuffer);
+    //WriteIndirectArgsPass writeIndirectArgs(128);
+    //writeIndirectArgs.Dispatch(indirectArgsBuffer, sampleCountBuffer);
     
     computePassDescriptor.name = "Nert Samplegen";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
@@ -573,7 +593,8 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         Graphics::SetBindGroup(MaterialPool::BIND_GROUP_SET, materialPoolGroup);
         Graphics::SetBindGroup(Sky::BIND_GROUP_SET, skyGroup);
         Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirGroup);
-        Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
+        Graphics::DispatchWorkgroups(Math::DivCeil(lightingWidth, 16), Math::DivCeil(lightingHeight, 16), 1);
+        //Graphics::DispatchWorkgroupsIndirect(indirectArgsBuffer);
     
         Graphics::DestroyBindGroup(blasDataPoolGroup);
         Graphics::DestroyBindGroup(materialPoolGroup);
@@ -603,7 +624,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         Graphics::SetBindGroup(MaterialPool::BIND_GROUP_SET, materialPoolGroup);
         Graphics::SetBindGroup(Sky::BIND_GROUP_SET, skyGroup);
         Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirGroup);
-        Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
+        Graphics::DispatchWorkgroups(Math::DivCeil(lightingWidth, 16), Math::DivCeil(lightingHeight, 16), 1);
 
         Graphics::DestroyBindGroup(blasDataPoolGroup);
         Graphics::DestroyBindGroup(materialPoolGroup);
@@ -629,9 +650,20 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     computePassDescriptor.name = "Nert Resolve";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
+        BindGroupHandle blasDataPoolGroup = dispatchInfo.blasDataPool.CreateBindGroup(ResolvePipeline::Get());
+        BindGroupHandle materialPoolGroup = dispatchInfo.materialPool.CreateBindGroup(ResolvePipeline::Get());
+        BindGroupHandle skyGroup = dispatchInfo.sky.CreateBindGroup(ResolvePipeline::Get());
+
         Graphics::SetComputePipeline(ResolvePipeline::Get());
         Graphics::SetBindGroup(0, resolveBindGroup);
+        Graphics::SetBindGroup(BlasDataPool::BIND_GROUP_SET, blasDataPoolGroup);
+        Graphics::SetBindGroup(MaterialPool::BIND_GROUP_SET, materialPoolGroup);
+        Graphics::SetBindGroup(Sky::BIND_GROUP_SET, skyGroup);
         Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
+
+        Graphics::DestroyBindGroup(blasDataPoolGroup);
+        Graphics::DestroyBindGroup(materialPoolGroup);
+        Graphics::DestroyBindGroup(skyGroup);
     }
     Graphics::EndComputePass(computePass);
 

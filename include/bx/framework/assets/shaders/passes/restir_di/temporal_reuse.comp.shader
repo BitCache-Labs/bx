@@ -21,9 +21,12 @@ layout (BINDING(0, 0), std140) uniform _Constants
     mat4 invProj;
     mat4 prevInvView;
     mat4 prevInvProj;
+    uvec2 globalResolution;
     uvec2 resolution;
     bool unbiased;
     uint seed;
+    uint _PADDING0;
+    uint _PADDING1;
 } constants;
 
 layout(BINDING(0, 1)) uniform accelerationStructureEXT Scene;
@@ -74,21 +77,25 @@ void main()
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= constants.resolution.x * constants.resolution.y) return;
     ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
+    ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
 
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
 
-    vec2 velocity = imageLoad(velocity, pixel).xy;
+    vec2 velocity = imageLoad(velocity, globalPixel).xy;
     ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
     prevPixel = clamp(prevPixel, ivec2(0), ivec2(constants.resolution) - 1);
     uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
+    ivec2 prevGlobalPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
+    prevGlobalPixel = clamp(prevGlobalPixel, ivec2(0), ivec2(constants.globalResolution) - 1);
+    uint prevGlobalId = prevGlobalPixel.y * constants.globalResolution.x + prevGlobalPixel.x;
     
     {
         Reservoir outputReservoir = Reservoir_default();
         ReservoirData outputReservoirData = ReservoirData_default();
 
-        vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
-        vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(prevPixel);
-        vec3 origin = getPositionWs(pixel, centerNormalAndDepth.w); // TODO: fix for mirrors
+        vec4 centerNormalAndDepth = getPixelNormalAndDepth(globalPixel);
+        vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(prevGlobalPixel);
+        vec3 origin = getPositionWs(globalPixel, centerNormalAndDepth.w); // TODO: fix for mirrors
         vec3 normal = centerNormalAndDepth.xyz;
 
         ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);

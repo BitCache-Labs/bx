@@ -52,11 +52,13 @@ public:
 	b8 restir = true;
 	b8 denoise = true;
 	b8 antiFirefly = true;
+	f32 lightingUpscaleFactor = 1.5;
 
 private:
 	NertCreateInfo createInfo;
 	TextureViewHandle colorTargetView;
 	u32 width, height;
+	u32 lightingWidth, lightingHeight;
 	u32 frameIdx;
 
 	std::unique_ptr<RestirDiPass> restirDiPass;

@@ -24,14 +24,14 @@ struct SpatialReuseConstants
 {
     Mat4 invView;
     Mat4 invProj;
+    u32 globalWidth;
+    u32 globalHeight;
     u32 width;
     u32 height;
     u32 seed;
     u32 spatialIndex;
     b32 unbiased;
     u32 _PADDING0;
-    u32 _PADDING1;
-    u32 _PADDING2;
 };
 
 struct TemporalReuseConstants
@@ -40,10 +40,14 @@ struct TemporalReuseConstants
     Mat4 invProj;
     Mat4 prevInvView;
     Mat4 prevInvProj;
+    u32 globalWidth;
+    u32 globalHeight;
     u32 width;
     u32 height;
     b32 unbiased;
     u32 seed;
+    u32 _PADDING0;
+    u32 _PADDING1;
 };
 
 struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipelineHandle>
@@ -118,8 +122,8 @@ struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePip
 template<>
 std::unique_ptr<TemporalReusePipeline> LazyInit<TemporalReusePipeline, ComputePipelineHandle>::cache = nullptr;
 
-RestirDiPass::RestirDiPass(u32 width, u32 height)
-    : width(width), height(height)
+RestirDiPass::RestirDiPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHeight)
+    : width(width), height(height), lightingWidth(lightingWidth), lightingHeight(lightingHeight)
 {
     BufferCreateInfo restirSamplesCreateInfo{};
     restirSamplesCreateInfo.name = "Restir Reservoirs Buffer";
@@ -216,8 +220,10 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     SpatialReuseConstants spatialReuseConstants{};
     spatialReuseConstants.invView = camera.GetInvView();
     spatialReuseConstants.invProj = camera.GetInvProjection();
-    spatialReuseConstants.width = width;
-    spatialReuseConstants.height = height;
+    spatialReuseConstants.globalWidth = width;
+    spatialReuseConstants.globalHeight = height;
+    spatialReuseConstants.width = lightingWidth;
+    spatialReuseConstants.height = lightingHeight;
     spatialReuseConstants.seed = seed;
     spatialReuseConstants.unbiased = unbiased;
     for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
@@ -231,8 +237,10 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     temporalReuseConstants.invProj = camera.GetInvProjection();
     temporalReuseConstants.prevInvView = camera.GetPrevInvView();
     temporalReuseConstants.prevInvProj = camera.GetPrevInvProjection();
-    temporalReuseConstants.width = width;
-    temporalReuseConstants.height = height;
+    temporalReuseConstants.globalWidth = width;
+    temporalReuseConstants.globalHeight = height;
+    temporalReuseConstants.width = lightingWidth;
+    temporalReuseConstants.height = lightingHeight;
     temporalReuseConstants.unbiased = unbiased;
     temporalReuseConstants.seed = seed;
     Graphics::WriteBuffer(temporalReuseConstantsBuffer, 0, &temporalReuseConstants);
@@ -262,7 +270,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
         Graphics::SetBindGroup(Sky::BIND_GROUP_SET, temporalSkyGroup);
         Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirTemporalBindGroup);
         Graphics::SetBindGroup(MaterialPool::BIND_GROUP_SET, temporalMaterialPoolGroup);
-        Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+        Graphics::DispatchWorkgroups(Math::DivCeil(lightingWidth * lightingHeight, 128), 1, 1);
     }
     Graphics::EndComputePass(computePass);
 
@@ -295,7 +303,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
             Graphics::SetBindGroup(Sky::BIND_GROUP_SET, spatialSkyGroup);
             Graphics::SetBindGroup(Restir::BIND_GROUP_SET, restirSpatialBindGroups[i]);
             Graphics::SetBindGroup(MaterialPool::BIND_GROUP_SET, spatialMaterialPoolGroup);
-            Graphics::DispatchWorkgroups(Math::DivCeil(width * height, 128), 1, 1);
+            Graphics::DispatchWorkgroups(Math::DivCeil(lightingWidth * lightingHeight, 128), 1, 1);
         }
         Graphics::EndComputePass(computePass);
     

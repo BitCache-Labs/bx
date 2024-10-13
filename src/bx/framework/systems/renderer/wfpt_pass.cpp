@@ -376,7 +376,7 @@ WfptPass::WfptPass(const WfptCreateInfo& createInfo)
     resolveBindGroup = Graphics::CreateBindGroup(resolveBindGroupCreateInfo);
 
     gbufferPass = std::unique_ptr<GBufferPass>(new GBufferPass(createInfo.depthTarget));
-    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height));
+    restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, width, height));
 }
 
 WfptPass::~WfptPass()

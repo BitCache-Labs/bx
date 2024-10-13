@@ -35,7 +35,7 @@ public:
 class RestirDiPass : NoCopy
 {
 public:
-	RestirDiPass(u32 width, u32 height);
+	RestirDiPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHeight);
 	~RestirDiPass();
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline, b8 flipRestirSamples) const;
@@ -51,6 +51,7 @@ public:
 
 private:
 	u32 width, height;
+	u32 lightingWidth, lightingHeight;
 
 	BufferHandle reservoirsBuffer;
 	BufferHandle outReservoirsBuffer;

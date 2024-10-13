@@ -19,9 +19,12 @@
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
+    uvec2 globalResolution;
     uvec2 resolution;
     uint seed;
     uint _PADDING0;
+    uint _PADDING1;
+    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 1), std430) readonly buffer _Rays
@@ -108,20 +111,23 @@ RisResult ris(inout uint rngState,
 #endif
 }
 
-layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
 {
-    uint id = uint(gl_GlobalInvocationID.x);
-    if (id >= sampleCount) return;
-    uint pid = samplePixelMapping[id];
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
+    uint id = pixel.y * constants.resolution.x + pixel.x;
+    uint globalId = globalPixel.y * constants.globalResolution.x + globalPixel.x;
 
-    uint rngState = pcgHash(pid ^ xorShiftU32(constants.seed));
+    //if (id >= sampleCount) return;
+    //uint pid = id;//samplePixelMapping[id];
 
-    Intersection intersection = intersections[pid];
-    Ray ray = unpackRay(rays[pid]);
+    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
+
+    Intersection intersection = intersections[globalId];
+    Ray ray = unpackRay(rays[globalId]);
 
     {
-        ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
         vec3 intersectionPos = ray.origin + ray.direction * intersection.t;
 
         BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
@@ -173,7 +179,7 @@ void main()
             normal, intersection.frontFace,
             intersectionPos);
 
-        outRestirReservoirs[pid] = Reservoir_toPacked(risResult.reservoir);
-        outRestirReservoirData[pid] = ReservoirData_toPacked(risResult.reservoirData);
+        outRestirReservoirs[id] = Reservoir_toPacked(risResult.reservoir);
+        outRestirReservoirData[id] = ReservoirData_toPacked(risResult.reservoirData);
     }
 }

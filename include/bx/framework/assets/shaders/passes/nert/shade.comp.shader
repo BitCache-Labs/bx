@@ -17,9 +17,12 @@
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
+    uvec2 globalResolution;
     uvec2 resolution;
     uint sampleNumber;
+    uint _PADDING0;
     uint _PADDING1;
+    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 3), std430) readonly buffer _Intersections
@@ -39,9 +42,11 @@ void main()
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
+    ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
+    uint globalId = uint(globalPixel.y * constants.globalResolution.x + globalPixel.x);
 
-    Intersection intersection = intersections[id];
-    vec3 origin = imageLoad(neGbuffer, pixel).rgb;
+    Intersection intersection = intersections[globalId];
+    vec3 origin = imageLoad(neGbuffer, globalPixel).rgb;
 
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
@@ -68,11 +73,11 @@ void main()
     vec3 throughput = vec3(1.0);
 
     vec3 lightingContribution = vec3(0.0);
-    vec3 ambientContribution = vec3(0.0);
-    vec3 emissiveContribution = vec3(0.0);
-    vec3 baseColorFactor = vec3(0.0);
+    //vec3 ambientContribution = vec3(0.0);
+    //vec3 emissiveContribution = vec3(0.0);
+    //vec3 baseColorFactor = vec3(0.0);
 
-    vec3 ambientFactor = 0.4 * vec3(0.15, 0.15, 0.17);
+    //vec3 ambientFactor = 0.4 * vec3(0.15, 0.15, 0.17);
 
     if (intersection.t != T_MISS)
     {
@@ -107,13 +112,13 @@ void main()
             normal = -normal;
         }
         
-        SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
-        baseColorFactor = diffuseBsdfEval(material.baseColorFactor); // TODO: rename
+        //SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
+        //baseColorFactor = diffuseBsdfEval(material.baseColorFactor); // TODO: rename
 
-        if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
-        {
-            emissiveContribution += throughput * material.emissiveFactor * 40.0;
-        }
+        //if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
+        //{
+        //    emissiveContribution += throughput * material.emissiveFactor * 40.0;
+        //}
         
         if (ReservoirData_isValid(reservoirData))
         {
@@ -130,18 +135,18 @@ void main()
             lightingContribution += throughput * radiance * reservoir.contributionWeight;
         }
 
-        ambientContribution += throughput * baseColorFactor * ambientFactor;
+        //ambientContribution += throughput * baseColorFactor * ambientFactor;
     }
 
     imageStore(outIllumination, pixel, vec4(lightingContribution, 1.0));
 
-    vec4 packedAmbientEmissiveBaseColor = vec4(
-        uintBitsToFloat(packRgb9e5(ambientContribution).data),
-        uintBitsToFloat(packRgb9e5(emissiveContribution).data),
-        uintBitsToFloat(packRgb9e5(baseColorFactor).data),
-        0.0
-    );
-    imageStore(outAmbientEmissiveBaseColor, pixel, packedAmbientEmissiveBaseColor);
+    //vec4 packedAmbientEmissiveBaseColor = vec4(
+    //    uintBitsToFloat(packRgb9e5(ambientContribution).data),
+    //    uintBitsToFloat(packRgb9e5(emissiveContribution).data),
+    //    uintBitsToFloat(packRgb9e5(baseColorFactor).data),
+    //    0.0
+    //);
+    //imageStore(outAmbientEmissiveBaseColor, pixel, packedAmbientEmissiveBaseColor);
 
     //vec3 old = imageLoad(outImage, pixel).rgb;
     //float portion = 1.0 / (0 + 1); // constants.sampleNumber

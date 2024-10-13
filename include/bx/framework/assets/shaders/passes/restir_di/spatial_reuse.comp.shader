@@ -22,13 +22,12 @@ layout (BINDING(0, 0), std140) uniform _Constants
 {
     mat4 invView;
     mat4 invProj;
+    uvec2 globalResolution;
     uvec2 resolution;
     uint seed;
     uint spatialIndex;
     bool unbiased;
     uint _PADDING0;
-    uint _PADDING1;
-    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D gbuffer;
@@ -67,14 +66,15 @@ void main()
     uint id = uint(gl_GlobalInvocationID.x);
     if (id >= constants.resolution.x * constants.resolution.y) return;
     ivec2 pixel = ivec2(int(id % constants.resolution.x), int(id / constants.resolution.x));
+    ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
     
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
     
     ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     
-    vec4 centerNormalAndDepth = getPixelNormalAndDepth(pixel);
-    vec3 origin = getPositionWs(pixel, centerNormalAndDepth.w);
+    vec4 centerNormalAndDepth = getPixelNormalAndDepth(globalPixel);
+    vec3 origin = getPositionWs(globalPixel, centerNormalAndDepth.w);
     vec3 normal = centerNormalAndDepth.xyz;
     
     Reservoir outputReservoir = Reservoir_default();
@@ -95,6 +95,9 @@ void main()
 #if 1
     float screenRadius = constants.resolution.x / 15.0;
     float radius = screenRadius * ((constants.spatialIndex == 0) ? 2.0 : 1.0);
+    float globalScreenRadius = constants.globalResolution.x / 15.0;
+    float globalRadius = globalScreenRadius * ((constants.spatialIndex == 0) ? 2.0 : 1.0);
+
     float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex) * 0.5;
     ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 2) : (pixel >> 1);
     uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + constants.spatialIndex));
@@ -105,7 +108,12 @@ void main()
     {
         float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
         float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
+        float globalCurrentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * globalRadius + samplingRadiusOffset;
     
+        ivec2 globalOffset = ivec2(globalCurrentRadius * vec2(cos(angle), sin(angle)));
+        ivec2 globalSamplePixel = globalPixel + globalOffset;
+        globalSamplePixel = clamp(globalSamplePixel, ivec2(0), ivec2(constants.globalResolution) - 1);
+
         ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
         ivec2 samplePixel = pixel + offset;
         samplePixel = clamp(samplePixel, ivec2(0), ivec2(constants.resolution) - 1);
@@ -113,7 +121,7 @@ void main()
     
         ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
     
-        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
+        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(globalSamplePixel);
         if (sampleNormalAndDepth.w == 0.0 || !ReservoirData_isValid(sampledReservoirData))
         {
             continue;
