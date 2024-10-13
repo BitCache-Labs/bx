@@ -8,6 +8,7 @@
 #include "bx/framework/systems/renderer/gbuffer_pass.hpp"
 #include "bx/framework/systems/renderer/restir_di_pass.hpp"
 #include "bx/framework/systems/renderer/reblur_pass.hpp"
+#include "bx/framework/systems/renderer/taa_pass.hpp"
 
 #include "bx/framework/components/transform.hpp"
 #include "bx/framework/components/mesh_filter.hpp"
@@ -378,6 +379,7 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
 
     restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, lightingWidth, lightingHeight));
     reblurPass = std::unique_ptr<ReblurPass>(new ReblurPass(width, height, lightingWidth, lightingHeight));
+    taaPass = std::unique_ptr<TaaPass>(new TaaPass(width, height, lightingWidth, lightingHeight));
 }
 
 NertPass::~NertPass()
@@ -499,7 +501,7 @@ BindGroupHandle NertPass::CreateResolveBindGroup(const NertDispatchInfo& dispatc
     bindGroupCreateInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(resolveConstantsBuffer)),
         BindGroupEntry(1, BindingResource::TextureView(ambientEmissiveBaseColorTextureView)),
-        BindGroupEntry(2, BindingResource::TextureView(illuminationTextureView)),
+        BindGroupEntry(2, BindingResource::TextureView(denoise ? taaPass->GetResolvedColorTargetView() : illuminationTextureView)),
         BindGroupEntry(3, BindingResource::TextureView(colorTargetView)),
         BindGroupEntry(4, BindingResource::Buffer(intersectionsBuffer)),
     };
@@ -636,11 +638,14 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
 
     if (denoise)
     {
+        taaPass->historyWeight = 0.3;
+        taaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
+
         reblurPass->seed = seed;
         reblurPass->antiFirefly = antiFirefly;
-
+        
         ReblurDispatchInfo reblurDispatchInfo;
-        reblurDispatchInfo.unresolvedIllumination = illuminationTexture;
+        reblurDispatchInfo.unresolvedIllumination = taaPass->GetResolvedColorTarget();
         reblurDispatchInfo.gbufferView = dispatchInfo.gbuffer;
         reblurDispatchInfo.gbufferHistoryView = dispatchInfo.gbufferHistory;
         reblurDispatchInfo.neGbufferHistoryView = neGbufferView[frameIdx % 2 != 0];

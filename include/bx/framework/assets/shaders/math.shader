@@ -36,6 +36,11 @@ float sqr(float x)
     return x * x;
 }
 
+vec3 sqr(vec3 x)
+{
+    return x * x;
+}
+
 bool isNan(float x)
 {
     return isnan(x);

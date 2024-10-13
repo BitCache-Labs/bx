@@ -11,10 +11,14 @@
 
 struct TaaConstants
 {
+    u32 globalWidth;
+    u32 globalHeight;
     u32 width;
     u32 height;
+    f32 historyWeight;
     u32 _PADDING0;
     u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct TaaPipeline : public LazyInit<TaaPipeline, ComputePipelineHandle>
@@ -53,12 +57,13 @@ struct TaaPipeline : public LazyInit<TaaPipeline, ComputePipelineHandle>
 template<>
 std::unique_ptr<TaaPipeline> LazyInit<TaaPipeline, ComputePipelineHandle>::cache = nullptr;
 
-TaaPass::TaaPass(u32 width, u32 height)
-    : width(width), height(height)
+TaaPass::TaaPass(u32 width, u32 height, u32 colorWidth, u32 colorHeight)
+    : width(width), height(height), colorWidth(colorWidth), colorHeight(colorHeight)
 {
     TextureCreateInfo resolvedColorTargetCreateInfo{};
     resolvedColorTargetCreateInfo.name = "TAA Resolved Color Target";
-    resolvedColorTargetCreateInfo.size = Extend3D(width, height, 1);
+    resolvedColorTargetCreateInfo.size = Extend3D(colorWidth, colorHeight, 1);
+    resolvedColorTargetCreateInfo.mipLevelCount = Math::MipLevelsFromDims(colorWidth, colorHeight);
     resolvedColorTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     resolvedColorTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::COPY_DST | TextureUsageFlags::COPY_SRC;
     resolvedColorTarget = Graphics::CreateTexture(resolvedColorTargetCreateInfo);
@@ -84,6 +89,11 @@ TaaPass::~TaaPass()
     Graphics::DestroyBuffer(constantBuffer);
 }
 
+TextureViewHandle TaaPass::GetResolvedColorTargetView() const
+{
+    return resolvedColorTargetView;
+}
+
 TextureHandle TaaPass::GetResolvedColorTarget() const
 {
     return resolvedColorTarget;
@@ -92,8 +102,11 @@ TextureHandle TaaPass::GetResolvedColorTarget() const
 void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityTargetView)
 {
     TaaConstants constants{};
-    constants.width = width;
-    constants.height = height;
+    constants.globalWidth = width;
+    constants.globalHeight = height;
+    constants.width = colorWidth;
+    constants.height = colorHeight;
+    constants.historyWeight = historyWeight;
     Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(TaaConstants));
 
     TextureViewHandle colorTargetView = Graphics::CreateTextureView(colorTarget);
@@ -118,7 +131,7 @@ void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureV
     {
         Graphics::SetComputePipeline(TaaPipeline::Get());
         Graphics::SetBindGroup(0, bindGroup);
-        Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
+        Graphics::DispatchWorkgroups(Math::DivCeil(colorWidth, 16), Math::DivCeil(colorHeight, 16), 1);
     }
     Graphics::EndComputePass(computePass);
 

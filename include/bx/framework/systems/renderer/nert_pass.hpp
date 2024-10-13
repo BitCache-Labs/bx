@@ -11,6 +11,7 @@ class MaterialPool;
 class Sky;
 class ReblurPass;
 class RestirDiPass;
+class TaaPass;
 
 struct NertCreateInfo
 {
@@ -63,6 +64,7 @@ private:
 
 	std::unique_ptr<RestirDiPass> restirDiPass;
 	std::unique_ptr<ReblurPass> reblurPass;
+	std::unique_ptr<TaaPass> taaPass;
 
 	TextureHandle neGbuffer[2];
 	TextureViewHandle neGbufferView[2];
