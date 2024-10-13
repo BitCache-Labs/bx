@@ -8,7 +8,6 @@
 #include "bx/framework/systems/renderer/gbuffer_pass.hpp"
 #include "bx/framework/systems/renderer/nert_pass.hpp"
 #include "bx/framework/systems/renderer/blas_data_pool.hpp"
-#include "bx/framework/systems/renderer/taa_pass.hpp"
 #include "bx/framework/systems/renderer/material_pool.hpp"
 #include "bx/framework/systems/renderer/sky.hpp"
 #include "bx/framework/systems/renderer/fsr2_pass.hpp"
@@ -35,7 +34,6 @@ public:
 	b8 accumulate = false;
 	b8 hybrid = true;
 	b8 unbiased = false;
-	b8 taa = false;
 	b8 fsr2 = true;
 	b8 bloom = true;
 	b8 restir = true;
@@ -64,7 +62,6 @@ private:
 	b8 m_dirtyPasses = true;
 	std::unique_ptr<GBufferPass> m_gbufferPass = nullptr;
 	std::unique_ptr<NertPass> m_nertPass = nullptr;
-	std::unique_ptr<TaaPass> m_taaPass = nullptr;
 	std::unique_ptr<Fsr2Pass> m_fsr2Pass = nullptr;
 	std::unique_ptr<FogPass> m_fogPass = nullptr;
 	std::unique_ptr<SsaoPass> m_ssaoPass = nullptr;

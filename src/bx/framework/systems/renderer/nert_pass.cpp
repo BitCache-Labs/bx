@@ -688,4 +688,5 @@ void NertPass::ClearPipelineCache()
     RaygenPipeline::Clear();
     SamplegenPipeline::Clear();
     ShadePipeline::Clear();
+    TaaPass::ClearPipelineCache();
 }

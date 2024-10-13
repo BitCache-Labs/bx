@@ -195,7 +195,6 @@ void Renderer::RebuildPasses()
         m_nertPass.reset();
         m_nertPass = std::unique_ptr<NertPass>(new NertPass(nertCreateInfo));
 
-        m_taaPass = std::unique_ptr<TaaPass>(new TaaPass(w, h, w, h));
         m_fogPass = std::unique_ptr<FogPass>(new FogPass(w, h));
         m_ssaoPass = std::unique_ptr<SsaoPass>(new SsaoPass(w, h));
         m_fsr2Pass = std::unique_ptr<Fsr2Pass>(new Fsr2Pass(w, h, windowWidth, windowHeight));
@@ -222,7 +221,6 @@ void Renderer::Shutdown()
     RestirDiPass::ClearPipelineCache();
     NertPass::ClearPipelineCache();
     WriteIndirectArgsPass::ClearPipelineCache();
-    TaaPass::ClearPipelineCache();
 }
 
 void Renderer::Update()
@@ -277,14 +275,8 @@ void Renderer::Render()
 
         m_fogPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
 
-        if (taa)
-        {
-            m_taaPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_gbufferPass->GetColorTargetHistoryView(), m_gbufferPass->GetVelocityTargetView());
-        }
-
         if (fsr2)
         {
-            // TODO: use taa output as input
             m_fsr2Pass->Dispatch(m_cameras.back(), m_colorTarget, m_depthTarget, m_gbufferPass->GetVelocityTarget());
         }
 
@@ -316,10 +308,6 @@ TextureHandle Renderer::GetFinalColorTarget()
     if (fsr2)
     {
         return m_fsr2Pass->GetResolvedColorTarget();
-    }
-    else if (taa)
-    {
-        return m_taaPass->GetResolvedColorTarget();
     }
     else
     {
