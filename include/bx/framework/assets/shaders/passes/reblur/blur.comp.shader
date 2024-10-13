@@ -10,9 +10,12 @@ const uint NUM_SPATIAL_SAMPLES = 8;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
+    uvec2 globalResolution;
     uvec2 resolution;
     uint seed;
     uint _PADDING0;
+    uint _PADDING1;
+    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
@@ -34,11 +37,12 @@ void main()
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
+    ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
 
     float frameCount = imageLoad(outHistory, pixel).w;
 
     uint currentBlasInstance;
-    vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
+    vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel, currentBlasInstance);
 
     vec3 result = imageLoad(inImage, pixel).rgb;
     float sampleCount = 1.0;
@@ -68,9 +72,10 @@ void main()
         ivec2 samplePixel = pixel + offset;
         uint sampleId = id + flatOffset;
         samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
+        ivec2 globalSamplePixel = rescaleResolution(samplePixel, constants.resolution, constants.globalResolution);
     
         uint sampleBlasInstance;
-        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel, sampleBlasInstance);
+        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(globalSamplePixel, sampleBlasInstance);
     
         float weight;
         if (sampleToCurrentSimilarity(currentNormalAndDepth, sampleNormalAndDepth, currentBlasInstance, sampleBlasInstance, weight))

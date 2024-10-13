@@ -9,9 +9,8 @@ const float DISOCCLUSION_THRESHOLD = 0.3;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
+    uvec2 globalResolution;
     uvec2 resolution;
-    uint _PADDING0;
-    uint _PADDING1;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
@@ -41,7 +40,7 @@ vec4 getPixelNormalAndDepthHistory(ivec2 pixel, out uint blasInstance)
 
 bool isDisoccluded(ivec2 pixel, ivec2 prevPixel, uint currentBlasInstance, vec4 currentNormalAndDepth)
 {
-    bool outOfBounds = (prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y || prevPixel.x < 0 || prevPixel.y < 0);
+    bool outOfBounds = (prevPixel.x >= constants.globalResolution.x || prevPixel.y >= constants.globalResolution.y || prevPixel.x < 0 || prevPixel.y < 0);
     
     if (outOfBounds)
     {
@@ -72,11 +71,12 @@ void main()
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
     uint id = uint(pixel.y * constants.resolution.x + pixel.x);
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
+    ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
 
     vec3 current = imageLoad(inImage, pixel).rgb;
 
     uint currentBlasInstance;
-    vec4 currentNormalAndDepth = getPixelNormalAndDepth(pixel, currentBlasInstance);
+    vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel, currentBlasInstance);
     if (currentNormalAndDepth.w == 0.0)
     {
         imageStore(outImage, pixel, vec4(current, 1.0));
@@ -84,12 +84,13 @@ void main()
         return;
     }
 
-    vec2 velocity = imageLoad(velocity, pixel).rg;
+    vec2 velocity = imageLoad(velocity, globalPixel).rg;
     ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
+    ivec2 globalPrevPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
 
     vec4 history = imageLoad(history, prevPixel);
 
-    bool disoccluded = isDisoccluded(pixel, prevPixel, currentBlasInstance, currentNormalAndDepth);
+    bool disoccluded = isDisoccluded(globalPixel, globalPrevPixel, currentBlasInstance, currentNormalAndDepth);
 
     if (disoccluded)
     {

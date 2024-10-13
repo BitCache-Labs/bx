@@ -376,7 +376,7 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     shadeConstantsBuffer = Graphics::CreateBuffer(shadeConstantsCreateInfo);
 
     restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, lightingWidth, lightingHeight));
-    reblurPass = std::unique_ptr<ReblurPass>(new ReblurPass(lightingWidth, lightingHeight));
+    reblurPass = std::unique_ptr<ReblurPass>(new ReblurPass(width, height, lightingWidth, lightingHeight));
 }
 
 NertPass::~NertPass()

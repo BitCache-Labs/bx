@@ -79,7 +79,7 @@ void main()
         lightingContribution = texture(denoisedIllumination, uv).rgb;
     }
 
-    vec3 resolved = lightingContribution;// * baseColorFactor + ambientContribution + emissiveContribution;
+    vec3 resolved = lightingContribution * baseColorFactor + ambientContribution + emissiveContribution;
     imageStore(outImage, pixel, vec4(resolved, 1.0));
 
     vec4 packedAmbientEmissiveBaseColor = vec4(

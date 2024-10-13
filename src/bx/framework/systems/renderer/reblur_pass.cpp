@@ -7,34 +7,46 @@
 
 struct PreBlurConstants
 {
+    u32 globalWidth;
+    u32 globalHeight;
     u32 width;
     u32 height;
     u32 seed;
     u32 _PADDING0;
+    u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct TemporalAccumConstants
 {
+    u32 globalWidth;
+    u32 globalHeight;
     u32 width;
     u32 height;
-    u32 _PADDING0;
-    u32 _PADDING1;
 };
 
 struct HistoryFixConstants
 {
+    u32 globalWidth;
+    u32 globalHeight;
     u32 width;
     u32 height;
     b32 antiFirefly;
     u32 _PADDING0;
+    u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct BlurConstants
 {
+    u32 globalWidth;
+    u32 globalHeight;
     u32 width;
     u32 height;
     u32 seed;
     u32 _PADDING0;
+    u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct PreBlurPipeline : public LazyInit<PreBlurPipeline, ComputePipelineHandle>
@@ -172,8 +184,8 @@ struct BlurPipeline : public LazyInit<BlurPipeline, ComputePipelineHandle>
 template<>
 std::unique_ptr<BlurPipeline> LazyInit<BlurPipeline, ComputePipelineHandle>::cache = nullptr;
 
-ReblurPass::ReblurPass(u32 width, u32 height)
-    : width(width), height(height), frameIdx(0)
+ReblurPass::ReblurPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHeight)
+    : width(width), height(height), lightingWidth(lightingWidth), lightingHeight(lightingHeight), frameIdx(0)
 {
     BufferCreateInfo preBlurConstantsCreateInfo{};
     preBlurConstantsCreateInfo.name = "Reblur Pre Blur Constants Buffer";
@@ -201,7 +213,7 @@ ReblurPass::ReblurPass(u32 width, u32 height)
 
     TextureCreateInfo tmpIlluminationCreateInfo{};
     tmpIlluminationCreateInfo.name = "Reblur Temp Illumination Texture";
-    tmpIlluminationCreateInfo.size = Extend3D(width, height, 1);
+    tmpIlluminationCreateInfo.size = Extend3D(lightingWidth, lightingHeight, 1);
     tmpIlluminationCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     tmpIlluminationCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::COPY_SRC;
     tmpIlluminationTexture = Graphics::CreateTexture(tmpIlluminationCreateInfo);
@@ -209,8 +221,8 @@ ReblurPass::ReblurPass(u32 width, u32 height)
 
     TextureCreateInfo preBlurCreateInfo{};
     preBlurCreateInfo.name = "Reblur Pre Blur Texture";
-    preBlurCreateInfo.size = Extend3D(width, height, 1);
-    BX_ASSERT(Math::MipLevelsFromDims(width, height) >= 7, "Nert pass too small.");
+    preBlurCreateInfo.size = Extend3D(lightingWidth, lightingHeight, 1);
+    BX_ASSERT(Math::MipLevelsFromDims(lightingWidth, lightingHeight) >= 7, "Nert pass too small.");
     preBlurCreateInfo.mipLevelCount = 7;
     preBlurCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     preBlurCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::COPY_SRC | TextureUsageFlags::COPY_DST | TextureUsageFlags::TEXTURE_BINDING;
@@ -218,7 +230,7 @@ ReblurPass::ReblurPass(u32 width, u32 height)
     preBlurTextureView = Graphics::CreateTextureView(preBlurTexture);
 
     TextureCreateInfo historyCreateInfo{};
-    historyCreateInfo.size = Extend3D(width, height, 1);
+    historyCreateInfo.size = Extend3D(lightingWidth, lightingHeight, 1);
     historyCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     historyCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING;
     for (u32 i = 0; i < 2; i++)
@@ -350,25 +362,33 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     BindGroupHandle blurBindGroup = CreateBlurBindGroup(dispatchInfo);
 
     PreBlurConstants preBlurConstants{};
-    preBlurConstants.width = width;
-    preBlurConstants.height = height;
+    preBlurConstants.globalWidth = width;
+    preBlurConstants.globalHeight = height;
+    preBlurConstants.width = lightingWidth;
+    preBlurConstants.height = lightingHeight;
     preBlurConstants.seed = seed;
     Graphics::WriteBuffer(preBlurConstantsBuffer, 0, &preBlurConstants);
 
     TemporalAccumConstants temporalAccumConstants{};
-    temporalAccumConstants.width = width;
-    temporalAccumConstants.height = height;
+    temporalAccumConstants.globalWidth = width;
+    temporalAccumConstants.globalHeight = height;
+    temporalAccumConstants.width = lightingWidth;
+    temporalAccumConstants.height = lightingHeight;
     Graphics::WriteBuffer(temporalAccumConstantsBuffer, 0, &temporalAccumConstants);
 
     HistoryFixConstants historyFixConstants{};
-    historyFixConstants.width = width;
-    historyFixConstants.height = height;
+    historyFixConstants.globalWidth = width;
+    historyFixConstants.globalHeight = height;
+    historyFixConstants.width = lightingWidth;
+    historyFixConstants.height = lightingHeight;
     historyFixConstants.antiFirefly = antiFirefly;
     Graphics::WriteBuffer(historyFixConstantsBuffer, 0, &historyFixConstants);
 
     BlurConstants blurConstants{};
-    blurConstants.width = width;
-    blurConstants.height = height;
+    blurConstants.globalWidth = width;
+    blurConstants.globalHeight = height;
+    blurConstants.width = lightingWidth;
+    blurConstants.height = lightingHeight;
     blurConstants.seed = seed;
     Graphics::WriteBuffer(blurConstantsBuffer, 0, &blurConstants);
 
@@ -378,16 +398,18 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     {
         Graphics::SetComputePipeline(PreBlurPipeline::Get());
         Graphics::SetBindGroup(0, preBlurBindGroup);
-        Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
+        Graphics::DispatchWorkgroups(Math::DivCeil(lightingWidth, 16), Math::DivCeil(lightingHeight, 16), 1);
     }
     Graphics::EndComputePass(computePass);
+
+    //Graphics::CopyTexture(preBlurTexture, dispatchInfo.unresolvedIllumination);
 
     computePassDescriptor.name = "Reblur Temporal Accum";
     computePass = Graphics::BeginComputePass(computePassDescriptor);
     {
         Graphics::SetComputePipeline(TemporalAccumPipeline::Get());
         Graphics::SetBindGroup(0, temporalAccumBindGroup);
-        Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
+        Graphics::DispatchWorkgroups(Math::DivCeil(lightingWidth, 16), Math::DivCeil(lightingHeight, 16), 1);
     }
     Graphics::EndComputePass(computePass);
     
@@ -398,7 +420,7 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     {
         Graphics::SetComputePipeline(HistoryFixPipeline::Get());
         Graphics::SetBindGroup(0, historyFixBindGroup);
-        Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
+        Graphics::DispatchWorkgroups(Math::DivCeil(lightingWidth, 16), Math::DivCeil(lightingHeight, 16), 1);
     }
     Graphics::EndComputePass(computePass);
     
@@ -407,10 +429,10 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     {
         Graphics::SetComputePipeline(BlurPipeline::Get());
         Graphics::SetBindGroup(0, blurBindGroup);
-        Graphics::DispatchWorkgroups(Math::DivCeil(width, 16), Math::DivCeil(height, 16), 1);
+        Graphics::DispatchWorkgroups(Math::DivCeil(lightingWidth, 16), Math::DivCeil(lightingHeight, 16), 1);
     }
     Graphics::EndComputePass(computePass);
-
+    
     Graphics::CopyTexture(tmpIlluminationTexture, dispatchInfo.unresolvedIllumination);
 
     Graphics::DestroyBindGroup(preBlurBindGroup);

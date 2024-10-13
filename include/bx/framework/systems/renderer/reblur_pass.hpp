@@ -17,7 +17,7 @@ struct ReblurDispatchInfo
 class ReblurPass : NoCopy
 {
 public:
-	ReblurPass(u32 width, u32 height);
+	ReblurPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHeight);
 	~ReblurPass();
 
 	void Dispatch(const ReblurDispatchInfo& dispatchInfo);
@@ -29,6 +29,7 @@ public:
 
 private:
 	u32 width, height;
+	u32 lightingWidth, lightingHeight;
 	u32 frameIdx;
 
 	TextureHandle preBlurTexture;

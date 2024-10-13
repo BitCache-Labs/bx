@@ -95,9 +95,6 @@ void main()
 #if 1
     float screenRadius = constants.resolution.x / 15.0;
     float radius = screenRadius * ((constants.spatialIndex == 0) ? 2.0 : 1.0);
-    float globalScreenRadius = constants.globalResolution.x / 15.0;
-    float globalRadius = globalScreenRadius * ((constants.spatialIndex == 0) ? 2.0 : 1.0);
-
     float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex) * 0.5;
     ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 2) : (pixel >> 1);
     uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + constants.spatialIndex));
@@ -108,16 +105,13 @@ void main()
     {
         float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
         float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
-        float globalCurrentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * globalRadius + samplingRadiusOffset;
     
-        ivec2 globalOffset = ivec2(globalCurrentRadius * vec2(cos(angle), sin(angle)));
-        ivec2 globalSamplePixel = globalPixel + globalOffset;
-        globalSamplePixel = clamp(globalSamplePixel, ivec2(0), ivec2(constants.globalResolution) - 1);
-
         ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
         ivec2 samplePixel = pixel + offset;
         samplePixel = clamp(samplePixel, ivec2(0), ivec2(constants.resolution) - 1);
         uint sampleId = samplePixel.y * constants.resolution.x + samplePixel.x;
+
+        ivec2 globalSamplePixel = rescaleResolution(samplePixel, constants.resolution, constants.globalResolution);
     
         ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
     
