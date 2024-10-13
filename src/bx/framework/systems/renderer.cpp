@@ -35,8 +35,8 @@ void Renderer::UpdateCameras()
 
     i32 windowWidth, windowHeight;
     Window::GetSize(&windowWidth, &windowHeight);
-    i32 w = (float)windowWidth * renderResolution;
-    i32 h = (float)windowHeight * renderResolution;
+    i32 w = (f32)windowWidth / upscaleFactor;
+    i32 h = (f32)windowHeight / upscaleFactor;
 
     EntityManager::ForEach<Transform, Camera>(
         [&](Entity entity, const Transform& trx, Camera& camera)
@@ -154,8 +154,8 @@ void Renderer::RecreateRenderTargets()
     {
         i32 windowWidth, windowHeight;
         Window::GetSize(&windowWidth, &windowHeight);
-        i32 w = (float)windowWidth * renderResolution;
-        i32 h = (float)windowHeight * renderResolution;
+        i32 w = (f32)windowWidth / upscaleFactor;
+        i32 h = (f32)windowHeight / upscaleFactor;
 
         TextureCreateInfo colorTargetCreateInfo{};
         colorTargetCreateInfo.name = "Color Target";
@@ -183,8 +183,8 @@ void Renderer::RebuildPasses()
     {
         i32 windowWidth, windowHeight;
         Window::GetSize(&windowWidth, &windowHeight);
-        i32 w = (float)windowWidth * renderResolution;
-        i32 h = (float)windowHeight * renderResolution;
+        i32 w = (f32)windowWidth / upscaleFactor;
+        i32 h = (f32)windowHeight / upscaleFactor;
 
         m_gbufferPass = std::unique_ptr<GBufferPass>(new GBufferPass(m_depthTarget));
 

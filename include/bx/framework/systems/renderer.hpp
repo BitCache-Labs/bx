@@ -53,7 +53,7 @@ private:
 	void Update() override;
 	void Render() override;
 
-	f32 renderResolution = 0.4;
+	f32 upscaleFactor = 1.5;
 	u32 frameIdx = 0;
 
 	TextureHandle m_colorTarget = TextureHandle::null;
