@@ -146,7 +146,7 @@ BloomPass::BloomPass(u32 width, u32 height)
     for (u32 i = 0; i < mipCount; i++)
     {
         mippedColorTargetCreateInfo.name = Log::Format("Bloom Pass Mipped Color Target {} Texture", i);
-        mippedColorTargetCreateInfo.size = Extend3D(static_cast<u32>(mipWidth), static_cast<u32>(mipHeight), 1);
+        mippedColorTargetCreateInfo.size = Extend3D(static_cast<u32>(ceilf(mipWidth)), static_cast<u32>(ceilf(mipHeight)), 1);
         mippedColorTargets.push_back(Graphics::CreateTexture(mippedColorTargetCreateInfo));
 
         mipWidth *= 0.5;
