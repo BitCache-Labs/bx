@@ -30,7 +30,9 @@ layout(BINDING(2, 0), std430) readonly buffer _MaterialDescriptors
     MaterialDescriptor materialDescriptors[];
 };
 
-layout(BINDING(2, 1)) uniform sampler2D materialTextures[MAX_MATERIAL_TEXTURES];
+layout(BINDING(2, 1)) uniform texture2D materialTextures[MAX_MATERIAL_TEXTURES];
+
+layout(BINDING(2, 2)) uniform sampler materialSampler;
 
 SampledMaterial sampleMaterial(MaterialDescriptor materialDescriptor, vec2 uv)
 {
@@ -39,7 +41,7 @@ SampledMaterial sampleMaterial(MaterialDescriptor materialDescriptor, vec2 uv)
 	sampledMaterial.baseColorFactor = materialDescriptor.baseColorFactor;
 	if (materialDescriptor.baseColorTexture != U32_MAX)
 	{
-		sampledMaterial.baseColorFactor *= texture(materialTextures[materialDescriptor.baseColorTexture], uv).rgb;
+		sampledMaterial.baseColorFactor *= texture(sampler2D(materialTextures[materialDescriptor.baseColorTexture], materialSampler), uv).rgb;
 	}
     sampledMaterial.emissiveFactor = materialDescriptor.emissiveFactor;
 

@@ -24,7 +24,8 @@ struct PresentPipeline : public LazyInit<PresentPipeline, GraphicsPipelineHandle
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
-                BindGroupLayoutEntry(0, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
+                BindGroupLayoutEntry(0, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT, false)),
+                BindGroupLayoutEntry(1, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::Sampler()),
             })
         };
 
@@ -56,6 +57,15 @@ PresentPass::PresentPass(TextureHandle texture)
     width = textureCreateInfo.size.width;
     height = textureCreateInfo.size.height;
 
+    SamplerCreateInfo linearClampCreateInfo{};
+    linearClampCreateInfo.name = "Present Linear Clamp Sampler";
+    linearClampCreateInfo.addressModeU = SamplerAddressMode::REPEAT;
+    linearClampCreateInfo.addressModeV = SamplerAddressMode::REPEAT;
+    linearClampCreateInfo.addressModeW = SamplerAddressMode::REPEAT;
+    linearClampCreateInfo.minFilter = FilterMode::LINEAR;
+    linearClampCreateInfo.magFilter = FilterMode::LINEAR;
+    linearClampSampler = Graphics::CreateSampler(linearClampCreateInfo);
+
     textureView = Graphics::CreateTextureView(texture);
 
     BindGroupCreateInfo createInfo{};
@@ -63,12 +73,14 @@ PresentPass::PresentPass(TextureHandle texture)
     createInfo.layout = Graphics::GetBindGroupLayout(PresentPipeline::Get(), 0);
     createInfo.entries = {
         BindGroupEntry(0, BindingResource::TextureView(textureView)),
+        BindGroupEntry(1, BindingResource::Sampler(linearClampSampler)),
     };
     bindGroup = Graphics::CreateBindGroup(createInfo);
 }
 
 PresentPass::~PresentPass()
 {
+    Graphics::DestroySampler(linearClampSampler);
     Graphics::DestroyBindGroup(bindGroup);
     Graphics::DestroyTextureView(textureView);
 }

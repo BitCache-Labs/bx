@@ -167,9 +167,10 @@ struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                                 // constants
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),   // ambientEmissiveBaseColor
-                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),                                               // denoisedIllumination
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT, false)),                                        // denoisedIllumination
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),        // outImage
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                             // intersections
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),                                                                       // linearRepeatSampler
             }),
             MaterialPool::GetBindGroupLayout(),
             BlasDataPool::GetBindGroupLayout(),
@@ -276,6 +277,15 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
 
     lightingWidth = static_cast<u32>(ceilf(static_cast<f32>(width) / lightingUpscaleFactor));
     lightingHeight = static_cast<u32>(ceilf(static_cast<f32>(height) / lightingUpscaleFactor));
+
+    SamplerCreateInfo linearRepeatCreateInfo{};
+    linearRepeatCreateInfo.name = "Nert Linear Repeat Sampler";
+    linearRepeatCreateInfo.addressModeU = SamplerAddressMode::REPEAT;
+    linearRepeatCreateInfo.addressModeV = SamplerAddressMode::REPEAT;
+    linearRepeatCreateInfo.addressModeW = SamplerAddressMode::REPEAT;
+    linearRepeatCreateInfo.minFilter = FilterMode::LINEAR;
+    linearRepeatCreateInfo.magFilter = FilterMode::LINEAR;
+    linearRepeatSampler = Graphics::CreateSampler(linearRepeatCreateInfo);
 
     TextureCreateInfo neGbufferCreateInfo{};
     neGbufferCreateInfo.format = TextureFormat::RGBA32_FLOAT;
@@ -384,6 +394,8 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
 
 NertPass::~NertPass()
 {
+    Graphics::DestroySampler(linearRepeatSampler);
+
     Graphics::DestroyTextureView(colorTargetView);
     for (u32 i = 0; i < 2; i++)
     {
@@ -504,6 +516,7 @@ BindGroupHandle NertPass::CreateResolveBindGroup(const NertDispatchInfo& dispatc
         BindGroupEntry(2, BindingResource::TextureView(denoise ? taaPass->GetResolvedColorTargetView() : illuminationTextureView)),
         BindGroupEntry(3, BindingResource::TextureView(colorTargetView)),
         BindGroupEntry(4, BindingResource::Buffer(intersectionsBuffer)),
+        BindGroupEntry(5, BindingResource::Sampler(linearRepeatSampler)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }

@@ -63,9 +63,10 @@ struct PreBlurPipeline : public LazyInit<PreBlurPipeline, ComputePipelineHandle>
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                             // constants
-                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),                                           // inImage
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT, false)),                                           // inImage
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // gbuffer
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),                                                                   // linearClampSampler
             })
         };
 
@@ -165,10 +166,11 @@ struct BlurPipeline : public LazyInit<BlurPipeline, ComputePipelineHandle>
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                             // constants
-                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),                                           // inImage
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT, false)),                                           // inImage
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // gbuffer
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // outHistory
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),                                                                   // linearClampSampler
             })
         };
 
@@ -187,6 +189,15 @@ std::unique_ptr<BlurPipeline> LazyInit<BlurPipeline, ComputePipelineHandle>::cac
 ReblurPass::ReblurPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHeight)
     : width(width), height(height), lightingWidth(lightingWidth), lightingHeight(lightingHeight), frameIdx(0)
 {
+    SamplerCreateInfo linearClampCreateInfo{};
+    linearClampCreateInfo.name = "Reblur Linear Clamp Sampler";
+    linearClampCreateInfo.addressModeU = SamplerAddressMode::CLAMP_TO_EDGE;
+    linearClampCreateInfo.addressModeV = SamplerAddressMode::CLAMP_TO_EDGE;
+    linearClampCreateInfo.addressModeW = SamplerAddressMode::CLAMP_TO_EDGE;
+    linearClampCreateInfo.minFilter = FilterMode::LINEAR;
+    linearClampCreateInfo.magFilter = FilterMode::LINEAR;
+    linearClampSampler = Graphics::CreateSampler(linearClampCreateInfo);
+
     BufferCreateInfo preBlurConstantsCreateInfo{};
     preBlurConstantsCreateInfo.name = "Reblur Pre Blur Constants Buffer";
     preBlurConstantsCreateInfo.size = sizeof(PreBlurConstants);
@@ -243,6 +254,8 @@ ReblurPass::ReblurPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHei
 
 ReblurPass::~ReblurPass()
 {
+    Graphics::DestroySampler(linearClampSampler);
+
     Graphics::DestroyBuffer(preBlurConstantsBuffer);
     Graphics::DestroyBuffer(temporalAccumConstantsBuffer);
     Graphics::DestroyBuffer(historyFixConstantsBuffer);
@@ -271,7 +284,8 @@ BindGroupHandle ReblurPass::CreatePreBlurBindGroup(const ReblurDispatchInfo& dis
         BindGroupEntry(0, BindingResource::Buffer(preBlurConstantsBuffer)),
         BindGroupEntry(1, BindingResource::TextureView(unresolvedIlluminationView)),
         BindGroupEntry(2, BindingResource::TextureView(dispatchInfo.gbufferView)),
-        BindGroupEntry(3, BindingResource::TextureView(preBlurTextureView))
+        BindGroupEntry(3, BindingResource::TextureView(preBlurTextureView)),
+        BindGroupEntry(4, BindingResource::Sampler(linearClampSampler)),
     };
 
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
@@ -348,7 +362,8 @@ BindGroupHandle ReblurPass::CreateBlurBindGroup(const ReblurDispatchInfo& dispat
         BindGroupEntry(1, BindingResource::TextureView(unresolvedIlluminationView)),
         BindGroupEntry(2, BindingResource::TextureView(dispatchInfo.gbufferView)),
         BindGroupEntry(3, BindingResource::TextureView(historyTextureView[frameIdx % 2 != 0])),
-        BindGroupEntry(4, BindingResource::TextureView(tmpIlluminationTextureView))
+        BindGroupEntry(4, BindingResource::TextureView(tmpIlluminationTextureView)),
+        BindGroupEntry(5, BindingResource::Sampler(linearClampSampler)),
     };
 
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);

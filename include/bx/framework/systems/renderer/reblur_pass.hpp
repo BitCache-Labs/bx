@@ -32,6 +32,8 @@ private:
 	u32 lightingWidth, lightingHeight;
 	u32 frameIdx;
 
+	SamplerHandle linearClampSampler;
+
 	TextureHandle preBlurTexture;
 	TextureViewHandle preBlurTextureView;
 	TextureHandle tmpIlluminationTexture;

@@ -17,6 +17,8 @@ public:
 	static void ClearPipelineCache();
 
 private:
+	SamplerHandle linearClampSampler;
+
 	BindGroupHandle bindGroup;
 	TextureViewHandle textureView;
 	u32 width, height;

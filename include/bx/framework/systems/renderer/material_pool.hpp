@@ -37,6 +37,7 @@ public:
 private:
 	BufferHandle materialDescriptorsBuffer = BufferHandle::null;
 	TextureHandle textures[MAX_TEXTURES];
+	SamplerHandle sampler;
 
 	u32 materialDescriptorCount = 0;
 

@@ -18,9 +18,11 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uint _PADDING2;
 } constants;
 
-layout (BINDING(0, 1)) uniform sampler2D inImage;
+layout (BINDING(0, 1)) uniform texture2D inImage;
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 3), rgba32f) uniform image2D outImage;
+
+layout (BINDING(0, 4)) uniform sampler linearClampSampler;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel, out uint blasInstance)
 {
@@ -40,7 +42,7 @@ void main()
     uint currentBlasInstance;
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel, currentBlasInstance);
 
-    vec3 result = textureLod(inImage, vec2(pixel) / vec2(constants.resolution), 0.0).rgb;
+    vec3 result = textureLod(sampler2D(inImage, linearClampSampler), vec2(pixel) / vec2(constants.resolution), 0.0).rgb;
     float sampleCount = 1.0;
 
     if (currentNormalAndDepth.w == 0.0)
@@ -79,7 +81,7 @@ void main()
             float weight;
             if (sampleToCurrentSimilarity(currentNormalAndDepth, sampleNormalAndDepth, currentBlasInstance, sampleBlasInstance, weight))
             {
-                result += textureLod(inImage, vec2(samplePixel) / vec2(constants.resolution), 1.0).rgb * weight;
+                result += textureLod(sampler2D(inImage, linearClampSampler), vec2(samplePixel) / vec2(constants.resolution), 1.0).rgb * weight;
                 sampleCount += weight;
             }
         }

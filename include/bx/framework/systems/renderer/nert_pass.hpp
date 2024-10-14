@@ -66,6 +66,8 @@ private:
 	std::unique_ptr<ReblurPass> reblurPass;
 	std::unique_ptr<TaaPass> taaPass;
 
+	SamplerHandle linearRepeatSampler;
+
 	TextureHandle neGbuffer[2];
 	TextureViewHandle neGbufferView[2];
 

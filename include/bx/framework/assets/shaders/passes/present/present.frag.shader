@@ -4,7 +4,9 @@ layout (location = 0) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
-layout(BINDING(0, 0)) uniform sampler2D colorImage;
+layout(BINDING(0, 0)) uniform texture2D colorImage;
+
+layout (BINDING(0, 1)) uniform sampler linearClampSampler;
 
 vec3 aces(vec3 x)
 {
@@ -23,7 +25,7 @@ vec3 gammaCorrect(vec3 x, float gamma)
 
 void main()
 {
-    vec3 hdrColor = texture(colorImage, fragTexCoord).rgb;
+    vec3 hdrColor = texture(sampler2D(colorImage, linearClampSampler), fragTexCoord).rgb;
 
     // acesg -> acescct (matrix mult)
 

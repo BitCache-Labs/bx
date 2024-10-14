@@ -10,11 +10,21 @@ MaterialPool::MaterialPool()
     materialDescriptorsCreateInfo.size = MAX_MATERIALS * sizeof(MaterialDescriptor);
     materialDescriptorsCreateInfo.usageFlags = BufferUsageFlags::STORAGE | BufferUsageFlags::COPY_DST;
     materialDescriptorsBuffer = Graphics::CreateBuffer(materialDescriptorsCreateInfo);
+
+    SamplerCreateInfo linearRepeatCreateInfo{};
+    linearRepeatCreateInfo.name = "Nert Linear Repeat Sampler";
+    linearRepeatCreateInfo.addressModeU = SamplerAddressMode::REPEAT;
+    linearRepeatCreateInfo.addressModeV = SamplerAddressMode::REPEAT;
+    linearRepeatCreateInfo.addressModeW = SamplerAddressMode::REPEAT;
+    linearRepeatCreateInfo.minFilter = FilterMode::LINEAR;
+    linearRepeatCreateInfo.magFilter = FilterMode::LINEAR;
+    sampler = Graphics::CreateSampler(linearRepeatCreateInfo);
 }
 
 MaterialPool::~MaterialPool()
 {
     Graphics::DestroyBuffer(materialDescriptorsBuffer);
+    Graphics::DestroySampler(sampler);
 }
 
 u32 MaterialPool::AvailableTextureIdx() const
@@ -95,7 +105,8 @@ BindGroupLayoutDescriptor MaterialPool::GetBindGroupLayout()
 {
     return BindGroupLayoutDescriptor(BIND_GROUP_SET, {
             BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                     // materialDescriptors
-            BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT), Optional<u32>::Some(MAX_TEXTURES)),    // materialTextures
+            BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT, false), Optional<u32>::Some(MAX_TEXTURES)),    // materialTextures
+            BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),                                                               // materialSampler
         });
 }
 
@@ -119,7 +130,8 @@ BindGroupHandle MaterialPool::CreateBindGroup(ComputePipelineHandle pipeline) co
     createInfo.layout = Graphics::GetBindGroupLayout(pipeline, BIND_GROUP_SET);
     createInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(materialDescriptorsBuffer)),
-        BindGroupEntry(1, BindingResource::TextureViewArray(textureViews))
+        BindGroupEntry(1, BindingResource::TextureViewArray(textureViews)),
+        BindGroupEntry(2, BindingResource::Sampler(sampler)),
     };
 
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
