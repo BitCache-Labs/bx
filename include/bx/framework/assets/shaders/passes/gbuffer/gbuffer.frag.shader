@@ -27,6 +27,7 @@ vec2 calcVelocity(vec4 newPos, vec4 oldPos)
     vec2 b = (oldPos.w > 0.0) ? (oldPos.xy / oldPos.w) : vec2(0.0);
     vec2 result = (a - b) * 0.5;
     result.y = -result.y;
+
     return result;
 }
 

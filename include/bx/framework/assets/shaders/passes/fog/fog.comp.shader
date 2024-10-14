@@ -37,13 +37,12 @@ void main()
     vec3 emissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(ambientEmissiveBaseColor, pixel).y)));
     float luma = linearToLuma(emissive);
 
+    vec3 throughput = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(throughputs, pixel).r)));
+
     float adjustedFogEnd = constants.fogEnd + (constants.fogEnd * luma * constants.emissiveBias);
     float fogIntensity = (adjustedFogEnd - normalAndDepth.w) / (adjustedFogEnd - constants.fogStart);
     fogIntensity = sqr(1.0 - saturate(fogIntensity));
-    color = mix(color, constants.fogColor, fogIntensity);
-
-    vec3 throughput = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(throughputs, pixel).r)));
-    color *= throughput;
+    color = mix(color, constants.fogColor * throughput, fogIntensity);
 
     imageStore(image, pixel, vec4(color, 1.0));
 }

@@ -39,6 +39,8 @@ struct IntersectConstants
     u32 height;
     u32 maxBounces;
     u32 _PADDING1;
+    Vec3 fogColor;
+    f32 fogDensity;
 };
 
 struct RaygenConstants
@@ -459,6 +461,8 @@ void NertPass::UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo)
     intersectConstants.width = width;
     intersectConstants.height = height;
     intersectConstants.maxBounces = maxBounces;
+    intersectConstants.fogColor = fogColor;
+    intersectConstants.fogDensity = fogDensity;
     Graphics::WriteBuffer(intersectConstantsBuffer, 0, &intersectConstants);
 
     RaygenConstants raygenConstants{};
@@ -668,7 +672,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
 
     if (denoise)
     {
-        taaPass->historyWeight = 0.3;
+        taaPass->historyWeight = 0.9;
         taaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
 
         reblurPass->seed = seed;

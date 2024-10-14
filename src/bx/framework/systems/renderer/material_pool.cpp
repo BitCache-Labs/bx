@@ -60,7 +60,7 @@ MaterialPool::MaterialDescriptor MaterialPool::UpdateMaterial(const Material& ma
 
     if (material.IsEmissive())
     {
-        materialDescriptor.emissiveFactor = material.GetEmissiveFactor();
+        materialDescriptor.emissiveFactor = material.GetEmissiveFactor() * 120.0;
     }
 
     Graphics::WriteBuffer(materialDescriptorsBuffer, descriptorIdx * sizeof(MaterialDescriptor), &materialDescriptor, sizeof(MaterialDescriptor));

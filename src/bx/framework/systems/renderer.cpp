@@ -246,11 +246,13 @@ void Renderer::Render()
 
         m_nertPass->seed = frameIdx;
         m_nertPass->accumulationFrameIdx = accumulate ? (m_nertPass->accumulationFrameIdx + 1) : 0;
-        m_nertPass->maxBounces = 3;
+        m_nertPass->maxBounces = 5;
         m_nertPass->unbiased = unbiased;
         m_nertPass->restir = restir;
         m_nertPass->denoise = denoise;
         m_nertPass->antiFirefly = antiFirefly;
+        m_nertPass->fogDensity = 0.04;
+        m_nertPass->fogColor = Vec3(1.0, 1.0, 1.0);
 
         NertDispatchInfo dispatchInfo
         {
@@ -272,8 +274,6 @@ void Renderer::Render()
             m_ssaoPass->seed = frameIdx;
             m_ssaoPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetNeGbufferTextureView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
         }
-
-        m_fogPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView(), m_nertPass->GetThroughputTextureView());
 
         if (fsr2)
         {

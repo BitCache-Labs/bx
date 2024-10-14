@@ -56,6 +56,9 @@ public:
 	b8 antiFirefly = true;
 	f32 lightingUpscaleFactor = 2.0;
 
+	Vec3 fogColor = Vec3(0.1, 0.1, 0.1);
+	f32 fogDensity = 0.05;
+
 private:
 	NertCreateInfo createInfo;
 	TextureViewHandle colorTargetView;

@@ -14,6 +14,8 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uvec2 resolution;
     uint maxBounces;
     uint _PADDING1;
+    vec3 fogColor;
+    float fogDensity;
 } constants;
 
 layout (BINDING(0, 1), std430) buffer _Rays
@@ -76,6 +78,10 @@ void main()
 
             finalHitPos = ray.origin + ray.direction * intersection.t;
             totalDepth += intersection.t;
+
+            float density = exp(-intersection.t * constants.fogDensity);
+            vec3 fogColor = normalize(constants.fogColor);
+            throughput *= density * mix(fogColor, vec3(1.0), density);
 
             BlasInstance blasInstance = blasInstances[intersection.blasInstanceIdx];
 

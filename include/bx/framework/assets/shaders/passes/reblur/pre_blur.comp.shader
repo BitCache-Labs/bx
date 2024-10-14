@@ -42,7 +42,7 @@ void main()
     uint currentBlasInstance;
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel, currentBlasInstance);
 
-    vec3 result = textureLod(sampler2D(inImage, linearClampSampler), vec2(pixel) / vec2(constants.resolution), 0.0).rgb;
+    vec3 result = textureLod(sampler2D(inImage, linearClampSampler), pixelToUv(pixel, constants.resolution), 0.0).rgb;
     float sampleCount = 1.0;
 
     if (currentNormalAndDepth.w == 0.0)
@@ -51,12 +51,12 @@ void main()
         return;
     }
 
-    float screenRadius = (constants.resolution.x / 1920.0) * 15.0;
-    float radius = screenRadius;
-    float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + 0) * 0.5;
-    ivec2 pixelSeed = pixel >> 0;
-    uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + 0));
-    float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
+    //float screenRadius = (constants.resolution.x / 1920.0) * 15.0;
+    //float radius = screenRadius;
+    //float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + 0) * 0.5;
+    //ivec2 pixelSeed = pixel >> 0;
+    //uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + 0));
+    //float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
     
     #pragma unroll
     for (int x = -1; x <= 1; x++)
@@ -81,7 +81,7 @@ void main()
             float weight;
             if (sampleToCurrentSimilarity(currentNormalAndDepth, sampleNormalAndDepth, currentBlasInstance, sampleBlasInstance, weight))
             {
-                result += textureLod(sampler2D(inImage, linearClampSampler), vec2(samplePixel) / vec2(constants.resolution), 1.0).rgb * weight;
+                result += textureLod(sampler2D(inImage, linearClampSampler), pixelToUv(samplePixel, constants.resolution), 1.0).rgb * weight;
                 sampleCount += weight;
             }
         }

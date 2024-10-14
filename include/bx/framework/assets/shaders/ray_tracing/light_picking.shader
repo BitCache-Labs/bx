@@ -45,7 +45,7 @@ vec3 triangleLightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 direc
 
     // TODO: incorporate material emissive factor
 
-    return triangleLightSolidAngle(cosOut, area, distanceToLight) * material.emissiveFactor * 40.0;
+    return triangleLightSolidAngle(cosOut, area, distanceToLight) * material.emissiveFactor;
 }
 
 vec3 triangleLightIntensity(Triangle transformedTriangle, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)
@@ -67,7 +67,7 @@ vec3 triangleLightIntensity(Triangle transformedTriangle, uint blasInstanceIdx, 
 
     // TODO: incorporate material emissive factor
 
-    return triangleLightSolidAngle(cosOut, area, distanceToLight) * material.emissiveFactor * 40.0;
+    return triangleLightSolidAngle(cosOut, area, distanceToLight) * material.emissiveFactor;
 }
 
 vec3 lightIntensity(uint triangleIndex, uint blasInstanceIdx, vec3 directionToLight, float distanceToLight)

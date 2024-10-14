@@ -3,6 +3,7 @@
 #include "[engine]/shaders/math.shader"
 #include "[engine]/shaders/color_helpers.shader"
 #include "[engine]/shaders/packing.shader"
+#include "[engine]/shaders/sampling.shader"
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -19,7 +20,9 @@ layout (BINDING(0, 2), rgba32f) uniform image2D resolvedColorTarget;
 layout (BINDING(0, 3), rg16f) uniform image2D velocityTarget;
 layout (BINDING(0, 4), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 5), rgba32f) uniform image2D gbufferHistory;
-layout (BINDING(0, 6), rgba32f) uniform image2D resolvedColorTargetHistory;
+layout (BINDING(0, 6)) uniform texture2D resolvedColorTargetHistory;
+
+layout (BINDING(0, 7)) uniform sampler linearClampSampler;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {
@@ -141,7 +144,16 @@ void main()
     }
 
     vec4 historyNormalAndDepth = getPixelNormalAndDepthHistory(globalPrevPixel);
-    vec3 history = imageLoad(resolvedColorTargetHistory, prevPixel).rgb;
+
+    bool validDepth = historyNormalAndDepth.w <= 1.1 * currentNormalAndDepth.w && historyNormalAndDepth.w >= 0.9 * currentNormalAndDepth.w;
+    if (!validDepth)
+    {
+        imageStore(resolvedColorTarget, pixel, vec4(reconstructed, 1.0));
+        return;
+    }
+
+    vec2 historyUv = ((vec2(prevPixel) + 0.5) / vec2(constants.resolution));
+    vec3 history = sampleTextureCatmullRom(resolvedColorTargetHistory, linearClampSampler, historyUv, vec2(constants.resolution));
 
     vec3 mean = firstMoment / sampleCount;
     vec3 std = abs(secondMoment - sqr(firstMoment) / sampleCount);

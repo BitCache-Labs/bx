@@ -75,6 +75,9 @@ void main()
 
     vec3 current = imageLoad(inImage, pixel).rgb;
 
+    //imageStore(outImage, pixel, vec4(current, 1.0));
+    //return;
+
     uint currentBlasInstance;
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel, currentBlasInstance);
     if (currentNormalAndDepth.w == 0.0)

@@ -73,7 +73,7 @@ void main()
 
         if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
         {
-            emissiveContribution += throughput * material.emissiveFactor * 40.0;
+            emissiveContribution += throughput * material.emissiveFactor;
         }
 
         ambientContribution += throughput * baseColorFactor * ambientFactor;

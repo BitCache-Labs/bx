@@ -81,20 +81,11 @@ void main()
 
     uint rngState = pcgHash(id ^ xorShiftU32(constants.seed + 1));
 
-    vec2 velocity = imageLoad(velocity, globalPixel).xy;
-    ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
-    prevPixel = clamp(prevPixel, ivec2(0), ivec2(constants.resolution) - 1);
-    uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
-    ivec2 prevGlobalPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
-    prevGlobalPixel = clamp(prevGlobalPixel, ivec2(0), ivec2(constants.globalResolution) - 1);
-    uint prevGlobalId = prevGlobalPixel.y * constants.globalResolution.x + prevGlobalPixel.x;
-    
     {
         Reservoir outputReservoir = Reservoir_default();
         ReservoirData outputReservoirData = ReservoirData_default();
 
         vec4 centerNormalAndDepth = getPixelNormalAndDepth(globalPixel);
-        vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(prevGlobalPixel);
         vec3 origin = getPositionWs(globalPixel, centerNormalAndDepth.w); // TODO: fix for mirrors
         vec3 normal = centerNormalAndDepth.xyz;
 
@@ -116,7 +107,19 @@ void main()
             }
         }
 
-        { // History
+        // History
+        vec2 velocity = imageLoad(velocity, globalPixel).xy;
+        ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
+        if (prevPixel.x >= 0 && prevPixel.y >= 0 && prevPixel.x < constants.resolution.x && prevPixel.y < constants.resolution.y)
+        {
+            prevPixel = clamp(prevPixel, ivec2(0), ivec2(constants.resolution) - 1);
+            uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
+            ivec2 prevGlobalPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
+            prevGlobalPixel = clamp(prevGlobalPixel, ivec2(0), ivec2(constants.globalResolution) - 1);
+            uint prevGlobalId = prevGlobalPixel.y * constants.globalResolution.x + prevGlobalPixel.x;
+
+            vec4 sampleNormalAndDepthHistory = getPixelNormalAndDepthHistory(prevGlobalPixel);
+
             ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
             Reservoir sampledReservoir = Reservoir_fromPacked(restirReservoirsHistory[prevId]);
 
