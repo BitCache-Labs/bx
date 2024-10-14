@@ -21,9 +21,11 @@ layout (BINDING(0, 0), std140) uniform _Constants
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
-layout (BINDING(0, 2)) uniform sampler2D mippedBlur;
+layout (BINDING(0, 2)) uniform texture2D mippedBlur;
 layout (BINDING(0, 3), rgba32f) uniform image2D outHistory;
 layout (BINDING(0, 4), rgba32f) uniform image2D outImage;
+
+layout (BINDING(0, 5)) uniform sampler linearClampSampler;
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
@@ -42,12 +44,12 @@ void main()
     if (disoccluded)
     {
         vec2 uv = vec2(pixel) / vec2(constants.resolution);
-        float depth = textureLod(mippedBlur, uv, 0).w;
+        float depth = textureLod(sampler2D(mippedBlur, linearClampSampler), uv, 0.0).w;
 
         #pragma unroll
         for (int i = 3; i >= 1; i--)
         {
-            vec4 mippedData = textureLod(mippedBlur, uv, i);
+            vec4 mippedData = textureLod(sampler2D(mippedBlur, linearClampSampler), uv, i);
             float mippedDepth = mippedData.w;
 
             if (abs(mippedDepth - depth) < 0.1 && i > 1)

@@ -547,7 +547,7 @@ GraphicsPipelineHandle Graphics::CreateGraphicsPipeline(const GraphicsPipelineCr
             VkDescriptorSetLayoutBinding binding{};
             binding.binding = entry.binding;
             binding.descriptorCount = entry.count.IsSome() ? entry.count.Unwrap() : 1;
-            binding.descriptorType = BindingTypeToVk(entry.type.type, entry.type.texture.defaultSampler);
+            binding.descriptorType = BindingTypeToVk(entry.type.type);
             binding.stageFlags = ShaderStageFlagsToVk(entry.visibility);
             bindings.push_back(binding);
         }
@@ -589,7 +589,7 @@ ComputePipelineHandle Graphics::CreateComputePipeline(const ComputePipelineCreat
             VkDescriptorSetLayoutBinding binding{};
             binding.binding = entry.binding;
             binding.descriptorCount = entry.count.IsSome() ? entry.count.Unwrap() : 1;
-            binding.descriptorType = BindingTypeToVk(entry.type.type, entry.type.texture.defaultSampler);
+            binding.descriptorType = BindingTypeToVk(entry.type.type);
             binding.stageFlags = ShaderStageFlagsToVk(entry.visibility);
             bindings.push_back(binding);
         }
@@ -707,8 +707,7 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
             BX_ENSURE(textureViewIter != s->textureViews.end());
 
             VkDescriptorType type = layout->GetDescriptorType(entry.binding);
-            std::shared_ptr<Sampler> sampler = type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? s->sampler : nullptr;
-            descriptorSet->SetImage(entry.binding, type, textureViewIter->second, sampler);
+            descriptorSet->SetImage(entry.binding, type, textureViewIter->second, nullptr);
             break;
         }
         case BindingResourceType::TEXTURE_VIEW_ARRAY:
@@ -723,8 +722,7 @@ BindGroupHandle Graphics::CreateBindGroup(const BindGroupCreateInfo& createInfo)
             }
 
             VkDescriptorType type = layout->GetDescriptorType(entry.binding);
-            std::shared_ptr<Sampler> sampler = type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? s->sampler : nullptr;
-            descriptorSet->SetImageArray(entry.binding, type, textures, sampler);
+            descriptorSet->SetImageArray(entry.binding, type, textures, nullptr);
             break;
         }
         case BindingResourceType::ACCELERATION_STRUCTURE:
@@ -898,7 +896,6 @@ const TlasHandle Graphics::CreateTlas(const TlasCreateInfo& createInfo)
     memcpy(bufferData, instances.data(), instancesSize);
     stagingBuffer->Unmap();
 
-    //if (!s->uploadCmdList) s->uploadCmdList = s->cmdQueue->GetCmdList("Upload Cmd List");
     if (!s->cmdList) s->cmdList = s->cmdQueue->GetCmdList("Main Cmd List");
     s->cmdList->CopyBuffers(stagingBuffer, instancesBuffer);
 

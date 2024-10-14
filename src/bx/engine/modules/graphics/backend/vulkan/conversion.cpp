@@ -239,7 +239,7 @@ namespace Vk
 		}
 	}
 
-	VkDescriptorType BindingTypeToVk(BindingType type, b8 defaultSampler)
+	VkDescriptorType BindingTypeToVk(BindingType type)
 	{
 		switch (type)
 		{
@@ -250,7 +250,7 @@ namespace Vk
 		case BindingType::SAMPLER:
 			return VK_DESCRIPTOR_TYPE_SAMPLER;
 		case BindingType::TEXTURE:
-			return defaultSampler ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 		case BindingType::STORAGE_TEXTURE:
 			return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		case BindingType::ACCELERATION_STRUCTURE:

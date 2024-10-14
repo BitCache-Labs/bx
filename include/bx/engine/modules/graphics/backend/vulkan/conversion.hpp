@@ -14,7 +14,7 @@ namespace Vk
 	VkImageLayout TextureFormatToVkImageLayout(TextureFormat format);
 	VkImageType TextureDimensionToVk(TextureDimension dimension);
 	VkShaderStageFlagBits ShaderTypeToVk(ShaderType type);
-	VkDescriptorType BindingTypeToVk(BindingType type, b8 defaultSampler);
+	VkDescriptorType BindingTypeToVk(BindingType type);
 	VkShaderStageFlags ShaderStageFlagsToVk(ShaderStageFlags stageFlags);
 	VkFormat VertexFormatToVk(const VertexFormat& format);
 	VkIndexType IndexFormatToVk(const IndexFormat& format);

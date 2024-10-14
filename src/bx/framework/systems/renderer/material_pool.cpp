@@ -105,7 +105,7 @@ BindGroupLayoutDescriptor MaterialPool::GetBindGroupLayout()
 {
     return BindGroupLayoutDescriptor(BIND_GROUP_SET, {
             BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                     // materialDescriptors
-            BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT, false), Optional<u32>::Some(MAX_TEXTURES)),    // materialTextures
+            BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT), Optional<u32>::Some(MAX_TEXTURES)),    // materialTextures
             BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),                                                               // materialSampler
         });
 }

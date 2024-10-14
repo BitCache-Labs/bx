@@ -46,12 +46,11 @@ BindingTypeDescriptor BindingTypeDescriptor::Sampler()
 	return descriptor;
 }
 
-BindingTypeDescriptor BindingTypeDescriptor::Texture(TextureSampleType sampleType, b8 defaultSampler, TextureViewDimension viewDimension, b8 multisampled)
+BindingTypeDescriptor BindingTypeDescriptor::Texture(TextureSampleType sampleType, TextureViewDimension viewDimension, b8 multisampled)
 {
 	BindingTypeDescriptor descriptor{};
 	descriptor.type = BindingType::TEXTURE;
 	descriptor.texture.sampleType = sampleType;
-	descriptor.texture.defaultSampler = defaultSampler;
 	descriptor.texture.viewDimension = viewDimension;
 	descriptor.texture.multisampled = multisampled;
 	return descriptor;

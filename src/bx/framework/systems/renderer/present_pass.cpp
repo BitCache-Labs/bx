@@ -24,7 +24,7 @@ struct PresentPipeline : public LazyInit<PresentPipeline, GraphicsPipelineHandle
         PipelineLayoutDescriptor pipelineLayoutDescriptor{};
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
-                BindGroupLayoutEntry(0, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT, false)),
+                BindGroupLayoutEntry(0, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
                 BindGroupLayoutEntry(1, ShaderStageFlags::FRAGMENT, BindingTypeDescriptor::Sampler()),
             })
         };

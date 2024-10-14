@@ -355,7 +355,7 @@ struct BindingTypeDescriptor
 	static BindingTypeDescriptor UniformBuffer();
 	static BindingTypeDescriptor StorageBuffer(b8 readOnly = true);
 	static BindingTypeDescriptor Sampler();
-	static BindingTypeDescriptor Texture(TextureSampleType sampleType, b8 defaultSampler = true, TextureViewDimension viewDimension = TextureViewDimension::D2, b8 multisampled = false);
+	static BindingTypeDescriptor Texture(TextureSampleType sampleType, TextureViewDimension viewDimension = TextureViewDimension::D2, b8 multisampled = false);
 	static BindingTypeDescriptor StorageTexture(StorageTextureAccess access, TextureFormat format, TextureViewDimension viewDimension = TextureViewDimension::D2);
 	static BindingTypeDescriptor AccelerationStructure();
 
@@ -382,7 +382,6 @@ struct BindingTypeDescriptor
 		struct
 		{
 			TextureSampleType sampleType = TextureSampleType::FLOAT;
-			b8 defaultSampler = true;
 			TextureViewDimension viewDimension = TextureViewDimension::D2;
 			b8 multisampled = false;
 			u32 _padding[1];
