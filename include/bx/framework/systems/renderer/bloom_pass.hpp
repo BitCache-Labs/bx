@@ -17,6 +17,7 @@ public:
 	static void ClearPipelineCache();
 
 	f32 intensity = 0.5;
+	f32 radius = 3.0;
 
 private:
 	u32 width, height;

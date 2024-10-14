@@ -8,6 +8,10 @@ layout (BINDING(0, 0), std140) uniform _Constants
 {
     uvec2 srcResolution;
     uvec2 dstResolution;
+    float radius;
+    uint _PADDING0;
+    uint _PADDING1;
+    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 1)) uniform texture2D srcTexture;

@@ -8,6 +8,10 @@ layout (BINDING(0, 0), std140) uniform _Constants
 {
     uvec2 srcResolution;
     uvec2 dstResolution;
+    float radius;
+    uint _PADDING0;
+    uint _PADDING1;
+    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 1)) uniform texture2D srcTexture;
@@ -22,9 +26,8 @@ void main()
 
     vec2 texCoord = vec2(pixel) / vec2(constants.dstResolution);
 
-    float radius = 3.0;
-    float x = radius / constants.srcResolution.x;
-    float y = radius / constants.srcResolution.y;
+    float x = constants.radius / constants.srcResolution.x;
+    float y = constants.radius / constants.srcResolution.y;
 
     vec3 a = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x - x, texCoord.y + y)).rgb;
     vec3 b = texture(sampler2D(srcTexture, clampSampler), vec2(texCoord.x,     texCoord.y + y)).rgb;

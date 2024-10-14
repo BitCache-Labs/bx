@@ -13,6 +13,10 @@ namespace BloomPipelines
         u32 srcHeight;
         u32 dstWidth;
         u32 dstHeight;
+        f32 radius;
+        u32 _PADDING0;
+        u32 _PADDING1;
+        u32 _PADDING2;
     };
 
     struct ResolveConstants
@@ -235,6 +239,7 @@ void BloomPass::Dispatch(const Camera& camera, TextureHandle colorTarget)
         BloomConstants constants{};
         constants.srcWidth = mipWidthInt;
         constants.srcHeight = mipHeightInt;
+        constants.radius = radius;
 
         mipWidth *= 2.0;
         mipHeight *= 2.0;
