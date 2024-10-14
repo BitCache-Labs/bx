@@ -1,20 +1,13 @@
 #pragma once
 
-#include "bx/editor/view.hpp"
+#include <bx/bx.hpp>
 
-class Toolbar final : public View
+class BX_API Toolbar
 {
 public:
-	//static void AddView(View* view);
+	static bool Initialize();
+	static void Reload();
+	static void Shutdown();
 
-	bool Initialize() override;
-	void Shutdown() override;
-
-	void OnReload() override;
-	void OnPresent() override;
-
-	//void Reset();
-	//bool IsPlaying();
-	//bool IsPaused();
-	//bool ConsumeNextFrame();
+	static void Present();
 };

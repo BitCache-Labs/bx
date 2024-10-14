@@ -1,39 +1,64 @@
 #include "bx/engine/plugin.hpp"
 
-#include "bx/core/byte_types.hpp"
-#include "bx/containers/list.hpp"
+#include <bx/core/module.hpp>
+#include <bx/core/macros.hpp>
+#include <bx/containers/list.hpp>
 
-static List<Plugin> g_plugins;
+#include <iostream>
+#include <rttr/type>
+#include <rttr/registration>
 
-void PluginManager::RegisterPlugin(const Plugin& plugin)
+RTTR_PLUGIN_REGISTRATION
 {
-	g_plugins.emplace_back(plugin);
+    rttr::registration::class_<Plugin>("Plugin")
+    .method("Initialize", &Plugin::Initialize)
+    .method("Reload", &Plugin::Reload)
+    .method("Shutdown", &Plugin::Shutdown);
 }
+
+static List<std::shared_ptr<Plugin>> s_plugins;
 
 bool PluginManager::Initialize()
 {
-	for (SizeType i = 0; i < g_plugins.size(); ++i)
-	{
-		const auto& plugin = g_plugins[i];
-		if (!plugin.Initialize())
-			return false;
-	}
-	return true;
-}
+    if (!Module::Load("[root]/libs"))
+    {
+        BX_LOGE("Failed to load plugin libs!");
+        return false;
+    }
 
-void PluginManager::Shutdown()
-{
-	for (SizeType i = g_plugins.size(); i-- > 0;)
-	{
-		const auto& plugin = g_plugins[i];
-		plugin.Shutdown();
-	}
+    const auto& derived = rttr::type::get<Plugin>().get_derived_classes();
+    for (const auto& type : derived)
+    {
+        rttr::variant var = type.create();
+        auto instance = var.get_value<std::shared_ptr<Plugin>>();
+
+        s_plugins.emplace_back(instance);
+    }
+
+    for (const auto& plugin : s_plugins)
+    {
+        if (!plugin->Initialize())
+        {
+            BX_LOGE("One or more plugins failed to initialize!");
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void PluginManager::Reload()
 {
-	for (const auto& plugin : g_plugins)
-	{
-		plugin.Reload();
-	}
+    for (const auto& plugin : s_plugins)
+    {
+        plugin->Reload();
+    }
+}
+
+void PluginManager::Shutdown()
+{
+    for (const auto& plugin : s_plugins)
+    {
+        plugin->Shutdown();
+    }
 }

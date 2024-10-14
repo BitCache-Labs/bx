@@ -25,7 +25,7 @@ void ProfilerView::Shutdown()
     //Data::SetBool("Toolbar Show Profiler", isShown, DataTarget::EDITOR);
 }
 
-void ProfilerView::OnReload()
+void ProfilerView::Reload()
 {
 }
 
@@ -39,7 +39,7 @@ void ProfilerView::OnReload()
 //    //Tooltip("Profiler");
 //}
 
-void ProfilerView::OnPresent()
+void ProfilerView::Present()
 {
     //Old icon: ICON_FA_CHART_PIE
 

@@ -2,7 +2,7 @@
 
 #include <bx/bx.hpp>
 
-struct AppConfig
+struct BX_API AppConfig
 {
 	AppConfig(int argc, char** argv)
 		: argc(argc)

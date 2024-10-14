@@ -12,6 +12,7 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 option (BX_BUILD_EDITOR "Build as editor binaries" ON)
 option (BX_INSTALL "Install binaries" OFF)
 option (BX_BUILD_TESTS "Build the test binaries" ON)
+option (BX_BUILD_DEMO "Build the demo game" ON)
 
 # Setup bx library
 set (BX_SRCS
@@ -58,7 +59,7 @@ else ()
 	set (PROJECT_PATH_DIR "${CMAKE_BINARY_DIR}")
 endif ()
 
-target_compile_definitions(bx PUBLIC BX_PROJECT_PATH="${PROJECT_PATH_DIR}")
+#target_compile_definitions(bx PUBLIC BX_PROJECT_PATH="${PROJECT_PATH_DIR}")
 target_compile_definitions(bx PRIVATE BX_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
 
 # TODO: Use Platform.hpp for the future
@@ -95,19 +96,18 @@ if (BX_BUILD_EDITOR)
     target_sources(bx PRIVATE
 		"src/bx/editor/command.cpp"
 		"src/bx/editor/selection.cpp"
+		"src/bx/editor/toolbar.cpp"
 		"src/bx/editor/view.cpp"
 		
-		"src/bx/editor/assets.cpp"
-		"src/bx/editor/asset_importer.cpp"
-		"src/bx/editor/toolbar.cpp"
-	
-		#"src/bx/editor/views/assets_view.cpp"
+		"src/bx/editor/views/assets_view.cpp"
 		#"src/bx/editor/views/console_view.cpp"
 		#"src/bx/editor/views/data_view.cpp"
 		#"src/bx/editor/views/entity_view.cpp"
 		"src/bx/editor/views/profiler_view.cpp"
 		#"src/bx/editor/views/script_view.cpp"
 		#"src/bx/editor/views/settings_view.cpp"
+
+		"src/bx/editor/build/compiler.cpp"
 	)
     target_link_libraries(bx PUBLIC implot IconFontCppHeaders FontAwesome FreeFonts)
 
@@ -159,3 +159,8 @@ if (BX_INSTALL)
 		endif ()
 	endif ()
 endif ()
+
+if (BX_BUILD_DEMO)
+	add_subdirectory(demo)
+	target_compile_definitions (bx-editor PUBLIC PROJECT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/demo")
+endif()

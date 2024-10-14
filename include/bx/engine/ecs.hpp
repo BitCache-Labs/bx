@@ -3,6 +3,7 @@
 // TODO: Review this ECS implementation, it's basic but it worked in previous versions.
 // However, it's old and needs a lot of improvements, especially on the memory management side.
 
+#include <bx/bx.hpp>
 #include "bx/core/uuid.hpp"
 #include "bx/core/macros.hpp"
 #include "bx/core/event.hpp"
@@ -15,6 +16,8 @@
 #include "bx/containers/list.hpp"
 #include "bx/containers/hash_map.hpp"
 #include "bx/containers/pool.hpp"
+
+#include <rttr/rttr_enable.h>
 
 #include <bitset>
 #include <functional>
@@ -45,7 +48,7 @@ using ComponentMask = std::bitset<ECS_MAX_COMPONENTS>;
 /// <summary>
 /// Event struct for when an entity is created.
 /// </summary>
-struct EntityCreated
+struct BX_API EntityCreated
 {
     EntityCreated(const Entity& e)
         : entity(e)
@@ -57,7 +60,7 @@ struct EntityCreated
 /// <summary>
 /// Event struct for when an entity is destroyed.
 /// </summary>
-struct EntityDestroyed
+struct BX_API EntityDestroyed
 {
     EntityDestroyed(const Entity& e)
         : entity(e)
@@ -69,7 +72,7 @@ struct EntityDestroyed
 /// <summary>
 /// Event struct for when any component is added to an entity.
 /// </summary>
-struct AnyComponentAdded
+struct BX_API AnyComponentAdded
 {
     AnyComponentAdded(const Entity& e, const ComponentMask& cmpMask)
         : entity(e)
@@ -83,7 +86,7 @@ struct AnyComponentAdded
 /// <summary>
 /// Event struct for when any component is removed from an entity.
 /// </summary>
-struct AnyComponentRemoved
+struct BX_API AnyComponentRemoved
 {
     AnyComponentRemoved(const Entity& e, const ComponentMask& cmpMask)
         : entity(e)
@@ -99,7 +102,7 @@ struct AnyComponentRemoved
 /// </summary>
 /// <typeparam name="TCmp">Component type.</typeparam>
 template <typename TCmp>
-struct ComponentAdded
+struct BX_API ComponentAdded
 {
     ComponentAdded(const Entity& e, const TCmp& c)
         : entity(e)
@@ -115,7 +118,7 @@ struct ComponentAdded
 /// </summary>
 /// <typeparam name="TCmp">Component type.</typeparam>
 template <typename TCmp>
-struct ComponentRemoved
+struct BX_API ComponentRemoved
 {
     ComponentRemoved(const Entity& e, const TCmp& c)
         : entity(e)
@@ -129,7 +132,7 @@ struct ComponentRemoved
 /// <summary>
 /// The entity struct is a fancy wrapper for an ID.
 /// </summary>
-class Entity
+class BX_API Entity
 {
 public:
     Entity() : m_id(INVALID_ENTITY_ID) {}
@@ -228,8 +231,10 @@ private:
     EntityId m_id = INVALID_ENTITY_ID;
 };
 
-class ComponentBase
+class BX_API ComponentBase
 {
+    RTTR_ENABLE()
+
 public:
     virtual ~ComponentBase() = 0;
 
@@ -258,7 +263,7 @@ private:
 };
 
 template <typename TCmp>
-class Component : public ComponentBase
+class BX_API Component : public ComponentBase
 {
 public:
     inline void Copy(const ComponentBase& cmp)
@@ -323,7 +328,7 @@ public:
 //    ComponentBase* GetCmpBasePtr(const Entity& entity) const override { return Get(); }
 //};
 
-class IComponentId
+class BX_API IComponentId
 {
 public:
     static EntityId NextId()
@@ -334,7 +339,7 @@ public:
 };
 
 template <typename TCmp>
-class ComponentId : public IComponentId
+class BX_API ComponentId : public IComponentId
 {
 public:
     static const ComponentMask& Mask()
@@ -347,7 +352,7 @@ public:
     }
 };
 
-struct ComponentHandle
+struct BX_API ComponentHandle
 {
     bool operator ==(const ComponentHandle& rhs) const { return mask == rhs.mask && idx == rhs.idx; }
     bool operator !=(const ComponentHandle& rhs) const { return mask != rhs.mask && idx != rhs.idx; }
@@ -377,7 +382,7 @@ static bool HasMask(const ComponentMask& a, const ComponentMask& b)
 /// <summary>
 /// Entity manager handles all entity registries and memory allocations of components.
 /// </summary>
-class EntityManager : NoCopy
+class BX_API EntityManager : NoCopy
 {
 public:
     static void Initialize()
@@ -925,8 +930,10 @@ inline std::vector<ComponentBase*> Entity::GetComponents() const
     return EntityManager::GetComponents(*this);
 }
 
-class System
+class BX_API SystemBase
 {
+    RTTR_ENABLE()
+
 private:
     friend class SystemManager;
 
@@ -937,7 +944,15 @@ private:
     virtual void Render() = 0;
 };
 
-class SystemManager : NoCopy
+template <typename TSys>
+class BX_API System : public SystemBase
+{
+    RTTR_ENABLE(SystemBase)
+
+public:
+};
+
+class BX_API SystemManager : NoCopy
 {
 public:
     static void Initialize()
@@ -1005,15 +1020,15 @@ public:
     }
     
 private:
-    static List<System*>& GetSystems()
+    static List<SystemBase*>& GetSystems()
     {
-        static List<System*> s_systems;
+        static List<SystemBase*> s_systems;
         return s_systems;
     }
 
-    static HashMap<SizeType, System*>& GetSystemsMap()
+    static HashMap<SizeType, SystemBase*>& GetSystemsMap()
     {
-        static HashMap<SizeType, System*> s_systemsMap;
+        static HashMap<SizeType, SystemBase*> s_systemsMap;
         return s_systemsMap;
     }
 };

@@ -4,7 +4,7 @@
 
 Input& Input::Get()
 {
-	return Module::Get<Input>();
+	return Module::GetFirstDerived<Input>();
 }
 
 /*

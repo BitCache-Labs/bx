@@ -1,25 +1,24 @@
 #pragma once
 
-struct Plugin
-{
-	using InitializeFn = bool(*)();
-	using ShutdownFn = void(*)();
-	using ReloadFn = void(*)();
+#include <bx/bx.hpp>
+#include <rttr/rttr_enable.h>
 
-	InitializeFn Initialize = nullptr;
-	ShutdownFn Shutdown = nullptr;
-	ReloadFn Reload = nullptr;
+class BX_API Plugin
+{
+	RTTR_ENABLE()
+
+public:
+	virtual ~Plugin() = default;
+
+	virtual bool Initialize() = 0;
+	virtual void Reload() = 0;
+	virtual void Shutdown() = 0;
 };
 
-class PluginManager
+class BX_API PluginManager
 {
 public:
-	static void RegisterPlugin(const Plugin& plugin);
-
-private:
-	friend class Application;
-
 	static bool Initialize();
-	static void Shutdown();
 	static void Reload();
+	static void Shutdown();
 };

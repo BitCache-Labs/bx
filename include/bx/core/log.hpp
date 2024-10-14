@@ -11,6 +11,11 @@
 // Favour const char* with containers/allocators in the impl cpp
 // Otherwise, one option is the Macros.hpp will have to be more utility than currently and separate assert
 
+namespace LogChannel
+{
+	static constexpr const char* Graphics = "";
+}
+
 enum struct LogLevel { LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR };
 
 struct BX_API LogEntry

@@ -18,6 +18,7 @@ struct FileHandle
 {
 	String filepath;
 	String filename;
+	String extension;
 	bool isDirectory = false;
 };
 
@@ -26,7 +27,7 @@ using FindEachCallback = std::function<void(const String& path, const String& na
 class File
 {
 public:
-	static void Initialize();
+	static void Initialize(const String& projectPath);
 
 	static void AddWildcard(const String& wildcard, const String& value);
 

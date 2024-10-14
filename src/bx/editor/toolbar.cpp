@@ -1,49 +1,24 @@
-#include "bx/editor/toolbar.hpp"
+#include <bx/editor/toolbar.hpp>
 
-#include "bx/engine/data.hpp"
-#include "bx/engine/script.hpp"
-
-#include <bx/engine/application.hpp>
 #include <bx/core/time.hpp>
 #include <bx/core/version.hpp>
 #include <bx/platform/window.hpp>
+#include <bx/engine/application.hpp>
+
+#include <bx/editor/views/assets_view.hpp>
+#include <bx/editor/views/profiler_view.hpp>
+//#include <bx/editor/views/data_view.hpp>
+//#include <bx/editor/views/settings_view.hpp>
+//#include <bx/editor/views/console_view.hpp>
+
+#include <bx/engine/imgui.hpp>
+#include <implot.h>
+#include <IconsFontAwesome5.h>
 
 #include <cstdlib>
 
-bool Toolbar::Initialize()
-{
-	return true;
-}
-
-void Toolbar::Shutdown()
-{
-}
-
-void Toolbar::OnReload()
-{
-}
-
-void Toolbar::OnPresent()
-{
-}
-
-#ifdef OLD_TOOLBAR
-static bool playing = false;
-static bool paused = false;
-static float ui_scale = 1.0f;
-
-//static bool show_gameobjects = true;
-//static bool show_scene = true;
-//static bool show_inspector = true;
-//static bool show_assets = true;
-//static bool show_console = true;
-//static bool show_data = false;
-//static bool show_profiler = false;
-//static bool show_settings = false;
-
-static float ok_timer = 0.0f;
-static bool theme = false;
-static bool next_frame = false;
+static AssetsView g_assetsView;
+static ProfilerView g_profilerView;
 
 static void StyleLight();
 static void StyleDark();
@@ -58,128 +33,99 @@ static void Tooltip(const char* tooltip)
 	}
 }
 
+static bool theme = false;
 static void SelectTheme()
 {
 	if (theme) StyleLight();
 	else StyleDark();
 }
 
-void Toolbar::Reset()
+bool Toolbar::Initialize()
 {
-	playing = false;
-	paused = false;
-	next_frame = false;
+	ImPlot::CreateContext();
 
-	if (!Script::HasError())
-		ok_timer = 4.0f;
-}
+	ImGuiIO& io = ImGui::GetIO();
 
-bool Toolbar::IsPlaying()
-{
-	return playing;
-}
+	const float uiScale = 1.0f;
+	const float fontSize = 14.0f;
+	const float iconSize = 12.0f;
 
-bool Toolbar::IsPaused()
-{
-	return paused;
-}
+	ImFontConfig config;
+	config.OversampleH = 8;
+	config.OversampleV = 8;
+	io.Fonts->AddFontFromFileTTF(FREE_FONTS_DROID_SANS, fontSize * uiScale, &config);
 
-bool Toolbar::ConsumeNextFrame()
-{
-	if (next_frame)
-	{
-		next_frame = false;
-		return true;
-	}
-	return false;
-}
-
-void Toolbar::Initialize()
-{
-	ui_scale = Data::GetFloat("Toolbar UI Scale", 1.0f, DataTarget::EDITOR);
-
-	//show_gameobjects = Data::GetBool("Toolbar Show GameObjects", true, DataTarget::EDITOR);
-	//show_scene = Data::GetBool("Toolbar Show Scene", true, DataTarget::EDITOR);
-	//show_inspector = Data::GetBool("Toolbar Show Inspector", true, DataTarget::EDITOR);
-	//show_assets = Data::GetBool("Toolbar Show Assets", true, DataTarget::EDITOR);
-	//show_console = Data::GetBool("Toolbar Show Console", true, DataTarget::EDITOR);
-	//show_data = Data::GetBool("Toolbar Show Data", false, DataTarget::EDITOR);
-	//show_profiler = Data::GetBool("Toolbar Show Profiler", false, DataTarget::EDITOR);
-
-	theme = Data::GetBool("Toolbar Theme", false, DataTarget::EDITOR);
+	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 }; // will not be copied by AddFont* so keep in scope.
+	config.MergeMode = true;
+	config.OversampleH = 8;
+	config.OversampleV = 8;
+	io.Fonts->AddFontFromFileTTF(FONT_AWESOME_6_FREE_SOLID_900, iconSize * uiScale, &config, icons_ranges);
 
 	SelectTheme();
 
-	for (auto view : g_views)
-	{
-		if (!view->Initialize())
-		{
-			BX_LOGE("Failed to initialize view!");
-			//return false;
-		}
-	}
+	g_assetsView.Initialize();
+	g_profilerView.Initialize();
+
+	return true;
 }
 
 void Toolbar::Shutdown()
 {
+	g_profilerView.Shutdown();
+	g_assetsView.Shutdown();
+
 	ImPlot::DestroyContext();
+}
 
-	for (auto& view : g_views)
-	{
-		view->Shutdown();
-	}
+void Toolbar::Reload()
+{
+	g_profilerView.Reload();
+	g_assetsView.Reload();
 
-	Data::SetFloat("Toolbar UI Scale", ui_scale, DataTarget::EDITOR);
-
-	//Data::SetBool("Toolbar Show GameObjects", show_gameobjects, DataTarget::EDITOR);
-	//Data::SetBool("Toolbar Show Scene", show_scene, DataTarget::EDITOR);
-	//Data::SetBool("Toolbar Show Inspector", show_inspector, DataTarget::EDITOR);
-	//Data::SetBool("Toolbar Show Assets", show_assets, DataTarget::EDITOR);
-	//Data::SetBool("Toolbar Show Console", show_console, DataTarget::EDITOR);
-	//Data::SetBool("Toolbar Show Data", show_data, DataTarget::EDITOR);
-	//Data::SetBool("Toolbar Show Profiler", show_profiler, DataTarget::EDITOR);
-
-	Data::SetBool("Toolbar Theme", theme, DataTarget::EDITOR);
+	//if (!Script::HasError())
+	//	ok_timer = 4.0f;
 }
 
 void Toolbar::Present()
 {
-	PROFILE_FUNCTION();
+	//PROFILE_FUNCTION();
 
 	//ImGui::BeginDisabled(AssetsView::IsImporting());
 
 	//ImGui::ShowDemoWindow();
 
-	ok_timer -= Time::GetDeltaTime();
+	//ok_timer -= Time::GetDeltaTime();
 	ImVec2 topPanelSize;
 
 	//if (Script::HasError() || show_data || show_profiler || show_scene || show_entity || show_assets
 	//	|| (ImGui::IsMousePosValid() && ImGui::GetMousePos().y < 100.0f))
-	if ((!IsPlaying() || IsPaused()) || (IsPlaying() && ImGui::IsMousePosValid() && ImGui::GetMousePos().y < 100.0f))
+	if (true)
+		//(!IsPlaying() || IsPaused()) || (IsPlaying() &&
+		//ImGui::IsMousePosValid() && ImGui::GetMousePos().y < 100.0f)//)
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
 			topPanelSize = ImGui::GetWindowSize();
 
-			/*if (ImGui::BeginMenu("File"))
+			if (ImGui::BeginMenu("File"))
 			{
 				if (ImGui::MenuItem("New", "CTRL+N")) {}
 				if (ImGui::MenuItem("Open", "CTRL+O"))
 				{
-					const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
-
-					Runtime::Reload();
-					Scene::Load(scene);
+					//const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+					//
+					//Runtime::Reload();
+					//Scene::Load(scene);
 				}
 				if (ImGui::MenuItem("Save", "CTRL+S"))
 				{
-					const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
-					Scene::Save(scene);
+					//const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+					//Scene::Save(scene);
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Exit"))
 				{
-					Runtime::Close();
+					//Runtime::Close();
 				}
 
 				ImGui::EndMenu();
@@ -194,19 +140,17 @@ void Toolbar::Present()
 				if (ImGui::MenuItem("Paste", "CTRL+V")) {}
 
 				ImGui::EndMenu();
-			}*/
+			}
 			ImGui::EndMainMenuBar();
 		}
 		
-		bool true_that = true;
-
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowViewport(viewport->ID);
 		ImGui::SetNextWindowPos(ImVec2(0, topPanelSize.y));
 		ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, -1));
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::Begin("##ApplicationToolbar", &true_that,
+		ImGui::Begin("##ApplicationToolbar", NULL,
 			ImGuiWindowFlags_NoDecoration |
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoSavedSettings |
@@ -246,14 +190,8 @@ void Toolbar::Present()
 		ImGui::PopStyleColor();
 
 		ImGui::SameLine();
-		//ImGui::Separator();
+		ImGui::Separator();
 
-		for (auto view : g_views)
-		{
-			view->OnToolbar();
-		}
-
-		/*
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_BUG))
 		{
@@ -264,21 +202,22 @@ void Toolbar::Present()
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_CHART_PIE))
 		{
-			show_profiler = !show_profiler;
+			//show_profiler = !show_profiler;
+			g_profilerView.ToggleOpen();
 		}
 		Tooltip("Profiler");
 
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_DATABASE)) //ICON_FA_COG
 		{
-			show_data = !show_data;
+			//show_data = !show_data;
 		}
 		Tooltip("Data");
 
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_TERMINAL))
 		{
-			show_console = !show_console;
+			//show_console = !show_console;
 		}
 		Tooltip("Console");
 
@@ -288,31 +227,31 @@ void Toolbar::Present()
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_LIST))
 		{
-			show_scene = !show_scene;
+			//show_scene = !show_scene;
 		}
 		Tooltip("Scene");
 
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_EDIT))
 		{
-			show_inspector = !show_inspector;
+			//show_inspector = !show_inspector;
 		}
 		Tooltip("Inspector");
 
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_IMAGES))
 		{
-			show_assets = !show_assets;
+			//show_assets = !show_assets;
+			g_assetsView.ToggleOpen();
 		}
 		Tooltip("Assets");
 
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_ID_BADGE))
 		{
-			show_gameobjects = !show_gameobjects;
+			//show_gameobjects = !show_gameobjects;
 		}
 		Tooltip("GameObjects");
-		*/
 
 		ImGui::SameLine();
 		//ImGui::Separator();
@@ -320,18 +259,11 @@ void Toolbar::Present()
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_SYNC_ALT))
 		{
-			//const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
-
 			Application::Reload();
-			//Scene::Load(scene);
-
-			for (auto view : g_views)
-			{
-				view->OnReload();
-			}
 		}
 		Tooltip("Reload");
 
+		// TODO: Play controls (should be moved to a scene view)
 		/*ImGui::SameLine();
 		ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[playing ? ImGuiCol_ButtonHovered : ImGuiCol_Button]);
 		if (ImGui::Button(ICON_FA_PLAY))//playing ? ICON_FA_SQUARE : ICON_FA_PLAY))
@@ -394,31 +326,32 @@ void Toolbar::Present()
 		//ImGui::Separator();
 		*/
 
-		ImGui::SameLine();
-		if (ok_timer > 0.0f)
-		{
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.1f, 1.0f, 0.1f, 1.0f));
-			if (ImGui::Button(ICON_FA_CHECK_CIRCLE))
-				ok_timer = 0.0f;
-
-			ImGui::PopStyleColor(1);
-			Tooltip("Reload Complete");
-		}
-
-		ImGui::SameLine();
-		if (Script::HasError())
-		{
-			paused = true;
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.1f, 0.1f, 1.0f));
-			if (ImGui::Button(ICON_FA_TIMES_CIRCLE))
-			{
-				Script::ClearError();
-				paused = false;
-			}
-			Tooltip("Script Error! Check output.");
-			ImGui::PopStyleColor(1);
-		}
-
+		// TODO: Show compile status
+		//ImGui::SameLine();
+		//if (ok_timer > 0.0f)
+		//{
+		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.1f, 1.0f, 0.1f, 1.0f));
+		//	if (ImGui::Button(ICON_FA_CHECK_CIRCLE))
+		//		ok_timer = 0.0f;
+		//
+		//	ImGui::PopStyleColor(1);
+		//	Tooltip("Reload Complete");
+		//}
+		//
+		//ImGui::SameLine();
+		//if (Script::HasError())
+		//{
+		//	paused = true;
+		//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.1f, 0.1f, 1.0f));
+		//	if (ImGui::Button(ICON_FA_TIMES_CIRCLE))
+		//	{
+		//		Script::ClearError();
+		//		paused = false;
+		//	}
+		//	Tooltip("Script Error! Check output.");
+		//	ImGui::PopStyleColor(1);
+		//}
+		//
 		//if (xs::data::has_chages()) {
 		//	ImGui::SameLine();
 		//	ImGui::PushStyleColor(ImGuiCol_Text, 0xFFFF5FB9);
@@ -433,9 +366,9 @@ void Toolbar::Present()
 		ImGui::End();
 	}
 
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 
-	if (!IsPlaying() || IsPaused())
+	//if (!IsPlaying() || IsPaused())
 	{
 		// Setup Dockspace
 		ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -456,72 +389,64 @@ void Toolbar::Present()
 		ImGuiID dockspaceId = ImGui::GetID("##DockSpaceID");
 		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
-		//for (auto view : g_views)
+		//if (show_data)
 		//{
-		//	if (view->isShown)
-		//	{
-		//		view->OnGui();
-		//	}
+		//	DataView::Present(show_data);
 		//}
 
-		/*
-		if (show_data)
+		if (g_profilerView.IsOpen())
 		{
-			DataView::Present(show_data);
+			g_profilerView.Present();
 		}
 
-		if (show_profiler)
+		//if (show_inspector)
+		//{
+		//	InspectorView::Present(show_inspector);
+		//}
+
+		if (g_assetsView.IsOpen())
 		{
-			ProfilerView::Present(show_profiler);
+			g_assetsView.Present();
 		}
 
-		if (show_inspector)
-		{
-			InspectorView::Present(show_inspector);
-		}
+		//if (show_gameobjects)
+		//{
+		//	GameObjectView::Present(show_gameobjects);
+		//}
 
-		if (show_assets)
-		{
-			AssetsView::Present(show_assets);
-		}
-
-		if (show_gameobjects)
-		{
-			GameObjectView::Present(show_gameobjects);
-		}
-
-		if (show_console)
-		{
-			ConsoleView::Present(show_console);
-		}
+		//if (show_console)
+		//{
+		//	ConsoleView::Present(show_console);
+		//}
 
 		//if (show_settings)
 		//{
 		//	SettingsView::Inspect(show_settings);
 		//}
 
-		if (show_scene)
-		{
-			SceneView::Present(show_scene);
-		}
-		*/
+		//if (show_scene)
+		//{
+		//	SceneView::Present(show_scene);
+		//}
 
 		ImGui::End();
 	}
-	else
-	{
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
-		{
-			Window::SetCursorMode(CursorMode::DISABLED);
-		}
-		
-		if (ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_F1))
-		{
-			Window::SetCursorMode(CursorMode::NORMAL);
-		}
-	}
+	//else
+	//{
+	//	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
+	//	{
+	//		Window::SetCursorMode(CursorMode::DISABLED);
+	//	}
+	//	
+	//	if (ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_F1))
+	//	{
+	//		Window::SetCursorMode(CursorMode::NORMAL);
+	//	}
+	//}
 
 	//ImGui::EndDisabled();
+
+	g_assetsView.Refresh();
 }
 
 static void StyleLight()
@@ -858,4 +783,3 @@ static ImGuiStyle PhotoshopStyle()
 
 	return style;
 }
-#endif

@@ -1,28 +1,28 @@
 #pragma once
 
-#include "bx/editor/selection.hpp"
-#include "bx/editor/command.hpp"
+#include <bx/bx.hpp>
+#include <bx/editor/selection.hpp>
+#include <bx/editor/command.hpp>
 
-using MenuBarCallbackFn = void(*)();
+#include <rttr/rttr_enable.h>
 
-class View
+class BX_API View
 {
+	RTTR_ENABLE()
+
 public:
 	virtual ~View() {}
 
 	virtual bool Initialize() = 0;
+	virtual void Reload() = 0;
 	virtual void Shutdown() = 0;
 
-	virtual void OnReload() = 0;
-	virtual void OnPresent() = 0;
-};
+	virtual void Present() = 0;
 
-class ViewManager
-{
-public:
-	static void AddMenuBarCallback(const MenuBarCallbackFn& callback);
-	static void AddView(View* view);
+	inline bool IsOpen() const { return m_open; }
+	inline void ToggleOpen() { m_open = !m_open; }
 
-	static void Reload();
-	static void Present();
+protected:
+	Selection m_selection;
+	bool m_open = false;
 };

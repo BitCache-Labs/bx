@@ -1,8 +1,9 @@
 #pragma once
 
-#include "bx/core/guard.hpp"
-#include "bx/core/macros.hpp"
-#include "bx/meta/type.hpp"
+#include <bx/bx.hpp>
+#include <bx/core/guard.hpp>
+#include <bx/core/macros.hpp>
+#include <bx/meta/type.hpp>
 
 #include <utility>
 
@@ -42,7 +43,7 @@ constexpr ObjectHandle INVALID_OBJECT_HANDLE = 0;
 template <typename T>
 class Object;
 
-class ObjectRef
+class BX_API ObjectRef
 {
 public:
 	static ObjectRef Invalid() { return ObjectRef(); }
@@ -133,7 +134,7 @@ private:
 };
 
 template <typename T>
-class Object : public ObjectRef
+class BX_API Object : public ObjectRef
 {
 public:
 	template <typename... Args>

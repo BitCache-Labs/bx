@@ -1,66 +1,33 @@
 #include <bx/core/module.hpp>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <dirent.h>
-#include <sys/stat.h>
-#endif
+#include <bx/core/file.hpp>
+#include <bx/core/macros.hpp>
 
-std::vector<std::string> Module::list_library_names(const std::string& directory)
+#include <stdexcept>
+
+bool Module::Load(const String& directory)
 {
-    std::vector<std::string> libraryNames;
-
-#ifdef _WIN32
-    WIN32_FIND_DATA findFileData;
-    HANDLE hFind = FindFirstFile((directory + "\\*").c_str(), &findFileData);
-
-    if (hFind == INVALID_HANDLE_VALUE)
+    List<FileHandle> files;
+    if (!File::ListFiles(directory, files))
     {
-        throw std::runtime_error("Failed to open directory: " + directory);
+        throw std::runtime_error("Failed to list files!");
     }
 
-    do
+    for (auto file : files)
     {
-        std::string filename = findFileData.cFileName;
-        if (!(findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        auto extPos = file.filepath.find(".dll");
+        if (extPos != std::string::npos)
         {
-            if (filename.find(".dll") != std::string::npos)
+            auto path = File::GetPath(file.filepath.substr(0, extPos));
+            rttr::library lib(path);
+            if (lib.load())
             {
-                libraryNames.push_back(directory + "\\" + filename.substr(0, filename.find(".dll")));
+                BX_LOGD("Successfully loaded library: {}", path);
+            }
+            else
+            {
+                BX_LOGE("Failed to load library: {} - {}", path, lib.get_error_string().data());
             }
         }
-    } while (FindNextFile(hFind, &findFileData) != 0);
-
-    FindClose(hFind);
-#else
-    DIR* dir;
-    struct dirent* entry;
-    struct stat info;
-
-    if ((dir = opendir(directory.c_str())) == nullptr)
-    {
-        throw std::runtime_error("Failed to open directory: " + directory);
     }
-
-    while ((entry = readdir(dir)) != nullptr)
-    {
-        std::string filename = entry->d_name;
-        std::string fullPath = directory + "/" + filename;
-
-        if (stat(fullPath.c_str(), &info) != 0 || S_ISDIR(info.st_mode))
-        {
-            continue;
-        }
-
-        if (filename.find(".so") != std::string::npos)
-        {
-            libraryNames.push_back(directory + "/" + filename.substr(0, filename.find(".so")));
-        }
-    }
-
-    closedir(dir);
-#endif
-
-    return libraryNames;
 }

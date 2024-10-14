@@ -2,9 +2,11 @@
 
 #include <bx/core/module.hpp>
 
+#include <rttr/registration.h>
+
 Audio& Audio::Get()
 {
-    return Module::Get<Audio>();
+    return Module::GetFirstDerived<Audio>();
 }
 
 RTTR_PLUGIN_REGISTRATION

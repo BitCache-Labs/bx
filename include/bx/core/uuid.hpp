@@ -1,10 +1,11 @@
 #pragma once
 
-#include "bx/core/byte_types.hpp"
+#include <bx/bx.hpp>
+#include <bx/core/byte_types.hpp>
 
 using UUID = u64;
 
-class GenUUID
+class BX_API GenUUID
 {
 public:
 	static UUID MakeUUID();

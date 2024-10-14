@@ -9,7 +9,7 @@
 
 Window& Window::Get()
 {
-    return Module::Get<Window>();
+    return Module::GetFirstDerived<Window>();
 }
 
 RTTR_PLUGIN_REGISTRATION

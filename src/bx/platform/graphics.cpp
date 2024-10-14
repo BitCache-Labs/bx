@@ -15,7 +15,7 @@
 
 Graphics& Graphics::Get()
 {
-    return Module::Get<Graphics>();
+    return Module::GetFirstDerived<Graphics>();
 }
 
 RTTR_PLUGIN_REGISTRATION
