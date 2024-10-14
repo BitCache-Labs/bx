@@ -29,6 +29,8 @@ layout (BINDING(0, 4), std430) readonly buffer _Intersections
 
 layout (BINDING(0, 5)) uniform sampler linearRepeatSampler;
 
+layout (BINDING(0, 6), r32f) uniform image2D throughputs;
+
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
 {
@@ -38,8 +40,7 @@ void main()
 
     Intersection intersection = intersections[id];
 
-    // TODO: write in intersect.comp for mirrors, load here
-    vec3 throughput = vec3(1.0);
+    vec3 throughput = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(throughputs, pixel).r)));
 
     vec3 ambientContribution = vec3(0.0);
     vec3 emissiveContribution = vec3(0.0);
@@ -79,9 +80,10 @@ void main()
 
         vec2 uv = vec2(pixel) / vec2(constants.resolution);
         lightingContribution = texture(sampler2D(denoisedIllumination, linearRepeatSampler), uv).rgb;
+        lightingContribution *= throughput * baseColorFactor;
     }
 
-    vec3 resolved = lightingContribution * baseColorFactor + ambientContribution + emissiveContribution;
+    vec3 resolved = lightingContribution + ambientContribution + emissiveContribution;
     imageStore(outImage, pixel, vec4(resolved, 1.0));
 
     vec4 packedAmbientEmissiveBaseColor = vec4(

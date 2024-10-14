@@ -34,7 +34,6 @@ layout(BINDING(0, 4)) uniform accelerationStructureEXT Scene;
 
 layout (BINDING(0, 5), rgba32f) uniform image2D neGbuffer;
 layout (BINDING(0, 6), rgba32f) uniform image2D outIllumination;
-layout (BINDING(0, 7), rgba32f) uniform image2D outAmbientEmissiveBaseColor;
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
@@ -69,15 +68,7 @@ void main()
         }
     }
 
-    // TODO: write in intersect.comp for mirrors, load here
-    vec3 throughput = vec3(1.0);
-
     vec3 lightingContribution = vec3(0.0);
-    //vec3 ambientContribution = vec3(0.0);
-    //vec3 emissiveContribution = vec3(0.0);
-    //vec3 baseColorFactor = vec3(0.0);
-
-    //vec3 ambientFactor = 0.4 * vec3(0.15, 0.15, 0.17);
 
     if (intersection.t != T_MISS)
     {
@@ -114,11 +105,6 @@ void main()
         
         //SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
         //baseColorFactor = diffuseBsdfEval(material.baseColorFactor); // TODO: rename
-
-        //if (dot(material.emissiveFactor, material.emissiveFactor) > 0.01)
-        //{
-        //    emissiveContribution += throughput * material.emissiveFactor * 40.0;
-        //}
         
         if (ReservoirData_isValid(reservoirData))
         {
@@ -132,21 +118,11 @@ void main()
             }
 
             vec3 radiance = visibility * intensity * brdfContribution;
-            lightingContribution += throughput * radiance * reservoir.contributionWeight;
+            lightingContribution += radiance * reservoir.contributionWeight;
         }
-
-        //ambientContribution += throughput * baseColorFactor * ambientFactor;
     }
 
     imageStore(outIllumination, pixel, vec4(lightingContribution, 1.0));
-
-    //vec4 packedAmbientEmissiveBaseColor = vec4(
-    //    uintBitsToFloat(packRgb9e5(ambientContribution).data),
-    //    uintBitsToFloat(packRgb9e5(emissiveContribution).data),
-    //    uintBitsToFloat(packRgb9e5(baseColorFactor).data),
-    //    0.0
-    //);
-    //imageStore(outAmbientEmissiveBaseColor, pixel, packedAmbientEmissiveBaseColor);
 
     //vec3 old = imageLoad(outImage, pixel).rgb;
     //float portion = 1.0 / (0 + 1); // constants.sampleNumber

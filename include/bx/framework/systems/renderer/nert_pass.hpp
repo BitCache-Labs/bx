@@ -38,6 +38,7 @@ public:
 	NertPass(const NertCreateInfo& createInfo);
 	~NertPass();
 
+	TextureViewHandle GetThroughputTextureView() const;
 	TextureViewHandle GetNeGbufferTextureView() const;
 	TextureViewHandle GetAmbientEmissiveBaseColorTextureView() const;
 
@@ -75,6 +76,8 @@ private:
 	TextureViewHandle illuminationTextureView;
 	TextureHandle ambientEmissiveBaseColorTexture;
 	TextureViewHandle ambientEmissiveBaseColorTextureView;
+	TextureHandle throughputTexture;
+	TextureViewHandle throughputTextureView;
 
 	BufferHandle raysBuffer;
 	BufferHandle identityPixelMappingBuffer;

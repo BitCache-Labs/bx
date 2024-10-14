@@ -35,6 +35,8 @@ layout (BINDING(0, 4), std430) writeonly buffer _SamplePixelMapping
     uint samplePixelMapping[];
 };
 
+layout (BINDING(0, 5), r32f) uniform image2D throughputs;
+
 layout(BINDING(0, 6)) uniform accelerationStructureEXT Scene;
 
 layout (BINDING(0, 7), rgba32f) uniform image2D gbuffer;
@@ -52,6 +54,7 @@ void main()
     vec3 finalHitPos;
     float totalDepth = 0.0;
     vec3 finalNormal = vec3(0.0);
+    vec3 throughput = vec3(1.0);
     bool hitMirror = false;
     Intersection intersection;
 
@@ -92,11 +95,17 @@ void main()
                 vec3 normal0 = unpackNormalizedXyz10(vertex0.normal, 0);
                 vec3 normal1 = unpackNormalizedXyz10(vertex1.normal, 0);
                 vec3 normal2 = unpackNormalizedXyz10(vertex2.normal, 0);
+                vec2 texCoord0 = unpackHalf2x16(vertex0.texCoord);
+                vec2 texCoord1 = unpackHalf2x16(vertex1.texCoord);
+                vec2 texCoord2 = unpackHalf2x16(vertex2.texCoord);
 
                 vec3 barycentrics = barycentricsFromUv(intersection.uv);
                 normal = normalize(normal0 * barycentrics.x
                     + normal1 * barycentrics.y
                     + normal2 * barycentrics.z);
+                vec2 texCoord = texCoord0 * barycentrics.x
+                    + texCoord1 * barycentrics.y
+                    + texCoord2 * barycentrics.z;
 
                 // Correct normal for transform and backface hits
                 mat4 invTransTransform = blasInstance.invTransTransform;
@@ -106,6 +115,9 @@ void main()
                 {
                     normal = -normal;
                 }
+
+                SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
+                throughput *= material.baseColorFactor;
             }
 
             if (isMirror)
@@ -146,4 +158,5 @@ void main()
 
     intersections[id] = intersection;
     rays[id] = packRay(ray);
+    imageStore(throughputs, pixel, vec4(uintBitsToFloat(packRgb9e5(throughput).data)));
 }

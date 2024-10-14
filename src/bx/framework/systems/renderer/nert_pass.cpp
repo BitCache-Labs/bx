@@ -102,6 +102,7 @@ struct IntersectPipeline : public LazyInit<IntersectPipeline, ComputePipelineHan
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),                                                    // sampleCount
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),                                                    // intersections
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(false)),                                                    // samplePixelMapping
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::R32_FLOAT)),    // throughputs
                 BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),                                                 // scene
                 BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)), // gbuffer
                 BindGroupLayoutEntry(8, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)), // neGbuffer
@@ -171,6 +172,7 @@ struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),        // outImage
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                             // intersections
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),                                                                       // linearRepeatSampler
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::R32_FLOAT)),            // throughputs
             }),
             MaterialPool::GetBindGroupLayout(),
             BlasDataPool::GetBindGroupLayout(),
@@ -245,7 +247,6 @@ struct ShadePipeline : public LazyInit<ShadePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),                                                         // scene
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // neGbuffer
                 BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // outIllumination
-                BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // outAmbientEmissiveBaseColor
             }),
             MaterialPool::GetBindGroupLayout(),
             BlasDataPool::GetBindGroupLayout(),
@@ -314,6 +315,14 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
     ambientEmissiveBaseColorCreateInfo.size = Extend3D(width, height, 1);
     ambientEmissiveBaseColorTexture = Graphics::CreateTexture(ambientEmissiveBaseColorCreateInfo);
     ambientEmissiveBaseColorTextureView = Graphics::CreateTextureView(ambientEmissiveBaseColorTexture);
+
+    TextureCreateInfo throughputCreateInfo{};
+    throughputCreateInfo.name = "Nert Throughput Texture";
+    throughputCreateInfo.format = TextureFormat::R32_FLOAT;
+    throughputCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING;
+    throughputCreateInfo.size = Extend3D(width, height, 1);
+    throughputTexture = Graphics::CreateTexture(throughputCreateInfo);
+    throughputTextureView = Graphics::CreateTextureView(throughputTexture);
 
     List<u32> pixelMappingData(width * height);
     for (u32 i = 0; i < width * height; i++)
@@ -407,6 +416,8 @@ NertPass::~NertPass()
     Graphics::DestroyTexture(illuminationTexture);
     Graphics::DestroyTextureView(ambientEmissiveBaseColorTextureView);
     Graphics::DestroyTexture(ambientEmissiveBaseColorTexture);
+    Graphics::DestroyTextureView(throughputTextureView);
+    Graphics::DestroyTexture(throughputTexture);
 
     Graphics::DestroyBuffer(raysBuffer);
     Graphics::DestroyBuffer(identityPixelMappingBuffer);
@@ -420,6 +431,11 @@ NertPass::~NertPass()
     Graphics::DestroyBuffer(resolveConstantsBuffer);
     Graphics::DestroyBuffer(samplegenConstantsBuffer);
     Graphics::DestroyBuffer(shadeConstantsBuffer);
+}
+
+TextureViewHandle NertPass::GetThroughputTextureView() const
+{
+    return throughputTextureView;
 }
 
 TextureViewHandle NertPass::GetNeGbufferTextureView() const
@@ -486,6 +502,7 @@ BindGroupHandle NertPass::CreateIntersectBindGroup(const NertDispatchInfo& dispa
         BindGroupEntry(2, BindingResource::Buffer(sampleCountBuffer)),
         BindGroupEntry(3, BindingResource::Buffer(intersectionsBuffer)),
         BindGroupEntry(4, BindingResource::Buffer(samplePixelMappingBuffer)),
+        BindGroupEntry(5, BindingResource::TextureView(throughputTextureView)),
         BindGroupEntry(6, BindingResource::AccelerationStructure(createInfo.tlas)),
         BindGroupEntry(7, BindingResource::TextureView(dispatchInfo.gbuffer)),
         BindGroupEntry(8, BindingResource::TextureView(neGbufferView[frameIdx % 2 == 0])),
@@ -517,6 +534,7 @@ BindGroupHandle NertPass::CreateResolveBindGroup(const NertDispatchInfo& dispatc
         BindGroupEntry(3, BindingResource::TextureView(colorTargetView)),
         BindGroupEntry(4, BindingResource::Buffer(intersectionsBuffer)),
         BindGroupEntry(5, BindingResource::Sampler(linearRepeatSampler)),
+        BindGroupEntry(6, BindingResource::TextureView(throughputTextureView)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }
@@ -548,7 +566,6 @@ BindGroupHandle NertPass::CreateShadeBindGroup(const NertDispatchInfo& dispatchI
         BindGroupEntry(4, BindingResource::AccelerationStructure(createInfo.tlas)),
         BindGroupEntry(5, BindingResource::TextureView(neGbufferView[frameIdx % 2 == 0])),
         BindGroupEntry(6, BindingResource::TextureView(illuminationTextureView)),
-        BindGroupEntry(7, BindingResource::TextureView(ambientEmissiveBaseColorTextureView)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }

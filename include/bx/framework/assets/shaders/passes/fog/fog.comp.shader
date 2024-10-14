@@ -16,6 +16,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
 layout (BINDING(0, 1), rgba32f) uniform image2D image;
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 3), rgba32f) uniform image2D ambientEmissiveBaseColor;
+layout (BINDING(0, 4), r32f) uniform image2D throughputs;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {
@@ -40,6 +41,9 @@ void main()
     float fogIntensity = (adjustedFogEnd - normalAndDepth.w) / (adjustedFogEnd - constants.fogStart);
     fogIntensity = sqr(1.0 - saturate(fogIntensity));
     color = mix(color, constants.fogColor, fogIntensity);
+
+    vec3 throughput = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(throughputs, pixel).r)));
+    color *= throughput;
 
     imageStore(image, pixel, vec4(color, 1.0));
 }

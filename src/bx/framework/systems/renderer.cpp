@@ -273,7 +273,7 @@ void Renderer::Render()
             m_ssaoPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetNeGbufferTextureView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
         }
 
-        m_fogPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView());
+        m_fogPass->Dispatch(m_cameras.back(), m_colorTarget, m_gbufferPass->GetColorTargetView(), m_nertPass->GetAmbientEmissiveBaseColorTextureView(), m_nertPass->GetThroughputTextureView());
 
         if (fsr2)
         {

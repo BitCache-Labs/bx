@@ -12,7 +12,7 @@ public:
 	FogPass(u32 width, u32 height);
 	~FogPass();
 
-	void Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle ambientEmissiveBaseColorView);
+	void Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle ambientEmissiveBaseColorView, TextureViewHandle throughputView);
 
 	static void ClearPipelineCache();
 
