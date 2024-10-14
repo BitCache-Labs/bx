@@ -16,6 +16,9 @@ public:
 
 	static void ClearPipelineCache();
 
+	Vec3 fogColor = Vec3(0.1, 0.1, 0.1);
+	f32 emissiveBias = 0.1;
+
 private:
 	u32 width, height;
 

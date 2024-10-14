@@ -194,7 +194,7 @@ namespace Vk
 
     List<u32> SpirVCompiler::Compile(const String& name, EShLanguage stage, const String& src, const List<ShaderIncludeRange>& includeRanges)
     {
-#ifdef BX_DEBUG_BUILD
+#ifdef _DEBUG
         bool debug = true;
 #else
         bool debug = false;

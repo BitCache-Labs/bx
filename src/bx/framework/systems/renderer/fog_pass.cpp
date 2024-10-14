@@ -11,6 +11,8 @@ struct FogConstants
     u32 height;
     f32 fogStart;
     f32 fogEnd;
+    Vec3 fogColor;
+    f32 emissiveBias;
 };
 
 struct FogPipeline : public LazyInit<FogPipeline, ComputePipelineHandle>
@@ -68,6 +70,8 @@ void FogPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureV
     constants.height = height;
     constants.fogStart = 5.0;
     constants.fogEnd = 30.0;
+    constants.fogColor = fogColor;
+    constants.emissiveBias = emissiveBias;
     Graphics::WriteBuffer(constantBuffer, 0, &constants, sizeof(FogConstants));
 
     TextureViewHandle colorTargetView = Graphics::CreateTextureView(colorTarget);

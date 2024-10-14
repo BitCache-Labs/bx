@@ -9,6 +9,8 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uvec2 resolution;
     float fogStart;
     float fogEnd;
+    vec3 fogColor;
+    float emissiveBias;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D image;
@@ -34,10 +36,10 @@ void main()
     vec3 emissive = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(ambientEmissiveBaseColor, pixel).y)));
     float luma = linearToLuma(emissive);
 
-    float adjustedFogEnd = constants.fogEnd * ((luma * 0.1) + 1.0);
+    float adjustedFogEnd = constants.fogEnd + (constants.fogEnd * luma * constants.emissiveBias);
     float fogIntensity = (adjustedFogEnd - normalAndDepth.w) / (adjustedFogEnd - constants.fogStart);
     fogIntensity = sqr(1.0 - saturate(fogIntensity));
-    color = mix(color, vec3(0.1), fogIntensity);
+    color = mix(color, constants.fogColor, fogIntensity);
 
     imageStore(image, pixel, vec4(color, 1.0));
 }
