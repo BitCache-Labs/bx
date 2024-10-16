@@ -3,6 +3,7 @@
 #include "[engine]/shaders/packing.shader"
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/random.shader"
+#include "[engine]/shaders/color_helpers.shader"
 
 const float PHI_COLOR = 10.0;
 const float PHI_NORMAL = 128.0;
@@ -12,16 +13,16 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uvec2 globalResolution;
     uvec2 resolution;
     uint stepSize;
+    bool writeHistory;
     uint _PADDING0;
     uint _PADDING1;
-    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
 layout (BINDING(0, 2), rgba32f) uniform image2D gbuffer;
-layout (BINDING(0, 3), rgba32f) uniform image2D outImage;
-
-//layout (BINDING(0, 4)) uniform sampler linearClampSampler;
+layout (BINDING(0, 3), rgba32f) uniform image2D variance;
+layout (BINDING(0, 4), rgba32f) uniform image2D outImage;
+layout (BINDING(0, 5), rgba32f) uniform image2D outHistory;
 
 vec4 getPixelNormalAndDepth(ivec2 pixel)
 {
@@ -48,82 +49,50 @@ void main()
         return;
     }
 
-    vec3 sum = vec3(0.0);
-    vec3 cval = result;
-    vec3 nval = currentNormalAndDepth.xyz;
-    float cum_w = 0.0;
+    float centerVariance = imageLoad(variance, pixel).r;
 
+    vec3 sum = vec3(0.0);
+    float weightSum = 0.0;
+
+    vec3 centerColor = result;
+    vec3 centerNormal = currentNormalAndDepth.xyz;
+    float centerDepth = currentNormalAndDepth.w;
+    float centerLuminance = linearToLuma(centerColor);
+
+    float phiLuminance = PHI_COLOR * sqrt(max(centerVariance + 0.001, 0.0));
+    float phiDepth = max(centerDepth, 1e-6) * float(constants.stepSize);
+    
     #pragma unroll
     for (int x = -2; x <= 2; x++)
     {
         for (int y = -2; y <= 2; y++)
         {
-            //if (x == 0 && y == 0)
-            //{
-            //    continue;
-            //}
+            float samplePhiDepth = phiDepth * length(vec2(x, y));
 
             ivec2 samplePixel = pixel + ivec2(x, y) * int(constants.stepSize);
-            //vec2 sampleUv = pixelToUv(samplePixel);
             ivec2 globalSamplePixel = rescaleResolution(samplePixel, constants.resolution, constants.globalResolution);
-            //vec2 globalSampleUv = pixelToUv(globalSamplePixel);
-
+    
+            vec3 sampleColor = imageLoad(inImage, samplePixel).rgb;
+            float sampleLuminance = linearToLuma(sampleColor);
             vec4 sampleNormalAndDepth = getPixelNormalAndDepth(globalSamplePixel);
+            vec3 sampleNormal = sampleNormalAndDepth.xyz;
+            float sampleDepth = sampleNormalAndDepth.w;
+    
+            float normalWeight = normalSimilarity(centerNormal, sampleNormal, PHI_NORMAL);
+            float illuminanceDepthWeight = luminanceAndDepthSimilarity(centerLuminance, centerDepth, sampleLuminance, sampleDepth, phiLuminance, samplePhiDepth);
 
-            vec3 ctmp = imageLoad(inImage, samplePixel).rgb;
-            vec3 t = cval - ctmp;
-
-            float dist2 = dot(t, t);
-            float c_w = min(exp(-(dist2) / PHI_COLOR), 1.0);
-
-            t = nval - sampleNormalAndDepth.xyz;
-            dist2 = dot(t, t);
-            float n_w = min(exp(-(dist2) / PHI_NORMAL), 1.0);
-
-            float weight = c_w * n_w;
-            sum += ctmp * weight;
-            cum_w += weight;
+            float weight = normalWeight * illuminanceDepthWeight;
+            sum += sampleColor * weight;
+            weightSum += weight;
         }
     }
-    sum /= cum_w;
+    sum /= weightSum;
 
     imageStore(outImage, pixel, vec4(sum, 1.0));
 
-    //float animatedNoise = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + 1) * 0.5;
-    //
-    //#pragma unroll
-    //for (int x = -RADIUS; x <= RADIUS; x++)
-    //{
-    //    #pragma unroll
-    //    for (int y = -RADIUS; y <= RADIUS; y++)
-    //    {
-    //        if (x == 0 && y == 0)
-    //        {
-    //            continue;
-    //        }
-    //
-    //        ivec2 offset = ivec2(x, y);
-    //        uint flatOffset = offset.y * constants.resolution.x + offset.x;
-    //        ivec2 samplePixel = pixel + offset;
-    //        samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
-    //        ivec2 globalSamplePixel = rescaleResolution(samplePixel, constants.resolution, constants.globalResolution);
-    //        
-    //        uint sampleBlasInstance;
-    //        vec4 sampleNormalAndDepth = getPixelNormalAndDepth(globalSamplePixel, sampleBlasInstance);
-    //        
-    //        float weight;
-    //        if (sampleToCurrentSimilarity(currentNormalAndDepth, sampleNormalAndDepth, currentBlasInstance, sampleBlasInstance, weight))
-    //        {
-    //            float lod = (1.0 / (1.0 + frameCount)) * 2.0 + 1.0 + animatedNoise;
-    //
-    //            result += textureLod(sampler2D(inImage, linearClampSampler), vec2(samplePixel) / vec2(constants.resolution), lod).rgb * weight;
-    //            sampleCount += weight;
-    //        }
-    //    }
-    //}
-    //
-    //result /= sampleCount;
-    //
-    //imageStore(outImage, pixel, vec4(result, 1.0));
-    //imageStore(outHistory, pixel, vec4(fixNan(result), frameCount));
+    if (constants.writeHistory)
+    {
+        vec4 currentHistory = imageLoad(outHistory, pixel);
+        imageStore(outHistory, pixel, vec4(sum, currentHistory.w));
+    }
 }

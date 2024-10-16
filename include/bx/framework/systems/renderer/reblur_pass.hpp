@@ -38,8 +38,14 @@ private:
 
 	TextureHandle tmpIlluminationTexture;
 	TextureViewHandle tmpIlluminationTextureView;
+	TextureHandle historyTexture[2];
+	TextureViewHandle historyTextureView[2];
+	TextureHandle varianceTexture[2];
+	TextureViewHandle varianceTextureView[2];
 
+	BufferHandle temporalAccumConstantsBuffer;
 	BufferHandle aTrousConstantsBuffer;
 
+	BindGroupHandle CreateTemporalAccumBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
 	BindGroupHandle CreateATrousBindGroup(const ReblurDispatchInfo& dispatchInfo, bool pingPong) const;
 };

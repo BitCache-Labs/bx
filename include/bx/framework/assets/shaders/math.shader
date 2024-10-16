@@ -142,11 +142,31 @@ vec3 getPerpendicularVector(vec3 u)
 {
     vec3 a = abs(u);
     
-    uint xm = ((a.x - a.y) < 0 && (a.x - a.z) < 0) ? 1u : 0u;//select(0u, 1u, );
-    uint ym = (a.y - a.z) < 0 ? 1 ^ xm : 0u;//select(0u, 1 ^ xm, );
+    uint xm = ((a.x - a.y) < 0 && (a.x - a.z) < 0) ? 1u : 0u;
+    uint ym = (a.y - a.z) < 0 ? 1 ^ xm : 0u;
     uint zm = 1 ^ (xm | ym);
     
     return cross(u, vec3(float(xm), float(ym), float(zm)));
+}
+
+float normalSimilarity(vec3 normalA, vec3 normalB, float phi)
+{
+    return pow(max(dot(normalA, normalB), 0.0), phi);
+}
+
+float depthSimilarity(float depthA, float depthB, float phi)
+{
+    float depthNumerator = abs(depthA - depthB);
+    float depthDenominator = max(abs(depthA), 1e-8) * phi;
+    return exp(-(depthNumerator / depthDenominator));
+}
+
+float luminanceAndDepthSimilarity(float luminanceA, float depthA, float luminanceB, float depthB, float luminancePhi, float depthPhi)
+{
+    float depthWeight = (depthPhi == 0.0) ? 0.0 : (abs(depthA - depthB) / depthPhi);
+    float luminanceWeight = (luminancePhi == 0.0) ? 0.0 : (abs(luminanceA - luminanceB) / luminancePhi);
+
+    return exp(0.0 - max(luminanceWeight, 0.0) - max(depthWeight, 0.0));
 }
 
 #endif // MATH_H
