@@ -64,8 +64,9 @@ struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipel
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
-                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler())
             }),
             BlasDataPool::GetBindGroupLayout(),
             Sky::GetBindGroupLayout(),
@@ -301,6 +302,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
             BindGroupEntry(0, BindingResource::Buffer(spatialReuseConstantsBuffers[i])),
             BindGroupEntry(1, BindingResource::TextureView(gbufferView)),
             BindGroupEntry(2, BindingResource::AccelerationStructure(tlas)),
+            BindGroupEntry(3, BindingResource::Sampler(nearestClampSampler)),
         };
         BindGroupHandle spatialReuseBindGroup = Graphics::CreateBindGroup(spatialReuseBindGroupCreateInfo);
         BindGroupHandle spatialBlasDataPoolGroup = blasDataPool.CreateBindGroup(SpatialReusePipeline::Get());

@@ -17,6 +17,8 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
+const float MAX_SAMPLE_COUNT = 32.0;
+
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     mat4 invView;
@@ -117,7 +119,6 @@ void main()
                 ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
                 Reservoir sampledReservoir = Reservoir_fromPacked(restirReservoirsHistory[prevId]);
 
-                float MAX_SAMPLE_COUNT = 32.0;
                 if (sampledReservoir.sampleCount > MAX_SAMPLE_COUNT * reservoir.sampleCount)
                 {
                     sampledReservoir.weightSum *= MAX_SAMPLE_COUNT * reservoir.sampleCount / sampledReservoir.sampleCount;
