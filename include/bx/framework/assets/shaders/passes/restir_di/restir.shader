@@ -5,7 +5,7 @@
 #include "[engine]/shaders/packing.shader"
 
 const float RESERVOIR_M_CLAMP = 16.0;
-const float RESERVOIR_CONTRIBUTION_CLAMP = 1024.0;
+const float RESERVOIR_CONTRIBUTION_CLAMP = 64.0;//1024.0 / 4.0;
 
 struct ReservoirData
 {

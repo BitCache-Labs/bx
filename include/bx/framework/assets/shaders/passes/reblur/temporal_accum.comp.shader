@@ -110,18 +110,11 @@ void main()
     vec2 momentsHistory = imageLoad(variance, prevPixel).gb;
 
     vec2 moments;
-    moments.x = linearToLuma(current); // TODO: or use result?
+    moments.x = linearToLuma(current);
     moments.y = sqr(moments.x);
     moments = mix(momentsHistory, moments, alpha);
 
     float newVariance = max(moments.y - sqr(moments.x), 0.0);
-
-    //result.r = newVariance;// = vec3(newVariance);
-
-    //if (disoccluded)
-    //{
-    //    result = vec3(1.0, 0.0, 1.0);
-    //}
 
     imageStore(outImage, pixel, vec4(result, 1.0));
     imageStore(outHistory, pixel, history);

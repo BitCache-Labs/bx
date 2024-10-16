@@ -672,19 +672,19 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
 
     if (denoise)
     {
-        taaPass->historyWeight = 0.9;
-        taaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
-
         reblurPass->seed = seed;
         reblurPass->antiFirefly = antiFirefly;
         
         ReblurDispatchInfo reblurDispatchInfo;
-        reblurDispatchInfo.unresolvedIllumination = taaPass->GetResolvedColorTarget();
+        reblurDispatchInfo.unresolvedIllumination = illuminationTexture;// taaPass->GetResolvedColorTarget();
         reblurDispatchInfo.gbufferView = dispatchInfo.gbuffer;
         reblurDispatchInfo.gbufferHistoryView = dispatchInfo.gbufferHistory;
         reblurDispatchInfo.neGbufferHistoryView = neGbufferView[frameIdx % 2 != 0];
         reblurDispatchInfo.velocityView = dispatchInfo.velocity;
         reblurPass->Dispatch(reblurDispatchInfo);
+
+        taaPass->historyWeight = 0.9;
+        taaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
     }
 
     computePassDescriptor.name = "Nert Resolve";

@@ -205,7 +205,7 @@ BindGroupHandle ReblurPass::CreateATrousBindGroup(const ReblurDispatchInfo& disp
     TextureViewHandle unresolvedIlluminationView = Graphics::CreateTextureView(dispatchInfo.unresolvedIllumination);
 
     BindGroupCreateInfo createInfo{};
-    createInfo.name = "Reblur Pre Blur Bind Group";
+    createInfo.name = "Reblur A-Trous Bind Group";
     createInfo.layout = Graphics::GetBindGroupLayout(ATrousPipeline::Get(), 0);
     createInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(aTrousConstantsBuffer)),
@@ -261,7 +261,7 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
 
     for (u32 i = 0; i < spatialFilterSteps; i++)
     {
-        aTrousConstants.writeHistory = (i == spatialFilterSteps - 1);
+        aTrousConstants.writeHistory = (i == 0);
         aTrousConstants.stepSize = 1 << i;
         Graphics::WriteBufferImmediate(aTrousConstantsBuffer, 0, &aTrousConstants);
 
