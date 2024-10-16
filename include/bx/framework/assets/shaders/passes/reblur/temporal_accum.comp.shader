@@ -170,16 +170,13 @@ void main()
         history.w = min(history.w + 1.0, MAX_ACCUMULATED_FRAMES);
     }
 
-    float alpha = (history.w <= 2.0) ? 1.0 : ((history.w <= 10.0) ? 0.8 : (1.0 / (1.0 + history.w)));
+    float alpha = (history.w <= 2.0) ? 1.0 : (1.0 / (1.0 + history.w));
 
-    //vec2 momentsHistory = imageLoad(variance, prevPixel).gb;
-    moments = mix(momentsHistory, moments, alpha);
-
-    float newVariance = max(moments.y - sqr(moments.x), 0.0);
-
-    alpha = mix(alpha, 1.0, saturate(newVariance));
     vec3 result = mix(history.rgb, current, alpha);
     history.rgb = result;
+
+    moments = mix(momentsHistory, moments, alpha);
+    float newVariance = max(moments.y - sqr(moments.x), 0.0);
 
     imageStore(outImage, pixel, vec4(result, 1.0));
     imageStore(outHistory, pixel, history);

@@ -100,9 +100,10 @@ struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePip
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),
-                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
-                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
-                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RG16_FLOAT)),
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler())
             }),
             BlasDataPool::GetBindGroupLayout(),
             Sky::GetBindGroupLayout(),
@@ -181,6 +182,15 @@ RestirDiPass::RestirDiPass(u32 width, u32 height, u32 lightingWidth, u32 lightin
     {
         restirSpatialBindGroups[i] = CreateBindGroup(SpatialReusePipeline::Get(), i % 2 == 0);
     }
+
+    SamplerCreateInfo pointClampCreateInfo{};
+    pointClampCreateInfo.name = "Restir Point Clamp Sampler";
+    pointClampCreateInfo.addressModeU = SamplerAddressMode::CLAMP_TO_EDGE;
+    pointClampCreateInfo.addressModeV = SamplerAddressMode::CLAMP_TO_EDGE;
+    pointClampCreateInfo.addressModeW = SamplerAddressMode::CLAMP_TO_EDGE;
+    pointClampCreateInfo.minFilter = FilterMode::NEAREST;
+    pointClampCreateInfo.magFilter = FilterMode::NEAREST;
+    nearestClampSampler = Graphics::CreateSampler(pointClampCreateInfo);
 }
 
 RestirDiPass::~RestirDiPass()
@@ -197,6 +207,8 @@ RestirDiPass::~RestirDiPass()
         Graphics::DestroyBuffer(spatialReuseConstantsBuffers[i]);
     }
     Graphics::DestroyBuffer(temporalReuseConstantsBuffer);
+
+    Graphics::DestroySampler(nearestClampSampler);
 }
 
 BindGroupHandle RestirDiPass::CreateBindGroup(ComputePipelineHandle pipeline, b8 flipRestirSamples) const
@@ -254,6 +266,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
         BindGroupEntry(2, BindingResource::TextureView(gbufferView)),
         BindGroupEntry(3, BindingResource::TextureView(gbufferHistoryView)),
         BindGroupEntry(4, BindingResource::TextureView(velocityView)),
+        BindGroupEntry(5, BindingResource::Sampler(nearestClampSampler)),
     };
     BindGroupHandle temporalReuseBindGroup = Graphics::CreateBindGroup(temporalReuseBindGroupCreateInfo);
     BindGroupHandle temporalBlasDataPoolGroup = blasDataPool.CreateBindGroup(TemporalReusePipeline::Get());

@@ -104,6 +104,11 @@ vec3 _refract(vec3 uv, vec3 normal, float ior)
     return r_perp + r_parl;
 }
 
+bool isPixelInBounds(ivec2 pixel, uvec2 resolution)
+{
+    return !(pixel.x >= resolution.x || pixel.y >= resolution.y || pixel.x < 0 || pixel.y < 0);
+}
+
 vec2 pixelToUv(ivec2 pixel, uvec2 resolution)
 {
     return (vec2(pixel) + 0.5) / vec2(resolution);

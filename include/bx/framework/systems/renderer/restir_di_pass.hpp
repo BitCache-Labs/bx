@@ -53,6 +53,8 @@ private:
 	u32 width, height;
 	u32 lightingWidth, lightingHeight;
 
+	SamplerHandle nearestClampSampler;
+
 	BufferHandle reservoirsBuffer;
 	BufferHandle outReservoirsBuffer;
 	BufferHandle reservoirsHistoryBuffer;

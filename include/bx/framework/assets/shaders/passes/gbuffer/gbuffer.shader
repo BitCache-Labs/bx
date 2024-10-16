@@ -79,4 +79,24 @@ vec2 getClosestVelocity(texture2D velocityTexture, texture2D gbufferTexture, sam
 	return velocity;
 }
 
+bool GBufferData_isDisoccluded(GBufferData current, GBufferData history)
+{
+	if (current.blasInstanceIdx != history.blasInstanceIdx)
+    {
+        return true;
+    }
+
+    if (abs(current.distance - history.distance) > 0.8)
+    {
+        return true;
+    }
+
+    if (dot(current.normal, history.normal) < 0.9)
+    {
+        return true;
+    }
+
+	return false;
+}
+
 #endif // GBUFFER_H
