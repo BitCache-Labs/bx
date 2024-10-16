@@ -11,6 +11,10 @@ struct TemporalAccumConstants
     u32 globalHeight;
     u32 width;
     u32 height;
+    b32 antiFirefly;
+    u32 _PADDING0;
+    u32 _PADDING1;
+    u32 _PADDING2;
 };
 
 struct ATrousConstants
@@ -238,6 +242,7 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     temporalAccumConstants.globalHeight = height;
     temporalAccumConstants.width = lightingWidth;
     temporalAccumConstants.height = lightingHeight;
+    temporalAccumConstants.antiFirefly = antiFirefly;
     Graphics::WriteBuffer(temporalAccumConstantsBuffer, 0, &temporalAccumConstants);
 
     ComputePassDescriptor computePassDescriptor{};
@@ -258,13 +263,13 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     aTrousConstants.globalHeight = height;
     aTrousConstants.width = lightingWidth;
     aTrousConstants.height = lightingHeight;
-
+    
     for (u32 i = 0; i < spatialFilterSteps; i++)
     {
         aTrousConstants.writeHistory = (i == 0);
         aTrousConstants.stepSize = 1 << i;
         Graphics::WriteBufferImmediate(aTrousConstantsBuffer, 0, &aTrousConstants);
-
+    
         
         computePassDescriptor.name = "Reblur A-Trous";
         computePass = Graphics::BeginComputePass(computePassDescriptor);
@@ -275,8 +280,8 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
         }
         Graphics::EndComputePass(computePass);
     }
-
-    if (spatialFilterSteps % 2 != 0)
+    
+    if (spatialFilterSteps % 2 == 0)
     {
         Graphics::CopyTexture(tmpIlluminationTexture, dispatchInfo.unresolvedIllumination);
     }

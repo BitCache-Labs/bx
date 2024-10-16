@@ -3,13 +3,21 @@
 #include "[engine]/shaders/packing.shader"
 #include "[engine]/shaders/color_helpers.shader"
 #include "[engine]/shaders/math.shader"
+#include "[engine]/shaders/sampling.shader"
 
-const float MAX_ACCUMULATED_FRAMES = 24.0;
+const float MAX_ACCUMULATED_FRAMES = 16.0;
+
+const int ANTI_FIREFLY_RADIUS = 6;
+const float ANTI_FIREFLY_SCALE = 0.5;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uvec2 globalResolution;
     uvec2 resolution;
+    bool antiFirefly;
+    uint _PADDING0;
+    uint _PADDING1;
+    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
@@ -56,16 +64,28 @@ bool isDisoccluded(ivec2 pixel, ivec2 prevPixel, uint currentBlasInstance, vec4 
         return true;
     }
 
-    vec3 centerNormal = currentNormalAndDepth.xyz;
-    vec3 sampleNormal = historyNormalAndDepth.xyz;
-    float normalWeight = normalSimilarity(centerNormal, sampleNormal, 128.0);
+    // vec3 centerNormal = currentNormalAndDepth.xyz;
+    // vec3 sampleNormal = historyNormalAndDepth.xyz;
+    // float normalWeight = normalSimilarity(centerNormal, sampleNormal, 128.0);
+    // 
+    // float centerDepth = currentNormalAndDepth.w;
+    // float sampleDepth = historyNormalAndDepth.w;
+    // float depthWeight = depthSimilarity(centerDepth, sampleDepth, 1.0);
+    // 
+    // float weight = normalWeight * depthWeight;
+    // return weight < 0.01;
 
-    float centerDepth = currentNormalAndDepth.w;
-    float sampleDepth = historyNormalAndDepth.w;
-    float depthWeight = depthSimilarity(centerDepth, sampleDepth, 1.0);
+    if (abs(currentNormalAndDepth.w - historyNormalAndDepth.w) > 0.8)
+    {
+        return true;
+    }
 
-    float weight = normalWeight * depthWeight;
-    return weight < 0.01;
+    if (dot(currentNormalAndDepth.xyz, historyNormalAndDepth.xyz) < 0.9)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
@@ -77,6 +97,44 @@ void main()
     ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
 
     vec3 current = imageLoad(inImage, pixel).rgb;
+
+    if (constants.antiFirefly)
+    {
+        float luma = linearToLuma(current);
+
+        float m1 = 0.0;
+        float m2 = 0.0;
+
+        #pragma unroll
+        for (int x = -ANTI_FIREFLY_RADIUS; x <= ANTI_FIREFLY_RADIUS; x++)
+        {
+            #pragma unroll
+            for (int y = -ANTI_FIREFLY_RADIUS; y <= ANTI_FIREFLY_RADIUS; y++)
+            {
+                if (abs(x) <= 1 && abs(y) <= 1)
+                {
+                    continue;
+                }
+
+                ivec2 samplePixel = pixel + ivec2(x, y);
+                samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
+
+                float sampleLuma = linearToLuma(imageLoad(inImage, samplePixel).rgb);
+                m1 += sampleLuma;
+                m2 += sqr(sampleLuma);
+            }
+        }
+
+        float invNorm = 1.0 / ((ANTI_FIREFLY_RADIUS * 2 + 1) * (ANTI_FIREFLY_RADIUS * 2 + 1) - 3 * 3);
+        m1 *= invNorm;
+        m2 *= invNorm;
+
+        float sigma = stdDev(m1, m2) * ANTI_FIREFLY_SCALE;
+        float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
+        float lumaFactor = (luma == 0.0) ? 0.0 : (clampedLuma / luma);
+
+        current *= lumaFactor; // TODO: incorrect
+    }
 
     uint currentBlasInstance;
     vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel, currentBlasInstance);

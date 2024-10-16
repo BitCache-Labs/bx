@@ -400,6 +400,7 @@ NertPass::NertPass(const NertCreateInfo& createInfo)
 
     restirDiPass = std::unique_ptr<RestirDiPass>(new RestirDiPass(width, height, lightingWidth, lightingHeight));
     reblurPass = std::unique_ptr<ReblurPass>(new ReblurPass(width, height, lightingWidth, lightingHeight));
+    preTaaPass = std::unique_ptr<TaaPass>(new TaaPass(width, height, lightingWidth, lightingHeight));
     taaPass = std::unique_ptr<TaaPass>(new TaaPass(width, height, lightingWidth, lightingHeight));
 }
 
@@ -534,7 +535,7 @@ BindGroupHandle NertPass::CreateResolveBindGroup(const NertDispatchInfo& dispatc
     bindGroupCreateInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(resolveConstantsBuffer)),
         BindGroupEntry(1, BindingResource::TextureView(ambientEmissiveBaseColorTextureView)),
-        BindGroupEntry(2, BindingResource::TextureView(denoise ? taaPass->GetResolvedColorTargetView() : illuminationTextureView)),
+        BindGroupEntry(2, BindingResource::TextureView(denoise ? preTaaPass->GetResolvedColorTargetView() : illuminationTextureView)),
         BindGroupEntry(3, BindingResource::TextureView(colorTargetView)),
         BindGroupEntry(4, BindingResource::Buffer(intersectionsBuffer)),
         BindGroupEntry(5, BindingResource::Sampler(linearRepeatSampler)),
@@ -674,17 +675,20 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     {
         reblurPass->seed = seed;
         reblurPass->antiFirefly = antiFirefly;
+
+        preTaaPass->historyWeight = 0.9;
+        preTaaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
         
         ReblurDispatchInfo reblurDispatchInfo;
-        reblurDispatchInfo.unresolvedIllumination = illuminationTexture;// taaPass->GetResolvedColorTarget();
+        reblurDispatchInfo.unresolvedIllumination = preTaaPass->GetResolvedColorTarget();
         reblurDispatchInfo.gbufferView = dispatchInfo.gbuffer;
         reblurDispatchInfo.gbufferHistoryView = dispatchInfo.gbufferHistory;
         reblurDispatchInfo.neGbufferHistoryView = neGbufferView[frameIdx % 2 != 0];
         reblurDispatchInfo.velocityView = dispatchInfo.velocity;
         reblurPass->Dispatch(reblurDispatchInfo);
 
-        taaPass->historyWeight = 0.9;
-        taaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
+        //taaPass->historyWeight = 0.99;
+        //taaPass->Dispatch(dispatchInfo.camera, preTaaPass->GetResolvedColorTarget(), dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
     }
 
     computePassDescriptor.name = "Nert Resolve";

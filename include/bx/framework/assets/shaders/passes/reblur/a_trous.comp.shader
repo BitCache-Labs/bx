@@ -50,7 +50,8 @@ void main()
         return;
     }
 
-    float centerVariance = imageLoad(variance, pixel).r;
+    vec3 centerVarianceAndMoments = imageLoad(variance, pixel).rgb;
+    float centerVariance = centerVarianceAndMoments.r;
     vec3 centerColor = result;
     vec3 centerNormal = currentNormalAndDepth.xyz;
     float centerDepth = currentNormalAndDepth.w;
@@ -73,12 +74,17 @@ void main()
                 continue;
             }
 
+            ivec2 samplePixel = pixel + ivec2(x, y) * int(constants.stepSize);
+            ivec2 globalSamplePixel = rescaleResolution(samplePixel, constants.resolution, constants.globalResolution);
+
+            if (samplePixel.x >= constants.resolution.x || samplePixel.y >= constants.resolution.y || samplePixel.x < 0 || samplePixel.y < 0)
+            {
+                continue;
+            }
+
             float samplePhiDepth = phiDepth * length(vec2(x, y));
             float kernelWeight = KERNEL_WEIGHTS[abs(x)] * KERNEL_WEIGHTS[abs(y)];
 
-            ivec2 samplePixel = pixel + ivec2(x, y) * int(constants.stepSize);
-            ivec2 globalSamplePixel = rescaleResolution(samplePixel, constants.resolution, constants.globalResolution);
-    
             float sampleVariance = imageLoad(variance, samplePixel).r;
             vec3 sampleColor = imageLoad(inImage, samplePixel).rgb;
             float sampleLuminance = linearToLuma(sampleColor);
@@ -99,7 +105,7 @@ void main()
     varianceSum /= sqr(weightSum);
 
     imageStore(outImage, pixel, vec4(sum, 1.0));
-    imageStore(variance, pixel, vec4(varianceSum));
+    imageStore(variance, pixel, vec4(varianceSum, centerVarianceAndMoments.gb, 0.0));
 
     if (constants.writeHistory)
     {

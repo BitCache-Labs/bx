@@ -69,6 +69,7 @@ private:
 	std::unique_ptr<RestirDiPass> restirDiPass;
 	std::unique_ptr<ReblurPass> reblurPass;
 	std::unique_ptr<TaaPass> taaPass;
+	std::unique_ptr<TaaPass> preTaaPass;
 
 	SamplerHandle linearRepeatSampler;
 

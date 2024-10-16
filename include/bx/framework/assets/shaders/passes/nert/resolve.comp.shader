@@ -47,7 +47,7 @@ void main()
     vec3 lightingContribution = vec3(0.0);
     vec3 baseColorFactor = vec3(0.0);
 
-    vec3 ambientFactor = 0.4 * vec3(0.15, 0.15, 0.17);
+    vec3 ambientFactor = 0.0 * vec3(0.15, 0.15, 0.17);
 
     if (intersection.t != T_MISS)
     {
