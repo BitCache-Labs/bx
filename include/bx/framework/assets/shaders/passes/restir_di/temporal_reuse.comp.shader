@@ -15,6 +15,8 @@
 #include "[engine]/shaders/sampling.shader"
 #include "[engine]/shaders/ray_tracing/light_picking.shader"
 
+#include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
+
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     mat4 invView;
@@ -108,7 +110,7 @@ void main()
         }
 
         // History
-        vec2 velocity = imageLoad(velocity, globalPixel).xy;
+        vec2 velocity = imageLoad(velocity, globalPixel).xy;//getClosestVelocity(velocity, globalPixel);
         ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
         if (prevPixel.x >= 0 && prevPixel.y >= 0 && prevPixel.x < constants.resolution.x && prevPixel.y < constants.resolution.y)
         {

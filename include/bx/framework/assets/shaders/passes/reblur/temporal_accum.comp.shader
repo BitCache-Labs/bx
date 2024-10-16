@@ -5,7 +5,7 @@
 #include "[engine]/shaders/math.shader"
 #include "[engine]/shaders/sampling.shader"
 
-const float MAX_ACCUMULATED_FRAMES = 16.0;
+const float MAX_ACCUMULATED_FRAMES = 14.0;
 
 const int ANTI_FIREFLY_RADIUS = 6;
 const float ANTI_FIREFLY_SCALE = 0.5;
@@ -21,7 +21,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
 } constants;
 
 layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
-layout (BINDING(0, 2), rgba32f) uniform image2D history;
+layout (BINDING(0, 2), rgba32f) uniform image2D inHistory;
 layout (BINDING(0, 3), rgba32f) uniform image2D outHistory;
 layout (BINDING(0, 4), rgba32f) uniform image2D gbuffer;
 layout (BINDING(0, 5), rgba32f) uniform image2D gbufferHistory;
@@ -149,30 +149,37 @@ void main()
     ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
     ivec2 globalPrevPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
 
-    vec4 history = imageLoad(history, prevPixel);
+    vec2 moments;
+    moments.x = linearToLuma(current);
+    moments.y = sqr(moments.x);
+
+    vec4 history;
+    vec2 momentsHistory;
 
     bool disoccluded = isDisoccluded(globalPixel, globalPrevPixel, currentBlasInstance, currentNormalAndDepth);
     if (disoccluded)
     {
-        history.w = 0.0;
+        history = vec4(current, 0.0);
+        momentsHistory = moments;
     }
     else
     {
+        history = imageLoad(inHistory, prevPixel);
+        momentsHistory = imageLoad(variance, prevPixel).gb;
+
         history.w = min(history.w + 1.0, MAX_ACCUMULATED_FRAMES);
     }
 
-    float alpha = 1.0 / (1.0 + history.w);
-    vec3 result = mix(history.rgb, current, alpha);
-    history.rgb = result;
+    float alpha = (history.w <= 2.0) ? 1.0 : ((history.w <= 10.0) ? 0.8 : (1.0 / (1.0 + history.w)));
 
-    vec2 momentsHistory = imageLoad(variance, prevPixel).gb;
-
-    vec2 moments;
-    moments.x = linearToLuma(current);
-    moments.y = sqr(moments.x);
+    //vec2 momentsHistory = imageLoad(variance, prevPixel).gb;
     moments = mix(momentsHistory, moments, alpha);
 
     float newVariance = max(moments.y - sqr(moments.x), 0.0);
+
+    alpha = mix(alpha, 1.0, saturate(newVariance));
+    vec3 result = mix(history.rgb, current, alpha);
+    history.rgb = result;
 
     imageStore(outImage, pixel, vec4(result, 1.0));
     imageStore(outHistory, pixel, history);
