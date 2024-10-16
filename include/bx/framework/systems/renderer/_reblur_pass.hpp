@@ -27,8 +27,6 @@ public:
 	u32 seed = 1337;
 	b8 antiFirefly = true;
 
-	u32 spatialFilterSteps = 3; // Odd numbers are slower!
-
 private:
 	u32 width, height;
 	u32 lightingWidth, lightingHeight;
@@ -36,10 +34,20 @@ private:
 
 	SamplerHandle linearClampSampler;
 
+	TextureHandle preBlurTexture;
+	TextureViewHandle preBlurTextureView;
 	TextureHandle tmpIlluminationTexture;
 	TextureViewHandle tmpIlluminationTextureView;
+	TextureHandle historyTexture[2];
+	TextureViewHandle historyTextureView[2];
 
-	BufferHandle aTrousConstantsBuffer;
+	BufferHandle preBlurConstantsBuffer;
+	BufferHandle temporalAccumConstantsBuffer;
+	BufferHandle historyFixConstantsBuffer;
+	BufferHandle blurConstantsBuffer;
 
-	BindGroupHandle CreateATrousBindGroup(const ReblurDispatchInfo& dispatchInfo, bool pingPong) const;
+	BindGroupHandle CreatePreBlurBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
+	BindGroupHandle CreateTemporalAccumBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
+	BindGroupHandle CreateHistoryFixBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
+	BindGroupHandle CreateBlurBindGroup(const ReblurDispatchInfo& dispatchInfo) const;
 };
