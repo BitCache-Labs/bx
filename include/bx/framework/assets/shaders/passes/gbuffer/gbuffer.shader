@@ -86,6 +86,11 @@ vec2 getClosestVelocity(texture2D velocityTexture, texture2D gbufferTexture, sam
 
 bool GBufferData_isDisoccluded(GBufferData current, GBufferData history)
 {
+	if (GBufferData_isSky(history))
+	{
+		return true;
+	}
+
 	if (current.blasInstanceIdx != history.blasInstanceIdx)
     {
         return true;

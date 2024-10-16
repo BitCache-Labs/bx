@@ -5,6 +5,8 @@
 #include "[engine]/shaders/math.shader"
 #include "[engine]/shaders/sampling.shader"
 
+#include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
+
 const float MAX_ACCUMULATED_FRAMES = 14.0;
 
 const int ANTI_FIREFLY_RADIUS = 6;
@@ -23,70 +25,14 @@ layout (BINDING(0, 0), std140) uniform _Constants
 layout (BINDING(0, 1), rgba32f) uniform image2D inImage;
 layout (BINDING(0, 2), rgba32f) uniform image2D inHistory;
 layout (BINDING(0, 3), rgba32f) uniform image2D outHistory;
-layout (BINDING(0, 4), rgba32f) uniform image2D gbuffer;
-layout (BINDING(0, 5), rgba32f) uniform image2D gbufferHistory;
-layout (BINDING(0, 6), rgba32f) uniform image2D neGbufferHistory;
-layout (BINDING(0, 7), rg16f) uniform image2D velocityTarget;
+layout (BINDING(0, 4)) uniform texture2D gbuffer;
+layout (BINDING(0, 5)) uniform texture2D gbufferHistory;
+layout (BINDING(0, 7)) uniform texture2D velocityTarget;
 layout (BINDING(0, 8), rgba32f) uniform image2D variance;
 layout (BINDING(0, 9), rgba32f) uniform image2D outVariance;
 layout (BINDING(0, 10), rgba32f) uniform image2D outImage;
 
-vec4 getPixelNormalAndDepth(ivec2 pixel, out uint blasInstance)
-{
-    vec4 gbufferData = imageLoad(gbuffer, pixel);
-    vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
-    blasInstance = floatBitsToUint(gbufferData.a);
-    return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
-}
-
-vec4 getPixelNormalAndDepthHistory(ivec2 pixel, out uint blasInstance)
-{
-    vec4 gbufferData = imageLoad(gbufferHistory, pixel);
-    vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
-    blasInstance = floatBitsToUint(gbufferData.a);
-    return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
-}
-
-bool isDisoccluded(ivec2 pixel, ivec2 prevPixel, uint currentBlasInstance, vec4 currentNormalAndDepth)
-{
-    bool outOfBounds = (prevPixel.x >= constants.globalResolution.x || prevPixel.y >= constants.globalResolution.y || prevPixel.x < 0 || prevPixel.y < 0);
-    
-    if (outOfBounds)
-    {
-        return true;
-    }
-
-    uint historyBlasInstance;
-    vec4 historyNormalAndDepth = getPixelNormalAndDepthHistory(prevPixel, historyBlasInstance);
-
-    if (historyBlasInstance != currentBlasInstance)
-    {
-        return true;
-    }
-
-    // vec3 centerNormal = currentNormalAndDepth.xyz;
-    // vec3 sampleNormal = historyNormalAndDepth.xyz;
-    // float normalWeight = normalSimilarity(centerNormal, sampleNormal, 128.0);
-    // 
-    // float centerDepth = currentNormalAndDepth.w;
-    // float sampleDepth = historyNormalAndDepth.w;
-    // float depthWeight = depthSimilarity(centerDepth, sampleDepth, 1.0);
-    // 
-    // float weight = normalWeight * depthWeight;
-    // return weight < 0.01;
-
-    if (abs(currentNormalAndDepth.w - historyNormalAndDepth.w) > 0.8)
-    {
-        return true;
-    }
-
-    if (dot(currentNormalAndDepth.xyz, historyNormalAndDepth.xyz) < 0.9)
-    {
-        return true;
-    }
-
-    return false;
-}
+layout (BINDING(0, 11)) uniform sampler nearestClampSampler;
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
@@ -136,16 +82,16 @@ void main()
         current *= lumaFactor; // TODO: incorrect
     }
 
-    uint currentBlasInstance;
-    vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel, currentBlasInstance);
-    if (currentNormalAndDepth.w == 0.0)
+    GBufferData currentGBufferData = GBufferData_loadAll(gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
+
+    if (GBufferData_isSky(currentGBufferData))
     {
         imageStore(outImage, pixel, vec4(current, 1.0));
         imageStore(outHistory, pixel, vec4(0.0));
         return;
     }
 
-    vec2 velocity = imageLoad(velocityTarget, globalPixel).rg;
+    vec2 velocity = getClosestVelocity(velocityTarget, gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
     ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
     ivec2 globalPrevPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
 
@@ -153,21 +99,20 @@ void main()
     moments.x = linearToLuma(current);
     moments.y = sqr(moments.x);
 
-    vec4 history;
-    vec2 momentsHistory;
+    vec4 history = vec4(current, 0.0);
+    vec2 momentsHistory = moments;
 
-    bool disoccluded = isDisoccluded(globalPixel, globalPrevPixel, currentBlasInstance, currentNormalAndDepth);
-    if (disoccluded)
+    if (isPixelInBounds(globalPrevPixel, constants.globalResolution))
     {
-        history = vec4(current, 0.0);
-        momentsHistory = moments;
-    }
-    else
-    {
-        history = imageLoad(inHistory, prevPixel);
-        momentsHistory = imageLoad(variance, prevPixel).gb;
+        GBufferData historyGBufferData = GBufferData_loadAll(gbufferHistory, nearestClampSampler, globalPrevPixel, constants.globalResolution);
 
-        history.w = min(history.w + 1.0, MAX_ACCUMULATED_FRAMES);
+        if (!GBufferData_isDisoccluded(currentGBufferData, historyGBufferData))
+        {
+            history = imageLoad(inHistory, prevPixel);
+            momentsHistory = imageLoad(variance, prevPixel).gb;
+
+            history.w = min(history.w + 1.0, MAX_ACCUMULATED_FRAMES);
+        }
     }
 
     float alpha = (history.w <= 2.0) ? 1.0 : (1.0 / (1.0 + history.w));

@@ -413,6 +413,7 @@ SamplerHandle Graphics::CreateSampler(const SamplerCreateInfo& createInfo)
     info.addressModeU = SamplerAddressModeToVk(createInfo.addressModeU);
     info.addressModeV = SamplerAddressModeToVk(createInfo.addressModeV);
     info.addressModeW = SamplerAddressModeToVk(createInfo.addressModeW);
+    info.filterMode = createInfo.minFilter == FilterMode::LINEAR ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
 
     std::shared_ptr<Sampler> sampler(new Sampler(createInfo.name, s->device, *s->physicalDevice, info));
     s->samplers.insert(std::make_pair(samplerHandle, sampler));
