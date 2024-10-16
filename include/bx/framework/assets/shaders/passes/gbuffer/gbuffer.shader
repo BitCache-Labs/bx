@@ -48,6 +48,11 @@ GBufferData GBufferData_loadNormalDepth(texture2D gbufferTexture, sampler s, ive
 	return result;
 }
 
+bool GBufferData_isSky(GBufferData self)
+{
+	return self.distance == 0.0;
+}
+
 void _depthTestMin(texture2D gbufferTexture, sampler s, ivec2 pixel, uvec2 resolution, inout float minDepth, inout ivec2 minPixel)
 {
 	float depth = GBufferData_loadDepth(gbufferTexture, s, pixel, resolution).distance;

@@ -86,7 +86,7 @@ void main()
         Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
 
         { // Current
-            bool currentValid = centerGBufferData.distance != 0.0 && ReservoirData_isValid(reservoirData);
+            bool currentValid = !GBufferData_isSky(centerGBufferData) && ReservoirData_isValid(reservoirData);
             if (!currentValid)
             {
                 reservoirData.p_hat = 0.0;
@@ -125,7 +125,7 @@ void main()
                     sampledReservoir.sampleCount = MAX_SAMPLE_COUNT * reservoir.sampleCount;
                 }
 
-                bool historyValid = sampleGBufferData.distance != 0.0 && ReservoirData_isValid(sampledReservoirData);
+                bool historyValid = !GBufferData_isSky(sampleGBufferData) && ReservoirData_isValid(sampledReservoirData);
                 historyValid = historyValid && dot(normal, sampleGBufferData.normal) >= 0.5;
 
                 sampledReservoirData.p_hat = 0.0;
@@ -149,7 +149,7 @@ void main()
                     
                     if (dot(direction, normal) > 0.0)
                     {
-                        vec3 brdfEval = diffuseBsdfEval(vec3(0.7, 0.7, 0.7)); // TODO: pass basecolor around?
+                        vec3 brdfEval = diffuseBsdfEval(vec3(1.0)); // TODO: pass basecolor around?
                         vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0);
                         vec3 intensity = lightIntensity(sampledReservoirData.triangleLightSource, sampledReservoirData.blasInstance,
                             direction, tMax);

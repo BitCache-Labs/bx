@@ -69,7 +69,7 @@ void main()
     Reservoir outputReservoir = Reservoir_default();
     ReservoirData outputReservoirData = ReservoirData_default();
 
-    if (centerGBufferData.distance == 0.0 || !ReservoirData_isValid(reservoirData))
+    if (GBufferData_isSky(centerGBufferData) || !ReservoirData_isValid(reservoirData))
     {
         reservoirData.p_hat = 0.0;
     }
@@ -103,7 +103,15 @@ void main()
         ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
     
         GBufferData sampleGBufferData = GBufferData_loadAll(gbuffer, nearestClampSampler, globalSamplePixel, constants.globalResolution);
-        if (sampleGBufferData.distance == 0.0 || !ReservoirData_isValid(sampledReservoirData))
+        if (GBufferData_isSky(sampleGBufferData) || !ReservoirData_isValid(sampledReservoirData))
+        {
+            continue;
+        }
+
+        float normalWeight = normalSimilarity(centerGBufferData.normal, sampleGBufferData.normal, 16.0);
+        float depthWeight = depthSimilarity(centerGBufferData.distance, sampleGBufferData.distance, 1.0);
+        float weight = normalWeight * depthWeight;
+        if (weight < 0.01)
         {
             continue;
         }
@@ -124,10 +132,10 @@ void main()
             direction = sampleSunDirection(sampledReservoirData.hitUv);
             tMax = SUN_DISTANCE;
         }
-    
+
         if (dot(direction, normal) > 0.0)
         {
-            vec3 brdfEval = diffuseBsdfEval(vec3(0.7, 0.7, 0.7)); // TODO: pass basecolor around?
+            vec3 brdfEval = diffuseBsdfEval(vec3(1.0)); // TODO: pass basecolor around?
             vec3 brdfContribution = bsdfContribution(brdfEval, normal, direction, 1.0);
             vec3 intensity = lightIntensity(sampledReservoirData.triangleLightSource, sampledReservoirData.blasInstance,
                 direction, tMax);
