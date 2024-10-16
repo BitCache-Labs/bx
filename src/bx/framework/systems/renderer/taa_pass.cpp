@@ -81,7 +81,7 @@ TaaPass::TaaPass(u32 width, u32 height, u32 colorWidth, u32 colorHeight)
 
     resolvedColorTargetCreateInfo.name = "TAA Resolved Color Target History";
     resolvedColorTargetHistory = Graphics::CreateTexture(resolvedColorTargetCreateInfo);
-    resolvedColorTargetHistoryView = Graphics::CreateTextureView(resolvedColorTarget);
+    resolvedColorTargetHistoryView = Graphics::CreateTextureView(resolvedColorTargetHistory);
 
     BufferCreateInfo constantBufferCreateInfo{};
     constantBufferCreateInfo.name = "TAA Pass Constant Buffer";
@@ -128,11 +128,11 @@ void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureV
     createInfo.entries = {
         BindGroupEntry(0, BindingResource::Buffer(constantBuffer)),
         BindGroupEntry(1, BindingResource::TextureView(colorTargetView)),
-        BindGroupEntry(2, BindingResource::TextureView(resolvedColorTargetHistoryView)),
+        BindGroupEntry(2, BindingResource::TextureView(resolvedColorTargetView)),
         BindGroupEntry(3, BindingResource::TextureView(velocityTargetView)),
         BindGroupEntry(4, BindingResource::TextureView(gbufferView)),
         BindGroupEntry(5, BindingResource::TextureView(gbufferHistoryView)),
-        BindGroupEntry(6, BindingResource::TextureView(resolvedColorTargetView)),
+        BindGroupEntry(6, BindingResource::TextureView(resolvedColorTargetHistoryView)),
         BindGroupEntry(7, BindingResource::Sampler(linearClampSampler)),
     };
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
