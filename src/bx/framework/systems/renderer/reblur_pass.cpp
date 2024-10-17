@@ -44,7 +44,7 @@ struct TemporalAccumPipeline : public LazyInit<TemporalAccumPipeline, ComputePip
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                                 // constants
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // inImage
-                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // history
+                BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),         // history
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),        // outHistory
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),         // gbuffer
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),         // gbufferHistory
@@ -53,6 +53,7 @@ struct TemporalAccumPipeline : public LazyInit<TemporalAccumPipeline, ComputePip
                 BindGroupLayoutEntry(9, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),   // outVariance
                 BindGroupLayoutEntry(10, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),        // outImage
                 BindGroupLayoutEntry(11, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),                                                                      // nearestClampSampler
+                BindGroupLayoutEntry(12, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),                                                                      // linearClampSampler
             })
         };
 
@@ -114,6 +115,15 @@ ReblurPass::ReblurPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHei
     nearestClampCreateInfo.magFilter = FilterMode::NEAREST;
     nearestClampSampler = Graphics::CreateSampler(nearestClampCreateInfo);
 
+    SamplerCreateInfo linearClampCreateInfo{};
+    linearClampCreateInfo.name = "Reblur Linear Clamp Sampler";
+    linearClampCreateInfo.addressModeU = SamplerAddressMode::CLAMP_TO_EDGE;
+    linearClampCreateInfo.addressModeV = SamplerAddressMode::CLAMP_TO_EDGE;
+    linearClampCreateInfo.addressModeW = SamplerAddressMode::CLAMP_TO_EDGE;
+    linearClampCreateInfo.minFilter = FilterMode::LINEAR;
+    linearClampCreateInfo.magFilter = FilterMode::LINEAR;
+    linearClampSampler = Graphics::CreateSampler(linearClampCreateInfo);
+
     BufferCreateInfo temporalAccumConstantsCreateInfo{};
     temporalAccumConstantsCreateInfo.name = "Reblur Temporal Accum Constants Buffer";
     temporalAccumConstantsCreateInfo.size = sizeof(TemporalAccumConstants);
@@ -160,6 +170,7 @@ ReblurPass::ReblurPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHei
 ReblurPass::~ReblurPass()
 {
     Graphics::DestroySampler(nearestClampSampler);
+    Graphics::DestroySampler(linearClampSampler);
 
     Graphics::DestroyBuffer(temporalAccumConstantsBuffer);
     Graphics::DestroyBuffer(aTrousConstantsBuffer);
@@ -194,6 +205,7 @@ BindGroupHandle ReblurPass::CreateTemporalAccumBindGroup(const ReblurDispatchInf
         BindGroupEntry(9, BindingResource::TextureView(varianceTextureView[frameIdx % 2 != 0])),
         BindGroupEntry(10, BindingResource::TextureView(tmpIlluminationTextureView)),
         BindGroupEntry(11, BindingResource::Sampler(nearestClampSampler)),
+        BindGroupEntry(12, BindingResource::Sampler(linearClampSampler)),
     };
 
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);

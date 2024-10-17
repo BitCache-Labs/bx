@@ -35,6 +35,7 @@ private:
 	u32 frameIdx;
 
 	SamplerHandle nearestClampSampler;
+	SamplerHandle linearClampSampler;
 
 	TextureHandle tmpIlluminationTexture;
 	TextureViewHandle tmpIlluminationTextureView;
