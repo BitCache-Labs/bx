@@ -37,11 +37,12 @@ struct TaaPipeline : public LazyInit<TaaPipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
-                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RG16_FLOAT)),
-                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
-                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
                 BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
                 BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),
+                BindGroupLayoutEntry(8, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),
             })
         };
 
@@ -70,6 +71,15 @@ TaaPass::TaaPass(u32 width, u32 height, u32 colorWidth, u32 colorHeight)
     linearClampCreateInfo.magFilter = FilterMode::LINEAR;
     linearClampSampler = Graphics::CreateSampler(linearClampCreateInfo);
 
+    SamplerCreateInfo nearestClampCreateInfo{};
+    nearestClampCreateInfo.name = "Present Nearest Clamp Sampler";
+    nearestClampCreateInfo.addressModeU = SamplerAddressMode::CLAMP_TO_EDGE;
+    nearestClampCreateInfo.addressModeV = SamplerAddressMode::CLAMP_TO_EDGE;
+    nearestClampCreateInfo.addressModeW = SamplerAddressMode::CLAMP_TO_EDGE;
+    nearestClampCreateInfo.minFilter = FilterMode::NEAREST;
+    nearestClampCreateInfo.magFilter = FilterMode::NEAREST;
+    nearestClampSampler = Graphics::CreateSampler(nearestClampCreateInfo);
+
     TextureCreateInfo resolvedColorTargetCreateInfo{};
     resolvedColorTargetCreateInfo.name = "TAA Resolved Color Target";
     resolvedColorTargetCreateInfo.size = Extend3D(colorWidth, colorHeight, 1);
@@ -93,6 +103,7 @@ TaaPass::TaaPass(u32 width, u32 height, u32 colorWidth, u32 colorHeight)
 TaaPass::~TaaPass()
 {
     Graphics::DestroySampler(linearClampSampler);
+    Graphics::DestroySampler(nearestClampSampler);
     Graphics::DestroyTextureView(resolvedColorTargetView);
     Graphics::DestroyTexture(resolvedColorTarget);
     Graphics::DestroyTextureView(resolvedColorTargetHistoryView);
@@ -134,6 +145,7 @@ void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureV
         BindGroupEntry(5, BindingResource::TextureView(gbufferHistoryView)),
         BindGroupEntry(6, BindingResource::TextureView(resolvedColorTargetHistoryView)),
         BindGroupEntry(7, BindingResource::Sampler(linearClampSampler)),
+        BindGroupEntry(7, BindingResource::Sampler(nearestClampSampler)),
     };
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
 

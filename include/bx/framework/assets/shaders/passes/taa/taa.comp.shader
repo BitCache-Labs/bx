@@ -5,6 +5,8 @@
 #include "[engine]/shaders/packing.shader"
 #include "[engine]/shaders/sampling.shader"
 
+#include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
+
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uvec2 globalResolution;
@@ -17,26 +19,13 @@ layout (BINDING(0, 0), std140) uniform _Constants
 
 layout (BINDING(0, 1), rgba32f) uniform image2D colorTarget;
 layout (BINDING(0, 2), rgba32f) uniform image2D resolvedColorTarget;
-layout (BINDING(0, 3), rg16f) uniform image2D velocityTarget;
-layout (BINDING(0, 4), rgba32f) uniform image2D gbuffer;
-layout (BINDING(0, 5), rgba32f) uniform image2D gbufferHistory;
+layout (BINDING(0, 3)) uniform texture2D velocityTarget;
+layout (BINDING(0, 4)) uniform texture2D gbuffer;
+layout (BINDING(0, 5)) uniform texture2D gbufferHistory;
 layout (BINDING(0, 6)) uniform texture2D resolvedColorTargetHistory;
 
 layout (BINDING(0, 7)) uniform sampler linearClampSampler;
-
-vec4 getPixelNormalAndDepth(ivec2 pixel)
-{
-    vec4 gbufferData = imageLoad(gbuffer, pixel);
-    vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
-    return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
-}
-
-vec4 getPixelNormalAndDepthHistory(ivec2 pixel)
-{
-    vec4 gbufferData = imageLoad(gbufferHistory, pixel);
-    vec3 normal = unpackNormalizedXyz10(PackedNormalizedXyz10(floatBitsToUint(gbufferData.g)), 0);
-    return vec4(normal, (gbufferData.r == 0.0) ? 0.0 : 1.0 / gbufferData.r);
-}
+layout (BINDING(0, 8)) uniform sampler nearestClampSampler;
 
 // Source: M. Pharr, W. Jakob, and G. Humphreys, Physically Based Rendering, Morgan Kaufmann, 2016.
 float mitchell1D(float x, float B, float C)
@@ -86,9 +75,9 @@ void main()
     ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
 
     vec3 current = imageLoad(colorTarget, pixel).rgb;
-    vec4 currentNormalAndDepth = getPixelNormalAndDepth(globalPixel);
+    GBufferData currentGBufferData = GBufferData_loadAll(gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
 
-    if (currentNormalAndDepth.w == 0.0)
+    if (GBufferData_isSky(currentGBufferData))
     {
         imageStore(resolvedColorTarget, pixel, vec4(current, 1.0));
         return;
@@ -112,7 +101,7 @@ void main()
             }
 
             ivec2 samplePixel = pixel + ivec2(x, y);
-            if (samplePixel.x < 0 || samplePixel.y < 0 || samplePixel.x >= constants.resolution.x || samplePixel.y >= constants.resolution.y)
+            if (!isPixelInBounds(samplePixel, constants.resolution))
             {
                 continue;
             }
@@ -133,63 +122,31 @@ void main()
 
     reconstructed /= max(weightSum, 1e-5);
 
-    vec2 velocity = imageLoad(velocityTarget, globalPixel).rg;
-    ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
-    ivec2 globalPrevPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
+    vec2 velocity = getVelocity(velocityTarget, nearestClampSampler, globalPixel, constants.globalResolution);
+    //vec2 velocity = getVelocityDepthDilated(velocityTarget, gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
+    vec2 historyUv = pixelToUv(pixel, constants.resolution) - velocity;
+    ivec2 historyGlobalPixel = uvToPixel(historyUv, constants.globalResolution);
 
-    if (prevPixel.x < 0 || prevPixel.y < 0 || prevPixel.x >= constants.resolution.x || prevPixel.y >= constants.resolution.y)
+    if (isPixelInBounds(historyGlobalPixel, constants.globalResolution))
     {
-        imageStore(resolvedColorTarget, pixel, vec4(reconstructed, 1.0));
-        return;
+        GBufferData historyGBufferData = GBufferData_loadAll(gbufferHistory, nearestClampSampler, historyGlobalPixel, constants.globalResolution);
+
+        vec3 history = sampleTextureCatmullRom(resolvedColorTargetHistory, linearClampSampler, historyUv, vec2(constants.resolution));
+
+        vec3 mean = firstMoment / sampleCount;
+        vec3 std = abs(secondMoment - sqr(firstMoment) / sampleCount);
+        std /= (sampleCount - 1.0);
+        std = sqrt(std);
+
+        vec3 clippedHistory = clipAabb(mean - std, mean + std, history);
+        
+        float blendWeight = 1.0 - constants.historyWeight;
+        
+        float currentWeight = saturate(blendWeight * (1.0 / (1.0 + linearToLuma(reconstructed))));
+        float historyWeight = saturate((1.0 - blendWeight) * (1.0 / (1.0 + linearToLuma(clippedHistory))));
+        reconstructed = (currentWeight * reconstructed + historyWeight * clippedHistory) / (currentWeight + historyWeight);
+        reconstructed = fixNan(reconstructed);
     }
-
-    vec4 historyNormalAndDepth = getPixelNormalAndDepthHistory(globalPrevPixel);
-
-    bool validDepth = historyNormalAndDepth.w <= 1.1 * currentNormalAndDepth.w && historyNormalAndDepth.w >= 0.9 * currentNormalAndDepth.w;
-    if (!validDepth)
-    {
-        imageStore(resolvedColorTarget, pixel, vec4(reconstructed, 1.0));
-        return;
-    }
-
-    vec2 historyUv = ((vec2(prevPixel) + 0.5) / vec2(constants.resolution));
-    vec3 history = sampleTextureCatmullRom(resolvedColorTargetHistory, linearClampSampler, historyUv, vec2(constants.resolution));
-
-    vec3 mean = firstMoment / sampleCount;
-    vec3 std = abs(secondMoment - sqr(firstMoment) / sampleCount);
-    std /= (sampleCount - 1.0);
-    std = sqrt(std);
-
-    vec3 clippedHistory = clipAabb(mean - std, mean + std, history);
     
-    float blendWeight = 1.0 - constants.historyWeight;
-    
-    float currentWeight = saturate(blendWeight * (1.0 / (1.0 + linearToLuma(reconstructed))));
-    float historyWeight = saturate((1.0 - blendWeight) * (1.0 / (1.0 + linearToLuma(clippedHistory))));
-    vec3 result = (currentWeight * reconstructed + historyWeight * clippedHistory) / (currentWeight + historyWeight);
-    result = fixNan(result);
-    
-    imageStore(resolvedColorTarget, pixel, vec4(result, 1.0));
-
-    //bool depthSimilarity = abs(currentNormalAndDepth.w - historyNormalAndDepth.w) < 0.1;
-    //bool normalSimilarity = dot(currentNormalAndDepth.xyz, historyNormalAndDepth.xyz) >= 0.86;
-    //if (!depthSimilarity || !normalSimilarity)
-    //{
-    //    history = current;
-    //}
-    //else
-    //{
-    //    vec3 nearColor0 = imageLoad(colorTarget, pixel + ivec2(1, 0)).xyz;
-    //    vec3 nearColor1 = imageLoad(colorTarget, pixel + ivec2(0, 1)).xyz;
-    //    vec3 nearColor2 = imageLoad(colorTarget, pixel + ivec2(-1, 0)).xyz;
-    //    vec3 nearColor3 = imageLoad(colorTarget, pixel + ivec2(0, -1)).xyz;
-    //    vec3 boxMin = min(current, min(nearColor0, min(nearColor1, min(nearColor2, nearColor3))));
-    //    vec3 boxMax = max(current, max(nearColor0, max(nearColor1, max(nearColor2, nearColor3))));
-    //
-    //    history = clamp(history, boxMin, boxMax);
-    //}
-    //
-    //vec3 result = mix(current, history, 0.85);
-    //
-    //imageStore(resolvedColorTarget, pixel, vec4(result, 1.0));
+    imageStore(resolvedColorTarget, pixel, vec4(reconstructed, 1.0));
 }

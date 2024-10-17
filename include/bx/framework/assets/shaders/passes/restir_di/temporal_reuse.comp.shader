@@ -101,7 +101,7 @@ void main()
         }
 
         // History
-        vec2 velocity = getClosestVelocity(velocity, gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
+        vec2 velocity = getVelocity(velocity, nearestClampSampler, globalPixel, constants.globalResolution);
         ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
 
         if (isPixelInBounds(prevPixel, constants.resolution))
@@ -114,7 +114,7 @@ void main()
 
             GBufferData sampleGBufferData = GBufferData_loadAll(gbufferHistory, nearestClampSampler, prevGlobalPixel, constants.globalResolution);
 
-            if (!GBufferData_isDisoccluded(centerGBufferData, sampleGBufferData))
+            if (!GBufferData_isDisoccludedStrict(centerGBufferData, sampleGBufferData))
             {
                 ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
                 Reservoir sampledReservoir = Reservoir_fromPacked(restirReservoirsHistory[prevId]);

@@ -26,6 +26,7 @@ private:
 	BufferHandle constantBuffer;
 
 	SamplerHandle linearClampSampler;
+	SamplerHandle nearestClampSampler;
 
 	TextureHandle resolvedColorTarget;
 	TextureViewHandle resolvedColorTargetView;

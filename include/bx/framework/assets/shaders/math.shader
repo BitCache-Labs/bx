@@ -109,6 +109,11 @@ bool isPixelInBounds(ivec2 pixel, uvec2 resolution)
     return !(pixel.x >= resolution.x || pixel.y >= resolution.y || pixel.x < 0 || pixel.y < 0);
 }
 
+ivec2 uvToPixel(vec2 uv, uvec2 resolution)
+{
+    return ivec2(round(uv / vec2(resolution)));
+}
+
 vec2 pixelToUv(ivec2 pixel, uvec2 resolution)
 {
     return (vec2(pixel) + 0.5) / vec2(resolution);

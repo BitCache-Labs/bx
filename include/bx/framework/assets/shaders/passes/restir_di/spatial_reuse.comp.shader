@@ -90,7 +90,14 @@ void main()
     #pragma unroll
     for (uint i = 0; i < NUM_SPATIAL_SAMPLES; i++)
     {
-        float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
+        float sum = 1.0;
+        for (uint j = 0; j < 1024 * 16; j++)
+        {
+            sum += sqrt(j) * sqrt(sum);
+        }
+        sum *= 0.0000001;
+
+        float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset + sum;
         float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
     
         ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));

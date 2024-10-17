@@ -64,7 +64,7 @@ void _depthTestMin(texture2D gbufferTexture, sampler s, ivec2 pixel, uvec2 resol
 	}
 }
 
-vec2 getClosestVelocity(texture2D velocityTexture, texture2D gbufferTexture, sampler s, ivec2 pixel, uvec2 resolution)
+vec2 getVelocityDepthDilated(texture2D velocityTexture, texture2D gbufferTexture, sampler s, ivec2 pixel, uvec2 resolution)
 {
 	float minDepth = GBufferData_loadDepth(gbufferTexture, s, pixel, resolution).distance;
 	ivec2 minPixel = pixel;
@@ -84,7 +84,34 @@ vec2 getClosestVelocity(texture2D velocityTexture, texture2D gbufferTexture, sam
 	return velocity;
 }
 
+vec2 getVelocity(texture2D velocityTexture, sampler s, ivec2 pixel, uvec2 resolution)
+{
+	vec2 uv = pixelToUv(pixel, resolution);
+	vec2 velocity = texture(sampler2D(velocityTexture, s), uv).xy;
+	return velocity;
+}
+
 bool GBufferData_isDisoccluded(GBufferData current, GBufferData history)
+{
+	if (GBufferData_isSky(history))
+	{
+		return true;
+	}
+
+    if (abs(current.distance - history.distance) > 0.8)
+    {
+        return true;
+    }
+
+    if (dot(current.normal, history.normal) < 0.9)
+    {
+        return true;
+    }
+
+	return false;
+}
+
+bool GBufferData_isDisoccludedStrict(GBufferData current, GBufferData history)
 {
 	if (GBufferData_isSky(history))
 	{

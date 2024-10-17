@@ -106,7 +106,7 @@ void main()
     {
         GBufferData historyGBufferData = GBufferData_loadAll(gbufferHistory, nearestClampSampler, globalPrevPixel, constants.globalResolution);
 
-        if (!GBufferData_isDisoccluded(currentGBufferData, historyGBufferData))
+        if (!GBufferData_isDisoccludedStrict(currentGBufferData, historyGBufferData))
         {
             history = imageLoad(inHistory, prevPixel);
             momentsHistory = imageLoad(variance, prevPixel).gb;
