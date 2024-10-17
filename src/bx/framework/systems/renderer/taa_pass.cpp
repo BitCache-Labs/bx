@@ -145,7 +145,7 @@ void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureV
         BindGroupEntry(5, BindingResource::TextureView(gbufferHistoryView)),
         BindGroupEntry(6, BindingResource::TextureView(resolvedColorTargetHistoryView)),
         BindGroupEntry(7, BindingResource::Sampler(linearClampSampler)),
-        BindGroupEntry(7, BindingResource::Sampler(nearestClampSampler)),
+        BindGroupEntry(8, BindingResource::Sampler(nearestClampSampler)),
     };
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);
 
