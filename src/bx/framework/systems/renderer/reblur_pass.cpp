@@ -147,7 +147,7 @@ ReblurPass::ReblurPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHei
     TextureCreateInfo historyCreateInfo{};
     historyCreateInfo.size = Extend3D(lightingWidth, lightingHeight, 1);
     historyCreateInfo.format = TextureFormat::RGBA32_FLOAT;
-    historyCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING;
+    historyCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::TEXTURE_BINDING;
     for (u32 i = 0; i < 2; i++)
     {
         historyCreateInfo.name = Log::Format("Reblur History {} Texture", i);

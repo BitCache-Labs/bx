@@ -122,8 +122,7 @@ void main()
 
     reconstructed /= max(weightSum, 1e-5);
 
-    vec2 velocity = getVelocity(velocityTarget, nearestClampSampler, globalPixel, constants.globalResolution);
-    //vec2 velocity = getVelocityDepthDilated(velocityTarget, gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
+    vec2 velocity = getVelocityDepthDilated(velocityTarget, gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
     vec2 historyUv = pixelToUv(pixel, constants.resolution) - velocity;
     ivec2 historyGlobalPixel = uvToPixel(historyUv, constants.globalResolution);
 

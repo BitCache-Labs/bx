@@ -111,7 +111,7 @@ bool isPixelInBounds(ivec2 pixel, uvec2 resolution)
 
 ivec2 uvToPixel(vec2 uv, uvec2 resolution)
 {
-    return ivec2(round(uv / vec2(resolution)));
+    return ivec2(round(uv * vec2(resolution)));
 }
 
 vec2 pixelToUv(ivec2 pixel, uvec2 resolution)
