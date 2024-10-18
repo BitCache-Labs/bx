@@ -161,6 +161,7 @@ set (BX_SRCS
 	"src/bx/framework/resources/shader.cpp"
 	"src/bx/framework/resources/skeleton.cpp"
 	"src/bx/framework/resources/texture.cpp"
+	"src/bx/framework/systems/renderer/anti_firefly_pass.cpp"
 	"src/bx/framework/systems/renderer/blas_data_pool.cpp"
 	"src/bx/framework/systems/renderer/bloom_pass.cpp"
 	"src/bx/framework/systems/renderer/fog_pass.cpp"

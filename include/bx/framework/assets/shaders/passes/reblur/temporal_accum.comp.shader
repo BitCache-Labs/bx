@@ -7,10 +7,10 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
-const float MAX_ACCUMULATED_FRAMES = 14.0;
+const float MAX_ACCUMULATED_FRAMES = 1.0;// 14.0;
 
-const int ANTI_FIREFLY_RADIUS = 6;
-const float ANTI_FIREFLY_SCALE = 0.5;
+const int ANTI_FIREFLY_RADIUS = 4;
+const float ANTI_FIREFLY_SCALE = 2.0;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -43,7 +43,16 @@ void main()
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
     ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
 
-    vec3 current = texture(sampler2D(inImage, nearestClampSampler), pixelToUv(pixel, constants.resolution)).rgb;
+    vec3 current;// = textureLod(sampler2D(inImage, nearestClampSampler), pixelToUv(pixel, constants.resolution), 2.0).rgb;
+
+    if (false)//constants.antiFirefly)
+    {
+        current = sampleTextureCatmullRomLod(inImage, linearClampSampler, 2.0, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
+    }
+    else
+    {
+        current = textureLod(sampler2D(inImage, linearClampSampler), pixelToUv(pixel, constants.resolution), 2.0).rgb;
+    }
 
     GBufferData currentGBufferData = GBufferData_loadAll(gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
 
@@ -75,15 +84,18 @@ void main()
             history.w = min(history.w + 1.0, MAX_ACCUMULATED_FRAMES);
         }
         
-        if (history.w <= 6.0)
-        {
-            float lod = mix(5.0, 2.0, history.w / 6.0);
-            current = sampleTextureCatmullRomLod(inImage, linearClampSampler, lod, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
-            history.rgb = current;
-        }
+        //if (history.w <= 6.0)
+        //{
+        //    float lod = 0.0;//mix(5.0, 2.0, history.w / 6.0);
+        //
+        //    current = sampleTextureCatmullRomLod(inImage, linearClampSampler, lod, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
+        //
+        //    
+        //    history.rgb = current;
+        //}
     }
 
-    if (constants.antiFirefly)
+    if (false)//constants.antiFirefly)
     {
         float luma = linearToLuma(current);
 

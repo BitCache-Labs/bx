@@ -165,6 +165,8 @@ ReblurPass::ReblurPass(u32 width, u32 height, u32 lightingWidth, u32 lightingHei
         varianceTexture[i] = Graphics::CreateTexture(varianceCreateInfo);
         varianceTextureView[i] = Graphics::CreateTextureView(varianceTexture[i]);
     }
+
+    antiFireflyPass = std::unique_ptr<AntiFireflyPass>(new AntiFireflyPass(lightingWidth, lightingHeight));
 }
 
 ReblurPass::~ReblurPass()
@@ -247,6 +249,12 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     for (u32 i = 0; i < 2; i++)
     {
         aTrousBindGroup[i] = CreateATrousBindGroup(dispatchInfo, i % 2 != 0);
+    }
+
+    if (antiFirefly)
+    {
+        antiFireflyPass->Dispatch(dispatchInfo.unresolvedIllumination);
+        Graphics::CopyTexture(antiFireflyPass->GetResolvedColorTarget(), dispatchInfo.unresolvedIllumination);
     }
 
     Graphics::BuildTextureMips(dispatchInfo.unresolvedIllumination);

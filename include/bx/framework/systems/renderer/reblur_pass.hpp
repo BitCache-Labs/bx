@@ -4,6 +4,8 @@
 
 #include "bx/engine/modules/graphics.hpp"
 
+#include "bx/framework/systems/renderer/anti_firefly_pass.hpp"
+
 struct ReblurDispatchInfo
 {
 	TextureHandle unresolvedIllumination;
@@ -33,6 +35,8 @@ private:
 	u32 width, height;
 	u32 lightingWidth, lightingHeight;
 	u32 frameIdx;
+
+	std::unique_ptr<AntiFireflyPass> antiFireflyPass;
 
 	SamplerHandle nearestClampSampler;
 	SamplerHandle linearClampSampler;
