@@ -43,7 +43,7 @@ struct TemporalAccumPipeline : public LazyInit<TemporalAccumPipeline, ComputePip
         pipelineLayoutDescriptor.bindGroupLayouts = {
             BindGroupLayoutDescriptor(0, {
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),                                                                 // constants
-                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),         // inImage
+                BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),         // inImage
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),         // history
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),        // outHistory
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),         // gbuffer
@@ -248,6 +248,8 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     {
         aTrousBindGroup[i] = CreateATrousBindGroup(dispatchInfo, i % 2 != 0);
     }
+
+    Graphics::BuildTextureMips(dispatchInfo.unresolvedIllumination);
 
     TemporalAccumConstants temporalAccumConstants{};
     temporalAccumConstants.globalWidth = width;

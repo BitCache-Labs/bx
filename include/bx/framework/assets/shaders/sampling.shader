@@ -121,7 +121,7 @@ float interleavedGradientNoiseAnimated(uvec2 pos, uint frame)
 }
 
 // https://gist.github.com/TheRealMJP/c83b8c0f46b63f3a88a5986f4fa982b1
-vec3 sampleTextureCatmullRom(texture2D t, sampler s, vec2 uv, vec2 texSize)
+vec3 sampleTextureCatmullRomLod(texture2D t, sampler s, float lod, vec2 uv, vec2 texSize)
 {
     vec2 samplePos = uv * texSize;
     vec2 texPos1 = floor(samplePos - 0.5) + 0.5;
@@ -145,19 +145,24 @@ vec3 sampleTextureCatmullRom(texture2D t, sampler s, vec2 uv, vec2 texSize)
     texPos12 /= texSize;
 
     vec3 result = vec3(0.0);
-    result += texture(sampler2D(t, s), vec2(texPos0.x, texPos0.y)).xyz * w0.x * w0.y;
-    result += texture(sampler2D(t, s), vec2(texPos12.x, texPos0.y)).xyz * w12.x * w0.y;
-    result += texture(sampler2D(t, s), vec2(texPos3.x, texPos0.y)).xyz * w3.x * w0.y;
+    result += textureLod(sampler2D(t, s), vec2(texPos0.x, texPos0.y), lod).xyz * w0.x * w0.y;
+    result += textureLod(sampler2D(t, s), vec2(texPos12.x, texPos0.y), lod).xyz * w12.x * w0.y;
+    result += textureLod(sampler2D(t, s), vec2(texPos3.x, texPos0.y), lod).xyz * w3.x * w0.y;
     
-    result += texture(sampler2D(t, s), vec2(texPos0.x, texPos12.y)).xyz * w0.x * w12.y;
-    result += texture(sampler2D(t, s), vec2(texPos12.x, texPos12.y)).xyz * w12.x * w12.y;
-    result += texture(sampler2D(t, s), vec2(texPos3.x, texPos12.y)).xyz * w3.x * w12.y;
+    result += textureLod(sampler2D(t, s), vec2(texPos0.x, texPos12.y), lod).xyz * w0.x * w12.y;
+    result += textureLod(sampler2D(t, s), vec2(texPos12.x, texPos12.y), lod).xyz * w12.x * w12.y;
+    result += textureLod(sampler2D(t, s), vec2(texPos3.x, texPos12.y), lod).xyz * w3.x * w12.y;
 
-    result += texture(sampler2D(t, s), vec2(texPos0.x, texPos3.y)).xyz * w0.x * w3.y;
-    result += texture(sampler2D(t, s), vec2(texPos12.x, texPos3.y)).xyz * w12.x * w3.y;
-    result += texture(sampler2D(t, s), vec2(texPos3.x, texPos3.y)).xyz * w3.x * w3.y;
+    result += textureLod(sampler2D(t, s), vec2(texPos0.x, texPos3.y), lod).xyz * w0.x * w3.y;
+    result += textureLod(sampler2D(t, s), vec2(texPos12.x, texPos3.y), lod).xyz * w12.x * w3.y;
+    result += textureLod(sampler2D(t, s), vec2(texPos3.x, texPos3.y), lod).xyz * w3.x * w3.y;
     
     return result;
+}
+
+vec3 sampleTextureCatmullRom(texture2D t, sampler s, vec2 uv, vec2 texSize)
+{
+    return sampleTextureCatmullRomLod(t, s, 0.0, uv, texSize);
 }
 
 #endif // SAMPLING_H
