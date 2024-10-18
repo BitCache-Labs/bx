@@ -102,19 +102,12 @@ void main()
 
         // History
         vec2 velocity = getVelocity(velocity, nearestClampSampler, globalPixel, constants.globalResolution);
-
         vec2 historyUv = pixelToUv(pixel, constants.resolution) - velocity;
-        ivec2 prevPixel = uvToPixel(historyUv, constants.resolution);
-        ivec2 prevGlobalPixel = uvToPixel(historyUv, constants.globalResolution);
 
-        //ivec2 prevPixel = pixel - ivec2(vec2(constants.resolution) * velocity);
-
-        if (isPixelInBounds(prevPixel, constants.resolution))
+        if (isUvInBounds(historyUv))
         {
-            
-            //ivec2 prevGlobalPixel = globalPixel - ivec2(vec2(constants.globalResolution) * velocity);
-            //prevGlobalPixel = clamp(prevGlobalPixel, ivec2(0), ivec2(constants.globalResolution) - 1);
-
+            ivec2 prevPixel = uvToPixel(historyUv, constants.resolution);
+            ivec2 prevGlobalPixel = uvToPixel(historyUv, constants.globalResolution);
             uint prevId = prevPixel.y * constants.resolution.x + prevPixel.x;
 
             GBufferData sampleGBufferData = GBufferData_loadAll(gbufferHistory, nearestClampSampler, prevGlobalPixel, constants.globalResolution);

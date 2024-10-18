@@ -94,8 +94,6 @@ void main()
 
     vec2 velocity = getVelocity(velocityTarget, nearestClampSampler, globalPixel, constants.globalResolution);
     vec2 historyUv = pixelToUv(pixel, constants.resolution) - velocity;
-    ivec2 historyPixel = uvToPixel(historyUv, constants.resolution);
-    ivec2 historyGlobalPixel = uvToPixel(historyUv, constants.globalResolution);
 
     vec2 moments;
     moments.x = linearToLuma(current);
@@ -104,8 +102,11 @@ void main()
     vec4 history = vec4(current, 0.0);
     vec2 momentsHistory = moments;
 
-    if (isPixelInBounds(historyGlobalPixel, constants.globalResolution))
+    if (isUvInBounds(historyUv))
     {
+        ivec2 historyPixel = uvToPixel(historyUv, constants.resolution);
+        ivec2 historyGlobalPixel = uvToPixel(historyUv, constants.globalResolution);
+
         GBufferData historyGBufferData = GBufferData_loadAll(gbufferHistory, nearestClampSampler, historyGlobalPixel, constants.globalResolution);
 
         if (!GBufferData_isDisoccludedStrict(currentGBufferData, historyGBufferData))

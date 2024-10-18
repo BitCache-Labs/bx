@@ -109,14 +109,23 @@ bool isPixelInBounds(ivec2 pixel, uvec2 resolution)
     return !(pixel.x >= resolution.x || pixel.y >= resolution.y || pixel.x < 0 || pixel.y < 0);
 }
 
+bool isUvInBounds(vec2 uv)
+{
+    return !(uv.x >= 1.0 || uv.y >= 1.0 || uv.x < 0.0 || uv.y < 0.0);
+}
+
 ivec2 uvToPixel(vec2 uv, uvec2 resolution)
 {
-    return ivec2(round(uv * vec2(resolution)));
+    return clamp(
+        ivec2(round(uv * vec2(resolution) - 0.5)),
+        ivec2(0),
+        ivec2(resolution) - 1
+    );
 }
 
 vec2 pixelToUv(ivec2 pixel, uvec2 resolution)
 {
-    return (vec2(pixel) + 0.5) / vec2(resolution);
+    return (2.0 * vec2(pixel) + 1.0) / (2.0 * vec2(resolution));
 }
 
 ivec2 rescaleResolution(ivec2 pixel, uvec2 inResolution, uvec2 outResolution)
