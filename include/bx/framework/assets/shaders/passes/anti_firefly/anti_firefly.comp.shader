@@ -27,46 +27,48 @@ void main()
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
 
     vec3 color = texture(sampler2D(image, linearClampSampler), pixelToUv(pixel, constants.resolution)).rgb;
-    
     float luma = linearToLuma(color);
 
-    float m1 = 0.0;
-    float m2 = 0.0;
-
-    #pragma unroll
-    for (int x = -ANTI_FIREFLY_RADIUS; x <= ANTI_FIREFLY_RADIUS; x++)
+    if (luma != 0.0)
     {
+        float m1 = 0.0;
+        float m2 = 0.0;
+
         #pragma unroll
-        for (int y = -ANTI_FIREFLY_RADIUS; y <= ANTI_FIREFLY_RADIUS; y++)
+        for (int x = -ANTI_FIREFLY_RADIUS; x <= ANTI_FIREFLY_RADIUS; x++)
         {
-            if (abs(x) <= 1 && abs(y) <= 1)
+            #pragma unroll
+            for (int y = -ANTI_FIREFLY_RADIUS; y <= ANTI_FIREFLY_RADIUS; y++)
             {
-                continue;
+                if (abs(x) <= 1 && abs(y) <= 1)
+                {
+                    continue;
+                }
+
+                ivec2 samplePixel = pixel + ivec2(x, y);
+                samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
+
+                float sampleLuma = linearToLuma(texture(sampler2D(image, linearClampSampler), pixelToUv(samplePixel, constants.resolution)).rgb);
+                m1 += sampleLuma;
+                m2 += sqr(sampleLuma);
             }
-
-            ivec2 samplePixel = pixel + ivec2(x, y);
-            samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
-
-            float sampleLuma = linearToLuma(texture(sampler2D(image, linearClampSampler), pixelToUv(samplePixel, constants.resolution)).rgb);
-            m1 += sampleLuma;
-            m2 += sqr(sampleLuma);
         }
+
+        float invNorm = 1.0 / ((ANTI_FIREFLY_RADIUS * 2 + 1) * (ANTI_FIREFLY_RADIUS * 2 + 1) - 3 * 3);
+        m1 *= invNorm;
+        m2 *= invNorm;
+
+        float sigma = stdDev(m1, m2) * ANTI_FIREFLY_SCALE;
+        float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
+
+        vec3 colorLod = textureLod(sampler2D(image, linearClampSampler), pixelToUv(pixel, constants.resolution), 4.0).rgb;
+        float lodLuma = linearToLuma(colorLod);
+        clampedLuma = min(clampedLuma, lodLuma);
+
+        float lumaFactor = clampedLuma / luma;
+        
+        color *= lumaFactor; // TODO: incorrect
     }
-
-    float invNorm = 1.0 / ((ANTI_FIREFLY_RADIUS * 2 + 1) * (ANTI_FIREFLY_RADIUS * 2 + 1) - 3 * 3);
-    m1 *= invNorm;
-    m2 *= invNorm;
-
-    float sigma = stdDev(m1, m2) * ANTI_FIREFLY_SCALE;
-    float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
-
-    vec3 colorLod = textureLod(sampler2D(image, linearClampSampler), pixelToUv(pixel, constants.resolution), 4.0).rgb;
-    float lodLuma = linearToLuma(colorLod);
-    clampedLuma = min(clampedLuma, lodLuma);
-
-    float lumaFactor = (luma == 0.0) ? 0.0 : (clampedLuma / luma);
-    
-    color *= lumaFactor; // TODO: incorrect
 
     imageStore(outImage, pixel, vec4(color, 1.0));
 }

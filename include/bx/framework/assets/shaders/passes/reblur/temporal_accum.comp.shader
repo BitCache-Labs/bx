@@ -7,7 +7,8 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
-const float MAX_ACCUMULATED_FRAMES = 1.0;// 14.0;
+const float MAX_ACCUMULATED_FRAMES = 14.0;
+const float HISTORY_RECONSTRUCTION_FRAMES = 4.0;
 
 const int ANTI_FIREFLY_RADIUS = 4;
 const float ANTI_FIREFLY_SCALE = 2.0;
@@ -43,16 +44,7 @@ void main()
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
     ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
 
-    vec3 current;// = textureLod(sampler2D(inImage, nearestClampSampler), pixelToUv(pixel, constants.resolution), 2.0).rgb;
-
-    if (false)//constants.antiFirefly)
-    {
-        current = sampleTextureCatmullRomLod(inImage, linearClampSampler, 2.0, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
-    }
-    else
-    {
-        current = textureLod(sampler2D(inImage, linearClampSampler), pixelToUv(pixel, constants.resolution), 2.0).rgb;
-    }
+    vec3 current = texture(sampler2D(inImage, linearClampSampler), pixelToUv(pixel, constants.resolution)).rgb;
 
     GBufferData currentGBufferData = GBufferData_loadAll(gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
 
@@ -84,53 +76,12 @@ void main()
             history.w = min(history.w + 1.0, MAX_ACCUMULATED_FRAMES);
         }
         
-        //if (history.w <= 6.0)
-        //{
-        //    float lod = 0.0;//mix(5.0, 2.0, history.w / 6.0);
-        //
-        //    current = sampleTextureCatmullRomLod(inImage, linearClampSampler, lod, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
-        //
-        //    
-        //    history.rgb = current;
-        //}
-    }
-
-    if (false)//constants.antiFirefly)
-    {
-        float luma = linearToLuma(current);
-
-        float m1 = 0.0;
-        float m2 = 0.0;
-
-        #pragma unroll
-        for (int x = -ANTI_FIREFLY_RADIUS; x <= ANTI_FIREFLY_RADIUS; x++)
+        if (history.w <= HISTORY_RECONSTRUCTION_FRAMES)
         {
-            #pragma unroll
-            for (int y = -ANTI_FIREFLY_RADIUS; y <= ANTI_FIREFLY_RADIUS; y++)
-            {
-                if (abs(x) <= 1 && abs(y) <= 1)
-                {
-                    continue;
-                }
-
-                ivec2 samplePixel = pixel + ivec2(x, y);
-                samplePixel = mirrorSample(samplePixel, ivec2(constants.resolution));
-
-                float sampleLuma = linearToLuma(texture(sampler2D(inImage, nearestClampSampler), pixelToUv(samplePixel, constants.resolution)).rgb);
-                m1 += sampleLuma;
-                m2 += sqr(sampleLuma);
-            }
+            float lod = mix(3.0, 1.0, history.w / HISTORY_RECONSTRUCTION_FRAMES);
+            current = sampleTextureCatmullRomLod(inImage, linearClampSampler, lod, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
+            history.rgb = current;
         }
-
-        float invNorm = 1.0 / ((ANTI_FIREFLY_RADIUS * 2 + 1) * (ANTI_FIREFLY_RADIUS * 2 + 1) - 3 * 3);
-        m1 *= invNorm;
-        m2 *= invNorm;
-
-        float sigma = stdDev(m1, m2) * ANTI_FIREFLY_SCALE;
-        float clampedLuma = clamp(luma, m1 - sigma, m1 + sigma);
-        float lumaFactor = (luma == 0.0) ? 0.0 : (clampedLuma / luma);
-
-        current *= lumaFactor; // TODO: incorrect
     }
     
     vec2 moments;
