@@ -139,7 +139,8 @@ void main()
 
         vec3 clippedHistory = clipAabb(mean - std, mean + std, history);
         
-        float blendWeight = 1.0 - constants.historyWeight;
+        float historyWeightFactor = GBufferData_isDisoccludedStrict(currentGBufferData, historyGBufferData) ? 0.0 : 1.0;
+        float blendWeight = 1.0 - (constants.historyWeight * historyWeightFactor);
         
         float currentWeight = saturate(blendWeight * (1.0 / (1.0 + linearToLuma(reconstructed))));
         float historyWeight = saturate((1.0 - blendWeight) * (1.0 / (1.0 + linearToLuma(clippedHistory))));

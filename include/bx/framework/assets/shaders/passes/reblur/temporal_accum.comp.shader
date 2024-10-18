@@ -10,9 +10,6 @@
 const float MAX_ACCUMULATED_FRAMES = 14.0;
 const float HISTORY_RECONSTRUCTION_FRAMES = 4.0;
 
-const int ANTI_FIREFLY_RADIUS = 4;
-const float ANTI_FIREFLY_SCALE = 2.0;
-
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     uvec2 globalResolution;
@@ -68,7 +65,9 @@ void main()
 
         GBufferData historyGBufferData = GBufferData_loadAll(gbufferHistory, nearestClampSampler, historyGlobalPixel, constants.globalResolution);
 
-        if (!GBufferData_isDisoccludedStrict(currentGBufferData, historyGBufferData))
+        bool disoccluded = GBufferData_isDisoccludedStrict(currentGBufferData, historyGBufferData);
+
+        if (!disoccluded)
         {
             history = texture(sampler2D(inHistory, linearClampSampler), historyUv);
             momentsHistory = imageLoad(variance, historyPixel).gb;
@@ -78,8 +77,12 @@ void main()
         
         if (history.w <= HISTORY_RECONSTRUCTION_FRAMES)
         {
-            float lod = mix(3.0, 1.0, history.w / HISTORY_RECONSTRUCTION_FRAMES);
+            float lod = mix(4.0, 1.0, history.w / HISTORY_RECONSTRUCTION_FRAMES);
             current = sampleTextureCatmullRomLod(inImage, linearClampSampler, lod, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
+        }
+
+        if (disoccluded)
+        {
             history.rgb = current;
         }
     }
