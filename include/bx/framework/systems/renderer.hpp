@@ -34,7 +34,7 @@ public:
 	b8 accumulate = false;
 	b8 hybrid = true;
 	b8 unbiased = false;
-	b8 fsr2 = false;
+	b8 fsr2 = true;
 	b8 bloom = true;
 	b8 restir = true;
 	b8 denoise = true;
