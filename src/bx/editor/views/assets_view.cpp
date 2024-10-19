@@ -119,7 +119,7 @@ static void ProcessFolderImport(TreeNodeId id, const Asset& asset)
 			AssetImporter::ImportModel(childAsset.path);
 		}
 
-		bool isTexture = childAsset.extension == "png";
+		bool isTexture = childAsset.extension == "png" || childAsset.extension == "hdr";
 		if (isTexture)
 		{
 			AssetImporter::ImportTexture(childAsset.path);
@@ -148,7 +148,7 @@ static void ProcessAssetContextMenu(TreeNodeId id, const Asset& asset)
 			AssetImporter::ImportModel(asset.path);
 		}
 
-		bool isTexture = asset.extension == "png";
+		bool isTexture = asset.extension == "png" || asset.extension == "hdr";
 		if (isTexture && ImGui::MenuItem("Import"))
 		{
 			AssetImporter::ImportTexture(asset.path);

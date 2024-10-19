@@ -210,6 +210,13 @@ void Renderer::Initialize()
     m_materialPool = std::unique_ptr<MaterialPool>(new MaterialPool());
     m_sky = std::unique_ptr<Sky>(new Sky());
 
+    const String& skyTexturePath = Data::GetString("Sky Texture", "[assets]/Sky/rural_asphalt_road_4k.texture", DataTarget::GAME);
+    if (File::Exists(skyTexturePath))
+    {
+        Resource<Texture> skyTexture(skyTexturePath);
+        m_sky->SetSkyTexture(skyTexture);
+    }
+
     RecreateRenderTargets();
 }
 
@@ -242,7 +249,7 @@ void Renderer::Render()
     {
         m_gbufferPass->Dispatch(m_cameras.back());
 
-        m_sky->sunInfo.intensity = 0.0;
+        //m_sky->sunInfo.intensity = 0.0;
 
         m_nertPass->seed = frameIdx;
         m_nertPass->accumulationFrameIdx = accumulate ? (m_nertPass->accumulationFrameIdx + 1) : 0;

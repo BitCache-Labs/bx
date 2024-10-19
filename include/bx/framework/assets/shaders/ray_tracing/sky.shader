@@ -21,6 +21,10 @@ layout (BINDING(3, 0), std140) uniform _SkyConstants
 	SkyConstants skyConstants;
 };
 
+layout (BINDING(3, 1)) uniform texture2D skyTexture;
+
+layout (BINDING(3, 2)) uniform sampler skySampler;
+
 #endif // SKY_BINDINGS
 
 float sunIntensity(float zenithAngleCos)
@@ -39,6 +43,15 @@ float sunSolidAngle()
 vec3 sampleSunDirection(vec2 uv)
 {
 	return normalize(perturbDirectionVector(uv, -skyConstants.sunDirection, skyConstants.sunSize));
+}
+
+vec3 shadeSky(vec3 direction)
+{
+	direction.y = -direction.y;
+	vec2 uv = unitVectorToPanoramaCoords(direction);
+	vec3 skyColor = texture(sampler2D(skyTexture, skySampler), uv).rgb;
+
+	return skyColor;
 }
 
 #endif // SKY_H

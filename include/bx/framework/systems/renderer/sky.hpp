@@ -6,6 +6,8 @@
 
 #include "bx/engine/modules/graphics.hpp"
 
+#include "bx/framework/resources/texture.hpp"
+
 struct SunInfo
 {
 	Vec3 direction = Vec3(-0.3, -1.0, 0.0);
@@ -20,6 +22,8 @@ public:
 	Sky();
 	~Sky();
 
+	void SetSkyTexture(const Resource<Texture>& texture);
+
 	void Submit();
 
 	BindGroupHandle CreateBindGroup(ComputePipelineHandle pipeline) const;
@@ -31,4 +35,8 @@ public:
 
 private:
 	BufferHandle skyConstantsBuffer = BufferHandle::null;
+
+	Optional<TextureHandle> skyTexture = Optional<TextureHandle>::None();
+	Optional<TextureViewHandle> skyTextureView = Optional<TextureViewHandle>::None();
+	SamplerHandle sampler;
 };

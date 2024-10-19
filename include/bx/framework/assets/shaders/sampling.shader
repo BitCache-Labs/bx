@@ -69,6 +69,14 @@ vec3 getUniformSphereSample(vec2 uv)
     );
 }
 
+vec2 unitVectorToPanoramaCoords(vec3 direction)
+{
+    return vec2(
+        atan(direction.z, direction.x) * 0.15915494309 * 2.0,
+        acos(direction.y) * 0.31830988618
+    );
+}
+
 ivec2 mirrorSample(ivec2 samplePos, ivec2 resolution)
 {
     ivec2 resMinusOne = resolution - 1;

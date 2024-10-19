@@ -31,6 +31,11 @@ layout (BINDING(0, 5)) uniform sampler linearRepeatSampler;
 
 layout (BINDING(0, 6), r32f) uniform image2D throughputs;
 
+layout (BINDING(0, 7), std430) readonly buffer _Rays
+{
+    PackedRay rays[];
+};
+
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main()
 {
@@ -39,6 +44,7 @@ void main()
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
 
     Intersection intersection = intersections[id];
+    Ray ray = unpackRay(rays[id]);
 
     vec3 throughput = unpackRgb9e5(PackedRgb9e5(floatBitsToUint(imageLoad(throughputs, pixel).r)));
 
@@ -81,6 +87,10 @@ void main()
         vec2 uv = vec2(pixel) / vec2(constants.resolution);
         lightingContribution = texture(sampler2D(denoisedIllumination, linearRepeatSampler), uv).rgb;
         lightingContribution *= throughput * baseColorFactor;
+    }
+    else
+    {
+        emissiveContribution += shadeSky(ray.direction);
     }
 
     vec3 resolved = lightingContribution + ambientContribution + emissiveContribution;

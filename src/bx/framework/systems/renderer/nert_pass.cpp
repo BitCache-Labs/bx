@@ -174,7 +174,8 @@ struct ResolvePipeline : public LazyInit<ResolvePipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),        // outImage
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                             // intersections
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),                                                                       // linearRepeatSampler
-                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::R32_FLOAT)),            // throughputs
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::R32_FLOAT)),           // throughputs
+                BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageBuffer(true)),                                                             // rays
             }),
             MaterialPool::GetBindGroupLayout(),
             BlasDataPool::GetBindGroupLayout(),
@@ -540,6 +541,7 @@ BindGroupHandle NertPass::CreateResolveBindGroup(const NertDispatchInfo& dispatc
         BindGroupEntry(4, BindingResource::Buffer(intersectionsBuffer)),
         BindGroupEntry(5, BindingResource::Sampler(linearRepeatSampler)),
         BindGroupEntry(6, BindingResource::TextureView(throughputTextureView)),
+        BindGroupEntry(7, BindingResource::Buffer(raysBuffer)),
     };
     return Graphics::CreateBindGroup(bindGroupCreateInfo);
 }

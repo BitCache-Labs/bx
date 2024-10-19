@@ -117,7 +117,7 @@ LightSample _sampleUniformLight(vec4 random, vec3 p)
 {
     uint emissiveTriangleCount = blasDataConstants.emissiveTriangleCount;
 
-    float sunPickProbability = 0.0;//(emissiveTriangleCount == 0) ? 1.0 : 0.5;
+    float sunPickProbability = (emissiveTriangleCount == 0) ? 1.0 : 0.5;
     if (random.x < sunPickProbability)
     {
         LightSample lightSample;
