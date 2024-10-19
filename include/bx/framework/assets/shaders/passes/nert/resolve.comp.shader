@@ -79,7 +79,7 @@ void main()
         ambientContribution += throughput * baseColorFactor * ambientFactor;
 
         vec2 uv = vec2(pixel) / vec2(constants.resolution);
-        lightingContribution = texture(sampler2D(denoisedIllumination, linearRepeatSampler), uv).rgb * 2.0;
+        lightingContribution = texture(sampler2D(denoisedIllumination, linearRepeatSampler), uv).rgb;
         lightingContribution *= throughput * baseColorFactor;
     }
 

@@ -64,7 +64,7 @@ RisResult ris(inout uint rngState,
     return RisResult(reservoirData, reservoir);
 #else
 
-    const uint M_AREA = 16;
+    const uint M_AREA = 32;
 
     ReservoirData reservoirData = ReservoirData(0, 0, vec2(0.0), 0.0);
     Reservoir reservoir = Reservoir_default();
@@ -99,13 +99,15 @@ RisResult ris(inout uint rngState,
         }
 	}
 
+    
+    reservoir.contributionWeight = (1.0 / max(reservoirData.p_hat, 0.00001)) * (reservoir.weightSum / max(reservoir.sampleCount, 0.00001));
+    reservoir.contributionWeight = fixNan(reservoir.contributionWeight);
+
     if (ReservoirData_isValid(reservoirData))
     {
         float visibility = traceValidationRay(Scene, x1, outputSampleDirection, normal, outputSampleHitT) ? 0.0 : 1.0;
-        reservoirData.p_hat *= visibility;
+        reservoir.contributionWeight *= visibility;
     }
-
-    reservoir.contributionWeight = (reservoirData.p_hat > 0.0) ? ((1.0 / reservoirData.p_hat) * reservoir.weightSum / reservoir.sampleCount) : 0.0;
 
     return RisResult(reservoirData, reservoir);
 #endif

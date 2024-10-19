@@ -17,7 +17,7 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
-const float MAX_SAMPLE_COUNT = 32.0;
+const float MAX_SAMPLE_COUNT = 20.0;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -170,15 +170,20 @@ void main()
                 }
             }
         }
-        
-        if (outputReservoirData.p_hat > 0.0 && outputReservoir.sampleCount > 0.0)
-            outputReservoir.contributionWeight = (1.0 / outputReservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount;
-        else
-            outputReservoir.contributionWeight = 0.0;
 
-        Reservoir_clampContributionWeight(outputReservoir, RESERVOIR_CONTRIBUTION_CLAMP);
+        outputReservoir.contributionWeight = (1.0 / max(outputReservoirData.p_hat, 0.00001)) * (outputReservoir.weightSum / max(outputReservoir.sampleCount, 0.00001));
+        outputReservoir.contributionWeight = fixNan(outputReservoir.contributionWeight);
+        
+        //if (outputReservoirData.p_hat > 0.0 && outputReservoir.sampleCount > 0.0)
+        //    outputReservoir.contributionWeight = (1.0 / outputReservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount;
+        //else
+        //    outputReservoir.contributionWeight = 0.0;
+
+        //Reservoir_clampContributionWeight(outputReservoir, RESERVOIR_CONTRIBUTION_CLAMP);
 
         restirReservoirs[id] = Reservoir_toPacked(outputReservoir);
         restirReservoirData[id] = ReservoirData_toPacked(outputReservoirData);
+        //restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
+        //restirReservoirDataHistory[id] = ReservoirData_toPacked(outputReservoirData);
     }
 }

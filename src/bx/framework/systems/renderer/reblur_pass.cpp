@@ -277,9 +277,6 @@ void ReblurPass::Dispatch(const ReblurDispatchInfo& dispatchInfo)
     }
     Graphics::EndComputePass(computePass);
 
-    // Graphics::CopyTexture(tmpIlluminationTexture, dispatchInfo.unresolvedIllumination);
-    // frameIdx++; return;
-
     ATrousConstants aTrousConstants{};
     aTrousConstants.globalWidth = width;
     aTrousConstants.globalHeight = height;

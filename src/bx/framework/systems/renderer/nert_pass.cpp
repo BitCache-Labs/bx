@@ -676,7 +676,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         reblurPass->seed = seed;
         reblurPass->antiFirefly = antiFirefly;
 
-        preTaaPass->historyWeight = 0.9;
+        preTaaPass->historyWeight = 0.5;
         preTaaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
         
         ReblurDispatchInfo reblurDispatchInfo;
@@ -687,7 +687,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         reblurDispatchInfo.velocityView = dispatchInfo.velocity;
         reblurPass->Dispatch(reblurDispatchInfo);
 
-        //taaPass->historyWeight = 0.99;
+        //taaPass->historyWeight = 0.0;
         //taaPass->Dispatch(dispatchInfo.camera, preTaaPass->GetResolvedColorTarget(), dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
     }
 

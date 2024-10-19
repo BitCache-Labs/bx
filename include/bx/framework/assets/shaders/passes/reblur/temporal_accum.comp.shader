@@ -8,7 +8,6 @@
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
 const float MAX_ACCUMULATED_FRAMES = 14.0;
-const float HISTORY_RECONSTRUCTION_FRAMES = 4.0;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -74,15 +73,9 @@ void main()
 
             history.w = min(history.w + 1.0, MAX_ACCUMULATED_FRAMES);
         }
-        
-        if (history.w <= HISTORY_RECONSTRUCTION_FRAMES)
+        else
         {
-            float lod = mix(4.0, 1.0, history.w / HISTORY_RECONSTRUCTION_FRAMES);
-            current = sampleTextureCatmullRomLod(inImage, linearClampSampler, lod, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
-        }
-
-        if (disoccluded)
-        {
+            current = sampleTextureCatmullRomLod(inImage, linearClampSampler, 2.5, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
             history.rgb = current;
         }
     }
@@ -91,8 +84,7 @@ void main()
     moments.x = linearToLuma(current);
     moments.y = sqr(moments.x);
 
-    // Allow restir to settle
-    float alpha = (history.w <= 3.0) ? 1.0 : (1.0 / (1.0 + history.w));
+    float alpha = 1.0 / (1.0 + history.w);
 
     vec3 result = mix(history.rgb, current, alpha);
     history.rgb = result;
