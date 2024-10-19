@@ -86,13 +86,8 @@ void main()
         vec4 sampleNormalAndDepth = getPixelNormalAndDepth(samplePixel);
         vec3 samplePosition = imageLoad(neGbuffer, samplePixel).rgb;
 
-        //validSample = validSample && dot(samplePosition - centerPosition, normalAndDepth.xyz) > 0.0;
-
         if (validSample)
         {
-
-            //occlusion += saturate((normalAndDepth.w - (sampleNormalAndDepth.w + constants.depthOffset)) * 1.0);
-
             float rangeCheck = smoothstep(1.0, 0.0, abs(normalAndDepth.w - sampleNormalAndDepth.w));
 
             float check = saturate(dot(samplePosition - centerPosition, normalAndDepth.xyz) * 10.0);// > 0.0 ? 1.0 : 0.0;
@@ -102,7 +97,7 @@ void main()
     }
 
     occlusion = 1.0 - (sampleCount > 0.0 ? (occlusion / sampleCount) : 0.0);
-    occlusion = mix(occlusion, 1.0, luma);
+    occlusion = fixNan(mix(occlusion, 1.0, luma));
     color *= mix(1.0, occlusion, constants.intensity);
 
     imageStore(image, pixel, vec4(color, 1.0));

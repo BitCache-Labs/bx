@@ -64,7 +64,7 @@ RisResult ris(inout uint rngState,
     return RisResult(reservoirData, reservoir);
 #else
 
-    const uint M_AREA = 32;
+    const uint M_AREA = 16;
 
     ReservoirData reservoirData = ReservoirData(0, 0, vec2(0.0), 0.0);
     Reservoir reservoir = Reservoir_default();

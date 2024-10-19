@@ -191,9 +191,9 @@ Fsr2Pass::~Fsr2Pass()
 {
     const Fsr2State& fsr2 = Fsr2::Get();
 
-    free(scratchBuffer);
-
     CheckFsr(fsr2.fsr2ContextDestroy(&fsr2Context));
+
+    free(scratchBuffer);
 
     Graphics::DestroyTexture(outputTarget);
 }
