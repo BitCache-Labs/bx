@@ -32,20 +32,35 @@ static Resource<T> ImportResource(const String& filename, const T& data)
     return res;
 }
 
-bool AssetImporter::ImportTexture(const String& filename)
+bool AssetImporter::ImportTexture(const String& filename, TextureFormat format)
 {
     Texture texture;
 
     stbi_set_flip_vertically_on_load(true);
-    auto pData = stbi_load(File::GetPath(filename).c_str(), &texture.width, &texture.height, &texture.channels, 4);
+
+    SizeType channelCount = ChannelsOfTextureFormat(format);
+
+    i32 width, height, channels;
+    void* pData;
+    if (IsTextureFormatHdr(format))
+        pData = (void*)stbi_loadf(File::GetPath(filename).c_str(), &width, &height, &channels, channelCount);
+    else
+        pData = (void*)stbi_load(File::GetPath(filename).c_str(), &width, &height, &channels, channelCount);
+
     if (pData == nullptr)
         return false;
 
-    texture.channels = 4;
+    texture.width = static_cast<u32>(width);
+    texture.height = static_cast<u32>(height);
     texture.depth = 1;
+    texture.format = format;
 
-    texture.pixels.resize((i64)texture.width * (i64)texture.height * 4);
-    memcpy(texture.pixels.data(), pData, texture.pixels.size());
+    SizeType elemSize = SizeOfTextureFormat(format);
+    
+    SizeType sizeInBytes = static_cast<SizeType>(texture.width) * static_cast<SizeType>(texture.height) * elemSize;
+
+    texture.pixels.resize(sizeInBytes);
+    memcpy(texture.pixels.data(), pData, sizeInBytes);
     stbi_image_free(pData);
 
     auto res = ImportResource(File::RemoveExt(filename) + ".texture", texture);
@@ -92,12 +107,38 @@ static void AssimpLoadTexture(const aiTexture* pTexture, ModelData& data)
     Texture tex;
 
     stbi_set_flip_vertically_on_load(true);
-    auto pData = stbi_load_from_memory((stbi_uc*)pTexture->pcData, pTexture->mWidth * sizeof(aiTexel), &tex.width, &tex.height, &tex.channels, 4);
+    //auto pData = stbi_load_from_memory((stbi_uc*)pTexture->pcData, pTexture->mWidth * sizeof(aiTexel), &tex.width, &tex.height, &tex.channels, 4);
+    //if (pData == nullptr)
+    //    return;
+    //
+    //tex.channels = 4;
+    //tex.pixels.resize((i64)tex.width * (i64)tex.height * 4);
+    //memcpy(tex.pixels.data(), pData, tex.pixels.size());
+    //stbi_image_free(pData);
+
+    TextureFormat format = TextureFormat::RGBA8_UNORM_SRGB;
+
+    SizeType channelCount = ChannelsOfTextureFormat(format);
+    
+    i32 width, height, channels;
+    void* pData;
+    if (IsTextureFormatHdr(format))
+        pData = (void*)stbi_loadf_from_memory((stbi_uc*)pTexture->pcData, pTexture->mWidth * sizeof(aiTexel), &width, &height, &channels, channelCount);
+    else
+        pData = (void*)stbi_load_from_memory((stbi_uc*)pTexture->pcData, pTexture->mWidth * sizeof(aiTexel), &width, &height, &channels, channelCount);
+
     if (pData == nullptr)
         return;
 
-    tex.channels = 4;
-    tex.pixels.resize((i64)tex.width * (i64)tex.height * 4);
+    tex.width = static_cast<u32>(width);
+    tex.height = static_cast<u32>(height);
+    tex.depth = 1;
+    tex.format = format;
+
+    SizeType elemSize = SizeOfTextureFormat(format);
+    SizeType sizeInBytes = static_cast<SizeType>(tex.width) * static_cast<SizeType>(tex.height) * elemSize * channelCount;
+
+    tex.pixels.resize(sizeInBytes);
     memcpy(tex.pixels.data(), pData, tex.pixels.size());
     stbi_image_free(pData);
 

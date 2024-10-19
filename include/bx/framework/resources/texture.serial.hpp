@@ -17,21 +17,25 @@ public:
 	template<class Archive>
 	static void Save(Archive& ar, const Texture& data)
 	{
-		ar(cereal::make_nvp("channels", data.channels));
+		i32 _channels = 0;
+		ar(cereal::make_nvp("channels", _channels));
 		ar(cereal::make_nvp("width", data.width));
 		ar(cereal::make_nvp("height", data.height));
 		ar(cereal::make_nvp("depth", data.depth));
 		ar(cereal::make_nvp("pixels", data.pixels));
+		ar(cereal::make_nvp("format", data.format));
 	}
 
 	template<class Archive>
 	static void Load(Archive& ar, Texture& data)
 	{
-		ar(cereal::make_nvp("channels", data.channels));
+		i32 _channels = 0;
+		ar(cereal::make_nvp("channels", _channels));
 		ar(cereal::make_nvp("width", data.width));
 		ar(cereal::make_nvp("height", data.height));
 		ar(cereal::make_nvp("depth", data.depth));
 		ar(cereal::make_nvp("pixels", data.pixels));
+		ar(cereal::make_nvp("format", data.format));
 	}
 };
 REGISTER_SERIAL(Texture);

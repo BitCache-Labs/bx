@@ -232,6 +232,35 @@ b8 IsTextureFormatSrgb(const TextureFormat& format)
 	}
 }
 
+b8 IsTextureFormatHdr(const TextureFormat& format)
+{
+	switch (format)
+	{
+	case TextureFormat::R16_FLOAT:
+		return true;
+	case TextureFormat::R32_FLOAT:
+		return true;
+	case TextureFormat::RG16_FLOAT:
+		return true;
+	case TextureFormat::RGB9E5_UFLOAT:
+		return true;
+	case TextureFormat::RG11B10_FLOAT:
+		return true;
+	case TextureFormat::RG32_FLOAT:
+		return true;
+	case TextureFormat::RGBA16_FLOAT:
+		return true;
+	case TextureFormat::RGBA32_FLOAT:
+		return true;
+	case TextureFormat::BC6H_RGB_UFLOAT:
+		return true;
+	case TextureFormat::BC6H_RGB_FLOAT:
+		return true;
+	default:
+		return false;
+	}
+}
+
 b8 IsTextureFormatDepth(const TextureFormat& format)
 {
 	switch (format)
@@ -382,6 +411,150 @@ u32 SizeOfTextureFormat(const TextureFormat& format)
 		return 4;
 	case TextureFormat::DEPTH32_FLOAT_STENCIL8:
 		return 5;
+
+		/*case TextureFormat::BC1_RGBA_UNORM:
+			return GL_FLOAT;
+		case TextureFormat::BC1_RGBA_UNORM_SRGB:
+			return GL_FLOAT;
+		case TextureFormat::BC2_RGBA_UNORM:
+			return GL_FLOAT;
+		case TextureFormat::BC2_RGBA_UNORM_SRGB:
+			return GL_FLOAT;
+		case TextureFormat::BC3_RGBA_UNORM:
+			return GL_FLOAT;
+		case TextureFormat::BC3_RGBA_UNORM_SRGB:
+			return GL_FLOAT;
+		case TextureFormat::BC4_R_UNORM:
+			return GL_FLOAT;
+		case TextureFormat::BC4_R_SNORM:
+			return GL_FLOAT;
+		case TextureFormat::BC5_RG_UNORM:
+			return GL_FLOAT;
+		case TextureFormat::BC5_RG_SNORM:
+			return GL_FLOAT;
+		case TextureFormat::BC6H_RGB_UFLOAT:
+			return GL_FLOAT;
+		case TextureFormat::BC6H_RGB_FLOAT:
+			return GL_FLOAT;
+		case TextureFormat::BC7_RGBA_UNORM:
+			return GL_FLOAT;
+		case TextureFormat::BC7_RGBA_UNORM_SRGB:
+			return GL_FLOAT;*/
+
+	default:
+		BX_FAIL("Texture format not supported.");
+		return 0;
+	}
+}
+
+u32 ChannelsOfTextureFormat(const TextureFormat& format)
+{
+	switch (format)
+	{
+	case TextureFormat::R8_UNORM:
+		return 1;
+	case TextureFormat::R8_SNORM:
+		return 1;
+	case TextureFormat::R8_UINT:
+		return 1;
+	case TextureFormat::R8_SINT:
+		return 1;
+
+	case TextureFormat::R16_UINT:
+		return 1;
+	case TextureFormat::R16_SINT:
+		return 1;
+	case TextureFormat::R16_UNORM:
+		return 1;
+	case TextureFormat::R16_SNORM:
+		return 1;
+	case TextureFormat::R16_FLOAT:
+		return 1;
+	case TextureFormat::RG8_UNORM:
+		return 2;
+	case TextureFormat::RG8_SNORM:
+		return 2;
+	case TextureFormat::RG8_UINT:
+		return 2;
+	case TextureFormat::RG8_SINT:
+		return 2;
+
+	case TextureFormat::R32_UINT:
+		return 1;
+	case TextureFormat::R32_SINT:
+		return 1;
+	case TextureFormat::R32_FLOAT:
+		return 1;
+	case TextureFormat::RG16_UINT:
+		return 2;
+	case TextureFormat::RG16_SINT:
+		return 2;
+	case TextureFormat::RG16_UNORM:
+		return 2;
+	case TextureFormat::RG16_SNORM:
+		return 2;
+	case TextureFormat::RG16_FLOAT:
+		return 2;
+	case TextureFormat::RGBA8_UNORM:
+		return 4;
+	case TextureFormat::RGBA8_UNORM_SRGB:
+		return 4;
+	case TextureFormat::RGBA8_SNORM:
+		return 4;
+	case TextureFormat::RGBA8_UINT:
+		return 4;
+	case TextureFormat::RGBA8_SINT:
+		return 4;
+	case TextureFormat::BGRA8_UNORM:
+		return 4;
+	case TextureFormat::BGRA8_UNORM_SRGB:
+		return 4;
+
+	case TextureFormat::RGB9E5_UFLOAT:
+		return 4;
+	case TextureFormat::RGB10A2_UINT:
+		return 4;
+	case TextureFormat::RGB10A2_UNORM:
+		return 4;
+	case TextureFormat::RG11B10_FLOAT:
+		return 3;
+
+	case TextureFormat::RG32_UINT:
+		return 2;
+	case TextureFormat::RG32_SINT:
+		return 2;
+	case TextureFormat::RG32_FLOAT:
+		return 2;
+	case TextureFormat::RGBA16_UINT:
+		return 4;
+	case TextureFormat::RGBA16_SINT:
+		return 4;
+	case TextureFormat::RGBA16_UNORM:
+		return 4;
+	case TextureFormat::RGBA16_SNORM:
+		return 4;
+	case TextureFormat::RGBA16_FLOAT:
+		return 4;
+
+	case TextureFormat::RGBA32_UINT:
+		return 4;
+	case TextureFormat::RGBA32_SINT:
+		return 4;
+	case TextureFormat::RGBA32_FLOAT:
+		return 4;
+
+	case TextureFormat::STENCIL8:
+		return 1;
+	case TextureFormat::DEPTH16_UNORM:
+		return 1;
+	case TextureFormat::DEPTH24_PLUS:
+		return 1;
+	case TextureFormat::DEPTH24_PLUS_STENCIL8:
+		return 2;
+	case TextureFormat::DEPTH32_FLOAT:
+		return 1;
+	case TextureFormat::DEPTH32_FLOAT_STENCIL8:
+		return 2;
 
 		/*case TextureFormat::BC1_RGBA_UNORM:
 			return GL_FLOAT;

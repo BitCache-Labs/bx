@@ -122,7 +122,8 @@ static void ProcessFolderImport(TreeNodeId id, const Asset& asset)
 		bool isTexture = childAsset.extension == "png" || childAsset.extension == "hdr";
 		if (isTexture)
 		{
-			AssetImporter::ImportTexture(childAsset.path);
+			TextureFormat format = (childAsset.extension == "hdr") ? TextureFormat::RGBA32_FLOAT : TextureFormat::RGBA8_UNORM_SRGB;
+			AssetImporter::ImportTexture(childAsset.path, format);
 		}
 	}
 }
@@ -151,7 +152,8 @@ static void ProcessAssetContextMenu(TreeNodeId id, const Asset& asset)
 		bool isTexture = asset.extension == "png" || asset.extension == "hdr";
 		if (isTexture && ImGui::MenuItem("Import"))
 		{
-			AssetImporter::ImportTexture(asset.path);
+			TextureFormat format = (asset.extension == "hdr") ? TextureFormat::RGBA32_FLOAT : TextureFormat::RGBA8_UNORM_SRGB;
+			AssetImporter::ImportTexture(asset.path, format);
 		}
 	}
 }

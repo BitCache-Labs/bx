@@ -46,6 +46,11 @@ void main()
     }
 
     vec4 normalAndDepth = getPixelNormalAndDepth(pixel);
+    if (normalAndDepth.w == 0.0)
+    {
+        return;
+    }
+
     vec3 centerPosition = imageLoad(neGbuffer, pixel).rgb;
     vec3 color = imageLoad(image, pixel).rgb;
     

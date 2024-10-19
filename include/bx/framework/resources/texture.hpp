@@ -6,11 +6,11 @@
 class Texture
 {
 public:
-	i32 channels = 0;
-	i32 width = 0;
-	i32 height = 0;
-	i32 depth = 0;
+	u32 width = 0;
+	u32 height = 0;
+	u32 depth = 0;
 	List<u8> pixels;
+	TextureFormat format;
 
 	inline TextureHandle GetTexture() const { return m_texture; }
 

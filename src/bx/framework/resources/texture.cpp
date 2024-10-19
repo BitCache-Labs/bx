@@ -39,11 +39,12 @@ bool Resource<Texture>::Load(const String& filename, Texture& data)
     cereal::PortableBinaryInputArchive archive(stream);
     archive(cereal::make_nvp("texture", data));
 
-    // TODO: we NEED texture types to distinguish between srgb, unorm and float unorm textures!!!!!!
+    // TODO: remove this temp hack, all assets need reimporting
+    if (data.format == TextureFormat::R8_UNORM) data.format = TextureFormat::RGBA8_UNORM_SRGB;
 
     TextureCreateInfo createInfo{};
     createInfo.name = filename;
-    createInfo.format = TextureFormat::RGBA8_UNORM_SRGB;
+    createInfo.format = data.format;
     createInfo.size = Extend3D(data.width, data.height, 1);
     createInfo.usageFlags = TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::COPY_SRC;
     createInfo.data = static_cast<const void*>(data.pixels.data());
