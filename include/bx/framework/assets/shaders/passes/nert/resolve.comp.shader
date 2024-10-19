@@ -53,7 +53,7 @@ void main()
     vec3 lightingContribution = vec3(0.0);
     vec3 baseColorFactor = vec3(0.0);
 
-    vec3 ambientFactor = 1.0 * vec3(0.15, 0.15, 0.17);
+    vec3 ambientFactor = 5.0 * vec3(0.15, 0.15, 0.17);
 
     if (intersection.t != T_MISS)
     {
@@ -90,7 +90,7 @@ void main()
     }
     else
     {
-        emissiveContribution += shadeSky(ray.direction);
+        emissiveContribution += throughput * shadeSky(ray.direction);
     }
 
     vec3 resolved = lightingContribution + ambientContribution + emissiveContribution;

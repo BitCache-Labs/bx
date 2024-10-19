@@ -13,7 +13,7 @@ struct SunInfo
 	Vec3 direction = Vec3(-0.3, -1.0, 0.0);
 	f32 size = 0.15;
 	Color color = Color::White();
-	f32 intensity = 15.0;
+	f32 intensity = 50.0;
 };
 
 class Sky : NoCopy
@@ -36,7 +36,7 @@ public:
 private:
 	BufferHandle skyConstantsBuffer = BufferHandle::null;
 
-	Optional<TextureHandle> skyTexture = Optional<TextureHandle>::None();
+	Optional<Resource<Texture>> skyTextureResource = Optional<Resource<Texture>>::None();
 	Optional<TextureViewHandle> skyTextureView = Optional<TextureViewHandle>::None();
 	SamplerHandle sampler;
 };

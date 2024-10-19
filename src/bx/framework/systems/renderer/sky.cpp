@@ -30,9 +30,8 @@ Sky::~Sky()
 {
     Graphics::DestroyBuffer(skyConstantsBuffer);
 
-    if (skyTexture.IsSome())
+    if (skyTextureView.IsSome())
     {
-        Graphics::DestroyTexture(skyTexture.Unwrap());
         Graphics::DestroyTextureView(skyTextureView.Unwrap());
     }
     Graphics::DestroySampler(sampler);
@@ -40,20 +39,13 @@ Sky::~Sky()
 
 void Sky::SetSkyTexture(const Resource<Texture>& texture)
 {
-    if (skyTexture.IsSome())
+    if (skyTextureView.IsSome())
     {
-        Graphics::DestroyTexture(skyTexture.Unwrap());
         Graphics::DestroyTextureView(skyTextureView.Unwrap());
     }
 
-    TextureCreateInfo createInfo{};
-    createInfo.name = "Sky Texture";
-    createInfo.format = TextureFormat::RGBA8_UNORM_SRGB;
-    createInfo.usageFlags = TextureUsageFlags::TEXTURE_BINDING;
-    createInfo.size = Extend3D(texture->width, texture->height, 1);
-    createInfo.data = texture->pixels.data();
-    skyTexture = Optional<TextureHandle>::Some(Graphics::CreateTexture(createInfo));
-    skyTextureView = Optional<TextureViewHandle>::Some(Graphics::CreateTextureView(skyTexture.Unwrap()));
+    skyTextureResource = Optional<Resource<Texture>>::Some(texture);
+    skyTextureView = Optional<TextureViewHandle>::Some(Graphics::CreateTextureView(texture->GetTexture()));
 }
 
 void Sky::Submit()
