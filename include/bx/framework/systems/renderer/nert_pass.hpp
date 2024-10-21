@@ -55,6 +55,7 @@ public:
 	b8 denoise = true;
 	b8 antiFirefly = true;
 	f32 lightingUpscaleFactor = 2.0;
+	b32 ibl = true;
 
 	Vec3 fogColor = Vec3(0.1, 0.1, 0.1);
 	f32 fogDensity = 0.05;

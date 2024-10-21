@@ -12,6 +12,7 @@
 #include "[engine]/shaders/ray_tracing/sky.shader"
 
 #include "[engine]/shaders/math.shader"
+#include "[engine]/shaders/random.shader"
 #include "[engine]/shaders/ray_tracing/ray.shader"
 #include "[engine]/shaders/ray_tracing/light_picking.shader"
 
@@ -20,9 +21,9 @@ layout (BINDING(0, 0), std140) uniform _Constants
     uvec2 globalResolution;
     uvec2 resolution;
     uint sampleNumber;
+    uint seed;
+    bool ibl;
     uint _PADDING0;
-    uint _PADDING1;
-    uint _PADDING2;
 } constants;
 
 layout (BINDING(0, 3), std430) readonly buffer _Intersections
@@ -43,6 +44,8 @@ void main()
     if (pixel.x >= constants.resolution.x || pixel.y >= constants.resolution.y) return;
     ivec2 globalPixel = rescaleResolution(pixel, constants.resolution, constants.globalResolution);
     uint globalId = uint(globalPixel.y * constants.globalResolution.x + globalPixel.x);
+
+    uint rngState = pcgHash(id ^ xorShiftU32(constants.seed));
 
     Intersection intersection = intersections[globalId];
     vec3 origin = imageLoad(neGbuffer, globalPixel).rgb;
@@ -103,8 +106,7 @@ void main()
             normal = -normal;
         }
         
-        //SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
-        //baseColorFactor = diffuseBsdfEval(material.baseColorFactor); // TODO: rename
+        SampledMaterial material = sampleMaterial(materialDescriptors[blasInstance.materialIdx], texCoord);
         
         if (ReservoirData_isValid(reservoirData))
         {
@@ -119,6 +121,24 @@ void main()
 
             vec3 radiance = visibility * intensity * brdfContribution;
             lightingContribution += radiance * reservoir.contributionWeight;
+        }
+
+        if (constants.ibl)
+        {
+            mat3 tangentToWorld = buildOrthonormalBasis(normal);
+
+            DiffuseLobe diffuseLobe = DiffuseLobe(material.baseColorFactor);
+            BsdfSample bsdfSample = sampleDiffuseBsdf(diffuseLobe, randomUniformFloat2(rngState));
+            BsdfEval bsdfEval = evalDiffuseBsdf(diffuseLobe);
+            
+            vec3 throughput = vec3(1.0);
+            vec3 wInWorldSpace;
+            
+            if (applyBsdf(bsdfSample, bsdfEval, tangentToWorld, normal, throughput, wInWorldSpace))
+            {
+                float visibility = traceValidationRay(Scene, origin, wInWorldSpace, normal, 100.0) ? 0.0 : 1.0;
+                lightingContribution += throughput * shadeSky(wInWorldSpace) * visibility * 100.0;
+            }
         }
     }
 

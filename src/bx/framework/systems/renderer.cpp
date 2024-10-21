@@ -249,7 +249,7 @@ void Renderer::Render()
     {
         m_gbufferPass->Dispatch(m_cameras.back());
 
-        //m_sky->sunInfo.intensity = 0.0;
+        m_sky->sunInfo.intensity = 0.0;
 
         m_nertPass->seed = frameIdx;
         m_nertPass->accumulationFrameIdx = accumulate ? (m_nertPass->accumulationFrameIdx + 1) : 0;
@@ -260,6 +260,7 @@ void Renderer::Render()
         m_nertPass->antiFirefly = antiFirefly;
         m_nertPass->fogDensity = 0.04;
         m_nertPass->fogColor = Vec3(1.0, 1.0, 1.0);
+        m_nertPass->ibl = ibl;
 
         NertDispatchInfo dispatchInfo
         {

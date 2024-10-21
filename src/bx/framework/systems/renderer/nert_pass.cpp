@@ -81,9 +81,9 @@ struct NertShadeConstants
     u32 width;
     u32 height;
     u32 sampleNumber;
+    u32 seed;
+    b32 ibl;
     u32 _PADDING0;
-    u32 _PADDING1;
-    u32 _PADDING2;
 };
 
 struct IntersectPipeline : public LazyInit<IntersectPipeline, ComputePipelineHandle>
@@ -494,6 +494,8 @@ void NertPass::UpdateConstantBuffers(const NertDispatchInfo& dispatchInfo)
     shadeConstants.width = lightingWidth;
     shadeConstants.height = lightingHeight;
     shadeConstants.sampleNumber = accumulationFrameIdx;
+    shadeConstants.seed = seed;
+    shadeConstants.ibl = ibl;
     Graphics::WriteBuffer(shadeConstantsBuffer, 0, &shadeConstants);
 }
 

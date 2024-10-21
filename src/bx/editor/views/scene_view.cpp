@@ -344,6 +344,10 @@ void SceneView::Present(bool& show)
     ImGui::SameLine();
     ImGui::Checkbox("##Bloom", &SystemManager::GetSystem<Renderer>().bloom);
 
+    ImGui::Text("IBL: ");
+    ImGui::SameLine();
+    ImGui::Checkbox("##IBL", &SystemManager::GetSystem<Renderer>().ibl);
+
     ImGui::Text("RT Restir: ");
     ImGui::SameLine();
     ImGui::Checkbox("##RTRestir", &SystemManager::GetSystem<Renderer>().restir);
