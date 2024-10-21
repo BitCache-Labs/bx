@@ -35,8 +35,9 @@ layout (BINDING(0, 0), std140) uniform _Constants
 layout (BINDING(0, 1)) uniform texture2D gbuffer;
 
 layout(BINDING(0, 2)) uniform accelerationStructureEXT Scene;
+layout (BINDING(0, 3), rgba32f) uniform image2D neGbuffer;
 
-layout (BINDING(0, 3)) uniform sampler nearestClampSampler;
+layout (BINDING(0, 4)) uniform sampler nearestClampSampler;
 
 vec3 getPositionWs(ivec2 pixel, float depth)
 {
@@ -63,7 +64,7 @@ void main()
     Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
     
     GBufferData centerGBufferData = GBufferData_loadAll(gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
-    vec3 origin = getPositionWs(globalPixel, centerGBufferData.distance); // TODO: fix for mirrors
+    vec3 origin = imageLoad(neGbuffer, globalPixel).rgb;
     vec3 normal = centerGBufferData.normal;
     
     Reservoir outputReservoir = Reservoir_default();
@@ -93,7 +94,8 @@ void main()
             float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
             float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
             
-            ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
+            ivec2 offset = ivec2((randomUniformFloat2(rngState) * 2.0 - 1.0) * 30.0);
+            //ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
             ivec2 samplePixel = pixel + offset;
             samplePixel = clamp(samplePixel, ivec2(0), ivec2(constants.resolution) - 1);
             uint sampleId = samplePixel.y * constants.resolution.x + samplePixel.x;

@@ -66,7 +66,8 @@ struct SpatialReusePipeline : public LazyInit<SpatialReusePipeline, ComputePipel
                 BindGroupLayoutEntry(0, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::UniformBuffer()),
                 BindGroupLayoutEntry(1, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::AccelerationStructure()),
-                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler())
+                BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler())
             }),
             BlasDataPool::GetBindGroupLayout(),
             Sky::GetBindGroupLayout(),
@@ -104,7 +105,8 @@ struct TemporalReusePipeline : public LazyInit<TemporalReusePipeline, ComputePip
                 BindGroupLayoutEntry(2, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),
-                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler())
+                BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler())
             }),
             BlasDataPool::GetBindGroupLayout(),
             Sky::GetBindGroupLayout(),
@@ -228,7 +230,7 @@ BindGroupHandle RestirDiPass::CreateBindGroup(ComputePipelineHandle pipeline, b8
     return Graphics::CreateBindGroup(createInfo);
 }
 
-void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityView, const BlasDataPool& blasDataPool, const Sky& sky, const MaterialPool& materialPool)
+void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityView, TextureViewHandle neGbufferView, const BlasDataPool& blasDataPool, const Sky& sky, const MaterialPool& materialPool)
 {
     SpatialReuseConstants spatialReuseConstants{};
     spatialReuseConstants.invView = camera.GetInvView();
@@ -267,7 +269,8 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
         BindGroupEntry(2, BindingResource::TextureView(gbufferView)),
         BindGroupEntry(3, BindingResource::TextureView(gbufferHistoryView)),
         BindGroupEntry(4, BindingResource::TextureView(velocityView)),
-        BindGroupEntry(5, BindingResource::Sampler(nearestClampSampler)),
+        BindGroupEntry(5, BindingResource::TextureView(neGbufferView)),
+        BindGroupEntry(6, BindingResource::Sampler(nearestClampSampler)),
     };
     BindGroupHandle temporalReuseBindGroup = Graphics::CreateBindGroup(temporalReuseBindGroupCreateInfo);
     BindGroupHandle temporalBlasDataPoolGroup = blasDataPool.CreateBindGroup(TemporalReusePipeline::Get());
@@ -292,7 +295,7 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
     Graphics::DestroyBindGroup(temporalBlasDataPoolGroup);
     Graphics::DestroyBindGroup(temporalSkyGroup);
     Graphics::DestroyBindGroup(temporalMaterialPoolGroup);
-    
+    //return;
     for (u32 i = 0; i < SPATIAL_REUSE_PASSES; i++)
     {
         BindGroupCreateInfo spatialReuseBindGroupCreateInfo{};
@@ -302,7 +305,8 @@ void RestirDiPass::Dispatch(const Camera& camera, TlasHandle tlas, TextureViewHa
             BindGroupEntry(0, BindingResource::Buffer(spatialReuseConstantsBuffers[i])),
             BindGroupEntry(1, BindingResource::TextureView(gbufferView)),
             BindGroupEntry(2, BindingResource::AccelerationStructure(tlas)),
-            BindGroupEntry(3, BindingResource::Sampler(nearestClampSampler)),
+            BindGroupEntry(3, BindingResource::TextureView(neGbufferView)),
+            BindGroupEntry(4, BindingResource::Sampler(nearestClampSampler)),
         };
         BindGroupHandle spatialReuseBindGroup = Graphics::CreateBindGroup(spatialReuseBindGroupCreateInfo);
         BindGroupHandle spatialBlasDataPoolGroup = blasDataPool.CreateBindGroup(SpatialReusePipeline::Get());

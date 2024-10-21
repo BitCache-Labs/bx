@@ -38,30 +38,9 @@ layout(BINDING(0, 1)) uniform accelerationStructureEXT Scene;
 layout (BINDING(0, 2)) uniform texture2D gbuffer;
 layout (BINDING(0, 3)) uniform texture2D gbufferHistory;
 layout (BINDING(0, 4)) uniform texture2D velocity;
+layout (BINDING(0, 5), rgba32f) uniform image2D neGbuffer;
 
-layout (BINDING(0, 5)) uniform sampler nearestClampSampler;
-
-vec3 getPositionWs(ivec2 pixel, float depth)
-{
-    vec2 pixelCenter = vec2(pixel.x + 0.5, pixel.y + 0.5);
-    vec2 uv = (pixelCenter / vec2(constants.globalResolution)) * 2.0 - 1.0;
-    uv.y = -uv.y;
-    vec4 origin = constants.invView * vec4(0.0, 0.0, 0.0, 1.0);
-    vec4 target = constants.invProj * vec4(uv, 1.0, 1.0);
-    vec4 direction = constants.invView * vec4(normalize(target.xyz), 0.0);
-    return origin.xyz + direction.xyz * depth;
-}
-
-vec3 getPositionWsHistory(ivec2 pixel, float depth)
-{
-    vec2 pixelCenter = vec2(pixel.x + 0.5, pixel.y + 0.5);
-    vec2 uv = (pixelCenter / vec2(constants.globalResolution)) * 2.0 - 1.0;
-    uv.y = -uv.y;
-    vec4 origin = constants.prevInvView * vec4(0.0, 0.0, 0.0, 1.0);
-    vec4 target = constants.prevInvProj * vec4(uv, 1.0, 1.0);
-    vec4 direction = constants.prevInvView * vec4(normalize(target.xyz), 0.0);
-    return origin.xyz + direction.xyz * depth;
-}
+layout (BINDING(0, 6)) uniform sampler nearestClampSampler;
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
@@ -79,7 +58,7 @@ void main()
 
         GBufferData centerGBufferData = GBufferData_loadAll(gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
 
-        vec3 origin = getPositionWs(globalPixel, centerGBufferData.distance); // TODO: fix for mirrors
+        vec3 origin = imageLoad(neGbuffer, globalPixel).rgb;
         vec3 normal = centerGBufferData.normal;
 
         ReservoirData reservoirData = ReservoirData_fromPacked(restirReservoirData[id]);
@@ -173,13 +152,6 @@ void main()
 
         outputReservoir.contributionWeight = (1.0 / max(outputReservoirData.p_hat, 0.00001)) * (outputReservoir.weightSum / max(outputReservoir.sampleCount, 0.00001));
         outputReservoir.contributionWeight = fixNan(outputReservoir.contributionWeight);
-        
-        //if (outputReservoirData.p_hat > 0.0 && outputReservoir.sampleCount > 0.0)
-        //    outputReservoir.contributionWeight = (1.0 / outputReservoirData.p_hat) * outputReservoir.weightSum / outputReservoir.sampleCount;
-        //else
-        //    outputReservoir.contributionWeight = 0.0;
-
-        //Reservoir_clampContributionWeight(outputReservoir, RESERVOIR_CONTRIBUTION_CLAMP);
 
         restirReservoirs[id] = Reservoir_toPacked(outputReservoir);
         restirReservoirData[id] = ReservoirData_toPacked(outputReservoirData);
