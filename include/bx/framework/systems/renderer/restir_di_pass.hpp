@@ -17,6 +17,8 @@ public:
 	{
 		f32 sampleCount;
 		f32 contributionWeight;
+		f32 weightSum;
+		u32 _PADDING0;
 	};
 
 	struct PackedReservoirData

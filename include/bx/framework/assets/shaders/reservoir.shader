@@ -14,6 +14,8 @@ struct PackedReservoir
 {
 	float sampleCount;
 	float contributionWeight;
+	float weightSum;
+	uint _PADDING0;
 };
 
 Reservoir Reservoir_default()
@@ -25,21 +27,23 @@ PackedReservoir Reservoir_toPacked(Reservoir self)
 {
 	return PackedReservoir(
 		self.sampleCount,
-		self.contributionWeight
+		self.contributionWeight,
+		self.weightSum,
+		0
 	);
 }
 
 Reservoir Reservoir_fromPacked(PackedReservoir packed)
 {
 	float weightSum = packed.sampleCount * packed.contributionWeight;
-	return Reservoir(packed.sampleCount, packed.contributionWeight, weightSum);
+	return Reservoir(packed.sampleCount, packed.contributionWeight, packed.weightSum);
 }
 
 Reservoir Reservoir_fromPackedClamped(PackedReservoir packed, float sampleCountClamp)
 {
 	float sampleCount = min(packed.sampleCount, sampleCountClamp);
-	float weightSum = sampleCount * packed.contributionWeight;
-	return Reservoir(sampleCount, packed.contributionWeight, weightSum);
+	//float weightSum = sampleCount * packed.contributionWeight;
+	return Reservoir(sampleCount, packed.contributionWeight, packed.weightSum);
 }
 
 bool Reservoir_update(inout Reservoir self, float sampleWeight, float sampleCount, inout uint rng)
@@ -50,14 +54,14 @@ bool Reservoir_update(inout Reservoir self, float sampleWeight, float sampleCoun
 	return randomUniformFloat(rng) < (sampleWeight / self.weightSum);
 }
 
-void Reservoir_clampContributionWeight(inout Reservoir self, float clampWeight)
-{
-	self.contributionWeight = min(self.contributionWeight, clampWeight);
-}
-
-void Reservoir_clampSampleCount(inout Reservoir self, float clampCount)
-{
-	self.sampleCount = min(self.sampleCount, clampCount);
-}
+//void Reservoir_clampContributionWeight(inout Reservoir self, float clampWeight)
+//{
+//	self.contributionWeight = min(self.contributionWeight, clampWeight);
+//}
+//
+//void Reservoir_clampSampleCount(inout Reservoir self, float clampCount)
+//{
+//	self.sampleCount = min(self.sampleCount, clampCount);
+//}
 
 #endif // RESERVOIR_H

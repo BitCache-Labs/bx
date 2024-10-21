@@ -18,7 +18,7 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
-const uint NUM_SPATIAL_SAMPLES = 10;
+const uint NUM_SPATIAL_SAMPLES = 1;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -97,11 +97,15 @@ void main()
             ivec2 offset = ivec2((randomUniformFloat2(rngState) * 2.0 - 1.0) * 30.0);
             //ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
             ivec2 samplePixel = pixel + offset;
-            samplePixel = clamp(samplePixel, ivec2(0), ivec2(constants.resolution) - 1);
+
+            if (!isPixelInBounds(samplePixel, constants.resolution))
+            {
+                continue;
+            }
+
             uint sampleId = samplePixel.y * constants.resolution.x + samplePixel.x;
-        
             ivec2 globalSamplePixel = rescaleResolution(samplePixel, constants.resolution, constants.globalResolution);
-        
+
             ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirData[sampleId]);
         
             GBufferData sampleGBufferData = GBufferData_loadAll(gbuffer, nearestClampSampler, globalSamplePixel, constants.globalResolution);
@@ -154,7 +158,19 @@ void main()
             {
                 sampledReservoirData.p_hat = 0.0;
             }
-        
+            
+            //float MAX_SAMPLE_COUNT = 10.0;
+            //if (sampledReservoir.contributionWeight > MAX_SAMPLE_COUNT)
+            //{
+            //    //sampledReservoir.weightSum *= MAX_SAMPLE_COUNT * reservoir.sampleCount / sampledReservoir.sampleCount;
+            //    sampledReservoir.contributionWeight = MAX_SAMPLE_COUNT;
+            //    sampledReservoir.sampleCount *= MAX_SAMPLE_COUNT / sampledReservoir.contributionWeight;
+            //}
+
+            //float w = (res.samples[i].sumWeights + weight) / (res.numStreamSamples * pHat);
+
+            //float weight = ;
+
             if (Reservoir_update(outputReservoir,
                 sampledReservoirData.p_hat * sampledReservoir.contributionWeight * sampledReservoir.sampleCount,
                 sampledReservoir.sampleCount, rngState))
@@ -163,7 +179,7 @@ void main()
             }
         }
         
-        outputReservoir.contributionWeight = (1.0 / max(outputReservoirData.p_hat, 0.00001)) * (outputReservoir.weightSum / max(outputReservoir.sampleCount, 0.00001));
+        outputReservoir.contributionWeight = (1.0 / max(outputReservoirData.p_hat, RESTIR_EPSILON)) * (outputReservoir.weightSum / max(outputReservoir.sampleCount, RESTIR_EPSILON));
         outputReservoir.contributionWeight = fixNan(outputReservoir.contributionWeight);
     }
 

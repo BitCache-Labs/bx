@@ -17,7 +17,7 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
-const float MAX_SAMPLE_COUNT = 20.0;
+const float MAX_SAMPLE_COUNT = 2000.0;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -65,11 +65,11 @@ void main()
         Reservoir reservoir = Reservoir_fromPacked(restirReservoirs[id]);
 
         { // Current
-            bool currentValid = !GBufferData_isSky(centerGBufferData) && ReservoirData_isValid(reservoirData);
-            if (!currentValid)
-            {
-                reservoirData.p_hat = 0.0;
-            }
+            //bool currentValid = !GBufferData_isSky(centerGBufferData) && ReservoirData_isValid(reservoirData);
+            //if (!currentValid)
+            //{
+            //    reservoirData.p_hat = 0.0;
+            //}
             
             if (Reservoir_update(outputReservoir,
                 reservoirData.p_hat * reservoir.contributionWeight * reservoir.sampleCount,
@@ -91,23 +91,23 @@ void main()
 
             GBufferData sampleGBufferData = GBufferData_loadAll(gbufferHistory, nearestClampSampler, prevGlobalPixel, constants.globalResolution);
 
-            if (!GBufferData_isDisoccludedStrict(centerGBufferData, sampleGBufferData))
+            //if (!GBufferData_isDisoccludedStrict(centerGBufferData, sampleGBufferData))
             {
                 ReservoirData sampledReservoirData = ReservoirData_fromPacked(restirReservoirDataHistory[prevId]);
                 Reservoir sampledReservoir = Reservoir_fromPacked(restirReservoirsHistory[prevId]);
 
-                if (sampledReservoir.sampleCount > MAX_SAMPLE_COUNT * reservoir.sampleCount)
-                {
-                    sampledReservoir.weightSum *= MAX_SAMPLE_COUNT * reservoir.sampleCount / sampledReservoir.sampleCount;
-                    sampledReservoir.sampleCount = MAX_SAMPLE_COUNT * reservoir.sampleCount;
-                }
+                //if (sampledReservoir.sampleCount > MAX_SAMPLE_COUNT * reservoir.sampleCount)
+                //{
+                //    sampledReservoir.weightSum *= MAX_SAMPLE_COUNT * reservoir.sampleCount / sampledReservoir.sampleCount;
+                //    sampledReservoir.sampleCount = MAX_SAMPLE_COUNT * reservoir.sampleCount;
+                //}
 
-                bool historyValid = !GBufferData_isSky(sampleGBufferData) && ReservoirData_isValid(sampledReservoirData);
-                historyValid = historyValid && dot(normal, sampleGBufferData.normal) >= 0.5;
+                //bool historyValid = !GBufferData_isSky(sampleGBufferData) && ReservoirData_isValid(sampledReservoirData);
+                //historyValid = historyValid && dot(normal, sampleGBufferData.normal) >= 0.5;
 
                 sampledReservoirData.p_hat = 0.0;
 
-                if (historyValid)
+                //if (historyValid)
                 {
                     vec3 direction;
                     float tMax;
@@ -150,12 +150,12 @@ void main()
             }
         }
 
-        outputReservoir.contributionWeight = (1.0 / max(outputReservoirData.p_hat, 0.00001)) * (outputReservoir.weightSum / max(outputReservoir.sampleCount, 0.00001));
+        outputReservoir.contributionWeight = (1.0 / max(outputReservoirData.p_hat, RESTIR_EPSILON)) * (outputReservoir.weightSum / max(outputReservoir.sampleCount, RESTIR_EPSILON));
         outputReservoir.contributionWeight = fixNan(outputReservoir.contributionWeight);
 
         restirReservoirs[id] = Reservoir_toPacked(outputReservoir);
         restirReservoirData[id] = ReservoirData_toPacked(outputReservoirData);
-        //restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
-        //restirReservoirDataHistory[id] = ReservoirData_toPacked(outputReservoirData);
+        restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
+        restirReservoirDataHistory[id] = ReservoirData_toPacked(outputReservoirData);
     }
 }

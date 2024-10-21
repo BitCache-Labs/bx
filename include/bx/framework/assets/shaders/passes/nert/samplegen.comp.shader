@@ -78,33 +78,36 @@ RisResult ris(inout uint rngState,
         LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
         vec3 wInWorldSpace = lightSample.sampleDirection;
     
-        float p_hat = 0.0;
+        //float p_hat = 0.0;
         if (dot(wInWorldSpace, normal) > 0.0)
         {
             vec3 brdfEval = diffuseBsdfEval(baseColor);
             vec3 brdfContribution = bsdfContribution(brdfEval, normal, wInWorldSpace, 1.0);
             vec3 intensity = lightIntensity(lightSample.triangle, lightSample.blasInstance, lightSample.sampleDirection, lightSample.hitT, lightSample.transformedTriangle);
 
-            p_hat = length(brdfContribution * intensity);
-        }
+            float p_hat = length(brdfContribution * intensity);
 
-        float weight = p_hat / lightSample.pdf;
-        if (Reservoir_update(reservoir, weight, 1.0, rngState))
+            float weight = p_hat / lightSample.pdf;
+            if (Reservoir_update(reservoir, weight, 1.0, rngState))
+            {
+                reservoirData = ReservoirData(lightSample.triangle,
+                    lightSample.blasInstance, lightSample.uv, p_hat);
+                
+                outputSampleDirection = lightSample.sampleDirection;
+                outputSampleHitT = lightSample.hitT;
+            }
+        }
+        else
         {
-            reservoirData = ReservoirData(lightSample.triangle,
-                lightSample.blasInstance, lightSample.uv, p_hat);
-            
-            outputSampleDirection = lightSample.sampleDirection;
-            outputSampleHitT = lightSample.hitT;
+            reservoir.sampleCount += 1.0;
         }
 	}
 
-    
-    reservoir.contributionWeight = (1.0 / max(reservoirData.p_hat, 0.00001)) * (reservoir.weightSum / max(reservoir.sampleCount, 0.00001));
-    reservoir.contributionWeight = fixNan(reservoir.contributionWeight);
-
     if (ReservoirData_isValid(reservoirData))
     {
+        reservoir.contributionWeight = (1.0 / max(reservoirData.p_hat, RESTIR_EPSILON)) * (reservoir.weightSum / max(reservoir.sampleCount, RESTIR_EPSILON));
+        reservoir.contributionWeight = fixNan(reservoir.contributionWeight);
+
         float visibility = traceValidationRay(Scene, x1, outputSampleDirection, normal, outputSampleHitT) ? 0.0 : 1.0;
         reservoir.contributionWeight *= visibility;
     }

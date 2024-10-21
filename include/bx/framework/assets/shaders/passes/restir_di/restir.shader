@@ -4,6 +4,8 @@
 #include "[engine]/shaders/reservoir.shader"
 #include "[engine]/shaders/packing.shader"
 
+const float RESTIR_EPSILON = 0.0001;
+
 struct ReservoirData
 {
     uint triangleLightSource;
