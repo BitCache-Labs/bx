@@ -1,15 +1,18 @@
 #pragma once
 
-#include "bx/editor/view.hpp"
+#include <bx/editor/view.hpp>
 
-class ProfilerView final : public View
+class BX_API ProfilerView final : public View
 {
+	RTTR_ENABLE(View)
+
 public:
 	bool Initialize() override;
 	void Reload() override;
 	void Shutdown() override;
 
-	void Present() override;
+	const char* GetTitle() const override;
+	void Present(const char* title, bool& isOpen) override;
 
 private:
 	int m_frames = 0;

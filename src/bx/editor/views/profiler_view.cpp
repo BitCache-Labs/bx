@@ -1,11 +1,10 @@
-#include "bx/editor/views/profiler_view.hpp"
+#include <bx/editor/views/profiler_view.hpp>
 
-#include "bx/engine/data.hpp"
-
-#include <bx/math/math.hpp>
 #include <bx/core/profiler.hpp>
 #include <bx/core/time.hpp>
 #include <bx/containers/list.hpp>
+#include <bx/math/math.hpp>
+#include <bx/engine/data.hpp>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -13,6 +12,13 @@
 #include <IconsFontAwesome5.h>
 
 #include <algorithm>
+
+#include <rttr/registration.h>
+RTTR_REGISTRATION
+{
+    rttr::registration::class_<ProfilerView>("ProfilerView")
+    .constructor();
+}
 
 bool ProfilerView::Initialize()
 {
@@ -39,12 +45,15 @@ void ProfilerView::Reload()
 //    //Tooltip("Profiler");
 //}
 
-void ProfilerView::Present()
+const char* ProfilerView::GetTitle() const
+{
+    return ICON_FA_STOPWATCH"  Profiler";
+}
+
+void ProfilerView::Present(const char* title, bool& isOpen)
 {
     //Old icon: ICON_FA_CHART_PIE
-
-    ImGui::PushID(this);
-    ImGui::Begin(ICON_FA_STOPWATCH"  Profiler", &m_open, ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin(title, &isOpen, ImGuiWindowFlags_NoCollapse);
     
     // TODO: Fix moving frame number
     //m_frame++;
@@ -79,5 +88,4 @@ void ProfilerView::Present()
         ImGui::LabelText(itr.first.c_str(), "%f ms", itr.second.avg);
 
     ImGui::End();
-    ImGui::PopID();
 }

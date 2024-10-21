@@ -22,6 +22,7 @@ set (BX_SRCS
 	"src/bx/core/module.cpp"
 	"src/bx/core/object.cpp"
 	"src/bx/core/profiler.cpp"
+	"src/bx/core/serial.cpp"
 	"src/bx/core/thread.cpp"
 	"src/bx/core/time.cpp"
 	"src/bx/core/uuid.cpp"
@@ -46,7 +47,7 @@ set (BX_SRCS
 add_library (bx SHARED ${BX_SRCS} "src/bx/core/module.cpp")
 target_include_directories (bx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(bx PRIVATE BUILD_SHARED)
-target_compile_definitions(bx PUBLIC BX_API=API) 
+target_compile_definitions(bx PUBLIC BX_API=API)
 
 if (MSVC)
     target_compile_options(bx PRIVATE /bigobj)
@@ -98,6 +99,7 @@ if (BX_BUILD_EDITOR)
 		"src/bx/editor/selection.cpp"
 		"src/bx/editor/toolbar.cpp"
 		"src/bx/editor/view.cpp"
+		"src/bx/editor/assets.cpp"
 		
 		"src/bx/editor/views/assets_view.cpp"
 		#"src/bx/editor/views/console_view.cpp"

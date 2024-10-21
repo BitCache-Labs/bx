@@ -105,9 +105,9 @@ void File::Initialize(const String& projectPath)
 	}
 #endif
 
-//#ifdef BX_EDITOR_BUILD
-//	AddWildcard("[editor]", projectPath + "/editor");
-//#endif
+#ifdef BX_EDITOR_BUILD
+	AddWildcard("[editor]", projectPath + "/editor");
+#endif
 }
 
 List<char> File::ReadBinaryFile(const String& filename)

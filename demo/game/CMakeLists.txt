@@ -6,13 +6,14 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set (GAME_SRCS
 	"src/components/sprite.cpp"
+	"src/resources/level.cpp"
 	"src/systems/drawer.cpp"
 	"src/game.cpp"
 )
 
 if (BX_BUILD_EDITOR)
 	set (GAME_SRCS ${GAME_SRCS}
-		"src/editor/level.cpp"
+		"src/editor/level_view.cpp"
 	)
 endif()
 

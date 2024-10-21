@@ -11,6 +11,8 @@ class BX_API Module
 public:
     static bool Load(const String& directory);
 
+    static bool LoadSingleLib(const String& path);
+
 public:
     template <typename T>
     static T& GetFirstDerived()

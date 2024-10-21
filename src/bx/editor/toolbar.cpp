@@ -17,9 +17,6 @@
 
 #include <cstdlib>
 
-static AssetsView g_assetsView;
-static ProfilerView g_profilerView;
-
 static void StyleLight();
 static void StyleDark();
 
@@ -63,24 +60,24 @@ bool Toolbar::Initialize()
 
 	SelectTheme();
 
-	g_assetsView.Initialize();
-	g_profilerView.Initialize();
+	AssetsManager::Get().Initialize();
+	ViewManager::Get().Initialize();
 
 	return true;
 }
 
 void Toolbar::Shutdown()
 {
-	g_profilerView.Shutdown();
-	g_assetsView.Shutdown();
+	ViewManager::Get().Shutdown();
+	AssetsManager::Get().Shutdown();
 
 	ImPlot::DestroyContext();
 }
 
 void Toolbar::Reload()
 {
-	g_profilerView.Reload();
-	g_assetsView.Reload();
+	AssetsManager::Get().Reload();
+	ViewManager::Get().Reload();
 
 	//if (!Script::HasError())
 	//	ok_timer = 4.0f;
@@ -121,6 +118,8 @@ void Toolbar::Present()
 				{
 					//const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
 					//Scene::Save(scene);
+
+					ViewManager::Get().Shutdown();
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Exit"))
@@ -202,8 +201,7 @@ void Toolbar::Present()
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_CHART_PIE))
 		{
-			//show_profiler = !show_profiler;
-			g_profilerView.ToggleOpen();
+			ViewManager::Get().AddView<ProfilerView>();
 		}
 		Tooltip("Profiler");
 
@@ -241,8 +239,7 @@ void Toolbar::Present()
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_IMAGES))
 		{
-			//show_assets = !show_assets;
-			g_assetsView.ToggleOpen();
+			ViewManager::Get().AddView<AssetsView>();
 		}
 		Tooltip("Assets");
 
@@ -389,45 +386,7 @@ void Toolbar::Present()
 		ImGuiID dockspaceId = ImGui::GetID("##DockSpaceID");
 		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
-		//if (show_data)
-		//{
-		//	DataView::Present(show_data);
-		//}
-
-		if (g_profilerView.IsOpen())
-		{
-			g_profilerView.Present();
-		}
-
-		//if (show_inspector)
-		//{
-		//	InspectorView::Present(show_inspector);
-		//}
-
-		if (g_assetsView.IsOpen())
-		{
-			g_assetsView.Present();
-		}
-
-		//if (show_gameobjects)
-		//{
-		//	GameObjectView::Present(show_gameobjects);
-		//}
-
-		//if (show_console)
-		//{
-		//	ConsoleView::Present(show_console);
-		//}
-
-		//if (show_settings)
-		//{
-		//	SettingsView::Inspect(show_settings);
-		//}
-
-		//if (show_scene)
-		//{
-		//	SceneView::Present(show_scene);
-		//}
+		ViewManager::Get().Present();
 
 		ImGui::End();
 	}
@@ -446,7 +405,7 @@ void Toolbar::Present()
 
 	//ImGui::EndDisabled();
 
-	g_assetsView.Refresh();
+	AssetsManager::Get().Refresh();
 }
 
 static void StyleLight()

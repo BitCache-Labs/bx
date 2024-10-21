@@ -1,47 +1,27 @@
 #pragma once
 
-#include <bx/bx.hpp>
-#include <bx/core/file.hpp>
-#include <bx/core/thread.hpp>
-#include <bx/containers/list.hpp>
-#include <bx/containers/string.hpp>
-#include <bx/containers/tree.hpp>
-#include <bx/engine/resource.hpp>
 #include <bx/engine/imgui.hpp>
-
 #include <bx/editor/view.hpp>
-
-#include <rttr/rttr_enable.h>
-
-struct BX_API Asset
-{
-	String path;
-	String name;
-	String extension;
-	bool isDirectory = false;
-};
-
-namespace std
-{
-	template <>
-	struct hash<Asset>
-	{
-		inline std::size_t operator()(const Asset& e) const
-		{
-			static std::hash<String> hashFn;
-			return hashFn(e.path);
-		}
-	};
-}
+#include <bx/editor/assets.hpp>
+#include <bx/editor/command.hpp>
+#include <bx/editor/selection.hpp>
 
 class BX_API AssetEditor : public View
 {
 	RTTR_ENABLE(View)
 
 public:
-};
+	virtual bool Initialize() { return true; }
+	virtual void Reload() {}
+	virtual void Shutdown() {}
 
-using AssetImportFn = bool(*)(const char* ext, const char* filename);
+	virtual const char* GetTitle() const { return "AssetEditor"; }
+	virtual void Present(const char* title, bool& isOpen) {}
+
+private:
+	RTTR_REGISTRATION_FRIEND
+	bool m_assetEditor = true;
+};
 
 class BX_API AssetsView final : public View
 {
@@ -52,38 +32,17 @@ public:
 	void Reload() override;
 	void Shutdown() override;
 
-	void Present() override;
+	const char* GetTitle() const override;
+	void Present(const char* title, bool& isOpen) override;
 
 private:
+	void ValidateSelectedFolder();
 	void ShowFileTree(TreeNodeId nodeId);
 	void ProcessFolderImport(TreeNodeId id, const Asset& asset);
 	void ProcessAssetContextMenu(TreeNodeId id, const Asset& asset);
 	void ShowAssetIcon(f32 iconScale, f32 cellSize, TreeNodeId id, const Asset& asset);
 	void ShowAssetLabel(TreeNodeId id, const Asset& asset);
-	void ShowGridList(const ImGuiTextFilter& filter);
-
-public:
-	void Refresh();
-	const Tree<Asset>& GetAssetTree();
-	TreeNodeId GetAssetRootId();
-
-	void RegisterImport(const AssetImportFn& importFn);
-	bool Import(const char* ext, const char* filename);
-
-private:
-	static void RefreshTask(Tree<Asset>& assetTree, AssetsView& ctx);
-
-private:
-	Tree<Asset> m_assetTree;
-	Tree<Asset> m_assetTreeCopy;
-	TreeNodeId m_assetRoot;
-
-	// Define a mutex and condition variable for synchronization
-	std::thread m_refreshThread;
-	std::mutex m_mtx;
-	bool m_ready = false;
-	bool m_processed = false;
-	bool m_exit = false;
+	void ShowGridList();
 
 private:
 	TreeNodeId m_selectedFolder = INVALID_TREENODE_ID;
@@ -94,8 +53,9 @@ private:
 
 	bool m_showNewAssetPopup = false;
 
-	List<AssetImportFn> m_importers;
+	float m_leftPanelWidth = 200.0f;
 
-private:
-	List<AssetEditor> m_openEditors;
+	ImGuiTextFilter m_filter;
+
+	Selection m_selection;
 };

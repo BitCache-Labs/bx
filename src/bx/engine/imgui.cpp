@@ -19,6 +19,11 @@ bool ImGuiManager::Initialize()
     ImGui::CreateContext();
     g_ImGuiContext = ImGui::GetCurrentContext();
 
+    // TODO: CD: I think I should be able to bind the imgui context to the bx lib
+    // so other libs linking to this dynamically don't have to set the context manually.
+    // (P.S.) The line below doesn't do what I wanted, maybe I'm not doing it correctly?
+    //ImGui::SetCurrentContext(ImGuiManager::GetCurrentContext());
+
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;        // Enable Gamepad Controls

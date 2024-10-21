@@ -36,10 +36,11 @@ void Application::Close()
 
 void Application::Reload()
 {
-	PluginManager::Reload();
 #ifdef BX_EDITOR_BUILD
 	Toolbar::Reload();
 #endif
+
+	PluginManager::Reload();
 }
 
 int Application::Launch(const AppConfig& config)
@@ -61,6 +62,12 @@ int Application::Launch(const AppConfig& config)
 	Input::Get().Initialize();
 	Graphics::Get().Initialize();
 	Audio::Get().Initialize();
+
+	ImGuiManager::Initialize();
+
+#ifdef BX_EDITOR_BUILD
+	Toolbar::Initialize();
+#endif
 	
 	if (!PluginManager::Initialize())
 	{
@@ -68,25 +75,20 @@ int Application::Launch(const AppConfig& config)
 		return EXIT_FAILURE;
 	}
 
-	ImGuiManager::Initialize();
-
-#ifdef BX_EDITOR_BUILD
-	Toolbar::Initialize();
-#endif
-
 	while (IsRunning())
 	{
 		Tick();
 	}
 
+	PluginManager::Shutdown();
+
 #ifdef BX_EDITOR_BUILD
 	Toolbar::Shutdown();
 #endif
 
-	PluginManager::Shutdown();
+	ImGuiManager::Shutdown();
 
 	Audio::Get().Shutdown();
-	ImGuiManager::Shutdown();
 	Graphics::Get().Shutdown();
 	Input::Get().Shutdown();
 	Window::Get().Shutdown();

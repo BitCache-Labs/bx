@@ -1,4 +1,4 @@
-#include "bx/editor/views/assets_view.hpp"
+#include <bx/editor/views/assets_view.hpp>
 
 #include <bx/core/thread.hpp>
 #include <bx/core/file.hpp>
@@ -19,127 +19,19 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <IconsFontAwesome5.h>
 
-static void CacheDirectory(Tree<Asset>& assetTree, TreeNodeId nodeIndex)
+#include <rttr/registration.h>
+RTTR_REGISTRATION
 {
-	List<FileHandle> files;
-	File::ListFiles(assetTree.GetNode(nodeIndex).data.path, files);
-	for (const auto& file : files)
-	{
-		const auto& node = assetTree.GetNode(nodeIndex);
-
-		Asset child;
-		child.path = node.data.path + "/" + file.filename;
-		child.name = file.filename;
-		child.extension = File::GetExt(child.name);
-		child.isDirectory = file.isDirectory;
-
-		TreeNodeId childIndex = assetTree.CreateNode(child);
-
-		assetTree.AddChild(nodeIndex, childIndex);
-
-		if (file.isDirectory)
-			CacheDirectory(assetTree, childIndex);
-	}
-}
-
-// Function to perform some calculation on the map
-void AssetsView::RefreshTask(Tree<Asset>& assetTree, AssetsView& ctx)
-{
-	while (!ctx.m_exit)
-	{
-		// Perform some calculations on the map
-		Asset root;
-		root.path = "[assets]";
-		root.name = "Assets";
-		root.extension = "";
-		root.isDirectory = true;
-
-		assetTree.Clear();
-		auto assetRoot = assetTree.CreateNode(root);
-		CacheDirectory(assetTree, assetRoot);
-
-		// Set the data ready flag
-		{
-			std::lock_guard<std::mutex> lock(ctx.m_mtx);
-			ctx.m_ready = true;
-		}
-
-		// Wait until the data is processed by the main thread
-		while (!ctx.m_processed && !ctx.m_exit)
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-		// Reset the data processed flag
-		{
-			std::lock_guard<std::mutex> lock(ctx.m_mtx);
-			ctx.m_processed = false;
-		}
-	}
-}
-
-void AssetsView::Refresh()
-{
-	bool ready;
-	{
-		std::lock_guard<std::mutex> lock(m_mtx);
-		ready = m_ready;
-	}
-
-	if (ready)
-	{
-		// Lock the mutex to access the shared data
-		std::lock_guard<std::mutex> lock(m_mtx);
-
-		// Update asset tree
-		m_assetTree = m_assetTreeCopy;
-
-		// Reset the data ready flag
-		m_ready = false;
-
-		// Set the data processed flag
-		m_processed = true;
-	}
-}
-
-const Tree<Asset>& AssetsView::GetAssetTree()
-{
-	return m_assetTree;
-}
-
-TreeNodeId AssetsView::GetAssetRootId()
-{
-	return m_assetRoot;
-}
-
-void AssetsView::RegisterImport(const AssetImportFn& importFn)
-{
-	m_importers.emplace_back(importFn);
-}
-
-bool AssetsView::Import(const char* ext, const char* filename)
-{
-	for (const auto& importer : m_importers)
-	{
-		if (importer(ext, filename))
-			return true;
-	}
-	return false;
+	rttr::registration::class_<AssetEditor>("AssetEditor")
+	.property("m_assetEditor", &AssetEditor::m_assetEditor);
+	
+	rttr::registration::class_<AssetsView>("AssetsView")
+	.constructor();
 }
 
 bool AssetsView::Initialize()
 {
-	Asset root;
-	root.path = "[assets]";
-	root.name = "Assets";
-	root.extension = "";
-	root.isDirectory = true;
-
-	m_assetRoot = m_assetTree.CreateNode(root);
-	CacheDirectory(m_assetTree, m_assetRoot);
-
-	m_refreshThread = std::thread(RefreshTask, std::ref(m_assetTreeCopy), std::ref(*this));
-
-	m_selectedFolder = GetAssetRootId();
-
+	ValidateSelectedFolder();
 	return true;
 }
 
@@ -151,9 +43,18 @@ void AssetsView::Reload()
 {
 }
 
+void AssetsView::ValidateSelectedFolder()
+{
+	if (m_selectedFolder == INVALID_TREENODE_ID ||
+		!AssetsManager::Get().GetAssetTree().IsValid(m_selectedFolder))
+	{
+		m_selectedFolder = AssetsManager::Get().GetAssetRootId();
+	}
+}
+
 void AssetsView::ShowFileTree(TreeNodeId nodeId)
 {
-	const auto& node = GetAssetTree().GetNode(nodeId);
+	const auto& node = AssetsManager::Get().GetAssetTree().GetNode(nodeId);
 
 	if (!node.data.isDirectory)
 		return;
@@ -161,7 +62,7 @@ void AssetsView::ShowFileTree(TreeNodeId nodeId)
 	bool isParent = false;
 	for (auto childIndex : node.children)
 	{
-		const auto& child = GetAssetTree().GetNode(childIndex);
+		const auto& child = AssetsManager::Get().GetAssetTree().GetNode(childIndex);
 		if (child.data.isDirectory)
 		{
 			isParent = true;
@@ -215,13 +116,13 @@ static List<SizeType> GetSortedNodes(const Tree<Asset>& assetTree, const List<Tr
 
 void AssetsView::ProcessFolderImport(TreeNodeId id, const Asset& asset)
 {
-	const auto& node = GetAssetTree().GetNode(id);
+	const auto& node = AssetsManager::Get().GetAssetTree().GetNode(id);
 	for (auto childId : node.children)
 	{
-		const auto& child = GetAssetTree().GetNode(childId);
+		const auto& child = AssetsManager::Get().GetAssetTree().GetNode(childId);
 		const auto& childAsset = child.data;
 
-		Import(childAsset.extension.c_str(), childAsset.path.c_str());
+		AssetsManager::Get().Import(childAsset.extension.c_str(), childAsset.path.c_str());
 
 		//bool isModel =
 		//	childAsset.extension == "glb" ||
@@ -252,7 +153,7 @@ void AssetsView::ProcessAssetContextMenu(TreeNodeId id, const Asset& asset)
 	}
 	else
 	{
-		Import(asset.extension.c_str(), asset.path.c_str());
+		AssetsManager::Get().Import(asset.extension.c_str(), asset.path.c_str());
 
 		//bool isModel =
 		//	asset.extension == "glb" ||
@@ -320,9 +221,9 @@ void AssetsView::ShowAssetIcon(f32 iconScale, f32 cellSize, TreeNodeId id, const
 	if (selected.Is<TreeNodeId>())
 	{
 		auto selectedNodeId = *selected.As<TreeNodeId>();
-		if (GetAssetTree().IsValid(selectedNodeId))
+		if (AssetsManager::Get().GetAssetTree().IsValid(selectedNodeId))
 		{
-			const auto& selectedNode = GetAssetTree().GetNode(selectedNodeId);
+			const auto& selectedNode = AssetsManager::Get().GetAssetTree().GetNode(selectedNodeId);
 			isSelected = asset.path == selectedNode.data.path;
 		}
 		else
@@ -346,6 +247,8 @@ void AssetsView::ShowAssetIcon(f32 iconScale, f32 cellSize, TreeNodeId id, const
 
 	if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 	{
+		AssetsManager::Get().OpenEditor(0);
+
 		//bool consumed = false;
 		//for (const auto& callback : g_callbacks)
 		//{
@@ -375,7 +278,7 @@ void AssetsView::ShowAssetIcon(f32 iconScale, f32 cellSize, TreeNodeId id, const
 		ImGui::EndPopup();
 	}
 
-	static ImGuiID fileSourceId = ImGui::GetCurrentWindow()->GetID("file");
+	ImGuiID fileSourceId = ImGui::GetCurrentWindow()->GetID("file");
 	if (!asset.isDirectory)
 	{
 		//ImGui::PushID(fileSourceId);
@@ -407,7 +310,6 @@ void AssetsView::ShowAssetIcon(f32 iconScale, f32 cellSize, TreeNodeId id, const
 
 	if (isSelected)
 		ImGui::PopStyleColor();
-
 }
 
 void AssetsView::ShowAssetLabel(TreeNodeId id, const Asset& asset)
@@ -458,7 +360,7 @@ void AssetsView::ShowAssetLabel(TreeNodeId id, const Asset& asset)
 	}
 }
 
-void AssetsView::ShowGridList(const ImGuiTextFilter& filter)
+void AssetsView::ShowGridList()
 {
 	if (m_selectedFolder == INVALID_TREENODE_ID)
 		return;
@@ -475,15 +377,15 @@ void AssetsView::ShowGridList(const ImGuiTextFilter& filter)
 	{
 		ImGui::Columns(columns, NULL, false);
 
-		const auto& node = GetAssetTree().GetNode(m_selectedFolder);
-		auto indices = GetSortedNodes(GetAssetTree(), node.children);
+		const auto& node = AssetsManager::Get().GetAssetTree().GetNode(m_selectedFolder);
+		auto indices = GetSortedNodes(AssetsManager::Get().GetAssetTree(), node.children);
 
 		for (auto index : indices)
 		{
 			auto childId = node.children[index];
-			const auto& child = GetAssetTree().GetNode(childId);
+			const auto& child = AssetsManager::Get().GetAssetTree().GetNode(childId);
 
-			if (!filter.PassFilter(child.data.name.c_str()))
+			if (!m_filter.PassFilter(child.data.name.c_str()))
 				continue;
 
 			ImGui::PushID(child.data.path.c_str());
@@ -570,21 +472,25 @@ static void ShowCreatePopup(bool& show)
 //	GameObject::Save(gameObj, path);
 //}
 
-void AssetsView::Present()
+const char* AssetsView::GetTitle() const
 {
-	static float leftPanelWidth = 200.0f;
-	static bool leftPanelActive = true;
+	return ICON_FA_IMAGES"  Assets";
+}
 
-	ImGui::Begin(ICON_FA_IMAGES"  Assets", &m_open, ImGuiWindowFlags_NoCollapse);
+void AssetsView::Present(const char* title, bool& isOpen)
+{
+	ValidateSelectedFolder();
 
-	ImGui::BeginChild("left_panel", ImVec2(leftPanelWidth, 0), true);
+	ImGui::Begin(title, &isOpen, ImGuiWindowFlags_NoCollapse);
+
+	ImGui::BeginChild("left_panel", ImVec2(m_leftPanelWidth, 0), true);
 
 	if (ImGui::IsItemClicked())
 	{
 		m_selection.ClearSelection();
 	}
 
-	ShowFileTree(GetAssetRootId());
+	ShowFileTree(AssetsManager::Get().GetAssetRootId());
 
 	ImGui::EndChild();
 	ImGui::SameLine();
@@ -598,7 +504,7 @@ void AssetsView::Present()
 
 	if (ImGui::IsItemActive())
 	{
-		leftPanelWidth += ImGui::GetIO().MouseDelta.x;
+		m_leftPanelWidth += ImGui::GetIO().MouseDelta.x;
 	}
 
 	ImGui::PopStyleColor(3);
@@ -609,12 +515,11 @@ void AssetsView::Present()
 
 	ImGui::BeginChild("search_panel", ImVec2(0, ImGui::GetFrameHeightWithSpacing()), false);
 	
-	static ImGuiTextFilter filter;
-	filter.Draw(ICON_FA_SEARCH);
+	m_filter.Draw(ICON_FA_SEARCH);
 	ImGui::SameLine();
 	if (ImGui::Button(ICON_FA_TIMES))
 	{
-		filter.Clear();
+		m_filter.Clear();
 	}
 
 	ImGui::EndChild();
@@ -648,7 +553,7 @@ void AssetsView::Present()
 	{
 		if (ImGui::MenuItem("New Folder"))
 		{
-			const auto& node = GetAssetTree().GetNode(m_selectedFolder);
+			const auto& node = AssetsManager::Get().GetAssetTree().GetNode(m_selectedFolder);
 			File::CreateDirectory(File::GetPath(node.data.path + "/NewFolder"));
 		}
 
@@ -658,7 +563,7 @@ void AssetsView::Present()
 		ImGui::EndPopup();
 	}
 
-	ShowGridList(filter);
+	ShowGridList();
 
 	ImGui::EndChild();
 
@@ -671,6 +576,5 @@ void AssetsView::Present()
 	}
 
 	ShowCreatePopup(m_showNewAssetPopup);
-
 	ImGui::End();
 }

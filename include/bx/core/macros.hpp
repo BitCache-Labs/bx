@@ -50,3 +50,9 @@
 #else
 #define BX_FUNCTION __func__
 #endif
+
+#define BX_TRYCATCH(Expr, Msg) \
+    ([&]() -> bool { \
+        try { Expr; return true; } \
+        catch (const std::exception& e) { BX_LOGE("{}: {}", Msg, e.what()); return false; } \
+    })()

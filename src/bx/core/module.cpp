@@ -31,3 +31,12 @@ bool Module::Load(const String& directory)
         }
     }
 }
+
+#include <windows.h>
+bool Module::LoadSingleLib(const String& path)
+{
+    HMODULE hModule = LoadLibrary(path.c_str());
+    if (!hModule)
+        return false;
+    return true;
+}
