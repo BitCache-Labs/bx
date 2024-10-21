@@ -44,6 +44,7 @@ public:
 
 	void SetTlas(TlasHandle tlas);
 	void Dispatch(const NertDispatchInfo& dispatchInfo);
+	void NextFrame();
 
 	static void ClearPipelineCache();
 

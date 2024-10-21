@@ -294,6 +294,7 @@ void Renderer::Render()
         }
         
         m_gbufferPass->NextFrame();
+        m_nertPass->NextFrame();
     }
 
     PresentPass presentPass(GetFinalColorTarget());

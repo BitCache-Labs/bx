@@ -720,7 +720,10 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     Graphics::DestroyBindGroup(resolveBindGroup);
     Graphics::DestroyBindGroup(samplegenBindGroup);
     Graphics::DestroyBindGroup(shadeBindGroup);
+}
 
+void NertPass::NextFrame()
+{
     frameIdx++;
 }
 
