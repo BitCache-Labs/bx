@@ -36,9 +36,9 @@ public:
 	b8 unbiased = false;
 	b8 fsr2 = false;
 	b8 bloom = true;
-	b8 ibl = false;
+	b8 ibl = true;
 	b8 restir = true;
-	b8 denoise = false;
+	b8 denoise = true;
 	b8 antiFirefly = true;
 
 	SsaoInfo ssaoInfo{};

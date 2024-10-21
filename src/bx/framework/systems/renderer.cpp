@@ -258,7 +258,7 @@ void Renderer::Render()
         m_nertPass->restir = restir;
         m_nertPass->denoise = denoise;
         m_nertPass->antiFirefly = antiFirefly;
-        m_nertPass->fogDensity = 0.04;
+        m_nertPass->fogDensity = 0.0;
         m_nertPass->fogColor = Vec3(1.0, 1.0, 1.0);
         m_nertPass->ibl = ibl;
 

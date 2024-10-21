@@ -83,7 +83,9 @@ void main()
         }
         
         float radius = (30.0 / 1920.0) * float(constants.resolution.x);
+        radius *= (constants.spatialIndex == 0) ? 4.0 : 2.5;
         float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex);
+        
         ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 2) : (pixel >> 1);
         uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + constants.spatialIndex));
         float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
@@ -174,7 +176,7 @@ void main()
         outRestirReservoirs[id] = Reservoir_toPacked(outputReservoir);
         outRestirReservoirData[id] = ReservoirData_toPacked(outputReservoirData);
 
-        if (ReservoirData_isValid(outputReservoirData) && outputReservoir.contributionWeight != 0.0)
+        if (constants.spatialIndex == 1 && ReservoirData_isValid(outputReservoirData) && outputReservoir.contributionWeight != 0.0)
         {
             restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
             restirReservoirDataHistory[id] = ReservoirData_toPacked(outputReservoirData);

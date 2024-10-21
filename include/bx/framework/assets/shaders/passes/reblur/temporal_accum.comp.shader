@@ -7,7 +7,7 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
-const float MAX_ACCUMULATED_FRAMES = 14.0;
+const float MAX_ACCUMULATED_FRAMES = 100.0;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -57,6 +57,7 @@ void main()
     vec4 history = vec4(0.0);
     vec2 momentsHistory = vec2(0.0);
 
+    vec3 reconstructedCurrent = current;
     if (isUvInBounds(historyUv))
     {
         ivec2 historyPixel = uvToPixel(historyUv, constants.resolution);
@@ -73,26 +74,30 @@ void main()
 
             history.w = min(history.w + 1.0, MAX_ACCUMULATED_FRAMES);
         }
-        else
+        
+        if (history.w <= 1.0)
         {
-            current = sampleTextureCatmullRomLod(inImage, linearClampSampler, 2.5, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
-            history.rgb = current;
+            reconstructedCurrent = sampleTextureCatmullRomLod(inImage, linearClampSampler, 3.0, pixelToUv(pixel, constants.resolution), vec2(constants.resolution));
         }
     }
-    
+
     vec2 moments;
     moments.x = linearToLuma(current);
     moments.y = sqr(moments.x);
 
+    //current = mix(vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), history.w / 100.0);
+    //reconstructedCurrent = current;
+
     float alpha = 1.0 / (1.0 + history.w);
 
     vec3 result = mix(history.rgb, current, alpha);
+    vec3 reconstructedResult = mix(history.rgb, reconstructedCurrent, alpha);
     history.rgb = result;
 
     moments = mix(momentsHistory, moments, alpha);
     float newVariance = max(moments.y - sqr(moments.x), 0.0);
 
-    imageStore(outImage, pixel, vec4(result, 1.0));
+    imageStore(outImage, pixel, vec4(reconstructedResult, 1.0));
     imageStore(outHistory, pixel, history);
     imageStore(outVariance, pixel, vec4(newVariance, moments, 0.0));
 }
