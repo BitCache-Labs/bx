@@ -18,7 +18,7 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
-const uint NUM_SPATIAL_SAMPLES = 1;
+const uint NUM_SPATIAL_SAMPLES = 5;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -82,8 +82,8 @@ void main()
             }
         }
         
-        float radius = 30.0 * ((constants.spatialIndex == 0) ? 2.0 : 1.0);
-        float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex) * 0.5;
+        float radius = (30.0 / 1920.0) * float(constants.resolution.x);
+        float samplingRadiusOffset = interleavedGradientNoiseAnimated(uvec2(pixel), constants.seed * 3 + constants.spatialIndex);
         ivec2 pixelSeed = (constants.spatialIndex == 0) ? (pixel >> 2) : (pixel >> 1);
         uint angleSeed = hashCombine(pixelSeed.x, hashCombine(pixelSeed.y, constants.seed * 3 + constants.spatialIndex));
         float samplingAngleOffset = angleSeed * (1.0 / float(0xffffffffU)) * TWO_PI;
@@ -94,8 +94,7 @@ void main()
             float angle = float(i) * GOLDEN_ANGLE + samplingAngleOffset;
             float currentRadius = pow(float(i) / NUM_SPATIAL_SAMPLES, 0.5) * radius + samplingRadiusOffset;
             
-            ivec2 offset = ivec2((randomUniformFloat2(rngState) * 2.0 - 1.0) * 30.0);
-            //ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
+            ivec2 offset = ivec2(currentRadius * vec2(cos(angle), sin(angle)));
             ivec2 samplePixel = pixel + offset;
 
             if (!isPixelInBounds(samplePixel, constants.resolution))
@@ -126,12 +125,14 @@ void main()
         
             vec3 direction;
             float tMax;
+            float pdf = 1.0;
             if (sampledReservoirData.triangleLightSource != U32_MAX)
             {
                 mat4 lightTransform = blasInstances[sampledReservoirData.blasInstance].transform;
                 LightSample reconstructedLightSample = sampleTriangleLight(sampledReservoirData.triangleLightSource, sampledReservoirData.hitUv, lightTransform, origin, 0.0);
                 direction = reconstructedLightSample.sampleDirection;
                 tMax = reconstructedLightSample.hitT;
+                pdf = reconstructedLightSample.pdf;
             }
             else
             {
@@ -158,18 +159,6 @@ void main()
             {
                 sampledReservoirData.p_hat = 0.0;
             }
-            
-            //float MAX_SAMPLE_COUNT = 10.0;
-            //if (sampledReservoir.contributionWeight > MAX_SAMPLE_COUNT)
-            //{
-            //    //sampledReservoir.weightSum *= MAX_SAMPLE_COUNT * reservoir.sampleCount / sampledReservoir.sampleCount;
-            //    sampledReservoir.contributionWeight = MAX_SAMPLE_COUNT;
-            //    sampledReservoir.sampleCount *= MAX_SAMPLE_COUNT / sampledReservoir.contributionWeight;
-            //}
-
-            //float w = (res.samples[i].sumWeights + weight) / (res.numStreamSamples * pHat);
-
-            //float weight = ;
 
             if (Reservoir_update(outputReservoir,
                 sampledReservoirData.p_hat * sampledReservoir.contributionWeight * sampledReservoir.sampleCount,
@@ -178,13 +167,17 @@ void main()
                 outputReservoirData = sampledReservoirData;
             }
         }
-        
+                
         outputReservoir.contributionWeight = (1.0 / max(outputReservoirData.p_hat, RESTIR_EPSILON)) * (outputReservoir.weightSum / max(outputReservoir.sampleCount, RESTIR_EPSILON));
         outputReservoir.contributionWeight = fixNan(outputReservoir.contributionWeight);
-    }
 
-    outRestirReservoirs[id] = Reservoir_toPacked(outputReservoir);
-    outRestirReservoirData[id] = ReservoirData_toPacked(outputReservoirData);
-    restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
-    restirReservoirDataHistory[id] = ReservoirData_toPacked(outputReservoirData);
+        outRestirReservoirs[id] = Reservoir_toPacked(outputReservoir);
+        outRestirReservoirData[id] = ReservoirData_toPacked(outputReservoirData);
+
+        if (ReservoirData_isValid(outputReservoirData) && outputReservoir.contributionWeight != 0.0)
+        {
+            restirReservoirsHistory[id] = Reservoir_toPacked(outputReservoir);
+            restirReservoirDataHistory[id] = ReservoirData_toPacked(outputReservoirData);
+        }
+    }
 }

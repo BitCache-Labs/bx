@@ -78,7 +78,6 @@ RisResult ris(inout uint rngState,
         LightSample lightSample = _sampleUniformLight(randomUniformFloat4(rngState), x1);
         vec3 wInWorldSpace = lightSample.sampleDirection;
     
-        //float p_hat = 0.0;
         if (dot(wInWorldSpace, normal) > 0.0)
         {
             vec3 brdfEval = diffuseBsdfEval(baseColor);
