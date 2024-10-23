@@ -26,6 +26,7 @@ void Camera::Update(u32 renderWidth, u32 displayWidth)
 	if (!m_dirty)
 		return;
 
+	m_prevProjection = m_projection;
 	m_projection = Mat4::Perspective(m_fov, m_aspect, m_zNear, m_zFar);
 	m_prevInvProjection = m_invProjection;
 	m_invProjection = m_projection.Inverse();

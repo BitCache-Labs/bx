@@ -2,6 +2,7 @@
 #define GBUFFER_H
 
 #include "[engine]/shaders/math.shader"
+#include "[engine]/shaders/packing.shader"
 
 struct GBufferData
 {

@@ -21,6 +21,7 @@ public:
 	inline void SetZFar(f32 zFar) { m_zFar = zFar; m_dirty = true; }
 
 	inline const Mat4& GetProjection() const { return m_projection; }
+	inline const Mat4& GetPrevProjection() const { return m_prevProjection; }
 	inline const Mat4& GetInvProjection() const { return m_invProjection; }
 	inline const Mat4& GetPrevInvProjection() const { return m_prevInvProjection; }
 
@@ -78,6 +79,7 @@ private:
 	Mat4 m_prevInvView = Mat4::Identity();
 
 	Mat4 m_projection = Mat4::Identity();
+	Mat4 m_prevProjection = Mat4::Identity();
 	Mat4 m_invProjection = Mat4::Identity();
 	Mat4 m_prevInvProjection = Mat4::Identity();
 

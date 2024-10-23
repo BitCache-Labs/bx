@@ -172,6 +172,7 @@ set (BX_SRCS
 	"src/bx/framework/systems/renderer/nert_pass.cpp"
 	"src/bx/framework/systems/renderer/present_pass.cpp"
 	"src/bx/framework/systems/renderer/reblur_pass.cpp"
+	"src/bx/framework/systems/renderer/reprojection_pass.cpp"
 	"src/bx/framework/systems/renderer/restir_di_pass.cpp"
 	"src/bx/framework/systems/renderer/sky.cpp"
 	"src/bx/framework/systems/renderer/ssao_pass.cpp"

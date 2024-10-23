@@ -202,7 +202,7 @@ BindGroupHandle ReblurPass::CreateTemporalAccumBindGroup(const ReblurDispatchInf
         BindGroupEntry(3, BindingResource::TextureView(historyTextureView[frameIdx % 2 != 0])),
         BindGroupEntry(4, BindingResource::TextureView(dispatchInfo.gbufferView)),
         BindGroupEntry(5, BindingResource::TextureView(dispatchInfo.gbufferHistoryView)),
-        BindGroupEntry(7, BindingResource::TextureView(dispatchInfo.velocityView)),
+        BindGroupEntry(7, BindingResource::TextureView(dispatchInfo.reprojectionView)),
         BindGroupEntry(8, BindingResource::TextureView(varianceTextureView[frameIdx % 2 == 0])),
         BindGroupEntry(9, BindingResource::TextureView(varianceTextureView[frameIdx % 2 != 0])),
         BindGroupEntry(10, BindingResource::TextureView(tmpIlluminationTextureView)),

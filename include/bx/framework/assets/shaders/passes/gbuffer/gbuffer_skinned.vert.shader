@@ -67,7 +67,7 @@ void main()
     gl_Position = constants.viewProj * outPositionWs;
     gl_Position += vec4(constants.jitter / vec2(constants.resolution), 0.0, 0.0) * gl_Position.w;
 
-    outPositionWsHistory = model.worldMeshHistory * vec4(inPosition, 1.0);
+    outPositionWsHistory = model.worldMeshHistory * vec4(skinnedPositionHistory, 1.0);
 
     outNormal = (model.transInvWorldMesh * matrix * vec4(inNormal, 1.0)).xyz;
     outTexcoord = inTexcoord;
