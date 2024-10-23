@@ -7,7 +7,7 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
-const float MAX_ACCUMULATED_FRAMES = 100.0;
+const float MAX_ACCUMULATED_FRAMES = 64.0;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {
@@ -24,7 +24,7 @@ layout (BINDING(0, 2)) uniform texture2D inHistory;
 layout (BINDING(0, 3), rgba32f) uniform image2D outHistory;
 layout (BINDING(0, 4)) uniform texture2D gbuffer;
 layout (BINDING(0, 5)) uniform texture2D gbufferHistory;
-layout (BINDING(0, 7)) uniform texture2D velocityTarget;
+layout (BINDING(0, 7)) uniform texture2D reprojection;
 layout (BINDING(0, 8), rgba32f) uniform image2D variance;
 layout (BINDING(0, 9), rgba32f) uniform image2D outVariance;
 layout (BINDING(0, 10), rgba32f) uniform image2D outImage;
@@ -51,7 +51,7 @@ void main()
         return;
     }
 
-    vec2 velocity = getVelocity(velocityTarget, nearestClampSampler, globalPixel, constants.globalResolution);
+    vec2 velocity =  texture(sampler2D(reprojection, nearestClampSampler), pixelToUv(globalPixel, constants.globalResolution)).rg;
     vec2 historyUv = pixelToUv(pixel, constants.resolution) - velocity;
 
     vec4 history = vec4(0.0);

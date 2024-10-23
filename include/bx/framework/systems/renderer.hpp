@@ -14,6 +14,7 @@
 #include "bx/framework/systems/renderer/fog_pass.hpp"
 #include "bx/framework/systems/renderer/ssao_pass.hpp"
 #include "bx/framework/systems/renderer/bloom_pass.hpp"
+#include "bx/framework/systems/renderer/reprojection_pass.hpp"
 
 class SceneView;
 
@@ -36,7 +37,7 @@ public:
 	b8 unbiased = false;
 	b8 fsr2 = false;
 	b8 bloom = true;
-	b8 ibl = true;
+	b8 ibl = false;
 	b8 restir = true;
 	b8 denoise = true;
 	b8 antiFirefly = true;
@@ -57,11 +58,13 @@ private:
 
 	TextureHandle m_colorTarget = TextureHandle::null;
 	TextureHandle m_depthTarget = TextureHandle::null;
+	TextureViewHandle m_depthTargetView;
 
 	TlasHandle m_tlas = TlasHandle::null;
 
 	b8 m_dirtyPasses = true;
 	std::unique_ptr<GBufferPass> m_gbufferPass = nullptr;
+	std::unique_ptr<ReprojectionPass> m_reprojectionPass = nullptr;
 	std::unique_ptr<NertPass> m_nertPass = nullptr;
 	std::unique_ptr<Fsr2Pass> m_fsr2Pass = nullptr;
 	std::unique_ptr<FogPass> m_fogPass = nullptr;

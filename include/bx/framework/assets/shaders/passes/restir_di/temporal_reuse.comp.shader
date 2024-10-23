@@ -37,7 +37,7 @@ layout(BINDING(0, 1)) uniform accelerationStructureEXT Scene;
 
 layout (BINDING(0, 2)) uniform texture2D gbuffer;
 layout (BINDING(0, 3)) uniform texture2D gbufferHistory;
-layout (BINDING(0, 4)) uniform texture2D velocity;
+layout (BINDING(0, 4)) uniform texture2D reprojection;
 layout (BINDING(0, 5), rgba32f) uniform image2D neGbuffer;
 
 layout (BINDING(0, 6)) uniform sampler nearestClampSampler;
@@ -80,7 +80,7 @@ void main()
         }
 
         // History
-        vec2 velocity = getVelocity(velocity, nearestClampSampler, globalPixel, constants.globalResolution);
+        vec2 velocity = texture(sampler2D(reprojection, nearestClampSampler), pixelToUv(globalPixel, constants.globalResolution)).rg;
         vec2 historyUv = pixelToUv(pixel, constants.resolution) - velocity;
 
         if (isUvInBounds(historyUv))

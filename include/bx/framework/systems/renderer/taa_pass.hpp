@@ -15,7 +15,7 @@ public:
 	TextureViewHandle GetResolvedColorTargetView() const;
 	TextureHandle GetResolvedColorTarget() const;
 
-	void Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityTargetView);
+	void Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle reprojectionView);
 	void NextFrame();
 
 	static void ClearPipelineCache();

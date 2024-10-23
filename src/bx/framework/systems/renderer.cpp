@@ -172,6 +172,8 @@ void Renderer::RecreateRenderTargets()
         depthTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING;
         if (m_depthTarget) Graphics::DestroyTexture(m_depthTarget);
         m_depthTarget = Graphics::CreateTexture(depthTargetCreateInfo);
+        if (m_depthTargetView) Graphics::DestroyTextureView(m_depthTargetView);
+        m_depthTargetView = Graphics::CreateTextureView(m_depthTarget);
 
         m_dirtyPasses = true;
     }
@@ -187,6 +189,7 @@ void Renderer::RebuildPasses()
         i32 h = (f32)windowHeight / upscaleFactor;
 
         m_gbufferPass = std::unique_ptr<GBufferPass>(new GBufferPass(m_depthTarget));
+        m_reprojectionPass = std::unique_ptr<ReprojectionPass>(new ReprojectionPass(w, h));
 
         NertCreateInfo nertCreateInfo{};
         nertCreateInfo.colorTarget = m_colorTarget;
@@ -223,6 +226,7 @@ void Renderer::Initialize()
 void Renderer::Shutdown()
 {
     GBufferPass::ClearPipelineCache();
+    ReprojectionPass::ClearPipelineCache();
     IdPass::ClearPipelineCache();
     PresentPass::ClearPipelineCache();
     RestirDiPass::ClearPipelineCache();
@@ -248,6 +252,7 @@ void Renderer::Render()
     if (m_nertPass) // TODO: remove if statement?
     {
         m_gbufferPass->Dispatch(m_cameras.back());
+        m_reprojectionPass->Dispatch(m_cameras.back(), m_depthTargetView, m_gbufferPass->GetVelocityTargetView());
 
         m_sky->sunInfo.intensity = 0.0;
 
@@ -270,7 +275,7 @@ void Renderer::Render()
             *m_sky,
             m_gbufferPass->GetColorTargetView(),
             m_gbufferPass->GetColorTargetHistoryView(),
-            m_gbufferPass->GetVelocityTargetView()
+            m_reprojectionPass->GetReprojectionView(),
         };
         m_nertPass->Dispatch(dispatchInfo);
 

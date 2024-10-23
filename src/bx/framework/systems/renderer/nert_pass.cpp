@@ -649,7 +649,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
     {
         restirDiPass->seed = seed;
         restirDiPass->unbiased = unbiased;
-        restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity, neGbufferView[frameIdx % 2 != 0], dispatchInfo.blasDataPool, dispatchInfo.sky, dispatchInfo.materialPool);
+        restirDiPass->Dispatch(dispatchInfo.camera, createInfo.tlas, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.reprojection, neGbufferView[frameIdx % 2 != 0], dispatchInfo.blasDataPool, dispatchInfo.sky, dispatchInfo.materialPool);
     }
 
     computePassDescriptor.name = "Nert Shade";
@@ -681,14 +681,14 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         reblurPass->antiFirefly = antiFirefly;
 
         preTaaPass->historyWeight = 0.9;
-        preTaaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.velocity);
+        preTaaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.reprojection);
         
         ReblurDispatchInfo reblurDispatchInfo;
         reblurDispatchInfo.unresolvedIllumination = preTaaPass->GetResolvedColorTarget();
         reblurDispatchInfo.gbufferView = dispatchInfo.gbuffer;
         reblurDispatchInfo.gbufferHistoryView = dispatchInfo.gbufferHistory;
         reblurDispatchInfo.neGbufferHistoryView = neGbufferView[frameIdx % 2 == 0];
-        reblurDispatchInfo.velocityView = dispatchInfo.velocity;
+        reblurDispatchInfo.reprojectionView = dispatchInfo.reprojection;
         reblurPass->Dispatch(reblurDispatchInfo);
 
         //taaPass->historyWeight = 0.0;

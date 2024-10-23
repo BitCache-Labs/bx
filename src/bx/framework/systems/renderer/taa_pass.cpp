@@ -121,7 +121,7 @@ TextureHandle TaaPass::GetResolvedColorTarget() const
     return resolvedColorTarget;
 }
 
-void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle velocityTargetView)
+void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureViewHandle gbufferView, TextureViewHandle gbufferHistoryView, TextureViewHandle reprojectionView)
 {
     TaaConstants constants{};
     constants.globalWidth = width;
@@ -140,7 +140,7 @@ void TaaPass::Dispatch(const Camera& camera, TextureHandle colorTarget, TextureV
         BindGroupEntry(0, BindingResource::Buffer(constantBuffer)),
         BindGroupEntry(1, BindingResource::TextureView(colorTargetView)),
         BindGroupEntry(2, BindingResource::TextureView(resolvedColorTargetView)),
-        BindGroupEntry(3, BindingResource::TextureView(velocityTargetView)),
+        BindGroupEntry(3, BindingResource::TextureView(reprojectionView)),
         BindGroupEntry(4, BindingResource::TextureView(gbufferView)),
         BindGroupEntry(5, BindingResource::TextureView(gbufferHistoryView)),
         BindGroupEntry(6, BindingResource::TextureView(resolvedColorTargetHistoryView)),

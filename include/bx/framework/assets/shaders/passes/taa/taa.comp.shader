@@ -19,7 +19,7 @@ layout (BINDING(0, 0), std140) uniform _Constants
 
 layout (BINDING(0, 1), rgba32f) uniform image2D colorTarget;
 layout (BINDING(0, 2), rgba32f) uniform image2D resolvedColorTarget;
-layout (BINDING(0, 3)) uniform texture2D velocityTarget;
+layout (BINDING(0, 3)) uniform texture2D reprojection;
 layout (BINDING(0, 4)) uniform texture2D gbuffer;
 layout (BINDING(0, 5)) uniform texture2D gbufferHistory;
 layout (BINDING(0, 6)) uniform texture2D resolvedColorTargetHistory;
@@ -122,7 +122,7 @@ void main()
 
     reconstructed /= max(weightSum, 1e-5);
 
-    vec2 velocity = getVelocityDepthDilated(velocityTarget, gbuffer, nearestClampSampler, globalPixel, constants.globalResolution);
+    vec2 velocity = texture(sampler2D(reprojection, nearestClampSampler), pixelToUv(globalPixel, constants.globalResolution)).rg;
     vec2 historyUv = pixelToUv(pixel, constants.resolution) - velocity;
     ivec2 historyGlobalPixel = uvToPixel(historyUv, constants.globalResolution);
 
