@@ -64,6 +64,13 @@ void _depthTestMin(texture2D gbufferTexture, sampler s, ivec2 pixel, uvec2 resol
 	}
 }
 
+vec2 getVelocity(texture2D velocityTexture, sampler s, ivec2 pixel, uvec2 resolution)
+{
+	vec2 uv = pixelToUv(pixel, resolution);
+	vec3 velocity = texture(sampler2D(velocityTexture, s), uv).rgb;
+	return velocity.xy;// / vec2(resolution);
+}
+
 vec2 getVelocityDepthDilated(texture2D velocityTexture, texture2D gbufferTexture, sampler s, ivec2 pixel, uvec2 resolution)
 {
 	float minDepth = GBufferData_loadDepth(gbufferTexture, s, pixel, resolution).distance;
@@ -79,16 +86,7 @@ vec2 getVelocityDepthDilated(texture2D velocityTexture, texture2D gbufferTexture
 		}
 	}
 
-	vec2 uv = pixelToUv(minPixel, resolution);
-	vec2 velocity = texture(sampler2D(velocityTexture, s), uv).xy;
-	return velocity;
-}
-
-vec2 getVelocity(texture2D velocityTexture, sampler s, ivec2 pixel, uvec2 resolution)
-{
-	vec2 uv = pixelToUv(pixel, resolution);
-	vec2 velocity = texture(sampler2D(velocityTexture, s), uv).xy;
-	return velocity;
+	return getVelocity(velocityTexture, s, minPixel, resolution);
 }
 
 bool GBufferData_isDisoccluded(GBufferData current, GBufferData history)

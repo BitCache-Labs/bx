@@ -35,11 +35,13 @@ public:
 	inline const Vec2& GetJitter() const { return m_jitter; }
 
 	inline const Mat4& GetView() const { return m_view; }
+	inline const Mat4& GetPrevView() const { return m_prevView; }
 	inline const Mat4& GetInvView() const { return m_invView; }
 	inline const Mat4& GetPrevInvView() const { return m_prevInvView; }
 
 	inline void SetView(const Mat4& view)
 	{
+		m_prevView = m_view;
 		m_view = view;
 		m_prevInvView = m_invView;
 		m_invView = m_view.Inverse();
@@ -71,6 +73,7 @@ private:
 	Vec2 m_jitter = Vec2::Zero();
 
 	Mat4 m_view = Mat4::Identity();
+	Mat4 m_prevView = Mat4::Identity();
 	Mat4 m_invView = Mat4::Identity();
 	Mat4 m_prevInvView = Mat4::Identity();
 

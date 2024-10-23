@@ -14,6 +14,8 @@ struct GBufferConstants
 {
     Mat4 viewProj;
     Mat4 viewProjHistory;
+    Mat4 view;
+    Mat4 viewHistory;
     Vec3 viewPos;
     u32 _PADDING0;
     Vec2 jitter;
@@ -87,7 +89,7 @@ struct GBufferPipeline : public LazyInitMap<GBufferPipeline, GraphicsPipelineHan
         ColorTargetState colorTargetState{};
         colorTargetState.format = Graphics::GetTextureCreateInfo(args.colorTarget).format;
         ColorTargetState velocityTargetState{};
-        velocityTargetState.format = TextureFormat::RG16_FLOAT;
+        velocityTargetState.format = TextureFormat::RGBA32_FLOAT;
 
         TextureFormat depthFormat = Graphics::GetTextureCreateInfo(args.depthTarget).format;
 
@@ -151,7 +153,7 @@ struct GBufferSkinnedPipeline : public LazyInitMap<GBufferSkinnedPipeline, Graph
         ColorTargetState colorTargetState{};
         colorTargetState.format = Graphics::GetTextureCreateInfo(args.colorTarget).format;
         ColorTargetState velocityTargetState{};
-        velocityTargetState.format = TextureFormat::RG16_FLOAT;
+        velocityTargetState.format = TextureFormat::RGBA32_FLOAT;
 
         TextureFormat depthFormat = Graphics::GetTextureCreateInfo(args.depthTarget).format;
 
@@ -195,7 +197,7 @@ GBufferPass::GBufferPass(TextureHandle depthTarget)
     TextureCreateInfo velocityTargetCreateInfo{};
     velocityTargetCreateInfo.name = "GBuffer Velocity Target";
     velocityTargetCreateInfo.size = Extend3D(width, height, 1);
-    velocityTargetCreateInfo.format = TextureFormat::RG16_FLOAT;
+    velocityTargetCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     velocityTargetCreateInfo.usageFlags = TextureUsageFlags::RENDER_ATTACHMENT | TextureUsageFlags::TEXTURE_BINDING | TextureUsageFlags::STORAGE_BINDING;
     velocityTarget = Graphics::CreateTexture(velocityTargetCreateInfo);
     velocityTargetView = Graphics::CreateTextureView(velocityTarget);
@@ -249,6 +251,8 @@ void GBufferPass::Dispatch(const Camera& camera)
     GBufferConstants constants{};
     constants.viewProj = camera.GetViewProjection();
     constants.viewProjHistory = camera.GetPrevViewProjection();
+    constants.view = camera.GetView();
+    constants.viewHistory = camera.GetPrevView();
     Mat4::Decompose(camera.GetView().Inverse(), constants.viewPos, Quat{}, Vec3{});
     constants.jitter = camera.GetJitter();
     constants.width = width;
