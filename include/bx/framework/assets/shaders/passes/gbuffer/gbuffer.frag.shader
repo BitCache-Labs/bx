@@ -24,7 +24,8 @@ layout (BINDING(0, 0), std140) uniform _Constants
 
 void main()
 {
-    float oneOverSqrDepth = 1.0 / distance(constants.viewPos, inPositionWs.xyz);
+    float d = distance(constants.viewPos, inPositionWs.xyz);
+    float oneOverSqrDepth = 1.0 / d;
     float packedNormal = uintBitsToFloat(packNormalizedXyz10(inNormal, 0).data);
     float packedTexcoord = uintBitsToFloat(packHalf2x16(inTexcoord));
     float blasInstanceIdx = uintBitsToFloat((uint(gl_FrontFacing) << 31) | inBlasInstanceIdx);
@@ -33,6 +34,9 @@ void main()
 
     vec3 positionVsHistory = (constants.view * inPositionWsHistory).xyz;
     vec3 positionVs = (constants.view * inPositionWs).xyz;
+    vec3 velocity = positionVsHistory - positionVs;
 
-    outVelocity = vec4(positionVsHistory - positionVs, 1.0);
+    float dDerivative = max(abs(dFdx(d)), abs(dFdy(d)));
+
+    outVelocity = vec4(velocity, dDerivative);
 }

@@ -689,7 +689,7 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         reblurDispatchInfo.gbufferHistoryView = dispatchInfo.gbufferHistory;
         reblurDispatchInfo.neGbufferHistoryView = neGbufferView[frameIdx % 2 == 0];
         reblurDispatchInfo.reprojectionView = dispatchInfo.reprojection;
-        reblurDispatchInfo.depthView = dispatchInfo.depthView;
+        reblurDispatchInfo.velocityView = dispatchInfo.velocityView;
         reblurPass->Dispatch(reblurDispatchInfo);
 
         taaPass->historyWeight = 0.8;

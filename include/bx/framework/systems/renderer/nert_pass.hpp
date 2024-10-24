@@ -30,7 +30,7 @@ struct NertDispatchInfo
 	TextureViewHandle gbuffer;
 	TextureViewHandle gbufferHistory;
 	TextureViewHandle reprojection;
-	TextureViewHandle depthView;
+	TextureViewHandle velocityView;
 };
 
 class NertPass : NoCopy

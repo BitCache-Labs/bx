@@ -234,7 +234,7 @@ BindGroupHandle ReblurPass::CreateATrousBindGroup(const ReblurDispatchInfo& disp
         BindGroupEntry(3, BindingResource::TextureView(varianceTextureView[frameIdx % 2 != 0])),
         BindGroupEntry(4, BindingResource::TextureView(pingPong ? unresolvedIlluminationView : tmpIlluminationTextureView)),
         BindGroupEntry(5, BindingResource::TextureView(historyTextureView[frameIdx % 2 != 0])),
-        BindGroupEntry(6, BindingResource::TextureView(dispatchInfo.depthView)),
+        BindGroupEntry(6, BindingResource::TextureView(dispatchInfo.velocityView)),
         BindGroupEntry(7, BindingResource::Sampler(nearestClampSampler)),
     };
 

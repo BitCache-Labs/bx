@@ -25,7 +25,7 @@ layout (BINDING(0, 3), rgba32f) uniform image2D variance;
 layout (BINDING(0, 4), rgba32f) uniform image2D outImage;
 layout (BINDING(0, 5), rgba32f) uniform image2D outHistory;
 
-layout (BINDING(0, 6)) uniform texture2D depth;
+layout (BINDING(0, 6)) uniform texture2D velocityAndDepthDeriv;
 
 layout (BINDING(0, 7)) uniform sampler nearestClampSampler;
 
@@ -58,15 +58,17 @@ void main()
     float centerVariance = centerVarianceAndMoments.r;
     vec3 centerColor = result;
     vec3 centerNormal = currentNormalAndDepth.xyz;
-    float centerDepth = texture(sampler2D(depth, nearestClampSampler), pixelToUv(globalPixel, constants.globalResolution)).r;
+    float centerDepth = currentNormalAndDepth.w;
     float centerLuminance = linearToLuma(centerColor);
 
     vec3 sum = centerColor;
     float varianceSum = centerVariance;
     float weightSum = 1.0;
 
+    float depthDeriv = texture(sampler2D(velocityAndDepthDeriv, nearestClampSampler), pixelToUv(globalPixel, constants.globalResolution)).w;
+
     float phiLuminance = PHI_COLOR * sqrt(max(centerVariance + 1e-10, 0.0));
-    float phiDepth = 0.00001 * float(constants.stepSize);
+    float phiDepth = max(depthDeriv, 1e-6f) * float(constants.stepSize);
     
     #pragma unroll
     for (int x = -2; x <= 2; x++)
@@ -94,10 +96,10 @@ void main()
             float sampleLuminance = linearToLuma(sampleColor);
             vec4 sampleNormalAndDepth = getPixelNormalAndDepth(globalSamplePixel);
             vec3 sampleNormal = sampleNormalAndDepth.xyz;
-            float sampleDepth = texture(sampler2D(depth, nearestClampSampler), pixelToUv(globalSamplePixel, constants.globalResolution)).r;
+            float sampleDepth = sampleNormalAndDepth.w;
 
             float normalWeight = normalSimilarity(centerNormal, sampleNormal, PHI_NORMAL);
-            float illuminanceDepthWeight = 1.0;//luminanceAndDepthSimilarity(1.0, centerDepth, 1.0, sampleDepth, phiLuminance, samplePhiDepth);
+            float illuminanceDepthWeight = luminanceAndDepthSimilarity(1.0, centerDepth, 1.0, sampleDepth, phiLuminance, samplePhiDepth);
             float weight = normalWeight * illuminanceDepthWeight * kernelWeight;
 
             sum += sampleColor * weight;

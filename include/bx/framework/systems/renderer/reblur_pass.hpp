@@ -14,7 +14,7 @@ struct ReblurDispatchInfo
 	TextureViewHandle gbufferHistoryView;
 	TextureViewHandle neGbufferHistoryView;
 	TextureViewHandle reprojectionView;
-	TextureViewHandle depthView;
+	TextureViewHandle velocityView;
 };
 
 class ReblurPass : NoCopy
