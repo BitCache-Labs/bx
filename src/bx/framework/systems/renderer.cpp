@@ -302,6 +302,9 @@ void Renderer::Render()
         m_nertPass->NextFrame();
     }
 
+    ColorCorrectPass colorCorrectPass(GetFinalColorTarget());
+    colorCorrectPass.Dispatch();
+
     PresentPass presentPass(GetFinalColorTarget());
     presentPass.Dispatch();
 
