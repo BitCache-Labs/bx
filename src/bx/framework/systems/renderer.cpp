@@ -276,6 +276,7 @@ void Renderer::Render()
             m_gbufferPass->GetColorTargetView(),
             m_gbufferPass->GetColorTargetHistoryView(),
             m_reprojectionPass->GetReprojectionView(),
+            m_depthTargetView,
         };
         m_nertPass->Dispatch(dispatchInfo);
 

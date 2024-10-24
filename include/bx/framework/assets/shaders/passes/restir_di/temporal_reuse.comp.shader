@@ -80,8 +80,9 @@ void main()
         }
 
         // History
-        vec2 velocity = texture(sampler2D(reprojection, nearestClampSampler), pixelToUv(globalPixel, constants.globalResolution)).rg;
-        vec2 historyUv = pixelToUv(pixel, constants.resolution) - velocity;
+        vec3 reprojection = texture(sampler2D(reprojection, nearestClampSampler), pixelToUv(globalPixel, constants.globalResolution)).rgb;
+        vec2 reprojectionUv = reprojection.xy;
+        vec2 historyUv = pixelToUv(pixel, constants.resolution) - reprojectionUv;
 
         if (isUvInBounds(historyUv))
         {

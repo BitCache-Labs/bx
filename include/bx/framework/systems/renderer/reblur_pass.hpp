@@ -14,6 +14,7 @@ struct ReblurDispatchInfo
 	TextureViewHandle gbufferHistoryView;
 	TextureViewHandle neGbufferHistoryView;
 	TextureViewHandle reprojectionView;
+	TextureViewHandle depthView;
 };
 
 class ReblurPass : NoCopy
@@ -29,7 +30,7 @@ public:
 	u32 seed = 1337;
 	b8 antiFirefly = true;
 
-	u32 spatialFilterSteps = 3; // Odd numbers are slower!
+	u32 spatialFilterSteps = 4; // Odd numbers are slower!
 
 private:
 	u32 width, height;

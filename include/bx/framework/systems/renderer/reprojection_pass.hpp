@@ -12,6 +12,7 @@ public:
 	ReprojectionPass(u32 width, u32 height);
 	~ReprojectionPass();
 
+	TextureHandle GetReprojection() const;
 	TextureViewHandle GetReprojectionView() const;
 
 	void Dispatch(const Camera& camera, TextureViewHandle depthView, TextureViewHandle velocityView);

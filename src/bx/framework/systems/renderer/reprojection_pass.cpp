@@ -62,7 +62,7 @@ ReprojectionPass::ReprojectionPass(u32 width, u32 height)
     TextureCreateInfo reprojectionCreateInfo{};
     reprojectionCreateInfo.name = "Reprojection Texture";
     reprojectionCreateInfo.size = Extend3D(width, height, 1);
-    reprojectionCreateInfo.format = TextureFormat::RG32_FLOAT;
+    reprojectionCreateInfo.format = TextureFormat::RGBA32_FLOAT;
     reprojectionCreateInfo.usageFlags = TextureUsageFlags::STORAGE_BINDING | TextureUsageFlags::TEXTURE_BINDING;
     reprojectionTexture = Graphics::CreateTexture(reprojectionCreateInfo);
     reprojectionTextureView = Graphics::CreateTextureView(reprojectionTexture);
@@ -83,6 +83,11 @@ ReprojectionPass::~ReprojectionPass()
     Graphics::DestroyTextureView(reprojectionTextureView);
     Graphics::DestroyTexture(reprojectionTexture);
     Graphics::DestroySampler(nearestClampSampler);
+}
+
+TextureHandle ReprojectionPass::GetReprojection() const
+{
+    return reprojectionTexture;
 }
 
 TextureViewHandle ReprojectionPass::GetReprojectionView() const

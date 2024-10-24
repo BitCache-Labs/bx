@@ -88,6 +88,8 @@ struct ATrousPipeline : public LazyInit<ATrousPipeline, ComputePipelineHandle>
                 BindGroupLayoutEntry(3, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ, TextureFormat::RGBA32_FLOAT)),     // variance
                 BindGroupLayoutEntry(4, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::WRITE, TextureFormat::RGBA32_FLOAT)),    // outImage
                 BindGroupLayoutEntry(5, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::StorageTexture(StorageTextureAccess::READ_WRITE, TextureFormat::RGBA32_FLOAT)),    // outHistory
+                BindGroupLayoutEntry(6, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Texture(TextureSampleType::FLOAT)),    // depth
+                BindGroupLayoutEntry(7, ShaderStageFlags::COMPUTE, BindingTypeDescriptor::Sampler()),    // depth
             })
         };
 
@@ -232,6 +234,8 @@ BindGroupHandle ReblurPass::CreateATrousBindGroup(const ReblurDispatchInfo& disp
         BindGroupEntry(3, BindingResource::TextureView(varianceTextureView[frameIdx % 2 != 0])),
         BindGroupEntry(4, BindingResource::TextureView(pingPong ? unresolvedIlluminationView : tmpIlluminationTextureView)),
         BindGroupEntry(5, BindingResource::TextureView(historyTextureView[frameIdx % 2 != 0])),
+        BindGroupEntry(6, BindingResource::TextureView(dispatchInfo.depthView)),
+        BindGroupEntry(7, BindingResource::Sampler(nearestClampSampler)),
     };
 
     BindGroupHandle bindGroup = Graphics::CreateBindGroup(createInfo);

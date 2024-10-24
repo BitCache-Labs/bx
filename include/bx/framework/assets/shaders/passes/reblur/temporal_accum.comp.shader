@@ -7,7 +7,7 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
-const float MAX_ACCUMULATED_FRAMES = 64.0;
+const float MAX_ACCUMULATED_FRAMES = 10.0;
 
 layout (BINDING(0, 0), std140) uniform _Constants
 {

@@ -4,6 +4,8 @@
 
 #include "[engine]/shaders/passes/gbuffer/gbuffer.shader"
 
+const float ACCEPTANCE_THRESHOLD = 0.01;
+
 layout (BINDING(0, 0), std140) uniform _Constants
 {
     mat4 clipToView;
@@ -35,7 +37,7 @@ void main()
     vec4 positionVs = constants.clipToView * positionCs;
     vec4 prevPositionVs;
     
-    bool isSky = depth == 0.0;
+    bool isSky = depth == 1.0;
     if (isSky)
     {
         prevPositionVs = positionVs;
@@ -53,5 +55,5 @@ void main()
     vec2 prevFrameUv = clipToUv(prevPositionPrevFrameNdc.xy);
     vec2 prevToCurrentFrameUvOffset = uv - prevFrameUv;
 
-    imageStore(reprojection, pixel, vec4(prevToCurrentFrameUvOffset, 0.0, 0.0));
+    imageStore(reprojection, pixel, vec4(prevToCurrentFrameUvOffset, 1.0, 1.0));
 }

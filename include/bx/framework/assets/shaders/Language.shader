@@ -26,7 +26,7 @@ vec2 clipToUv(vec2 clip)
 
 vec2 uvToClip(vec2 uv)
 {
-	return (uv - 0.5.xx) * vec2(2.0, -2.0);
+	return (uv - vec2(0.5)) * vec2(2.0, -2.0);
 }
 
 vec2 clipToUv(vec2 clip)

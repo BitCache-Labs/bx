@@ -39,17 +39,6 @@ layout (BINDING(0, 3), rgba32f) uniform image2D neGbuffer;
 
 layout (BINDING(0, 4)) uniform sampler nearestClampSampler;
 
-vec3 getPositionWs(ivec2 pixel, float depth)
-{
-    vec2 pixelCenter = vec2(pixel.x + 0.5, pixel.y + 0.5);
-    vec2 uv = (pixelCenter / vec2(constants.globalResolution)) * 2.0 - 1.0;
-    uv.y = -uv.y;
-    vec4 origin = constants.invView * vec4(0.0, 0.0, 0.0, 1.0);
-    vec4 target = constants.invProj * vec4(uv, 1.0, 1.0);
-    vec4 direction = constants.invView * vec4(normalize(target.xyz), 0.0);
-    return origin.xyz + direction.xyz * depth;
-}
-
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
