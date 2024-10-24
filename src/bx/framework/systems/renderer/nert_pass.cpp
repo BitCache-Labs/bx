@@ -680,11 +680,11 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         reblurPass->seed = seed;
         reblurPass->antiFirefly = antiFirefly;
 
-        //preTaaPass->historyWeight = 0.0;
-        //preTaaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.reprojection);
+        preTaaPass->historyWeight = 0.6;
+        preTaaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.reprojection);
         
         ReblurDispatchInfo reblurDispatchInfo;
-        reblurDispatchInfo.unresolvedIllumination = illuminationTexture;// preTaaPass->GetResolvedColorTarget();
+        reblurDispatchInfo.unresolvedIllumination = preTaaPass->GetResolvedColorTarget();
         reblurDispatchInfo.gbufferView = dispatchInfo.gbuffer;
         reblurDispatchInfo.gbufferHistoryView = dispatchInfo.gbufferHistory;
         reblurDispatchInfo.neGbufferHistoryView = neGbufferView[frameIdx % 2 == 0];
@@ -692,8 +692,8 @@ void NertPass::Dispatch(const NertDispatchInfo& dispatchInfo)
         reblurDispatchInfo.depthView = dispatchInfo.depthView;
         reblurPass->Dispatch(reblurDispatchInfo);
 
-        taaPass->historyWeight = 0.0;
-        taaPass->Dispatch(dispatchInfo.camera, illuminationTexture, dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.reprojection);
+        taaPass->historyWeight = 0.8;
+        taaPass->Dispatch(dispatchInfo.camera, preTaaPass->GetResolvedColorTarget(), dispatchInfo.gbuffer, dispatchInfo.gbufferHistory, dispatchInfo.reprojection);
     }
 
     computePassDescriptor.name = "Nert Resolve";

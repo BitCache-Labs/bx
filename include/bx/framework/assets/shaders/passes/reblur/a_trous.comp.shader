@@ -97,7 +97,7 @@ void main()
             float sampleDepth = texture(sampler2D(depth, nearestClampSampler), pixelToUv(globalSamplePixel, constants.globalResolution)).r;
 
             float normalWeight = normalSimilarity(centerNormal, sampleNormal, PHI_NORMAL);
-            float illuminanceDepthWeight = luminanceAndDepthSimilarity(1.0, centerDepth, 1.0, sampleDepth, phiLuminance, samplePhiDepth);
+            float illuminanceDepthWeight = 1.0;//luminanceAndDepthSimilarity(1.0, centerDepth, 1.0, sampleDepth, phiLuminance, samplePhiDepth);
             float weight = normalWeight * illuminanceDepthWeight * kernelWeight;
 
             sum += sampleColor * weight;
