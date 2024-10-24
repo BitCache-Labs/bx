@@ -8,6 +8,7 @@
 #include "bx/framework/systems/renderer/gbuffer_pass.hpp"
 #include "bx/framework/systems/renderer/nert_pass.hpp"
 #include "bx/framework/systems/renderer/blas_data_pool.hpp"
+#include "bx/framework/systems/renderer/color_correct_pass.hpp"
 #include "bx/framework/systems/renderer/material_pool.hpp"
 #include "bx/framework/systems/renderer/sky.hpp"
 #include "bx/framework/systems/renderer/fsr2_pass.hpp"
