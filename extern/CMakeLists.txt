@@ -37,7 +37,7 @@ add_library (wren STATIC
 )
 target_include_directories (wren PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/include ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/optional ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/vm)
 
-if (WINDOW_BACKEND STREQUAL "GLFW")
+if (BX_WINDOW_BACKEND STREQUAL "GLFW")
 	# GLFW lib
 	if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		set(GLFW_BUILD_WAYLAND OFF)
@@ -45,7 +45,7 @@ if (WINDOW_BACKEND STREQUAL "GLFW")
 	add_subdirectory (glfw)
 endif()
 
-if (GRAPHICS_BACKEND STREQUAL "OpenGL" OR GRAPHICS_BACKEND STREQUAL "OpenGLES")
+if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL" OR BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
 	# astc-encoder lib
 	#add_subdirectory (astc-encoder)
 
@@ -53,12 +53,12 @@ if (GRAPHICS_BACKEND STREQUAL "OpenGL" OR GRAPHICS_BACKEND STREQUAL "OpenGLES")
 	add_subdirectory (glad)
 endif()
 
-if (AUDIO_BACKEND STREQUAL "PortAudio")
+if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
 	# Portaudio lib
 	add_subdirectory (portaudio)
 endif()
 
-if (ONLINE_BACKEND STREQUAL "Steam")
+if (BX_ONLINE_BACKEND STREQUAL "Steam")
 	set(CMAKE_MODULE_PATH "${LOCAL_CMAKE_MODULE_PATH}")
 
 	# Attempt to find the Steamworks package
@@ -73,10 +73,9 @@ if (ONLINE_BACKEND STREQUAL "Steam")
         message(WARNING "Steamworks package not found. Steam support will be disabled.")
     endif()
 	set(CMAKE_MODULE_PATH "${GLOBAL_CMAKE_MODULE_PATH}")
-	set(STEAMWORKS_FOUND ${STEAMWORKS_FOUND} PARENT_SCOPE)
 endif()
 
-if (BUILD_EDITOR)
+if (BX_BUILD_EDITOR)
 	# ImGui lib
 	set(IMGUI_SRCS
 		"imgui/imgui.cpp"
@@ -87,15 +86,15 @@ if (BUILD_EDITOR)
 		"imgui/misc/cpp/imgui_stdlib.cpp"
 	)
 
-	if (WINDOW_BACKEND STREQUAL "GLFW")
+	if (BX_WINDOW_BACKEND STREQUAL "GLFW")
 		list(APPEND IMGUI_SRCS "imgui/backends/imgui_impl_glfw.cpp")
 		list(APPEND IMGUI_LIBS glfw)
 	endif()
 
-	if (GRAPHICS_BACKEND STREQUAL "OpenGL" OR GRAPHICS_BACKEND STREQUAL "OpenGLES")
+	if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL" OR BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
 		list(APPEND IMGUI_SRCS "imgui/backends/imgui_impl_opengl3.cpp")
 
-		if (GRAPHICS_BACKEND STREQUAL "OpenGLES")
+		if (BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
 			find_package(OpenGL REQUIRED)
 			list(APPEND IMGUI_LIBS ${OPENGL_LIBRARIES})
 		endif()
@@ -105,7 +104,7 @@ if (BUILD_EDITOR)
 	target_link_libraries(imgui PRIVATE ${IMGUI_LIBS})
 	target_include_directories(imgui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
-	if (GRAPHICS_BACKEND STREQUAL "OpenGLES")
+	if (BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
 		target_compile_definitions(imgui PRIVATE IMGUI_IMPL_OPENGL_ES3)
 	endif()
 	
