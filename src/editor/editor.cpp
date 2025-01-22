@@ -1,8 +1,14 @@
 #include <editor/editor.hpp>
 #include <engine/window.hpp>
 #include <engine/graphics.hpp>
+#include <engine/file.hpp>
 
 #include <imgui_internal.h>
+
+#include <rttr/registration.h>
+RTTR_REGISTRATION
+{
+}
 
 EditorManager& EditorManager::Get()
 {
@@ -70,22 +76,67 @@ void EditorManager::Shutdown()
     ImGui::DestroyContext();
 }
 
-void EditorManager::AddMenuBar(std::function<void()> callback)
+void EditorManager::AddMenuBar(Function<void()>&& callback)
 {
-    m_menuBars.emplace_back(callback);
+	m_menuBars.emplace_back(std::move(callback));
 }
 
-void EditorManager::AddEditor(UniquePtr<Editor> editor)
+static void MenuItemRecursive(const std::vector<StringView>& parts, std::function<void()>&& callback, SizeType index = 0)
 {
-    if (editor->m_isExclusive)
+	if (index >= parts.size())
+		return;
+
+	const bool isLeaf = (index == parts.size() - 1);
+	if (isLeaf)
+	{
+		CString<64> str{ parts[index] };
+		if (ImGui::MenuItem(str.c_str()))
+			std::move(callback)();
+	}
+	else
+	{
+		CString<64> str{ parts[index] };
+		if (ImGui::BeginMenu(str.c_str()))
+		{
+			MenuItemRecursive(parts, std::move(callback), index + 1);
+			ImGui::EndMenu();
+		}
+	}
+}
+
+void EditorManager::AddMenuItem(StringView path, Function<void()>&& callback)
+{
+	m_menuBars.emplace_back([path, callback = std::move(callback)]() mutable
+		{
+			const auto parts = File::Get().SplitPath(path);
+			if (!parts.empty())
+			{
+				// If there's only one element, handle it as a special case
+				if (parts.size() == 1)
+				{
+					CString<64> str{ parts[0] };
+					if (ImGui::MenuItem(str.c_str()))
+						callback();
+				}
+				else
+				{
+					MenuItemRecursive(parts, std::move(callback));
+				}
+			}
+		});
+}
+
+void EditorManager::AddView(UniquePtr<EditorView> view)
+{
+    if (view->m_isExclusive)
     {
-        for (const auto& e : m_editors)
+        for (const auto& e : m_editorViews)
         {
-            if (editor->m_title == e->m_title)
+            if (view->m_title == e->m_title)
                 return;
         }
     }
-	m_editors.emplace_back(std::move(editor));
+	m_editorViews.emplace_back(std::move(view));
 }
 
 void EditorManager::OnGui()
@@ -104,24 +155,24 @@ void EditorManager::OnGui()
     }
 	PopMenuTheme();
 
-    for (auto it = m_editors.begin(); it != m_editors.end();)
+    for (auto it = m_editorViews.begin(); it != m_editorViews.end();)
     {
-        Editor& editor = **it;
+        EditorView& view = **it;
 
         bool* open = nullptr;
-        if (!editor.m_isPersistent)
+        if (!view.m_isPersistent)
         {
-            open = &editor.m_isOpen;
+            open = &view.m_isOpen;
         }
 
-        if (ImGui::Begin(editor.m_title, open, editor.m_flags))
+        if (ImGui::Begin(view.m_title, open, view.m_flags))
         {
-            editor.OnGui();
+			view.OnGui();
         }
         ImGui::End();
 
-        if (!editor.IsOpen())
-            it = m_editors.erase(it);
+        if (!view.IsOpen())
+            it = m_editorViews.erase(it);
         else
             ++it;
     }
@@ -131,7 +182,7 @@ void EditorManager::OnGui()
 
 void EditorManager::Clear()
 {
-	m_editors.clear();
+	m_editorViews.clear();
 }
 
 namespace ImGui

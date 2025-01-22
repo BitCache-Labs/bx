@@ -34,9 +34,9 @@ public:
     template <typename... Args>
     void format(const char* fmt_str, Args&&... args);
 
-    void set(const char* str);
+    void set(const char* str, SizeType len = String::npos);
     void set(const String& str);
-    void append(const char* str);
+    void append(const char* str, SizeType len = String::npos);
     void append(const String& str);
 
     int compare(const char* str) const noexcept;
@@ -89,6 +89,10 @@ public:
 
     String to_string() const;
     SizeType find_last_of(const char* chars) const noexcept;
+    SizeType find(StringView str, SizeType pos) const noexcept;
+    SizeType find(char ch, SizeType pos) const noexcept;
+    SizeType find(const char* s, SizeType pos, SizeType count) const;
+    SizeType find(const char* s, SizeType pos) const;
     StringView substr(SizeType pos, SizeType count = String::npos) const noexcept;
 
     int compare(const StringView& other) const noexcept;
@@ -126,7 +130,7 @@ inline CString<N>::CString(const String& str)
 template <SizeType N>
 inline CString<N>::CString(const StringView& strView)
 {
-    set(String(strView.data(), strView.size()));
+    set(strView.data(), strView.size());
 }
 
 template <SizeType N>
@@ -173,12 +177,19 @@ inline void CString<N>::format(const char* fmt_str, Args&&... args)
 }
 
 template <SizeType N>
-inline void CString<N>::set(const char* str)
+inline void CString<N>::set(const char* str, SizeType len)
 {
+    if (len == String::npos)
+        len = std::strlen(str);
+
+    if (len > N - 1)
+        throw std::out_of_range("Length parameter exceeds buffer size");
+
     if (str)
     {
-        std::strncpy(m_data, str, N - 1);
-        m_data[N - 1] = '\0';
+        SizeType copyLength = std::min(len, N - 1);
+        std::memcpy(m_data, str, copyLength);
+        m_data[copyLength] = '\0'; // Null-terminate the string
     }
     else
     {
@@ -201,16 +212,23 @@ inline void CString<N>::set(const String& str)
 }
 
 template <SizeType N>
-inline void CString<N>::append(const char* str)
+inline void CString<N>::append(const char* str, SizeType len)
 {
+    if (len == String::npos)
+        len = std::strlen(str);
+
+    if (len > N - 1)
+        throw std::out_of_range("Length parameter exceeds buffer size");
+
     if (str)
     {
-        SizeType currentLength = length();
-        SizeType strLength = std::strlen(str);
-        if (currentLength + strLength < N)
+        SizeType currentLength = length(); // Use the existing length function
+        SizeType appendLength = std::min(len, N - currentLength - 1);
+
+        if (currentLength + appendLength < N)
         {
-            std::strncat(m_data, str, N - currentLength - 1);
-            m_data[N - 1] = '\0';  // Ensure null termination
+            std::memcpy(m_data + currentLength, str, appendLength);
+            m_data[currentLength + appendLength] = '\0'; // Ensure null termination
         }
         else
         {
@@ -222,7 +240,7 @@ inline void CString<N>::append(const char* str)
 template <SizeType N>
 inline void CString<N>::append(const String& str)
 {
-    append(str.c_str());
+    append(str.c_str(), str.length());
 }
 
 template <SizeType N>
@@ -402,6 +420,65 @@ inline SizeType StringView::find_last_of(const char* chars) const noexcept
         }
     }
     return String::npos;
+}
+
+inline /*constexpr*/ SizeType StringView::find(StringView v, SizeType pos) const noexcept
+{
+    if (pos >= m_size)
+        return String::npos;
+
+    if (v.m_size == 0)
+        return pos;
+
+    if (v.m_size > m_size - pos)
+        return String::npos;
+
+    for (SizeType i = pos; i <= m_size - v.m_size; ++i)
+    {
+        if (std::strncmp(&m_data[i], v.m_data, v.m_size) == 0)
+            return i;
+    }
+
+    return String::npos;
+}
+
+inline /*constexpr*/ SizeType StringView::find(char ch, SizeType pos) const noexcept
+{
+    if (pos >= m_size)
+        return String::npos;
+
+    for (SizeType i = pos; i < m_size; ++i)
+    {
+        if (m_data[i] == ch)
+            return i;
+    }
+
+    return String::npos;
+}
+
+inline /*constexpr*/ SizeType StringView::find(const char* s, SizeType pos, SizeType count) const
+{
+    if (pos >= m_size)
+        return String::npos;
+
+    if (count == 0)
+        return pos;
+
+    if (count > m_size - pos)
+        return String::npos;
+
+    for (SizeType i = pos; i <= m_size - count; ++i)
+    {
+        if (std::strncmp(&m_data[i], s, count) == 0)
+            return i;
+    }
+
+    return String::npos;
+}
+
+inline /*constexpr*/ SizeType StringView::find(const char* s, SizeType pos) const
+{
+    return find(s, pos, std::strlen(s));
 }
 
 inline StringView StringView::substr(SizeType pos, SizeType count) const noexcept

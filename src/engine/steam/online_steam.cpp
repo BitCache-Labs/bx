@@ -295,7 +295,7 @@ bool OnlineSteam::StartClient()
 void OnlineSteam::StopClient()
 {
     DisconnectFromServer();
-//
+
 //    if (m_pP2PAuthedGame)
 //    {
 //        m_pP2PAuthedGame->EndGame();

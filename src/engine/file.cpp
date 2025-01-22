@@ -23,6 +23,24 @@ CString<512> File::GetPath(StringView filename)
     return filepath;
 }
 
+List<StringView> File::SplitPath(StringView path, char delimiter)
+{
+    List<StringView> parts;
+    SizeType start = 0;
+    SizeType end;
+
+    while ((end = path.find(delimiter, start)) != String::npos)
+    {
+        parts.emplace_back(path.substr(start, end - start));
+        start = end + 1;
+    }
+
+    if (start < path.size())
+        parts.emplace_back(path.substr(start));
+
+    return parts;
+}
+
 bool File::WriteText(StringView filename, StringView text)
 {
     // Open the file in write mode (creating it if it doesn't exist)

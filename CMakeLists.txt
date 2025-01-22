@@ -51,17 +51,29 @@ set (ENGINE_SRCS
 	"src/engine/window.cpp"
 	"src/engine/graphics.cpp"
 	"src/engine/audio.cpp"
-	"src/engine/online.cpp"
+	
 
 	"src/framework/camera.cpp"
 )
 
-set (ENGINE_LIBS fmt stb glm wren)
+set (ENGINE_LIBS fmt stb glm wren rttr)
+
+if (BX_BUILD_EDITOR)
+	set (ENGINE_SRCS ${ENGINE_SRCS}
+		"src/editor/editor.cpp"
+		
+	)
+	set (ENGINE_LIBS ${ENGINE_LIBS} imgui implot ImGuizmo)
+endif()
 
 if (BX_WINDOW_BACKEND STREQUAL "GLFW")
 	target_compile_definitions(Engine PUBLIC WINDOW_GLFW_BACKEND)
     set (ENGINE_SRCS ${ENGINE_SRCS} "src/engine/glfw/window_glfw.cpp")
     set (ENGINE_LIBS ${ENGINE_LIBS} glfw)
+
+	if (BX_BUILD_EDITOR)
+		set (ENGINE_SRCS ${ENGINE_SRCS} "src/editor/glfw/window_glfw.cpp")
+	endif()
 
 else ()
     message(FATAL_ERROR "Unknown window backend: ${BX_WINDOW_BACKEND}")
@@ -72,10 +84,18 @@ if (BX_GRAPHICS_BACKEND STREQUAL "OpenGL")
     set (ENGINE_SRCS ${ENGINE_SRCS} "src/engine/opengl/graphics_opengl.cpp")
     set (ENGINE_LIBS ${ENGINE_LIBS} glad)
 
+	if (BX_BUILD_EDITOR)
+		set (ENGINE_SRCS ${ENGINE_SRCS} "src/editor/opengl/graphics_opengl.cpp")
+	endif()
+
 elseif (BX_GRAPHICS_BACKEND STREQUAL "OpenGLES")
 	target_compile_definitions(Engine PUBLIC GRAPHICS_OPENGLES_BACKEND)
     set (ENGINE_SRCS ${ENGINE_SRCS} "src/engine/opengl/graphics_opengles.cpp")
     set (ENGINE_LIBS ${ENGINE_LIBS} glad)
+
+	if (BX_BUILD_EDITOR)
+		set (ENGINE_SRCS ${ENGINE_SRCS} "src/editor/opengl/graphics_opengles.cpp")
+	endif()
 
 else ()
     message(FATAL_ERROR "Unknown graphics backend: ${BX_GRAPHICS_BACKEND}")
@@ -85,6 +105,10 @@ if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
 	target_compile_definitions(Engine PUBLIC AUDIO_PORTAUDIO_BACKEND)
     set (ENGINE_SRCS ${ENGINE_SRCS} "src/engine/portaudio/audio_portaudio.cpp")
     set (ENGINE_LIBS ${ENGINE_LIBS} portaudio)
+
+	if (BX_BUILD_EDITOR)
+		set (ENGINE_SRCS ${ENGINE_SRCS} "src/editor/portaudio/audio_portaudio.cpp")
+	endif()
 
 else ()
     message(FATAL_ERROR "Unknown audio backend: ${BX_AUDIO_BACKEND}")
@@ -96,20 +120,16 @@ if (BX_ONLINE_BACKEND STREQUAL "Steam")
 		set (ENGINE_SRCS ${ENGINE_SRCS} "src/engine/steam/online_steam.cpp")
 		set (ENGINE_LIBS ${ENGINE_LIBS} steamworks)
 
+		if (BX_BUILD_EDITOR)
+			set (ENGINE_SRCS ${ENGINE_SRCS} "src/editor/steam/online_steam.cpp")
+		endif()
+
 	else()
 		target_compile_definitions(Engine PUBLIC ONLINE_DUMMY_BACKEND)
 	endif()
 else ()
     message(FATAL_ERROR "Unknown online backend: ${BX_ONLINE_BACKEND}")
 endif ()
-
-if (BX_BUILD_EDITOR)
-	set (ENGINE_SRCS ${ENGINE_SRCS}
-		"src/editor/editor.cpp"
-		"src/editor/inspector.cpp"
-	)
-	set (ENGINE_LIBS ${ENGINE_LIBS} imgui implot ImGuizmo)
-endif()
 
 target_sources(Engine PRIVATE ${ENGINE_SRCS})
 target_link_libraries (Engine PUBLIC ${ENGINE_LIBS})

@@ -3,9 +3,29 @@
 #include <engine/string.hpp>
 #include <engine/memory.hpp>
 #include <engine/list.hpp>
+#include <engine/function.hpp>
+#include <engine/macros.hpp>
 
+#include <rttr/rttr_enable.h>
 #include <imgui.h>
-#include <functional>
+
+// So we need to change this to reflect something more like Unity
+// Editor<T> is the inspector equivalent, see: https://docs.unity3d.com/Manual/editor-CustomEditors.html
+// EditorView is the editor window equivalent, see: https://docs.unity3d.com/Manual/editor-EditorWindows.html
+// By this logic Editor will become EditorView, and 
+
+#define EDITOR_MENU(Path, Callback)													\
+namespace                                                                           \
+{                                                                                   \
+    struct EditorMenuRegister														\
+    {                                                                               \
+        EditorMenuRegister()														\
+        {                                                                           \
+			EditorManager::Get().AddMenuItem(Path, Callback);						\
+        }                                                                           \
+    };                                                                              \
+}                                                                                   \
+static const EditorMenuRegister g_EditorMenuRegister;
 
 enum struct EditorTheme
 {
@@ -15,10 +35,24 @@ enum struct EditorTheme
 	ACRYLIC
 };
 
+template <typename T>
 class Editor
 {
 public:
-	virtual ~Editor() {}
+	static void OnInspectGui(T& obj)
+	{
+		// TODO: Use RTTR for automatic basic editor.
+		// A specialization of this class is needed for custom editor.
+		CString<64> str;
+		str.format("TODO##{}", typeid(T));
+		ImGui::Text(str.c_str());
+	}
+};
+
+class EditorView
+{
+public:
+	virtual ~EditorView() {}
 	virtual void OnGui() = 0;
 
 	bool IsOpen() const { return m_isOpen; }
@@ -53,8 +87,9 @@ public:
 	bool Initialize();
 	void Shutdown();
 
-	void AddMenuBar(std::function<void()> callback);
-	void AddEditor(UniquePtr<Editor> editor);
+	void AddMenuBar(Function<void()>&& callback);
+	void AddMenuItem(StringView path, Function<void()>&& callback);
+	void AddView(UniquePtr<EditorView> view);
 	void OnGui();
 	void Clear();
 
@@ -67,6 +102,6 @@ private:
 	f32 m_uiScale = 1.0f;
 	EditorTheme m_currentTheme{ EditorTheme::ACRYLIC };
 
-	List<std::function<void()>> m_menuBars;
-	List<UniquePtr<Editor>> m_editors;
+	List<Function<void()>> m_menuBars;
+	List<UniquePtr<EditorView>> m_editorViews;
 };

@@ -18,7 +18,46 @@ set_property(TARGET stb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CU
 #add_subdirectory (OpenFBX)
 
 # rttr lib
-#add_subdirectory (rttr)
+set (BUILD_RTTR_DYNAMIC OFF)
+set (BUILD_UNIT_TESTS OFF)
+set (BUILD_STATIC ON)
+set (BUILD_WITH_STATIC_RUNTIME_LIBS OFF)
+set (BUILD_WITH_RTTI OFF)
+set (BUILD_BENCHMARKS OFF)
+set (BUILD_EXAMPLES OFF)
+set (BUILD_DOCUMENTATION OFF)
+set (BUILD_INSTALLER OFF)
+set (BUILD_PACKAGE OFF)
+set (USE_PCH ON)
+set (CUSTOM_DOXYGEN_STYLE OFF)
+set (BUILD_WEBSITE_DOCU OFF)
+add_subdirectory (rttr)
+
+# Create an alias for the rttr library
+#if (BUILD_STATIC)
+    add_library(rttr ALIAS rttr_core_lib)
+#else ()
+#    add_library(rttr ALIAS rttr_core)
+#
+#    # Define the path to the DLL and the output directory
+#    set(RTTR_DLL_PATH "$<TARGET_FILE:rttr_core>")
+#
+#    # Define a custom target to copy the DLL
+#    add_custom_target(copy_rttr_dll ALL
+#        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#            "${RTTR_DLL_PATH}"
+#            "${CMAKE_BINARY_DIR}"
+#        COMMENT "Copying RTTR DLL to the output directory"
+#        VERBATIM
+#    )
+#
+#	if (BX_INSTALL)
+#		install(FILES "${RTTR_DLL_PATH}"
+#		DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"  # Or another relevant subdirectory, like lib or bin
+#		COMPONENT runtime
+#)
+#	endif()
+#endif()
 
 # entt lib
 #add_subdirectory (entt)
