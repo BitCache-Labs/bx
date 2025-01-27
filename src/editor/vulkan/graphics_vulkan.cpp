@@ -1,11 +1,4 @@
-#include <editor/editor.hpp>
-
-class GraphicsVulkanEditor final : public EditorView
-{
-public:
-	GraphicsVulkanEditor();
-	void OnGui() override;
-};
+#include <editor/vulkan/graphics_vulkan.hpp>
 
 EDITOR_MENU("Modules/Graphics/Vulkan", []() { EditorManager::Get().AddView(meta::make_unique<GraphicsVulkanEditor>()); })
 

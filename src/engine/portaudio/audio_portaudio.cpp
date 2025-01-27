@@ -1,10 +1,4 @@
-#include <engine/audio.hpp>
-
-#include <engine/macros.hpp>
-
-#include <stdio.h>
-#include <math.h>
-#include <portaudio.h>
+#include <engine/portaudio/audio_portaudio.hpp>
 
 //#include <rttr/registration.h>
 //RTTR_PLUGIN_REGISTRATION
@@ -13,69 +7,31 @@
 //        .constructor();
 //}
 
-#define AUDIO_MAX_CLIPS_PER_CHANNEL (100)
-
-class AudioPortAudio final : public Audio
-{
-    //RTTR_ENABLE(Audio)
-
-public:
-    AudioPortAudio() = default;
-
-public:
-    bool Initialize() override;
-    void Reload() override;
-    void Shutdown() override;
-
-    AudioHandle GetDefaultChannel() override;
-
-    void CreateChannel(const ChannelInfo& info) override;
-    void DestroyChannel(const AudioHandle channel) override;
-    void SetChannelVolume(const AudioHandle channel, f32 volume) override;
-
-    void CreateAudio(const AudioInfo& info) override;
-    void DestroyAudio(const AudioHandle audio) override;
-    void PlayAudio(const AudioHandle channel, const AudioHandle audio) override;
-    void StopAudio(const AudioHandle channel, const AudioHandle audio) override;
-
-private:
-    PaStream* m_stream = nullptr;
-};
-
-Audio& Audio::Get()
+AudioPortAudio& AudioPortAudio::Get()
 {
     static AudioPortAudio instance;
     return instance;
 }
 
-struct ChannelImpl
+Audio& Audio::Get()
 {
-    f32 volume = 1.0f;
-    AudioHandle audios[AUDIO_MAX_CLIPS_PER_CHANNEL];
-};
+    return AudioPortAudio::Get();
+}
 
-struct AudioImpl
-{
-    List<f32> samples;
-    SizeType currentIndex = 0;
-};
-
-static List<ChannelImpl> g_channels;
-static List<AudioImpl> g_audios;
-
-static int AudioCallback(
+int AudioPortAudio::AudioCallback(
     const void* inputBuffer, void* outputBuffer,
     unsigned long framesPerBuffer,
     const PaStreamCallbackTimeInfo* timeInfo,
     PaStreamCallbackFlags statusFlags,
     void* userData)
 {
+    auto& impl = AudioPortAudio::Get();
     auto* out = static_cast<f32*>(outputBuffer);
 
     for (u64 i = 0; i < framesPerBuffer; ++i)
     {
         f32 mix = 0.0f;
-        for (const auto& channel : g_channels)
+        for (const auto& channel : impl.m_channels)
         {
             for (SizeType a = 0; a < AUDIO_MAX_CLIPS_PER_CHANNEL; ++a)
             {
@@ -83,7 +39,7 @@ static int AudioCallback(
                 if (audio == AUDIO_INVALID_HANDLE)
                     continue;
 
-                auto& audioData = g_audios[audio];
+                auto& audioData = impl.m_audios[audio];
                 if (audioData.currentIndex < audioData.samples.size())
                 {
                     mix += audioData.samples[audioData.currentIndex++] * channel.volume;

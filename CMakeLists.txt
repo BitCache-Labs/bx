@@ -41,7 +41,7 @@ endif()
 add_subdirectory (extern)
 
 set (ENGINE_SRCS
-	"src/engine/application.cpp"
+	"src/engine/engine.cpp"
 	"src/engine/log.cpp"
 	"src/engine/math.cpp"
 	"src/engine/profiler.cpp"

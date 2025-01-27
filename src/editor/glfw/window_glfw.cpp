@@ -1,13 +1,11 @@
-#include <editor/editor.hpp>
+#include <editor/glfw/window_glfw.hpp>
+#include <engine/glfw/window_glfw.hpp>
 
-class WindowGLFWEditor final : public EditorView
+EDITOR_MENUITEM("Modules/Window/GLFW", WindowGLFWEditor)
+void WindowGLFWEditor::ShowWindow()
 {
-public:
-	WindowGLFWEditor();
-	void OnGui() override;
-};
-
-EDITOR_MENU("Modules/Window/GLFW", []() { EditorManager::Get().AddView(meta::make_unique<WindowGLFWEditor>()); })
+	Editor::Get().AddWindow<WindowGLFWEditor>();
+}
 
 WindowGLFWEditor::WindowGLFWEditor()
 {
@@ -18,4 +16,10 @@ WindowGLFWEditor::WindowGLFWEditor()
 
 void WindowGLFWEditor::OnGui()
 {
+	auto& impl = WindowGLFW::Get();
+	const char* glfwVersion = glfwGetVersionString();
+
+	CString<64> fmtStr{};
+	fmtStr.format("GLFW version: {}", glfwVersion);
+	ImGui::Text(fmtStr.c_str());
 }

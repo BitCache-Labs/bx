@@ -1,13 +1,10 @@
-#include <editor/editor.hpp>
+#include <editor/portaudio/audio_portaudio.hpp>
 
-class AudioPortAudioEditor final : public EditorView
+EDITOR_MENUITEM("Modules/Audio/PortAudio", AudioPortAudioEditor)
+void AudioPortAudioEditor::ShowWindow()
 {
-public:
-	AudioPortAudioEditor();
-	void OnGui() override;
-};
-
-EDITOR_MENU("Modules/Audio/PortAudio", []() { EditorManager::Get().AddView(meta::make_unique<AudioPortAudioEditor>()); })
+	Editor::Get().AddWindow<AudioPortAudioEditor>();
+}
 
 AudioPortAudioEditor::AudioPortAudioEditor()
 {

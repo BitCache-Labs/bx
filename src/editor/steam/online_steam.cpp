@@ -1,16 +1,11 @@
-#include <editor/editor.hpp>
-//#include <engine/steam/online_steam.hpp>
+#include <editor/steam/online_steam.hpp>
+#include <engine/steam/online_steam.hpp>
 
-class OnlineSteamEditor final : public EditorView
+EDITOR_MENUITEM("Modules/Online/Steam", OnlineSteamEditor)
+void OnlineSteamEditor::ShowWindow()
 {
-	RTTR_ENABLE()
-
-public:
-	OnlineSteamEditor();
-	void OnGui() override;
-};
-
-EDITOR_MENU("Modules/Online/Steam", []() { EditorManager::Get().AddView(meta::make_unique<OnlineSteamEditor>()); })
+	Editor::Get().AddWindow<OnlineSteamEditor>();
+}
 
 OnlineSteamEditor::OnlineSteamEditor()
 {
@@ -21,4 +16,9 @@ OnlineSteamEditor::OnlineSteamEditor()
 
 void OnlineSteamEditor::OnGui()
 {
+	if (ImGui::Button("Start Client"))
+		OnlineSteam::Get().StartClient();
+
+	if (ImGui::Button("Stop Client"))
+		OnlineSteam::Get().StopClient();
 }

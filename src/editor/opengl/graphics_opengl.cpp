@@ -1,13 +1,10 @@
-#include <editor/editor.hpp>
+#include <editor/opengl/graphics_opengl.hpp>
 
-class GraphicsOpenGLEditor final : public EditorView
+EDITOR_MENUITEM("Modules/Graphics/OpenGL", GraphicsOpenGLEditor)
+void GraphicsOpenGLEditor::ShowWindow()
 {
-public:
-	GraphicsOpenGLEditor();
-	void OnGui() override;
-};
-
-EDITOR_MENU("Modules/Graphics/OpenGL", []() { EditorManager::Get().AddView(meta::make_unique<GraphicsOpenGLEditor>()); })
+	Editor::Get().AddWindow<GraphicsOpenGLEditor>();
+}
 
 GraphicsOpenGLEditor::GraphicsOpenGLEditor()
 {

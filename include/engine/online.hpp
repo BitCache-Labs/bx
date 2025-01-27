@@ -1,6 +1,17 @@
 #pragma once
 
 //#include <rttr/rttr_enable.h>
+#include <engine/byte_types.hpp>
+
+enum struct ClientStatus { DISCONNECTED, CONNECTED };
+
+enum struct ServerStatus { DISCONNECTED, CONNECTED };
+
+struct Player
+{
+	bool isLocal{ false };
+	u64 id{ 0 };
+};
 
 class Online
 {

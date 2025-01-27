@@ -1,11 +1,4 @@
-#include <editor/editor.hpp>
-
-class GraphicsOpenGLESEditor final : public EditorView
-{
-public:
-	GraphicsOpenGLESEditor();
-	void OnGui() override;
-};
+#include <editor/opengl/graphics_opengles.hpp>
 
 EDITOR_MENU("Modules/Graphics/OpenGLES", []() { EditorManager::Get().AddView(meta::make_unique<GraphicsOpenGLESEditor>()); })
 

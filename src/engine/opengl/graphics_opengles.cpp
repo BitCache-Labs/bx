@@ -1,13 +1,4 @@
-#include <engine/graphics.hpp>
-
-#include <engine/macros.hpp>
-#include <engine/enum.hpp>
-#include <engine/string.hpp>
-#include <engine/hash_map.hpp>
-#include <engine/window.hpp>
-#include <engine/math.hpp>
-
-#include "gl_common.hpp"
+#include <engine/opengl/graphics_opengles.hpp>
 
 //#include <rttr/registration.h>
 //RTTR_PLUGIN_REGISTRATION
@@ -15,29 +6,6 @@
 //    rttr::registration::class_<GraphicsOpenGLES>("GraphicsOpenGLES")
 //        .constructor();
 //}
-
-#ifdef EDITOR_BUILD
-#include <imgui.h>
-#include <backends/imgui_impl_opengl3.h>
-#endif
-
-#define GLSL_VERSION "#version 310 es\n"
-
-#define GLSL_VERT_SHADER GLSL_VERSION "#define VERTEX\n"
-#define GLSL_FRAG_SHADER GLSL_VERSION "#define PIXEL\n"
-
-#define GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX            0x9047
-#define GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX      0x9048
-#define GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX    0x9049
-#define GPU_MEMORY_INFO_EVICTION_COUNT_NVX              0x904A
-#define GPU_MEMORY_INFO_EVICTED_MEMORY_NVX              0x904B
-
-#define VBO_FREE_MEMORY_ATI                             0x87FB
-#define TEXTURE_FREE_MEMORY_ATI                         0x87FC
-#define RENDERBUFFER_FREE_MEMORY_ATI                    0x87FD
-
-#define MAX_LAYOUT_ELEMS                                16
-#define MAX_BOUND_VERTEX_BUFFERS                        16
 
 class GraphicsOpenGLES final : public Graphics
 {
@@ -149,72 +117,7 @@ GraphicsOpenGLES& GraphicsOpenGLES::Get()
     return instance;
 }
 
-struct ShaderImpl
-{
-    GLuint handle = 0;
-};
-
-struct BufferImpl
-{
-    GLuint handle = 0;
-    GLenum target = 0;
-    GLenum usage = 0;
-    GLsizei stride = 0;
-};
-
-struct TextureImpl
-{
-    GLuint texture = 0;
-    GLuint sampler = 0;
-    GLuint fbo = 0;
-    GLuint rbo = 0;
-
-    GLuint64 handle = 0;
-};
-
-struct ResourceBindingImpl
-{
-    struct Data
-    {
-        ShaderType shaderType = ShaderType::UNKNOWN;
-        u32 count = 0;
-        ResourceBindingType type = ResourceBindingType::UNKNOWN;
-        ResourceBindingAccess access = ResourceBindingAccess::STATIC;
-
-        GraphicsHandle handle = INVALID_GRAPHICS_HANDLE;
-    };
-    HashMap<String, Data> resources;
-};
-
-struct PipelineImpl
-{
-    GLuint program = 0;
-    GLuint vao = 0;
-
-    GraphicsHandle prevVertBuffer = INVALID_GRAPHICS_HANDLE;
-    LayoutElement layoutElements[MAX_LAYOUT_ELEMS];
-    u32 numElements = 0;
-
-    PipelineTopology topology = PipelineTopology::TRIANGLES;
-    PipelineFaceCull faceCull = PipelineFaceCull::CCW;
-
-    bool depthEnable = true;
-    bool blendEnable = true;
-
-    GLuint bufferCount = 0;
-};
-
 constexpr f32 MAX_LOAD_FACTOR = 0.75f;
-
-static HashMap<GraphicsHandle, ShaderImpl> s_shaders;
-static HashMap<GraphicsHandle, BufferImpl> s_buffers;
-static HashMap<GraphicsHandle, TextureImpl> s_textures;
-static HashMap<GraphicsHandle, ResourceBindingImpl> s_resources;
-static HashMap<GraphicsHandle, PipelineImpl> s_pipelines;
-
-static GLuint g_debugVao = 0;
-static GLuint g_debugVbo = 0;
-static GLuint g_debugShader = 0;
 
 template <typename T>
 static T& GetImpl(GraphicsHandle handle, HashMap<GraphicsHandle, T>& map)
@@ -226,7 +129,7 @@ static T& GetImpl(GraphicsHandle handle, HashMap<GraphicsHandle, T>& map)
 
 GLuint GraphicsOpenGLES::GetTextureHandle(GraphicsHandle texture)
 {
-    const auto& texture_impl = GetImpl(texture, s_textures);
+    const auto& texture_impl = GetImpl(texture, m_textures);
     return texture_impl.texture;
 }
 
@@ -375,25 +278,25 @@ bool GraphicsOpenGLES::Initialize()
 
 void GraphicsOpenGLES::Shutdown()
 {
-    for (const auto& it : s_shaders)
+    for (const auto& it : m_shaders)
     {
         glDeleteShader(it.second.handle);
     }
 
-    for (const auto& it : s_buffers)
+    for (const auto& it : m_buffers)
     {
         glDeleteBuffers(1, &it.second.handle);
     }
 
-    for (const auto& it : s_pipelines)
+    for (const auto& it : m_pipelines)
     {
         glDeleteProgram(it.second.program);
         glDeleteVertexArrays(1, &it.second.vao);
     }
 
-    s_shaders.clear();
-    s_buffers.clear();
-    s_pipelines.clear();
+    m_shaders.clear();
+    m_buffers.clear();
+    m_pipelines.clear();
 }
 
 void GraphicsOpenGLES::NewFrame()
@@ -419,11 +322,11 @@ void GraphicsOpenGLES::EndFrame()
 {
     //PROFILE_FUNCTION();
 
-    RebalanceMap(s_shaders);
-    RebalanceMap(s_buffers);
-    RebalanceMap(s_textures);
-    RebalanceMap(s_resources);
-    RebalanceMap(s_pipelines);
+    RebalanceMap(m_shaders);
+    RebalanceMap(m_buffers);
+    RebalanceMap(m_textures);
+    RebalanceMap(m_resources);
+    RebalanceMap(m_pipelines);
 }
 
 TextureFormat GraphicsOpenGLES::GetColorBufferFormat()
@@ -455,7 +358,7 @@ void GraphicsOpenGLES::SetRenderTarget(const GraphicsHandle renderTarget, const 
         return;
     }
 
-    const auto& renderTarget_impl = GetImpl(renderTarget, s_textures);
+    const auto& renderTarget_impl = GetImpl(renderTarget, m_textures);
 
     // Bind the framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, renderTarget_impl.fbo);
@@ -466,7 +369,7 @@ void GraphicsOpenGLES::SetRenderTarget(const GraphicsHandle renderTarget, const 
     // Attach the depth-stencil renderbuffer, if provided
     if (depthStencil != INVALID_GRAPHICS_HANDLE)
     {
-        const auto& depthStencil_impl = GetImpl(depthStencil, s_textures);
+        const auto& depthStencil_impl = GetImpl(depthStencil, m_textures);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthStencil_impl.rbo);
     }
 
@@ -481,7 +384,7 @@ void GraphicsOpenGLES::SetRenderTarget(const GraphicsHandle renderTarget, const 
 
 void GraphicsOpenGLES::ReadPixels(u32 x, u32 y, u32 w, u32 h, void* pixelData, const GraphicsHandle renderTarget)
 {
-    const auto& renderTarget_impl = GetImpl(renderTarget, s_textures);
+    const auto& renderTarget_impl = GetImpl(renderTarget, m_textures);
 
     // Bind the framebuffer for reading
     glBindFramebuffer(GL_FRAMEBUFFER, renderTarget_impl.fbo);
@@ -507,7 +410,7 @@ void GraphicsOpenGLES::ClearRenderTarget(const GraphicsHandle rt, const f32 clea
 {
     if (rt != INVALID_GRAPHICS_HANDLE)
     {
-        const auto& renderTarget_impl = GetImpl(rt, s_textures);
+        const auto& renderTarget_impl = GetImpl(rt, m_textures);
         glBindFramebuffer(GL_FRAMEBUFFER, renderTarget_impl.fbo);
     }
     else
@@ -532,7 +435,7 @@ void GraphicsOpenGLES::ClearDepthStencil(const GraphicsHandle dt, GraphicsClearF
 {
     if (dt != INVALID_GRAPHICS_HANDLE)
     {
-        const auto& depthStencil_impl = GetImpl(dt, s_textures);
+        const auto& depthStencil_impl = GetImpl(dt, m_textures);
         glBindFramebuffer(GL_FRAMEBUFFER, depthStencil_impl.fbo);
     }
     else
@@ -619,19 +522,19 @@ GraphicsHandle GraphicsOpenGLES::CreateShader(const ShaderInfo& info)
     // Store shader metadata and return the handle.
     ShaderImpl shader_impl;
     shader_impl.handle = shader_handle;
-    s_shaders.emplace(shader_handle, shader_impl);
+    m_shaders.emplace(shader_handle, shader_impl);
 
     return shader_handle;
 }
 
 void GraphicsOpenGLES::DestroyShader(const GraphicsHandle shader)
 {
-    auto it = s_shaders.find(shader);
-    if (it == s_shaders.end())
+    auto it = m_shaders.find(shader);
+    if (it == m_shaders.end())
         return;
 
     glDeleteShader(it->second.handle);
-    s_shaders.erase(it);
+    m_shaders.erase(it);
 }
 
 GraphicsHandle GraphicsOpenGLES::CreateTexture(const TextureInfo& info, const BufferData& data)
@@ -679,14 +582,14 @@ GraphicsHandle GraphicsOpenGLES::CreateTexture(const TextureInfo& info, const Bu
     }
 
     // Store the texture metadata and return the handle
-    s_textures.insert(std::make_pair(texture_impl.texture, texture_impl));
+    m_textures.insert(std::make_pair(texture_impl.texture, texture_impl));
     return texture_impl.texture;
 }
 
 void GraphicsOpenGLES::DestroyTexture(const GraphicsHandle texture)
 {
-    auto it = s_textures.find(texture);
-    if (it == s_textures.end())
+    auto it = m_textures.find(texture);
+    if (it == m_textures.end())
         return;
 
     auto& texture_impl = it->second;
@@ -704,7 +607,7 @@ void GraphicsOpenGLES::DestroyTexture(const GraphicsHandle texture)
         glDeleteRenderbuffers(1, &texture_impl.rbo);
 
     // Remove the texture from the texture map
-    s_textures.erase(it);
+    m_textures.erase(it);
 }
 
 GraphicsHandle GraphicsOpenGLES::CreateResourceBinding(const ResourceBindingInfo& info)
@@ -725,22 +628,22 @@ GraphicsHandle GraphicsOpenGLES::CreateResourceBinding(const ResourceBindingInfo
 
     static GraphicsHandle counter = 0;
     GraphicsHandle handle = counter++;
-    s_resources.insert(std::make_pair(handle, resource_impl));
+    m_resources.insert(std::make_pair(handle, resource_impl));
     return handle;
 }
 
 void GraphicsOpenGLES::DestroyResourceBinding(const GraphicsHandle resources)
 {
-    auto it = s_resources.find(resources);
-    if (it != s_resources.end())
+    auto it = m_resources.find(resources);
+    if (it != m_resources.end())
     {
-        s_resources.erase(it);
+        m_resources.erase(it);
     }
 }
 
 void GraphicsOpenGLES::BindResource(const GraphicsHandle resources, const char* name, GraphicsHandle resource)
 {
-    auto& resource_impl = GetImpl(resources, s_resources);
+    auto& resource_impl = GetImpl(resources, m_resources);
 
     auto it = resource_impl.resources.find(name);
     if (it == resource_impl.resources.end())
@@ -757,8 +660,8 @@ void GraphicsOpenGLES::BindResource(const GraphicsHandle resources, const char* 
 GraphicsHandle GraphicsOpenGLES::CreatePipeline(const PipelineInfo& info)
 {
     // Retrieve shaders from storage
-    const auto& vert_shader = GetImpl(info.vertShader, s_shaders);
-    const auto& pixel_shader = GetImpl(info.pixelShader, s_shaders);
+    const auto& vert_shader = GetImpl(info.vertShader, m_shaders);
+    const auto& pixel_shader = GetImpl(info.pixelShader, m_shaders);
 
     // Create and link the shader program
     GLuint program_handle = glCreateProgram();
@@ -808,14 +711,14 @@ GraphicsHandle GraphicsOpenGLES::CreatePipeline(const PipelineInfo& info)
         pipeline_impl.layoutElements[i] = info.layoutElements[i];
     }
 
-    s_pipelines.insert(std::make_pair(program_handle, pipeline_impl));
+    m_pipelines.insert(std::make_pair(program_handle, pipeline_impl));
     return program_handle;
 }
 
 void GraphicsOpenGLES::DestroyPipeline(const GraphicsHandle pipeline)
 {
-    auto it = s_pipelines.find(pipeline);
-    if (it == s_pipelines.end())
+    auto it = m_pipelines.find(pipeline);
+    if (it == m_pipelines.end())
         return;
 
     const auto& pipeline_impl = it->second;
@@ -826,12 +729,12 @@ void GraphicsOpenGLES::DestroyPipeline(const GraphicsHandle pipeline)
     if (pipeline_impl.vao != 0)
         glDeleteVertexArrays(1, &pipeline_impl.vao);
 
-    s_pipelines.erase(it);
+    m_pipelines.erase(it);
 }
 
 void GraphicsOpenGLES::SetPipeline(const GraphicsHandle pipeline)
 {
-    auto& pipeline_impl = GetImpl(pipeline, s_pipelines);
+    auto& pipeline_impl = GetImpl(pipeline, m_pipelines);
     pipeline_impl.bufferCount = 0;
 
     if (pipeline_impl.faceCull == PipelineFaceCull::NONE)
@@ -856,7 +759,7 @@ void GraphicsOpenGLES::SetPipeline(const GraphicsHandle pipeline)
 
 void GraphicsOpenGLES::SetUniform(const GraphicsHandle pipeline, StringView name, GraphicsValueType valueType, u32 count, u8* data)
 {
-    auto& pipeline_impl = GetImpl(pipeline, s_pipelines);
+    auto& pipeline_impl = GetImpl(pipeline, m_pipelines);
 
     switch (valueType)
     {
@@ -870,8 +773,8 @@ void GraphicsOpenGLES::SetUniform(const GraphicsHandle pipeline, StringView name
 
 void GraphicsOpenGLES::CommitResources(const GraphicsHandle pipeline, const GraphicsHandle resources)
 {
-    auto& pipeline_impl = GetImpl(pipeline, s_pipelines);
-    const auto& resource_impl = GetImpl(resources, s_resources);
+    auto& pipeline_impl = GetImpl(pipeline, m_pipelines);
+    const auto& resource_impl = GetImpl(resources, m_resources);
 
     for (const auto& entry : resource_impl.resources)
     {
@@ -881,7 +784,7 @@ void GraphicsOpenGLES::CommitResources(const GraphicsHandle pipeline, const Grap
         {
             if (entry.second.handle != INVALID_GRAPHICS_HANDLE)
             {
-                const auto& buffer_impl = GetImpl(entry.second.handle, s_buffers);
+                const auto& buffer_impl = GetImpl(entry.second.handle, m_buffers);
 
                 GLuint location = glGetUniformBlockIndex(pipeline_impl.program, entry.first.c_str());
                 if (location != GL_INVALID_INDEX)
@@ -898,7 +801,7 @@ void GraphicsOpenGLES::CommitResources(const GraphicsHandle pipeline, const Grap
         {
             if (entry.second.handle != INVALID_GRAPHICS_HANDLE)
             {
-                const auto& texture_impl = GetImpl(entry.second.handle, s_textures);
+                const auto& texture_impl = GetImpl(entry.second.handle, m_textures);
 
                 GLint location = glGetUniformLocation(pipeline_impl.program, entry.first.c_str());
                 if (location >= 0)
@@ -931,24 +834,24 @@ GraphicsHandle GraphicsOpenGLES::CreateBuffer(const BufferInfo& info, const Buff
     buffer_impl.usage = usage;
     buffer_impl.stride = info.strideBytes;
 
-    s_buffers.insert(std::make_pair(buffer_handle, buffer_impl));
+    m_buffers.insert(std::make_pair(buffer_handle, buffer_impl));
 
     return buffer_handle;
 }
 
 void GraphicsOpenGLES::DestroyBuffer(const GraphicsHandle buffer)
 {
-    auto it = s_buffers.find(buffer);
-    if (it != s_buffers.end())
+    auto it = m_buffers.find(buffer);
+    if (it != m_buffers.end())
     {
         glDeleteBuffers(1, &it->second.handle);
-        s_buffers.erase(it);
+        m_buffers.erase(it);
     }
 }
 
 void GraphicsOpenGLES::UpdateBuffer(const GraphicsHandle buffer, const BufferData& data)
 {
-    const auto& buffer_impl = GetImpl(buffer, s_buffers);
+    const auto& buffer_impl = GetImpl(buffer, m_buffers);
     glBindBuffer(buffer_impl.target, buffer_impl.handle);
     glBufferData(buffer_impl.target, data.dataSize, data.pData, buffer_impl.usage);
     glBindBuffer(buffer_impl.target, 0);
@@ -956,12 +859,12 @@ void GraphicsOpenGLES::UpdateBuffer(const GraphicsHandle buffer, const BufferDat
 
 void GraphicsOpenGLES::SetVertexBuffers(i32 startSlot, i32 count, const GraphicsHandle* pBuffers, const u64* offsets)
 {
-    auto& pipeline_impl = GetImpl(m_ctx.currentPipeline, s_pipelines);
+    auto& pipeline_impl = GetImpl(m_ctx.currentPipeline, m_pipelines);
 
     for (i32 i = 0; i < count; ++i)
     {
         const i32 slot = startSlot + i;
-        const auto& buffer_impl = GetImpl(pBuffers[i], s_buffers);
+        const auto& buffer_impl = GetImpl(pBuffers[i], m_buffers);
 
         // Bind the buffer
         glBindBuffer(GL_ARRAY_BUFFER, buffer_impl.handle);
@@ -989,18 +892,18 @@ void GraphicsOpenGLES::SetVertexBuffers(i32 startSlot, i32 count, const Graphics
 
 void GraphicsOpenGLES::SetIndexBuffer(const GraphicsHandle buffer, i32 i)
 {
-    const auto& buffer_impl = GetImpl(buffer, s_buffers);
+    const auto& buffer_impl = GetImpl(buffer, m_buffers);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer_impl.handle);
 }
 
 void GraphicsOpenGLES::Draw(const DrawAttribs& attribs)
 {
-    auto& pipeline_impl = GetImpl(m_ctx.currentPipeline, s_pipelines);
+    auto& pipeline_impl = GetImpl(m_ctx.currentPipeline, m_pipelines);
     glDrawArrays(GetTopologyMode(pipeline_impl.topology), 0, attribs.numVertices);
 }
 
 void GraphicsOpenGLES::DrawIndexed(const DrawIndexedAttribs& attribs)
 {
-    auto& pipeline_impl = GetImpl(m_ctx.currentPipeline, s_pipelines);
+    auto& pipeline_impl = GetImpl(m_ctx.currentPipeline, m_pipelines);
     glDrawElements(GetTopologyMode(pipeline_impl.topology), attribs.numIndices, GetValueType(attribs.indexType), 0);
 }

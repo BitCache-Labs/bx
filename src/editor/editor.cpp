@@ -1,4 +1,5 @@
 #include <editor/editor.hpp>
+#include <engine/engine.hpp>
 #include <engine/window.hpp>
 #include <engine/graphics.hpp>
 #include <engine/file.hpp>
@@ -8,15 +9,16 @@
 #include <rttr/registration.h>
 RTTR_REGISTRATION
 {
+	rttr::registration::class_<EditorWindow>("EditorWindow");
 }
 
-EditorManager& EditorManager::Get()
+Editor& Editor::Get()
 {
-	static EditorManager instance;
+	static Editor instance;
 	return instance;
 }
 
-bool EditorManager::Initialize()
+bool Editor::Initialize()
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -66,19 +68,16 @@ bool EditorManager::Initialize()
         return false;
     }
 
+	RegisterMenuItems();
+
     return true;
 }
 
-void EditorManager::Shutdown()
+void Editor::Shutdown()
 {
     Graphics::Get().ShutdownImGui();
     Window::Get().ShutdownImGui();
     ImGui::DestroyContext();
-}
-
-void EditorManager::AddMenuBar(Function<void()>&& callback)
-{
-	m_menuBars.emplace_back(std::move(callback));
 }
 
 static void MenuItemRecursive(const std::vector<StringView>& parts, std::function<void()>&& callback, SizeType index = 0)
@@ -104,9 +103,9 @@ static void MenuItemRecursive(const std::vector<StringView>& parts, std::functio
 	}
 }
 
-void EditorManager::AddMenuItem(StringView path, Function<void()>&& callback)
+void Editor::AddMenuItem(StringView path, Function<void()>&& callback)
 {
-	m_menuBars.emplace_back([path, callback = std::move(callback)]() mutable
+	m_menuItems.emplace_back([path, callback = std::move(callback)]() mutable
 		{
 			const auto parts = File::Get().SplitPath(path);
 			if (!parts.empty())
@@ -126,20 +125,20 @@ void EditorManager::AddMenuItem(StringView path, Function<void()>&& callback)
 		});
 }
 
-void EditorManager::AddView(UniquePtr<EditorView> view)
+void Editor::AddWindow(UniquePtr<EditorWindow> window)
 {
-    if (view->m_isExclusive)
+    if (window->m_isExclusive)
     {
-        for (const auto& e : m_editorViews)
+        for (const auto& e : m_editorWindows)
         {
-            if (view->m_title == e->m_title)
+            if (window->m_title == e->m_title)
                 return;
         }
     }
-	m_editorViews.emplace_back(std::move(view));
+	m_editorWindows.emplace_back(std::move(window));
 }
 
-void EditorManager::OnGui()
+void Editor::OnGui(EditorApplication& app)
 {
     Graphics::Get().NewFrameImGui();
     Window::Get().NewFrameImGui();
@@ -148,31 +147,33 @@ void EditorManager::OnGui()
 	PushMenuTheme();
     if (ImGui::BeginMainMenuBar())
     {
-        for (const auto& menuBar : m_menuBars)
-            menuBar();
+		app.OnMainMenuBar();
+
+        for (const auto& menuItem : m_menuItems)
+			menuItem();
 
         ImGui::EndMainMenuBar();
     }
 	PopMenuTheme();
 
-    for (auto it = m_editorViews.begin(); it != m_editorViews.end();)
+    for (auto it = m_editorWindows.begin(); it != m_editorWindows.end();)
     {
-        EditorView& view = **it;
+        auto& window = **it;
 
         bool* open = nullptr;
-        if (!view.m_isPersistent)
+        if (!window.m_isPersistent)
         {
-            open = &view.m_isOpen;
+            open = &window.m_isOpen;
         }
 
-        if (ImGui::Begin(view.m_title, open, view.m_flags))
+        if (ImGui::Begin(window.m_title, open, window.m_flags))
         {
-			view.OnGui();
+			window.OnGui();
         }
         ImGui::End();
 
-        if (!view.IsOpen())
-            it = m_editorViews.erase(it);
+        if (!window.IsOpen())
+            it = m_editorWindows.erase(it);
         else
             ++it;
     }
@@ -180,9 +181,9 @@ void EditorManager::OnGui()
     Window::Get().EndFrameImGui();
 }
 
-void EditorManager::Clear()
+void Editor::Clear()
 {
-	m_editorViews.clear();
+	m_editorWindows.clear();
 }
 
 namespace ImGui
@@ -193,7 +194,29 @@ namespace ImGui
 	static void StyleSeeThrough();
 }
 
-void EditorManager::ApplyTheme()
+void Editor::RegisterMenuItems()
+{
+	// Get the list of all classes derived from EditorMenuItemRegister
+	auto derivedClasses = rttr::type::get<EditorMenuItemRegister>().get_derived_classes();
+	for (const auto& derivedClass : derivedClasses)
+	{
+		const auto& derivedClassName = derivedClass.get_name();
+		LOGD(Editor, "Registering menu item: {}", derivedClassName.data());
+
+		// Retrieve the "Register" method from the derived class
+		auto registerMethod = derivedClass.get_method("Register");
+		if (!registerMethod.is_valid())
+		{
+			LOGE(Editor, "Register method not found for class: {}", derivedClassName.data());
+			continue;
+		}
+
+		rttr::instance instance;  // Create a default instance, we are calling a static function
+		registerMethod.invoke(instance);
+	}
+}
+
+void Editor::ApplyTheme()
 {
 	switch (m_currentTheme)
 	{
@@ -214,7 +237,7 @@ void EditorManager::ApplyTheme()
 	}
 }
 
-void EditorManager::PushMenuTheme()
+void Editor::PushMenuTheme()
 {
 	switch (m_currentTheme)
 	{
@@ -236,7 +259,7 @@ void EditorManager::PushMenuTheme()
 	}
 }
 
-void EditorManager::PopMenuTheme()
+void Editor::PopMenuTheme()
 {
 	switch (m_currentTheme)
 	{
