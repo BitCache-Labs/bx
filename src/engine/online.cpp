@@ -1,9 +1,9 @@
 #include <engine/online.hpp>
 #include <engine/module.hpp>
 
-class OnlineDummy final : public Online
+class NoOnline final : public Online
 {
-    BX_MODULE(OnlineDummy, Online)
+    BX_MODULE(NoOnline, Online)
 
 public:
     bool Initialize() override;
@@ -12,18 +12,18 @@ public:
     void Update() override;
 };
 
-BX_MODULE_DEFINE(OnlineDummy)
-BX_MODULE_DEFINE_INTERFACE(Online, OnlineDummy)
+BX_MODULE_DEFINE(NoOnline)
+BX_MODULE_DEFINE_INTERFACE(Online, NoOnline)
 
-bool OnlineDummy::Initialize()
+bool NoOnline::Initialize()
 {
     return true;
 }
 
-void OnlineDummy::Shutdown()
+void NoOnline::Shutdown()
 {
 }
 
-void OnlineDummy::Update()
+void NoOnline::Update()
 {
 }

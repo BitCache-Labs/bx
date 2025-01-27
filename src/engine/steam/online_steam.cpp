@@ -1,21 +1,124 @@
 #include <engine/steam/online_steam.hpp>
 
-Online& Online::Get()
+BX_MODULE_DEFINE(OnlineSteam)
+BX_MODULE_DEFINE_INTERFACE(Online, OnlineSteam)
+
+SteamCallback::SteamCallback()
+    : m_callbackBeginAuthResponse(this, &SteamCallback::OnBeginAuthResponse)
+    , m_callbackLobbyCreated(this, &SteamCallback::OnLobbyCreated)
+    , m_callbackLobbyMatchList(this, &SteamCallback::OnLobbyMatchList)
+    , m_callbackLobbyEntered(this, &SteamCallback::OnLobbyEntered)
+    , m_callbackP2PSessionRequest(this, &SteamCallback::OnP2PSessionRequest)
+    , m_callbackP2PSessionConnectFail(this, &SteamCallback::OnP2PSessionConnectFail)
 {
-    return OnlineSteam::Get();
 }
 
-OnlineSteam& OnlineSteam::Get()
+SteamCallback::~SteamCallback()
 {
-    static OnlineSteam instance;
-    return instance;
+}
+
+void SteamCallback::OnGameOverlayActivated(GameOverlayActivated_t* pCallback)
+{
+    if (pCallback->m_bActive)
+        BX_LOGI(Online, "Steam overlay now active");
+    else
+        BX_LOGI(Online, "Steam overlay now inactive");
+}
+
+void SteamCallback::OnBeginAuthResponse(ValidateAuthTicketResponse_t* pCallback)
+{
+    //if (m_steamID == pCallback->m_SteamID)
+    //{
+    //    CString<128> rgch;
+    //    rgch.format("P2P:: Received steam response for account={}", m_steamID.GetAccountID());
+    //    LOGD(Online, rgch.c_str());
+    //    //m_ulAnswerTime = GetGameTimeInSeconds();
+    //    //m_bHaveAnswer = true;
+    //    //m_eAuthSessionResponse = pCallback->m_eAuthSessionResponse;
+    //}
+}
+
+void SteamCallback::OnLobbyCreated(LobbyCreated_t* pCallback)
+{
+    auto& ctx = OnlineSteam::Get();
+
+    if (pCallback->m_eResult == k_EResultOK)
+    {
+        BX_LOGI(Online, "Lobby created successfully. Lobby ID: {}", pCallback->m_ulSteamIDLobby);
+        ctx.m_currentLobby = CSteamID(pCallback->m_ulSteamIDLobby);
+        ctx.m_isHosting = true;
+
+        SteamMatchmaking()->SetLobbyData(ctx.m_currentLobby, "name", ctx.m_pendingLobbyInfo.name.c_str());
+        SteamMatchmaking()->SetLobbyData(ctx.m_currentLobby, "version", "1.0");
+        SteamMatchmaking()->SetLobbyData(ctx.m_currentLobby, "app", "skypi");
+    }
+    else
+    {
+        BX_LOGE(Online, "Failed to create lobby. Error: {}", (int)pCallback->m_eResult);
+    }
+
+    ctx.m_isLobbyPendingCreate = false;
+}
+
+void SteamCallback::OnLobbyMatchList(LobbyMatchList_t* pCallback)
+{
+    auto& ctx = OnlineSteam::Get();
+
+    ctx.m_lobbyList.clear();
+    for (uint32 i = 0; i < pCallback->m_nLobbiesMatching; ++i)
+    {
+        ctx.m_lobbyList.push_back(SteamMatchmaking()->GetLobbyByIndex(i));
+    }
+    BX_LOGI(Online, "Found {} lobbies.", ctx.m_lobbyList.size());
+}
+
+void SteamCallback::OnLobbyEntered(LobbyEnter_t* pCallback)
+{
+    auto& ctx = OnlineSteam::Get();
+
+    if (pCallback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess)
+    {
+        ctx.m_currentLobby = CSteamID(pCallback->m_ulSteamIDLobby);
+
+        if (SteamMatchmaking()->GetLobbyOwner(ctx.m_currentLobby) != SteamUser()->GetSteamID())
+        {
+            ctx.m_peerID = SteamMatchmaking()->GetLobbyOwner(ctx.m_currentLobby);
+            BX_LOGI(Online, "Joined lobby ID {}. Host ID: {}", ctx.m_currentLobby.ConvertToUint64(), ctx.m_peerID.ConvertToUint64());
+        }
+        else
+        {
+            BX_LOGI(Online, "Lobby ID {} created successfully. Waiting for players...", ctx.m_currentLobby.ConvertToUint64());
+        }
+    }
+    else
+    {
+        BX_LOGE(Online, "Failed to join lobby.");
+    }
+}
+
+void SteamCallback::OnP2PSessionRequest(P2PSessionRequest_t* pCallback)
+{
+    auto& ctx = OnlineSteam::Get();
+
+    if (pCallback->m_steamIDRemote.IsValid())
+    {
+        SteamNetworking()->AcceptP2PSessionWithUser(pCallback->m_steamIDRemote);
+        ctx.m_peerID = pCallback->m_steamIDRemote;
+        BX_LOGI(Online, "Accepted P2P session request from: {}", ctx.m_peerID.ConvertToUint64());
+    }
+}
+
+void SteamCallback::OnP2PSessionConnectFail(P2PSessionConnectFail_t* pCallback)
+{
+    auto& ctx = OnlineSteam::Get();
+    BX_LOGE(Online, "P2P session with {} failed. Error code: {}", pCallback->m_steamIDRemote.ConvertToUint64(), pCallback->m_eP2PSessionError);
 }
 
 extern "C" static void __cdecl SteamAPIDebugTextHook(int nSeverity, const char* pchDebugText)
 {
     // if you're running in the debugger, only warnings (nSeverity >= 1) will be sent
     // if you add -debug_steamapi to the command-line, a lot of extra informational messages will also be sent
-    LOGD(Online, pchDebugText);
+    BX_LOGD(Online, pchDebugText);
 
     if (nSeverity >= 1)
     {
@@ -23,11 +126,6 @@ extern "C" static void __cdecl SteamAPIDebugTextHook(int nSeverity, const char* 
         int x = 3;
         (void)x;
     }
-}
-
-OnlineSteam::OnlineSteam()
-    : m_callbackBeginAuthResponse(this, &OnlineSteam::OnBeginAuthResponse)
-{
 }
 
 bool OnlineSteam::Initialize()
@@ -42,18 +140,18 @@ bool OnlineSteam::Initialize()
 
     if (SteamAPI_RestartAppIfNecessary(appId))
     {
-        LOGD(Online, "Restarting app to launch on Steam.");
+        BX_LOGD(Online, "Restarting app to launch on Steam.");
         return false;
     }
     
     // Initialize the Steam API
     if (!SteamAPI_Init())
     {
-        LOGE(Online, "Failed to initialize Steam API!");
+        BX_LOGE(Online, "Failed to initialize Steam API!");
         return false;
     }
 
-    LOGD(Online, "Steam API initialized successfully!");
+    BX_LOGD(Online, "Steam API initialized successfully!");
     
     // Set Steam debug handler
     SteamClient()->SetWarningMessageHook(&SteamAPIDebugTextHook);
@@ -63,7 +161,7 @@ bool OnlineSteam::Initialize()
     // will return false.
     if (!SteamUser()->BLoggedOn())
     {
-        LOGE(Online, "Steam user is not logged in, a user must be logged in to play this game!");
+        BX_LOGE(Online, "Steam user is not logged in, a user must be logged in to play this game!");
         return false;
     }
 
@@ -108,11 +206,11 @@ bool OnlineSteam::Initialize()
     // ------------ Example code --------------------------
     if (!SteamUser() && SteamFriends())
     {
-        LOGW(Online, "Failed to retrieve Steam user information!");
+        BX_LOGW(Online, "Failed to retrieve Steam user information!");
     }
     else
     {
-        LOGD(Online, "Logged in as: {}", SteamFriends()->GetPersonaName());
+        BX_LOGD(Online, "Logged in as: {}", SteamFriends()->GetPersonaName());
     }
     GetNumberOfCurrentPlayers();
 
@@ -122,7 +220,7 @@ bool OnlineSteam::Initialize()
 void OnlineSteam::Shutdown()
 {
     SteamAPI_Shutdown();
-    LOGD(Online, "Steam API shutdown completed.");
+    BX_LOGD(Online, "Steam API shutdown completed.");
 }
 
 void OnlineSteam::Update()
@@ -130,106 +228,14 @@ void OnlineSteam::Update()
     //ReceiveNetworkData();
 
     SteamAPI_RunCallbacks();
-}
 
-bool OnlineSteam::StartClient()
-{
-    if (SteamUser()->BLoggedOn())
-    {
-        AddPlayer(SteamUser()->GetSteamID());
-    }
-
-    // Initialize the peer to peer connection process
-    SteamNetworkingUtils()->InitRelayNetworkAccess();
-
-    return true;
-}
-
-void OnlineSteam::StopClient()
-{
-    DisconnectFromServer();
-}
-
-void OnlineSteam::AddPlayer(CSteamID steamID)
-{
-    Player player{};
-    player.isLocal = steamID == SteamUser()->GetSteamID();
-    player.id = steamID.ConvertToUint64();
-    
-    m_players.emplace_back(player);
-}
-
-void OnlineSteam::ConnectToServer(CSteamID steamIDGameServer)
-{
-//    if (m_eGameState == k_EClientInLobby && m_steamIDLobby.IsValid())
-//    {
-//        SteamMatchmaking()->LeaveLobby(m_steamIDLobby);
-//    }
-//
-//    SetGameState(k_EClientGameConnecting);
-//
-//    m_steamIDGameServerFromBrowser = m_steamIDGameServer = steamIDGameServer;
-//
-//    SteamNetworkingIdentity identity;
-//    identity.SetSteamID(steamIDGameServer);
-//
-//    m_hConnServer = SteamNetworkingSockets()->ConnectP2P(identity, 0, 0, nullptr);
-//    if (m_pVoiceChat)
-//        m_pVoiceChat->m_hConnServer = m_hConnServer;
-//    if (m_pP2PAuthedGame)
-//        m_pP2PAuthedGame->m_hConnServer = m_hConnServer;
-//
-//    // Update when we last retried the connection, as well as the last packet received time so we won't timeout too soon,
-//    // and so we will retry at appropriate intervals if packets drop
-//    m_ulLastNetworkDataReceivedTime = m_ulLastConnectionAttemptRetryTime = m_pGameEngine->GetGameTickCount();
-}
-
-void OnlineSteam::DisconnectFromServer()
-{
-//    if (m_eConnectedStatus != k_EClientNotConnected)
-//    {
-//#ifdef USE_GS_AUTH_API
-//        if (m_hAuthTicket != k_HAuthTicketInvalid)
-//            SteamUser()->CancelAuthTicket(m_hAuthTicket);
-//        m_hAuthTicket = k_HAuthTicketInvalid;
-//#else
-//        SteamUser()->AdvertiseGame(k_steamIDNil, 0, 0);
-//#endif
-//
-//        // tell steam china duration control system that we are no longer in a match
-//        SteamUser()->BSetDurationControlOnlineState(k_EDurationControlOnlineState_Offline);
-//
-//        m_eConnectedStatus = k_EClientNotConnected;
-//    }
-//    if (m_pP2PAuthedGame)
-//    {
-//        m_pP2PAuthedGame->EndGame();
-//    }
-//
-//    if (m_pVoiceChat)
-//    {
-//        m_pVoiceChat->StopVoiceChat();
-//    }
-//
-//    if (m_hConnServer != k_HSteamNetConnection_Invalid)
-//        SteamNetworkingSockets()->CloseConnection(m_hConnServer, k_EDRClientDisconnect, nullptr, false);
-//    m_steamIDGameServer = CSteamID();
-//    m_steamIDGameServerFromBrowser = CSteamID();
-//    m_hConnServer = k_HSteamNetConnection_Invalid;
-}
-
-void OnlineSteam::OnGameOverlayActivated(GameOverlayActivated_t* pCallback)
-{
-    if (pCallback->m_bActive)
-        LOGI(Online, "Steam overlay now active");
-    else
-        LOGI(Online, "Steam overlay now inactive");
+    ReceiveMessages();
 }
 
 // Make the asynchronous request to receive the number of current players.
 void OnlineSteam::GetNumberOfCurrentPlayers()
 {
-    LOGD(Online, "Getting Number of Current Players");
+    BX_LOGD(Online, "Getting Number of Current Players");
     SteamAPICall_t hSteamAPICall = SteamUserStats()->GetNumberOfCurrentPlayers();
     m_NumberOfCurrentPlayersCallResult.Set(hSteamAPICall, this, &OnlineSteam::OnGetNumberOfCurrentPlayers);
 }
@@ -239,22 +245,78 @@ void OnlineSteam::OnGetNumberOfCurrentPlayers(NumberOfCurrentPlayers_t* pCallbac
 {
     if (bIOFailure || !pCallback->m_bSuccess)
     {
-        LOGW(Online, "NumberOfCurrentPlayers_t failed!");
+        BX_LOGW(Online, "NumberOfCurrentPlayers_t failed!");
         return;
     }
 
-    LOGI(Online, "Number of players currently playing: {}", pCallback->m_cPlayers);
+    BX_LOGI(Online, "Number of players currently playing: {}", pCallback->m_cPlayers);
 }
 
-void OnlineSteam::OnBeginAuthResponse(ValidateAuthTicketResponse_t* pCallback)
+void OnlineSteam::CreateLobby(const LobbyInfo& info)
 {
-    //if (m_steamID == pCallback->m_SteamID)
-    //{
-    //    CString<128> rgch;
-    //    rgch.format("P2P:: Received steam response for account={}", m_steamID.GetAccountID());
-    //    LOGD(Online, rgch.c_str());
-    //    //m_ulAnswerTime = GetGameTimeInSeconds();
-    //    //m_bHaveAnswer = true;
-    //    //m_eAuthSessionResponse = pCallback->m_eAuthSessionResponse;
-    //}
+    m_isLobbyPendingCreate = true;
+    m_pendingLobbyInfo = info;
+
+    SteamMatchmaking()->CreateLobby(k_ELobbyTypePublic, 4);
+}
+
+void OnlineSteam::JoinLobby(CSteamID lobbyId)
+{
+    SteamMatchmaking()->JoinLobby(lobbyId);
+}
+
+void OnlineSteam::LeaveLobby()
+{
+    if (m_currentLobby.IsValid())
+    {
+        BX_LOGI(Online, "Leaving lobby with ID: {}", m_currentLobby.ConvertToUint64());
+        SteamMatchmaking()->LeaveLobby(m_currentLobby);
+        m_currentLobby = CSteamID(); // Reset the current lobby ID
+    }
+    else
+    {
+        BX_LOGE(Online, "No active lobby to leave.");
+    }
+}
+
+void OnlineSteam::FetchLobbies()
+{
+    SteamMatchmaking()->AddRequestLobbyListStringFilter("app", "skypi", k_ELobbyComparisonEqual);
+    SteamMatchmaking()->AddRequestLobbyListStringFilter("version", "1.0", k_ELobbyComparisonEqual);
+    SteamMatchmaking()->AddRequestLobbyListResultCountFilter(10);
+    SteamMatchmaking()->RequestLobbyList();
+}
+
+void OnlineSteam::SendMessage(const StringView message)
+{
+    if (!m_peerID.IsValid())
+    {
+        BX_LOGE(Online, "No peer connected to send messages.");
+        return;
+    }
+
+    if (SteamNetworking()->SendP2PPacket(m_peerID, message.data(), message.size(), k_EP2PSendReliable))
+    {
+        BX_LOGE(Online, "Sent message: {}", message);
+    }
+    else
+    {
+        BX_LOGE(Online, "Failed to send message.");
+    }
+}
+
+void OnlineSteam::ReceiveMessages()
+{
+    CString<1025> buffer{};
+    u32 messageSize{ 0 };
+    CSteamID sender{};
+
+    while (SteamNetworking()->IsP2PPacketAvailable(&messageSize))
+    {
+        if (SteamNetworking()->ReadP2PPacket(buffer.data(), sizeof(buffer), &messageSize, &sender))
+        {
+            StringView message(buffer, messageSize);
+            BX_LOGI(Online, "Received message from {}: {}", sender.ConvertToUint64(), message);
+        }
+    }
 }

@@ -3,17 +3,11 @@
 #include <engine/api.hpp>
 #include <engine/module.hpp>
 #include <engine/byte_types.hpp>
+#include <engine/string.hpp>
 
-enum struct BX_API ClientStatus { DISCONNECTED, CONNECTED };
-
-enum struct BX_API ServerStatus { DISCONNECTED, CONNECTED };
-
-struct BX_API Player
+struct BX_API LobbyInfo
 {
-	BX_TYPE(Player)
-
-	bool isLocal{ false };
-	u64 id{ 0 };
+	CString<64> name{};
 };
 
 class BX_API Online

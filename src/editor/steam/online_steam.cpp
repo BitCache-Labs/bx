@@ -16,9 +16,32 @@ OnlineSteamEditor::OnlineSteamEditor()
 
 void OnlineSteamEditor::OnGui()
 {
-	if (ImGui::Button("Start Client"))
-		OnlineSteam::Get().StartClient();
+	static CString<64> g_lobbyName{ "LobbyName" };
+	static CString<1024> g_message{};
 
-	if (ImGui::Button("Stop Client"))
-		OnlineSteam::Get().StopClient();
+	ImGui::Text("Lobby Name: ");
+	ImGui::SameLine();
+	ImGui::InputText("##LobbyName", g_lobbyName.data(), g_lobbyName.size());
+
+	if (ImGui::Button("Create Lobby"))
+		OnlineSteam::Get().CreateLobby(LobbyInfo{ g_lobbyName });
+
+	if (ImGui::Button("Refresh Lobbies"))
+		OnlineSteam::Get().FetchLobbies();
+
+	ImGui::Text("Available Lobbies:");
+	const auto& lobbies = OnlineSteam::Get().GetLobbies();
+	for (size_t i = 0; i < lobbies.size(); ++i)
+	{
+		std::string lobbyName = SteamMatchmaking()->GetLobbyData(lobbies[i], "name");
+		if (ImGui::Button(lobbyName.empty() ? ("Lobby " + std::to_string(i)).c_str() : lobbyName.c_str()))
+		{
+			OnlineSteam::Get().JoinLobby(lobbies[i]);
+		}
+	}
+
+	ImGui::SeparatorText("Chat");
+	ImGui::InputText("##Message", g_message.data(), g_message.size());
+	if (ImGui::Button("Send"))
+		OnlineSteam::Get().SendMessage(g_message);
 }

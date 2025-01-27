@@ -10,7 +10,8 @@
 
 #include <stdlib.h>
 
-class BX_API WindowGLFW final : public Window
+class BX_API WindowGLFW final
+	: public Window
 {
 	BX_MODULE(WindowGLFW, Window)
 	friend class WindowGLFWEditor;
