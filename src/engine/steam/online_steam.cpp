@@ -297,7 +297,7 @@ void OnlineSteam::SendMessage(const StringView message)
 
     if (SteamNetworking()->SendP2PPacket(m_peerID, message.data(), message.size(), k_EP2PSendReliable))
     {
-        BX_LOGE(Online, "Sent message: {}", message);
+        BX_LOGI(Online, "{}: {}", SteamFriends()->GetPersonaName(), message);
     }
     else
     {
@@ -316,7 +316,7 @@ void OnlineSteam::ReceiveMessages()
         if (SteamNetworking()->ReadP2PPacket(buffer.data(), sizeof(buffer), &messageSize, &sender))
         {
             StringView message(buffer, messageSize);
-            BX_LOGI(Online, "Received message from {}: {}", sender.ConvertToUint64(), message);
+            BX_LOGI(Online, "{}: {}", SteamFriends()->GetFriendPersonaName(sender), message);
         }
     }
 }
