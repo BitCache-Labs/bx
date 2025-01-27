@@ -1,7 +1,12 @@
 #pragma once
 
-class Application
+#include <engine/api.hpp>
+#include <engine/type.hpp>
+
+class BX_API Application
 {
+    BX_TYPE(Application)
+
 public:
     virtual ~Application() {}
     virtual void Configure() = 0;

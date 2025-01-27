@@ -7,16 +7,8 @@
 //        .constructor();
 //}
 
-Graphics& Graphics::Get()
-{
-    return GraphicsOpenGL::Get();
-}
-
-GraphicsOpenGL& GraphicsOpenGL::Get()
-{
-    static GraphicsOpenGL instance;
-    return instance;
-}
+BX_MODULE_DEFINE(GraphicsOpenGL)
+BX_MODULE_DEFINE_INTERFACE(Graphics, GraphicsOpenGL)
 
 constexpr f32 MAX_LOAD_FACTOR = 0.75f;
 
@@ -24,7 +16,7 @@ template <typename T>
 static T& GetImpl(GraphicsHandle handle, HashMap<GraphicsHandle, T>& map)
 {
     auto it = map.find(handle);
-    ENSURE(it != map.end());
+    BX_ENSURE(it != map.end());
     return it->second;
 }
 
@@ -99,18 +91,18 @@ static void APIENTRY DebugCallback(GLenum source, GLenum type, u32 id, GLenum se
     switch (severity)
     {
     case GL_DEBUG_SEVERITY_HIGH:
-        LOGE(Graphics, "GL message ID:({}) - Source:({}) - Type:({}) - Severity:({})\n{}", id, GetGlSource(source), GetGlType(type), GetGlSeverity(severity), message);
+        BX_LOGE(Graphics, "GL message ID:({}) - Source:({}) - Type:({}) - Severity:({})\n{}", id, GetGlSource(source), GetGlType(type), GetGlSeverity(severity), message);
         break;
     case GL_DEBUG_SEVERITY_MEDIUM:
-        LOGW(Graphics, "GL message ID:({}) - Source:({}) - Type:({}) - Severity:({})\n{}", id, GetGlSource(source), GetGlType(type), GetGlSeverity(severity), message);
+        BX_LOGW(Graphics, "GL message ID:({}) - Source:({}) - Type:({}) - Severity:({})\n{}", id, GetGlSource(source), GetGlType(type), GetGlSeverity(severity), message);
         break;
     case GL_DEBUG_SEVERITY_LOW:
-        LOGI(Graphics, "GL message ID:({}) - Source:({}) - Type:({}) - Severity:({})\n{}", id, GetGlSource(source), GetGlType(type), GetGlSeverity(severity), message);
+        BX_LOGI(Graphics, "GL message ID:({}) - Source:({}) - Type:({}) - Severity:({})\n{}", id, GetGlSource(source), GetGlType(type), GetGlSeverity(severity), message);
         break;
 
     case GL_DEBUG_SEVERITY_NOTIFICATION:
     default:
-        LOGD(Graphics, "GL message ID:({}) - Source:({}) - Type:({}) - Severity:({})\n{}", id, GetGlSource(source), GetGlType(type), GetGlSeverity(severity), message);
+        BX_LOGD(Graphics, "GL message ID:({}) - Source:({}) - Type:({}) - Severity:({})\n{}", id, GetGlSource(source), GetGlType(type), GetGlSeverity(severity), message);
     }
 }
 
@@ -118,8 +110,8 @@ static bool InitializeGlDebug()
 {
     const GLubyte* renderer = glGetString(GL_RENDERER);
     const GLubyte* version = glGetString(GL_VERSION);
-    LOGD(Graphics, "Renderer: {}", (const char*)renderer);
-    LOGD(Graphics, "OpenGL version supported: {}", (const char*)version);
+    BX_LOGD(Graphics, "Renderer: {}", (const char*)renderer);
+    BX_LOGD(Graphics, "OpenGL version supported: {}", (const char*)version);
 
     i32 flags;
     glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
@@ -141,15 +133,15 @@ static void PrintGlInfo()
 {
     i32 numOfExtensions;
     glGetIntegerv(GL_NUM_EXTENSIONS, &numOfExtensions);
-    LOGD(Graphics, "GL Supported extensions ({}):", numOfExtensions);
+    BX_LOGD(Graphics, "GL Supported extensions ({}):", numOfExtensions);
     for (i32 i = 0; i < numOfExtensions; i++)
     {
-        LOGD(Graphics, (const char*)glGetStringi(GL_EXTENSIONS, i));
+        BX_LOGD(Graphics, (const char*)glGetStringi(GL_EXTENSIONS, i));
     }
 
     GLint maxUniformBufferBindings;
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxUniformBufferBindings);
-    LOGD(Graphics, "GL Max Uniform Buffer Bindings: {}", maxUniformBufferBindings);
+    BX_LOGD(Graphics, "GL Max Uniform Buffer Bindings: {}", maxUniformBufferBindings);
 }
 
 static bool CompileShader(GLuint& shader, GLenum type, const GLchar* source)
@@ -158,7 +150,7 @@ static bool CompileShader(GLuint& shader, GLenum type, const GLchar* source)
 
     if (!source)
     {
-        LOGE(Graphics, "Failed to compile empty shader");
+        BX_LOGE(Graphics, "Failed to compile empty shader");
         return false;
     }
 
@@ -174,7 +166,7 @@ static bool CompileShader(GLuint& shader, GLenum type, const GLchar* source)
     {
         GLchar* log = static_cast<GLchar*>(malloc(log_length));
         glGetShaderInfoLog(shader, log_length, &log_length, log);
-        if (log) LOGW(Graphics, "Program compile log: {}", log);
+        if (log) BX_LOGW(Graphics, "Program compile log: {}", log);
         free(log);
     }
     //#endif
@@ -202,7 +194,7 @@ static bool LinkProgram(GLuint program)
     {
         GLchar* log = static_cast<GLchar*>(malloc(logLength));
         glGetProgramInfoLog(program, logLength, &logLength, log);
-        if (log) LOGW(Graphics, "Program link log: {}", log);
+        if (log) BX_LOGW(Graphics, "Program link log: {}", log);
         free(log);
     }
     //#endif
@@ -220,13 +212,13 @@ bool GraphicsOpenGL::Initialize()
 {
     if (!gladLoadGLLoader((GLADloadproc)GetProcAddress))
     {
-        LOGE(Graphics, "Failed to initialize GLAD GL!");
+        BX_LOGE(Graphics, "Failed to initialize GLAD GL!");
         return false;
     }
 
 #if defined(DEBUG_BUILD) || defined(EDITOR_BUILD)
     if (!InitializeGlDebug())
-        LOGW(Graphics, "GL debug output not supported.");
+        BX_LOGW(Graphics, "GL debug output not supported.");
 
     //PrintGlInfo();
 #endif
@@ -334,7 +326,7 @@ void GraphicsOpenGL::SetRenderTarget(const GraphicsHandle renderTarget, const Gr
     GLenum status = glCheckNamedFramebufferStatus(renderTarget_impl.fbo, GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE)
     {
-        LOGE(GRAPHICS, "Framebuffer is incomplete: 0x%X", status);
+        BX_LOGE(Graphics, "Framebuffer is incomplete: 0x%X", status);
         return;
     }
 
@@ -435,7 +427,7 @@ GraphicsHandle GraphicsOpenGL::CreateShader(const ShaderInfo& info)
         break;
 
     default:
-        LOGE(Graphics, "Shader type not supported!");
+        BX_LOGE(Graphics, "Shader type not supported!");
         return INVALID_GRAPHICS_HANDLE;
     }
 
@@ -446,7 +438,7 @@ GraphicsHandle GraphicsOpenGL::CreateShader(const ShaderInfo& info)
     GLboolean ret = CompileShader(shader_handle, shader_type, psrc);
     if (!ret)
     {
-        LOGE(Graphics, "Renderer failed to compile shader!");
+        BX_LOGE(Graphics, "Renderer failed to compile shader!");
         return INVALID_GRAPHICS_HANDLE;
     }
 
@@ -621,7 +613,7 @@ GraphicsHandle GraphicsOpenGL::CreatePipeline(const PipelineInfo& info)
     {
         glDeleteProgram(program_handle);
 
-        LOGE(Graphics, "Renderer failed to link shader program!");
+        BX_LOGE(Graphics, "Renderer failed to link shader program!");
         return INVALID_GRAPHICS_HANDLE;
     }
 

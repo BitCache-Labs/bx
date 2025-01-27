@@ -1,9 +1,10 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/byte_types.hpp>
-//#include <rttr/rttr_enable.h>
+#include <engine/module.hpp>
 
-enum struct GamepadButton
+enum struct BX_API GamepadButton
 {
 	BUTTON_SOUTH = 0,
 	BUTTON_EAST = 1,
@@ -27,7 +28,7 @@ enum struct GamepadButton
 	DPAD_LEFT = 14
 };
 
-enum struct GamepadAxis
+enum struct BX_API GamepadAxis
 {
 	STICK_LEFT_X = 0,
 	STICK_LEFT_Y = 1,
@@ -37,7 +38,7 @@ enum struct GamepadAxis
 	TRIGGER_RIGHT = 5
 };
 
-enum struct MouseButton
+enum struct BX_API MouseButton
 {
 	MOUSE_BUTTON_LEFT = 0,
 	MOUSE_BUTTON_RIGHT = 1,
@@ -45,7 +46,7 @@ enum struct MouseButton
 };
 
 // TODO: add more keys
-enum struct Key
+enum struct BX_API Key
 {
 	RIGHT = 262,
 	LEFT = 263,
@@ -83,7 +84,7 @@ enum struct Key
 	Z = 90
 };
 
-enum struct CursorMode
+enum struct BX_API CursorMode
 {
 	NORMAL,
 	HIDDEN,
@@ -93,17 +94,11 @@ enum struct CursorMode
 
 typedef void (*WindowGLProc)(void);
 
-class Window
+class BX_API Window
 {
-	//RTTR_ENABLE()
+	BX_MODULE_INTERFACE(Window)
 
 public:
-	static Window& Get();
-
-public:
-	Window() = default;
-	virtual ~Window() = default;
-
 	virtual bool Initialize() = 0;
 	virtual void Shutdown() = 0;
 

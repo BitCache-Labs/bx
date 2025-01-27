@@ -6,20 +6,17 @@
 
 #include <imgui_internal.h>
 
-#include <rttr/registration.h>
-RTTR_REGISTRATION
+BX_TYPE_REGISTRATION
 {
 	rttr::registration::class_<EditorWindow>("EditorWindow");
 }
 
-Editor& Editor::Get()
-{
-	static Editor instance;
-	return instance;
-}
+BX_MODULE_DEFINE(Editor)
 
 bool Editor::Initialize()
 {
+	BX_LOGD(Editor, "Editor initializing ...");
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -58,26 +55,31 @@ bool Editor::Initialize()
 
     if (!Window::Get().InitializeImGui())
     {
-        LOGE(Editor, "Failed to initialize window imgui!");
+		BX_LOGE(Editor, "Failed to initialize window imgui!");
         return false;
     }
 
     if (!Graphics::Get().InitializeImGui())
     {
-        LOGE(Editor, "Failed to initialize graphics imgui!");
+		BX_LOGE(Editor, "Failed to initialize graphics imgui!");
         return false;
     }
 
 	RegisterMenuItems();
 
+	BX_LOGD(Editor, "Editor initialized successfully.");
     return true;
 }
 
 void Editor::Shutdown()
 {
+	BX_LOGD(Editor, "Editor shutting down ...");
+
     Graphics::Get().ShutdownImGui();
     Window::Get().ShutdownImGui();
     ImGui::DestroyContext();
+
+	BX_LOGD(Engine, "Editor shutdown complete.");
 }
 
 static void MenuItemRecursive(const std::vector<StringView>& parts, std::function<void()>&& callback, SizeType index = 0)
@@ -201,13 +203,13 @@ void Editor::RegisterMenuItems()
 	for (const auto& derivedClass : derivedClasses)
 	{
 		const auto& derivedClassName = derivedClass.get_name();
-		LOGD(Editor, "Registering menu item: {}", derivedClassName.data());
+		BX_LOGD(Editor, "Registering menu item: {}", derivedClassName.data());
 
 		// Retrieve the "Register" method from the derived class
 		auto registerMethod = derivedClass.get_method("Register");
 		if (!registerMethod.is_valid())
 		{
-			LOGE(Editor, "Register method not found for class: {}", derivedClassName.data());
+			BX_LOGE(Editor, "Register method not found for class: {}", derivedClassName.data());
 			continue;
 		}
 

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/byte_types.hpp>
+#include <engine/module.hpp>
 #include <engine/time.hpp>
 #include <engine/string.hpp>
 #include <engine/list.hpp>
@@ -33,7 +35,7 @@ return result;
 #define PROFILE_FUNCTION() ProfilerSection s_sect(__COMPACT_PRETTY_FUNCTION__);
 #define PROFILE_SECTION(id) ProfilerSection s_sect(id);
 
-class ProfilerSection
+class BX_API ProfilerSection
 {
 public:
 	ProfilerSection(const String& name);
@@ -42,7 +44,7 @@ private:
 	String m_name;
 };
 
-struct ProfilerData
+struct BX_API ProfilerData
 {
 	f32 min = 0;
 	f32 max = 0;
@@ -50,11 +52,11 @@ struct ProfilerData
 	List<f32> frames;
 };
 
-class Profiler
+class BX_API Profiler
 {
-public:
-	static Profiler& Get();
+	BX_MODULE(Profiler)
 
+public:
 	void Update();
 
 	void BeginSection(const String& name);

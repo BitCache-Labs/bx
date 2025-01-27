@@ -1,5 +1,6 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <type_traits>
 
 // This namespace serves as a layer in-between std in order to implement missing >c++11 features
@@ -29,13 +30,13 @@ namespace meta
     struct underlying_type;
 
     template <typename T>
-    struct underlying_type<T, enable_if_t<is_enum<T>::value>>
+    struct BX_API underlying_type<T, enable_if_t<is_enum<T>::value>>
     {
         using type = typename std::underlying_type<T>::type;
     };
 
     template <typename T>
-    struct underlying_type<T, enable_if_t<!is_enum<T>::value>>
+    struct BX_API underlying_type<T, enable_if_t<!is_enum<T>::value>>
     {
         using type = void;
     };

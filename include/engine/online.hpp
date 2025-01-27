@@ -1,29 +1,26 @@
 #pragma once
 
-//#include <rttr/rttr_enable.h>
+#include <engine/api.hpp>
+#include <engine/module.hpp>
 #include <engine/byte_types.hpp>
 
-enum struct ClientStatus { DISCONNECTED, CONNECTED };
+enum struct BX_API ClientStatus { DISCONNECTED, CONNECTED };
 
-enum struct ServerStatus { DISCONNECTED, CONNECTED };
+enum struct BX_API ServerStatus { DISCONNECTED, CONNECTED };
 
-struct Player
+struct BX_API Player
 {
+	BX_TYPE(Player)
+
 	bool isLocal{ false };
 	u64 id{ 0 };
 };
 
-class Online
+class BX_API Online
 {
-	//RTTR_ENABLE()
+	BX_MODULE_INTERFACE(Online)
 
 public:
-	static Online& Get();
-
-public:
-	Online() = default;
-	virtual ~Online() = default;
-
 	virtual bool Initialize() = 0;
 	virtual void Shutdown() = 0;
 

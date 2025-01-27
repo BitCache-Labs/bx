@@ -1,10 +1,12 @@
 #pragma once
 
-#include <bx/editor/view.hpp>
+#include <engine/api.hpp>
+#include <editor/editor.hpp>
 
-class BX_API ProfilerView final : public View
+class BX_API ProfilerEditor final
+	: public EditorWindow
 {
-	RTTR_ENABLE(View)
+	BX_TYPE(ProfilerEditor, EditorWindow)
 
 public:
 	bool Initialize() override;

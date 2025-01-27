@@ -1,9 +1,10 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <memory>
 
 template <typename T>
-struct NoDelete
+struct BX_API NoDelete
 {
 	void operator()(T* ptr) const noexcept {}
 };
@@ -16,6 +17,9 @@ using SharedPtr = std::shared_ptr<T>;
 
 template <typename T, typename Deleter = DefaultDelete<T>>
 using UniquePtr = std::unique_ptr<T, Deleter>;
+
+template <typename T>
+using RefWrapper = std::reference_wrapper<T>;
 
 namespace meta
 {

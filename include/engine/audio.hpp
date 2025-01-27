@@ -1,5 +1,7 @@
 #pragma once
 
+#include <engine/api.hpp>
+#include <engine/module.hpp>
 #include <engine/list.hpp>
 #include <engine/math.hpp>
 
@@ -8,21 +10,18 @@
 using AudioHandle = u64;
 constexpr AudioHandle AUDIO_INVALID_HANDLE = -1;
 
-struct ChannelInfo
+struct BX_API ChannelInfo
 {
 };
 
-struct AudioInfo
+struct BX_API AudioInfo
 {
 	List<f32> samples;
 };
 
-class Audio
+class BX_API Audio
 {
-	//RTTR_ENABLE()
-
-public:
-	static Audio& Get();
+	BX_MODULE_INTERFACE(Audio)
 
 public:
 	virtual bool Initialize() = 0;

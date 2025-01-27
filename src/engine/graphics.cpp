@@ -1,6 +1,9 @@
 #include <engine/graphics.hpp>
 
 #if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
+
+BX_MODULE_DEFINE(DebugDraw)
+
 static const char* g_debugShaderSrc = R"(
 #ifdef GL_ES
 precision mediump float;
@@ -27,12 +30,6 @@ void main()
 }
 #endif
 )";
-
-DebugDraw& DebugDraw::Get()
-{
-	static DebugDraw instance;
-	return instance;
-}
 
 bool DebugDraw::Initialize()
 {

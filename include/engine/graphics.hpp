@@ -1,5 +1,6 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/log.hpp>
 #include <engine/math.hpp>
 #include <engine/byte_types.hpp>
@@ -14,31 +15,31 @@
 using GraphicsHandle = u64;
 constexpr GraphicsHandle INVALID_GRAPHICS_HANDLE = -1;
 
-enum struct GraphicsClearFlags { NONE, DEPTH, STENCIL };
-enum struct GraphicsValueType { UNDEFINED, INT8, INT16, INT32, UINT8, UINT16, UINT32, FLOAT16, FLOAT32, MAT4 };
+enum struct BX_API GraphicsClearFlags { NONE, DEPTH, STENCIL };
+enum struct BX_API GraphicsValueType { UNDEFINED, INT8, INT16, INT32, UINT8, UINT16, UINT32, FLOAT16, FLOAT32, MAT4 };
 
-enum struct ShaderType { UNKNOWN, VERTEX, PIXEL, GEOMETRY, COMPUTE };
+enum struct BX_API ShaderType { UNKNOWN, VERTEX, PIXEL, GEOMETRY, COMPUTE };
 
-enum struct BufferType { VERTEX_BUFFER, INDEX_BUFFER, UNIFORM_BUFFER, STORAGE_BUFFER };
-enum struct BufferUsage { IMMUTABLE, DEFAULT, DYNAMIC };
-enum struct BufferAccess { NONE, READ, WRITE };
+enum struct BX_API BufferType { VERTEX_BUFFER, INDEX_BUFFER, UNIFORM_BUFFER, STORAGE_BUFFER };
+enum struct BX_API BufferUsage { IMMUTABLE, DEFAULT, DYNAMIC };
+enum struct BX_API BufferAccess { NONE, READ, WRITE };
 
-enum struct TextureFormat { UNKNOWN, RGB8_UNORM, RGBA8_UNORM, RG32_UINT, D24_UNORM_S8_UINT }; // GL_R16
-enum struct TextureFlags { NONE = BIT(0), SHADER_RESOURCE = BIT(1), RENDER_TARGET = BIT(2), DEPTH_STENCIL = BIT(3) };
+enum struct BX_API TextureFormat { UNKNOWN, RGB8_UNORM, RGBA8_UNORM, RG32_UINT, D24_UNORM_S8_UINT }; // GL_R16
+enum struct BX_API TextureFlags { NONE = BIT(0), SHADER_RESOURCE = BIT(1), RENDER_TARGET = BIT(2), DEPTH_STENCIL = BIT(3) };
 
-enum struct ResourceBindingType { UNKNOWN, TEXTURE, UNIFORM_BUFFER, STORAGE_BUFFER };
-enum struct ResourceBindingAccess { STATIC, MUTABLE, DYNAMIC };
+enum struct BX_API ResourceBindingType { UNKNOWN, TEXTURE, UNIFORM_BUFFER, STORAGE_BUFFER };
+enum struct BX_API ResourceBindingAccess { STATIC, MUTABLE, DYNAMIC };
 
-enum struct PipelineTopology { UNDEFINED, POINTS, LINES, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN };
-enum struct PipelineFaceCull { NONE, CW, CCW };
+enum struct BX_API PipelineTopology { UNDEFINED, POINTS, LINES, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN };
+enum struct BX_API PipelineFaceCull { NONE, CW, CCW };
 
-struct ShaderInfo
+struct BX_API ShaderInfo
 {
 	ShaderType shaderType = ShaderType::UNKNOWN;
 	const char* source = nullptr;
 };
 
-struct BufferInfo
+struct BX_API BufferInfo
 {
 	u32 strideBytes = 0;
 	BufferType type = BufferType::UNIFORM_BUFFER;
@@ -46,7 +47,7 @@ struct BufferInfo
 	BufferAccess access = BufferAccess::WRITE;
 };
 
-struct TextureInfo
+struct BX_API TextureInfo
 {
 	TextureFormat format = TextureFormat::UNKNOWN;
 	u32 width = 0;
@@ -54,7 +55,7 @@ struct TextureInfo
 	TextureFlags flags = TextureFlags::SHADER_RESOURCE;
 };
 
-struct BufferData
+struct BX_API BufferData
 {
 	BufferData() {}
 	BufferData(const void* pData, u32 dataSize)
@@ -65,7 +66,7 @@ struct BufferData
 	u32 dataSize = 0;
 };
 
-struct ResourceBindingElement
+struct BX_API ResourceBindingElement
 {
 	ResourceBindingElement() {}
 	ResourceBindingElement(ShaderType shaderType, const char* name, u32 count, ResourceBindingType type, ResourceBindingAccess access)
@@ -82,13 +83,13 @@ struct ResourceBindingElement
 	ResourceBindingAccess access = ResourceBindingAccess::STATIC;
 };
 
-struct ResourceBindingInfo
+struct BX_API ResourceBindingInfo
 {
 	const ResourceBindingElement* resources = nullptr;
 	u32 numResources = 0;
 };
 
-struct LayoutElement
+struct BX_API LayoutElement
 {
 	LayoutElement() {}
 	LayoutElement(u32 inputIndex, u32 bufferSlot, u32 numComponents, GraphicsValueType valueType, bool isNormalized, u32 relativeOffset, u32 instanceDataStepRate)
@@ -109,7 +110,7 @@ struct LayoutElement
 	u32 instanceDataStepRate = 0;
 };
 
-struct PipelineInfo
+struct BX_API PipelineInfo
 {
 	u32 numRenderTargets = 0;
 	TextureFormat renderTargetFormats[8] = { TextureFormat::UNKNOWN };
@@ -128,7 +129,7 @@ struct PipelineInfo
 	u32 numElements = 0;
 };
 
-struct DrawAttribs
+struct BX_API DrawAttribs
 {
 	DrawAttribs() {}
 	DrawAttribs(u32 numVertices)
@@ -137,7 +138,7 @@ struct DrawAttribs
 	u32 numVertices = 0;
 };
 
-struct DrawIndexedAttribs
+struct BX_API DrawIndexedAttribs
 {
 	DrawIndexedAttribs() {}
 	DrawIndexedAttribs(GraphicsValueType indexType, u32 numIndices)
@@ -148,17 +149,11 @@ struct DrawIndexedAttribs
 	u32 offset = 0;
 };
 
-class Graphics
+class BX_API Graphics
 {
-	//RTTR_ENABLE()
+	BX_MODULE_INTERFACE(Graphics)
 
 public:
-	static Graphics& Get();
-
-public:
-	Graphics() = default;
-	virtual ~Graphics() = default;
-
 	virtual bool Initialize() = 0;
 	virtual void Shutdown() = 0;
 
@@ -217,11 +212,11 @@ public:
 };
 
 #if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
-class DebugDraw
+class BX_API DebugDraw
 {
-public:
-	static DebugDraw& Get();
+	BX_MODULE(DebugDraw)
 
+public:
 	bool Initialize();
 	void Shutdown();
 

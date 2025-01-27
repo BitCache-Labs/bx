@@ -9,11 +9,7 @@
 #include <editor/editor.hpp>
 #endif
 
-Engine& Engine::Get() noexcept
-{
-    static Engine instance;
-    return instance;
-}
+BX_MODULE_DEFINE(Engine)
 
 bool Engine::IsRunning() const noexcept
 {
@@ -27,14 +23,22 @@ void Engine::Close() noexcept
 
 int Engine::Run(int argc, char** args, Application& app)
 {
-    LOGD(Engine, "Application starting...");
+    BX_LOGD(Engine, "Engine starting...");
 
     app.Configure();
-    if (!Initialize() || !app.Initialize())
+    if (!Initialize())
     {
-        LOGE(Engine, "Failed to initialize application!");
+        BX_LOGE(Engine, "Failed to initialize engine module!");
         return EXIT_FAILURE;
     }
+
+    BX_LOGD(Engine, "Initializing application ...");
+    if (!app.Initialize())
+    {
+        BX_LOGE(Engine, "Failed to initialize application!");
+        return EXIT_FAILURE;
+    }
+    BX_LOGD(Engine, "Application initialized successfully.");
 
     Time::Get().Start();
     while (IsRunning())
@@ -62,36 +66,36 @@ int Engine::Run(int argc, char** args, Application& app)
     app.Shutdown();
     Shutdown();
 
-    LOGD(Engine, "Application exit.");
+    BX_LOGD(Engine, "Engine exit.");
     return EXIT_SUCCESS;
 }
 
 bool Engine::Initialize() noexcept
 {
-    LOGD(Engine, "Initializing application...");
+    BX_LOGD(Engine, "Engine initializing ...");
 
     if (!Online::Get().Initialize())
     {
-        LOGE(Engine, "Failed to initialize online!");
+        BX_LOGE(Engine, "Failed to initialize online module!");
         return false;
     }
 
     if (!Window::Get().Initialize())
     {
-        LOGE(Engine, "Failed to initialize window!");
+        BX_LOGE(Engine, "Failed to initialize window module!");
         return false;
     }
 
     if (!Graphics::Get().Initialize())
     {
-        LOGE(Engine, "Failed to initialize graphics!");
+        BX_LOGE(Engine, "Failed to initialize graphics module!");
         return false;
     }
 
 #if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
     if (!DebugDraw::Get().Initialize())
     {
-        LOGE(Engine, "Failed to initialize debug draw!");
+        BX_LOGE(Engine, "Failed to initialize debug module!");
         return false;
     }
 #endif
@@ -99,18 +103,18 @@ bool Engine::Initialize() noexcept
 #ifdef EDITOR_BUILD
     if (!Editor::Get().Initialize())
     {
-        LOGE(Engine, "Failed to initialize editor!");
+        BX_LOGE(Engine, "Failed to initialize editor module!");
         return false;
     }
 #endif
 
-    LOGD(Engine, "Application initialized successfully.");
+    BX_LOGD(Engine, "Engine initialized successfully.");
     return true;
 }
 
 void Engine::Shutdown() noexcept
 {
-    LOGD(Engine, "Shutting down application...");
+    BX_LOGD(Engine, "Engine shutting down ...");
 
 #ifdef EDITOR_BUILD
     Editor::Get().Shutdown();
@@ -124,7 +128,7 @@ void Engine::Shutdown() noexcept
     Window::Get().Shutdown();
     Online::Get().Shutdown();
 
-    LOGD(Engine, "Application shutdown complete.");
+    BX_LOGD(Engine, "Engine shutdown complete.");
 }
 
 #ifdef EDITOR_BUILD
@@ -132,7 +136,7 @@ void Engine::OnGui(Application& app) noexcept
 {
     auto* editorApp = dynamic_cast<EditorApplication*>(&app);
     if (!editorApp)
-        LOGE(Engine, "Invalid application type for editor build!");
+        BX_LOGE(Engine, "Invalid application type for editor build!");
     else
         Editor::Get().OnGui(*editorApp);
 }

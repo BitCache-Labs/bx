@@ -1,28 +1,11 @@
 #pragma once
 
-#include <engine/byte_types.hpp>
-#include <engine/log.hpp>
-
-#include <cstdlib>
-
 #define STR(Str) #Str
 #define XSTR(Str) STR(Str)
 
 #define BX_CONCAT_IMPL(A, V) A##B
 #define BX_CONCAT(A, B) BX_CONCAT_IMPL(A, B)
 
-#define ARRAYSIZE(Arr) ((u32)(sizeof(Arr) / sizeof(*(Arr))))
+#define ARRAYSIZE(Arr) ((unsigned)(sizeof(Arr) / sizeof(*(Arr))))
 
 #define BIT(x) (1 << (x))
-
-#define ASSERT(Condition, Message) \
-    do { \
-        if (!(Condition)) \
-        { \
-			LOGE(Core, "Assertion failed: {}", Message); \
-            std::abort(); \
-        } \
-    } while (false)
-
-#define ENSURE(Condition) ASSERT(Condition, #Condition)
-#define FAIL(Message) ASSERT(false, Message)

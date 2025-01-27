@@ -1,9 +1,9 @@
-#include "bx/editor/views/settings_view.hpp"
+#include <editor/settings.hpp>
 
 #include <imgui.h>
 #include <imgui_internal.h>
 
-void SettingsView::Present(bool& show)
+void SettingsEditor::Present(bool& show)
 {
 	ImGui::Begin("Settings");
 

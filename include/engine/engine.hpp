@@ -1,27 +1,21 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/application.hpp>
+#include <engine/macros.hpp>
+#include <engine/module.hpp>
 
-class Engine
+class BX_API Engine
 {
-public:
-    static Engine& Get() noexcept;
+    BX_MODULE(Engine)
 
+public:
     bool IsRunning() const noexcept;
     void Close() noexcept;
 
     int Run(int argc, char** args, Application& app);
 
 private:
-    Engine() = default;
-    ~Engine() = default;
-
-    Engine(const Engine&) = delete;
-    Engine& operator=(const Engine&) = delete;
-
-    Engine(Engine&&) = delete;
-    Engine& operator=(Engine&&) = delete;
-
     bool Initialize() noexcept;
     void Shutdown() noexcept;
 

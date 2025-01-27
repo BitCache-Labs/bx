@@ -1,8 +1,12 @@
+#pragma once
+
+#include <engine/api.hpp>
 #include <editor/editor.hpp>
 
-class OnlineSteamEditor final : public EditorWindow
+class BX_API OnlineSteamEditor final
+	: public EditorWindow
 {
-	RTTR_ENABLE(EditorWindow)
+	BX_TYPE(OnlineSteamEditor, EditorWindow)
 
 public:
 	static void ShowWindow();

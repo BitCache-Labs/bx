@@ -1,5 +1,6 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/byte_types.hpp>
 #include <chrono>
 
@@ -8,7 +9,7 @@ using Clock = std::chrono::steady_clock;
 using TimePoint = Clock::time_point;
 using TimeSpan = std::chrono::nanoseconds;
 
-class Time
+class BX_API Time
 {
 public:
     static Time& Get()
@@ -56,7 +57,7 @@ private:
     f32 m_deltaTime;
 };
 
-class Stopwatch
+class BX_API Stopwatch
 {
 public:
     inline void Start() noexcept

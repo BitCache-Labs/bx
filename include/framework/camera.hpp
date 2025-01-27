@@ -1,8 +1,9 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/math.hpp>
 
-class Camera
+class BX_API Camera
 {
 public:
 	inline void SetView(const Mat4& view) { m_view = view; }

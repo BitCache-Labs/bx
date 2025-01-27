@@ -2,7 +2,7 @@
 
 #include <engine/byte_types.hpp>
 
-struct Image
+struct BX_API Image
 {
 	bool is_16bit{ false };
 	bool is_hdr{ false };

@@ -1,5 +1,7 @@
-#include <engine/audio.hpp>
+#pragma once
 
+#include <engine/api.hpp>
+#include <engine/audio.hpp>
 #include <engine/macros.hpp>
 
 #include <stdio.h>
@@ -8,28 +10,22 @@
 
 #define AUDIO_MAX_CLIPS_PER_CHANNEL (100)
 
-struct ChannelImpl
+struct BX_API ChannelImpl
 {
     f32 volume = 1.0f;
     AudioHandle audios[AUDIO_MAX_CLIPS_PER_CHANNEL];
 };
 
-struct AudioImpl
+struct BX_API AudioImpl
 {
     List<f32> samples;
     SizeType currentIndex = 0;
 };
 
-class AudioPortAudio final : public Audio
+class BX_API AudioPortAudio final : public Audio
 {
-    //RTTR_ENABLE(Audio)
+    BX_MODULE(AudioPortAudio, Audio)
     friend class AudioPortAudioEditor;
-
-public:
-    static AudioPortAudio& Get();
-
-public:
-    AudioPortAudio() = default;
 
 public:
     bool Initialize() override;

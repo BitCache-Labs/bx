@@ -1,6 +1,7 @@
 #pragma once
 
-#include <engine/guard.hpp>
+#include <engine/api.hpp>
+#include <engine/module.hpp>
 #include <engine/string.hpp>
 #include <engine/list.hpp>
 #include <fstream>
@@ -8,13 +9,11 @@
 using InputFileStream = std::ifstream;
 using OutputFileStream = std::ofstream;
 
-class File
+class BX_API File
 {
-    SINGLETON(File)
+    BX_MODULE(File)
 
 public:
-    static File& Get();
-
     StringView GetFilename(StringView file);
     CString<512> GetPath(StringView filename);
     List<StringView> SplitPath(StringView path, char delimiter = '/');

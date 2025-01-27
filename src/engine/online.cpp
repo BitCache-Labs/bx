@@ -1,30 +1,19 @@
 #include <engine/online.hpp>
-#include <engine/guard.hpp>
+#include <engine/module.hpp>
 
-#ifdef ONLINE_DUMMY_BACKEND
 class OnlineDummy final : public Online
 {
-    //RTTR_ENABLE(Online)
-    SINGLETON(OnlineDummy)
-
-public:
-    static OnlineDummy& Get();
+    BX_MODULE(OnlineDummy, Online)
 
 public:
     bool Initialize() override;
     void Shutdown() override;
+
+    void Update() override;
 };
 
-Online& Online::Get()
-{
-    return OnlineDummy::Get();
-}
-
-OnlineDummy& OnlineDummy::Get()
-{
-    static OnlineDummy instance;
-    return instance;
-}
+BX_MODULE_DEFINE(OnlineDummy)
+BX_MODULE_DEFINE_INTERFACE(Online, OnlineDummy)
 
 bool OnlineDummy::Initialize()
 {
@@ -34,4 +23,7 @@ bool OnlineDummy::Initialize()
 void OnlineDummy::Shutdown()
 {
 }
-#endif
+
+void OnlineDummy::Update()
+{
+}

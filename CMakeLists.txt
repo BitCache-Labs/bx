@@ -125,7 +125,7 @@ if (BX_ONLINE_BACKEND STREQUAL "Steam")
 		endif()
 
 	else()
-		target_compile_definitions(Engine PUBLIC ONLINE_DUMMY_BACKEND)
+		set (ENGINE_SRCS ${ENGINE_SRCS} "src/engine/online.cpp")
 	endif()
 else ()
     message(FATAL_ERROR "Unknown online backend: ${BX_ONLINE_BACKEND}")

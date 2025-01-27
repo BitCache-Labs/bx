@@ -1,3 +1,6 @@
+#pragma once
+
+#include <engine/api.hpp>
 #include <engine/window.hpp>
 #include <engine/log.hpp>
 #include <engine/enum.hpp>
@@ -5,30 +8,12 @@
 
 #include <GLFW/glfw3.h>
 
-#ifdef EDITOR_BUILD
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#endif
-
 #include <stdlib.h>
 
-class WindowGLFW final : public Window
+class BX_API WindowGLFW final : public Window
 {
-	//RTTR_ENABLE(Window)
+	BX_MODULE(WindowGLFW, Window)
 	friend class WindowGLFWEditor;
-
-public:
-	static WindowGLFW& Get();
-
-private:
-	WindowGLFW() = default;
-	~WindowGLFW() = default;
-
-	WindowGLFW(const WindowGLFW&) = delete;
-	WindowGLFW& operator=(const WindowGLFW&) = delete;
-
-	WindowGLFW(WindowGLFW&&) = delete;
-	WindowGLFW& operator=(WindowGLFW&&) = delete;
 
 public:
 	bool Initialize() override;
@@ -63,39 +48,10 @@ public:
 	WindowGLProc GetProcAddress(const char* name) override;
 
 #ifdef EDITOR_BUILD
-	bool InitializeImGui() override
-	{
-#if defined(GRAPHICS_OPENGL_BACKEND) || defined(GRAPHICS_OPENGLES_BACKEND)
-		if (!ImGui_ImplGlfw_InitForOpenGL(m_pWindow, true))
-#endif
-		{
-			LOGE(Window, "Failed to initialize ImGui GLFW backend!");
-			return false;
-		}
-		return true;
-	}
-
-	void ShutdownImGui() override
-	{
-		ImGui_ImplGlfw_Shutdown();
-	}
-
-	void NewFrameImGui() override
-	{
-		ImGui_ImplGlfw_NewFrame();
-	}
-
-	void EndFrameImGui() override
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			GLFWwindow* backup_current_context = glfwGetCurrentContext();
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(backup_current_context);
-		}
-	}
+	bool InitializeImGui() override;
+	void ShutdownImGui() override;
+	void NewFrameImGui() override;
+	void EndFrameImGui() override;
 #endif
 
 public:

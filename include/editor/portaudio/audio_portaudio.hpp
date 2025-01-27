@@ -1,7 +1,13 @@
+#pragma once
+
+#include <engine/api.hpp>
 #include <editor/editor.hpp>
 
-class AudioPortAudioEditor final : public EditorWindow
+class BX_API AudioPortAudioEditor final
+	: public EditorWindow
 {
+	BX_TYPE(AudioPortAudioEditor, EditorWindow)
+
 public:
 	static void ShowWindow();
 

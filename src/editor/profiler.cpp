@@ -1,10 +1,10 @@
-#include <bx/editor/views/profiler_view.hpp>
+#include <editor/profiler.hpp>
 
-#include <bx/core/profiler.hpp>
-#include <bx/core/time.hpp>
-#include <bx/containers/list.hpp>
-#include <bx/math/math.hpp>
-#include <bx/engine/data.hpp>
+#include <engine/profiler.hpp>
+#include <engine/time.hpp>
+#include <engine/list.hpp>
+#include <engine/math.hpp>
+#include <engine/data.hpp>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -16,26 +16,26 @@
 //#include <rttr/registration.h>
 //RTTR_REGISTRATION
 //{
-//    rttr::registration::class_<ProfilerView>("ProfilerView")
+//    rttr::registration::class_<ProfilerEditor>("ProfilerEditor")
 //    .constructor();
 //}
 
-bool ProfilerView::Initialize()
+bool ProfilerEditor::Initialize()
 {
     //m_shown = Data::GetBool("Toolbar Show Profiler", false, DataTarget::EDITOR);
     return true;
 }
 
-void ProfilerView::Shutdown()
+void ProfilerEditor::Shutdown()
 {
     //Data::SetBool("Toolbar Show Profiler", isShown, DataTarget::EDITOR);
 }
 
-void ProfilerView::Reload()
+void ProfilerEditor::Reload()
 {
 }
 
-//void ProfilerView::OnToolbar()
+//void ProfilerEditor::OnToolbar()
 //{
 //    ImGui::SameLine();
 //    if (ImGui::Button(ICON_FA_CHART_PIE))
@@ -45,12 +45,12 @@ void ProfilerView::Reload()
 //    //Tooltip("Profiler");
 //}
 
-const char* ProfilerView::GetTitle() const
+const char* ProfilerEditor::GetTitle() const
 {
     return ICON_FA_STOPWATCH"  Profiler";
 }
 
-void ProfilerView::Present(const char* title, bool& isOpen)
+void ProfilerEditor::Present(const char* title, bool& isOpen)
 {
     //Old icon: ICON_FA_CHART_PIE
     ImGui::Begin(title, &isOpen, ImGuiWindowFlags_NoCollapse);

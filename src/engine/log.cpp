@@ -4,10 +4,19 @@
 
 #include <iostream>
 
-Log& Log::Get()
+BX_MODULE_DEFINE(Log)
+
+static StringView GetLogLevelString(const LogLevel level)
 {
-	static Log instance;
-	return instance;
+	switch (level)
+	{
+	case LogLevel::LOG_DEBUG: return "D";
+	case LogLevel::LOG_INFO:return "I";
+	case LogLevel::LOG_WARNING:return "W";
+	case LogLevel::LOG_ERROR:return "E";
+	case LogLevel::LOG_FATAL:return "F";
+	default: return "UNKNOWN";
+	}
 }
 
 void Log::Write(StringView message,
@@ -15,10 +24,10 @@ void Log::Write(StringView message,
 	const LogLevel level,
 	StringView file,
 	u32 line,
-	std::function<void()>&& onClick)
+	Function<void()>&& onClick)
 {
 	static Hash<StringView> svHash;
-	static Hash<std::thread::id> tidHash;
+	static Hash<Thread::id> tidHash;
 	static CString<2048> formattedMessage;
 
 	SizeType channelHash = svHash(channel.data());
@@ -28,21 +37,18 @@ void Log::Write(StringView message,
 
 	if (std::this_thread::get_id() != m_mainThreadId)
 	{
-		formattedMessage.format("[Thread {}] {} ({}): {}", tidHash(std::this_thread::get_id()), File::Get().GetFilename(file), line, message);
+		formattedMessage.format("[{} | Thread {}] {} ({}): {}", GetLogLevelString(level), tidHash(std::this_thread::get_id()), File::Get().GetFilename(file), line, message);
 	}
 	else
 	{
-		formattedMessage.format("{} ({}): {}", File::Get().GetFilename(file), line, message);
+		formattedMessage.format("[{}] {} ({}): {}", GetLogLevelString(level), File::Get().GetFilename(file), line, message);
 	}
 
 	auto existingChannel = m_channels.find(channelHash);
 	if (existingChannel == m_channels.end())
 	{
-		Channel newChannel;
-		size_t length = std::min(channel.size(), Channel::MaxNameLength - 1);
-		std::memcpy(newChannel.name, channel.data(), length);
-		newChannel.name[length] = '\0';
-
+		Channel newChannel{};
+		newChannel.name = channel;
 		existingChannel = m_channels.emplace(channelHash, std::move(newChannel)).first;
 	}
 
@@ -57,8 +63,13 @@ void Log::Write(StringView message,
 	//	LOG(LogCore, Message, "Log buffer exceeded {} bytes, buffer has been cleared", sMaxNumOfBytesStored);
 	//}
 
+#ifdef DEBUG_BUILD
 	std::cout << formattedMessage << std::endl;
-
+#else
+	if (level >= LogLevel::LOG_WARNING)
+		std::cout << formattedMessage << std::endl;
+#endif
+	
 	//if (severity == Fatal)
 	//{
 	//	DumpToCrashLogAndExit();

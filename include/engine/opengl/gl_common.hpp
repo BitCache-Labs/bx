@@ -1,9 +1,10 @@
 #pragma once
 
 #include <engine/graphics.hpp>
+#include <engine/guard.hpp>
 #include <glad/glad.h>
 
-struct GraphicsContext
+struct BX_API GraphicsContext
 {
     bool m_wireframe{ false };
     GraphicsHandle currentPipeline{ INVALID_GRAPHICS_HANDLE };
@@ -24,7 +25,7 @@ static GLenum GetTextureFormat(TextureFormat format)
     case TextureFormat::D24_UNORM_S8_UINT:  return GL_DEPTH_STENCIL;
 
     default:
-        FAIL("Texture format not supported!");
+        BX_FAIL("Texture format not supported!");
         return 0;
     }
 }
@@ -40,7 +41,7 @@ static GLenum GetTextureBaseFormat(TextureFormat format)
     case TextureFormat::D24_UNORM_S8_UINT:  return GL_DEPTH_STENCIL;
 
     default:
-        FAIL("Texture base format not supported!");
+        BX_FAIL("Texture base format not supported!");
         return 0;
     }
 }
@@ -55,7 +56,7 @@ static GLenum GetTextureType(TextureFormat format)
     case TextureFormat::D24_UNORM_S8_UINT: return GL_UNSIGNED_INT_24_8;
 
     default:
-        FAIL("Texture type not supported!");
+        BX_FAIL("Texture type not supported!");
         return 0;
     }
 }
@@ -70,7 +71,7 @@ static GLenum GetBufferTarget(BufferType type)
     case BufferType::STORAGE_BUFFER: return GL_SHADER_STORAGE_BUFFER;
 
     default:
-        FAIL("Buffer type not supported!");
+        BX_FAIL("Buffer type not supported!");
         return 0;
     }
 }
@@ -84,7 +85,7 @@ static GLenum GetBufferUsage(BufferUsage usage)
     case BufferUsage::DYNAMIC: return GL_STREAM_DRAW;
 
     default:
-        FAIL("Buffer usage not supported!");
+        BX_FAIL("Buffer usage not supported!");
         return 0;
     }
 }
@@ -104,7 +105,7 @@ static GLenum GetValueType(GraphicsValueType vt)
     case GraphicsValueType::FLOAT32:    return GL_FLOAT;
 
     default:
-        FAIL("Value type not supported!");
+        BX_FAIL("Value type not supported!");
         return 0;
     }
 }
@@ -124,7 +125,7 @@ static u32 GetValueSize(GraphicsValueType vt)
     case GraphicsValueType::FLOAT32:    return sizeof(f32);
 
     default:
-        FAIL("Value type not supported!");
+        BX_FAIL("Value type not supported!");
         return 0;
     }
 }
@@ -137,7 +138,7 @@ static GLenum GetCullMode(PipelineFaceCull faceCull)
     case PipelineFaceCull::CCW:     return GL_CCW;
 
     default:
-        FAIL("Face cull not supported!");
+        BX_FAIL("Face cull not supported!");
         return 0;
     }
 }
@@ -153,7 +154,7 @@ static GLenum GetTopologyMode(PipelineTopology topology)
     case PipelineTopology::TRIANGLE_FAN:    return GL_TRIANGLE_FAN;
 
     default:
-        FAIL("Topology mode not supported!");
+        BX_FAIL("Topology mode not supported!");
         return 0;
     }
 }

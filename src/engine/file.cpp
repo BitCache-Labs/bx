@@ -1,11 +1,7 @@
 #include <engine/file.hpp>
 #include <engine/log.hpp>
 
-File& File::Get()
-{
-    static File instance{};
-    return instance;
-}
+BX_MODULE_DEFINE(File)
 
 StringView File::GetFilename(StringView file)
 {
@@ -47,14 +43,14 @@ bool File::WriteText(StringView filename, StringView text)
     OutputFileStream ofs(filename.data(), std::ios::out | std::ios::trunc);
     if (!ofs.is_open())
     {
-        LOGE(File, "Failed to open file: {}", filename);
+        BX_LOGE(File, "Failed to open file: {}", filename);
         return false;
     }
 
     ofs.write(text.data(), text.size());
     if (!ofs)
     {
-        LOGE(File, "Failed to write to file: {}", filename);
+        BX_LOGE(File, "Failed to write to file: {}", filename);
         return false;
     }
 

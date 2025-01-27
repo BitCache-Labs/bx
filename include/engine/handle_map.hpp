@@ -1,5 +1,6 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/byte_types.hpp>
 #include <engine/list.hpp>
 
@@ -7,7 +8,7 @@
 #define NEW_OBJECT_ID_ADD 0x10000
 
 template <typename TVal>
-class HandleMap
+class BX_API HandleMap
 {
 public:
 	explicit HandleMap(SizeType capacity = 100)

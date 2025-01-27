@@ -1,11 +1,12 @@
 #pragma once
 
-#include <engine/type_traits.hpp>
+#include <engine/api.hpp>
+#include <engine/traits.hpp>
 #include <engine/byte_types.hpp>
 #include <engine/string.hpp>
 
 template <typename T>
-struct Hash
+struct BX_API Hash
 {
 	inline SizeType operator()(const T& v) const
 	{
@@ -39,19 +40,15 @@ namespace HashFunctions
 }
 
 #define DECLARE_PRIMITIVE_HASH(Type, HashFn) \
-template <> struct Hash<Type> { inline SizeType operator()(const Type& v) const { return HashFn(reinterpret_cast<const u8*>(&v), sizeof(Type));} };
+template <> struct BX_API Hash<Type> { inline SizeType operator()(const Type& v) const { return HashFn(reinterpret_cast<const u8*>(&v), sizeof(Type));} };
 
 DECLARE_PRIMITIVE_HASH(i32, HashFunctions::FNV1a);
 DECLARE_PRIMITIVE_HASH(u32, HashFunctions::FNV1a);
 DECLARE_PRIMITIVE_HASH(f32, HashFunctions::FNV1a);
 DECLARE_PRIMITIVE_HASH(f64, HashFunctions::FNV1a);
 
-//#if !std::is_same<SizeType, u32>::value
-//DECLARE_PRIMITIVE_HASH(SizeType, HashFunctions::FNV1a);
-//#endif
-
 template <>
-struct Hash<String>
+struct BX_API Hash<String>
 {
 	inline SizeType operator()(const String& v) const
 	{
@@ -60,7 +57,7 @@ struct Hash<String>
 };
 
 template <SizeType N>
-struct Hash<CString<N>>
+struct BX_API Hash<CString<N>>
 {
 	inline SizeType operator()(CString<N> v) const
 	{
@@ -69,7 +66,7 @@ struct Hash<CString<N>>
 };
 
 template <>
-struct Hash<StringView>
+struct BX_API Hash<StringView>
 {
 	inline SizeType operator()(StringView v) const
 	{

@@ -1,23 +1,21 @@
 #include <engine/glfw/window_glfw.hpp>
+#include <engine/guard.hpp>
 
-//#include <rttr/registration.h>
-//RTTR_PLUGIN_REGISTRATION
-//{
-//	rttr::registration::class_<WindowGLFW>("WindowGLFW")
-//		.constructor();
-////.method("GetWindowPtr", &WindowGLFW::GetWindowPtr);
-//}
+#ifdef EDITOR_BUILD
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#endif
 
-Window& Window::Get()
+BX_TYPE_REGISTRATION
 {
-	return WindowGLFW::Get();
+	rttr::registration
+		::class_<WindowGLFW>("WindowGLFW");
+		//.constructor();
+		//.method("GetWindowPtr", &WindowGLFW::GetWindowPtr);
 }
 
-WindowGLFW& WindowGLFW::Get()
-{
-	static WindowGLFW instance;
-	return instance;
-}
+BX_MODULE_DEFINE(WindowGLFW)
+BX_MODULE_DEFINE_INTERFACE(Window, WindowGLFW)
 
 bool WindowGLFW::IsOpen()
 {
@@ -28,7 +26,6 @@ void WindowGLFW::GetSize(i32* width, i32* height)
 {
 	glfwGetFramebufferSize(m_pWindow, width, height);
 }
-
 
 void WindowGLFW::GetContentScale(f32* xscale, f32* yscale)
 {
@@ -61,9 +58,45 @@ WindowGLProc WindowGLFW::GetProcAddress(const char* name)
 	return glfwGetProcAddress(name);
 }
 
+#ifdef EDITOR_BUILD
+bool WindowGLFW::InitializeImGui()
+{
+#if defined(GRAPHICS_OPENGL_BACKEND) || defined(GRAPHICS_OPENGLES_BACKEND)
+	if (!ImGui_ImplGlfw_InitForOpenGL(m_pWindow, true))
+#endif
+	{
+		BX_LOGE(Window, "Failed to initialize ImGui GLFW backend!");
+		return false;
+	}
+	return true;
+}
+
+void WindowGLFW::ShutdownImGui()
+{
+	ImGui_ImplGlfw_Shutdown();
+}
+
+void WindowGLFW::NewFrameImGui()
+{
+	ImGui_ImplGlfw_NewFrame();
+}
+
+void WindowGLFW::EndFrameImGui()
+{
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		GLFWwindow* backup_current_context = glfwGetCurrentContext();
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+		glfwMakeContextCurrent(backup_current_context);
+	}
+}
+#endif
+
 void WindowGLFW::glfw_error_callback(i32 i, const char* c)
 {
-	LOGE(Window, "GLFW ({}) {}", i, c);
+	BX_LOGE(Window, "GLFW ({}) {}", i, c);
 }
 
 void WindowGLFW::glfw_window_size_callback(GLFWwindow* window, i32 width, i32 height)
@@ -93,6 +126,8 @@ void WindowGLFW::glfw_mousebutton_callback(GLFWwindow* window, i32 button, i32 a
 
 bool WindowGLFW::Initialize()
 {
+	BX_LOGD(Window, "Window initializing ...");
+
 #ifdef __arm__
 	if (putenv((char*)"DISPLAY=:0"))
 	{
@@ -104,7 +139,7 @@ bool WindowGLFW::Initialize()
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
 	{
-		LOGE(Window, "Failed to initialize GLFW!");
+		BX_LOGE(Window, "Failed to initialize GLFW!");
 		return false;
 	}
 
@@ -158,7 +193,7 @@ bool WindowGLFW::Initialize()
 
 	if (m_pWindow == NULL)
 	{
-		LOGE(Window, "Failed to create GLFW window!");
+		BX_LOGE(Window, "Failed to create GLFW window!");
 		glfwTerminate();
 		return false;
 	}
@@ -186,11 +221,14 @@ bool WindowGLFW::Initialize()
 	glfwSetKeyCallback(m_pWindow, glfw_key_callback);
 	glfwSetMouseButtonCallback(m_pWindow, glfw_mousebutton_callback);
 
+	BX_LOGD(Window, "Window initialized successfully.");
 	return true;
 }
 
 void WindowGLFW::Shutdown()
 {
+	BX_LOGD(Window, "Window shutting down ...");
+
 	glfwSetJoystickCallback(NULL);
 	glfwSetCursorPosCallback(m_pWindow, NULL);
 	glfwSetKeyCallback(m_pWindow, NULL);
@@ -198,6 +236,8 @@ void WindowGLFW::Shutdown()
 
 	glfwDestroyWindow(m_pWindow);
 	glfwTerminate();
+
+	BX_LOGD(Window, "Window shutdown complete.");
 }
 
 void WindowGLFW::PollEvents()
@@ -221,31 +261,31 @@ void WindowGLFW::Display()
 
 f32 WindowGLFW::GetAxis(GamepadAxis axis)
 {
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 	return 0;
 }
 
 bool WindowGLFW::GetButton(GamepadButton button)
 {
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 	return false;
 }
 
 bool WindowGLFW::GetButtonOnce(GamepadButton button)
 {
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 	return false;
 }
 
 bool WindowGLFW::GetKey(Key key)
 {
-	ENSURE(key >= GLFW_KEY_SPACE && key <= GLFW_KEY_LAST);
+	BX_ENSURE(key >= GLFW_KEY_SPACE && key <= GLFW_KEY_LAST);
 	return glfwGetKey(m_pWindow, Enum::as_value(key)) == GLFW_PRESS;
 }
 
 bool WindowGLFW::GetKeyOnce(Key key)
 {
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 	return false;
 }
 
@@ -256,7 +296,7 @@ bool WindowGLFW::GetMouseButton(MouseButton button)
 
 bool WindowGLFW::GetMouseButtonOnce(MouseButton button)
 {
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 	return false;
 }
 
@@ -276,44 +316,44 @@ f32 WindowGLFW::GetMouseY()
 
 i32 WindowGLFW::GetNumTouches()
 {
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 	return 0;
 }
 
 i32 WindowGLFW::GetTouchId(i32 index)
 {
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 	return 0;
 }
 
 f32 WindowGLFW::GetTouchX(i32 index)
 {
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 	return 0;
 }
 
 f32 WindowGLFW::GetTouchY(i32 index)
 {
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 	return 0;
 }
 
 void WindowGLFW::SetPadVibration(i32 leftRumble, i32 rightRumble)
 {
 	// Unimplemented on the PC?
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 }
 
 void WindowGLFW::SetPadLightbarColor(f32 r, f32 g, f32 b)
 {
 	// Unimplemented on the PC? (specific dualshock 5 controller mechanic)
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 }
 
 void WindowGLFW::ResetPadLightbarColor()
 {
 	// Unimplemented on the PC? (specific dualshock 5 controller mechanic)
-	FAIL("TODO: Implement");
+	BX_FAIL("TODO: Implement");
 }
 
 GLFWwindow* WindowGLFW::GetWindowPtr() const

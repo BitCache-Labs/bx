@@ -1,7 +1,8 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/byte_types.hpp>
-#include <engine/macros.hpp>
+#include <engine/guard.hpp>
 #include <engine/list.hpp>
 #include <engine/hash_map.hpp>
 
@@ -11,7 +12,7 @@ using TreeNodeId = SizeType;
 constexpr TreeNodeId INVALID_TREENODE_ID = 0;
 
 template <typename T>
-class TreeNode
+class BX_API TreeNode
 {
 public:
     TreeNode() {}
@@ -26,7 +27,7 @@ public:
 };
 
 template <typename T>
-class Tree
+class BX_API Tree
 {
 public:
     using Node = TreeNode<T>;
@@ -63,7 +64,7 @@ public:
     inline const Node& GetNode(TreeNodeId nodeId) const
     {
         auto nodeIndex = GetIndex(nodeId);
-        ENSURE(nodeIndex >= 0 || nodeIndex < m_nodes.size());
+        BX_ENSURE(nodeIndex >= 0 || nodeIndex < m_nodes.size());
         return m_nodes[nodeIndex];
     }
 
@@ -72,8 +73,8 @@ public:
         auto parentIndex = GetIndex(parentId);
         auto childIndex = GetIndex(childId);
 
-        ENSURE(parentIndex >= 0 || parentIndex < m_nodes.size());
-        ENSURE(childIndex >= 0 || childIndex < m_nodes.size());
+        BX_ENSURE(parentIndex >= 0 || parentIndex < m_nodes.size());
+        BX_ENSURE(childIndex >= 0 || childIndex < m_nodes.size());
 
         m_nodes[parentIndex].children.emplace_back(childId);
         m_nodes[childIndex].parent = parentId;
@@ -113,7 +114,7 @@ private:
     inline SizeType GetIndex(TreeNodeId nodeId) const
     {
         auto it = m_indices.find(nodeId);
-        ENSURE(it != m_indices.end());
+        BX_ENSURE(it != m_indices.end());
         return it->second;
     }
 

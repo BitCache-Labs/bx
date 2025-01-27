@@ -1,5 +1,6 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/byte_types.hpp>
 
 #include <cmath>
@@ -41,7 +42,7 @@ namespace Math
 	}
 }
 
-struct Vec2
+struct BX_API Vec2
 {
 	Vec2() : data{ 0, 0 } {}
 	Vec2(f32 x, f32 y)
@@ -95,7 +96,7 @@ struct Vec2
 	static Vec2 FromValuePtr(f32* v);
 };
 
-struct Vec3
+struct BX_API Vec3
 {
 	Vec3() : data{ 0, 0, 0 } {}
 	Vec3(f32 x, f32 y, f32 z)
@@ -159,7 +160,7 @@ struct Vec3
 	}
 };
 
-struct Vec4
+struct BX_API Vec4
 {
 	Vec4() : data{ 0, 0, 0, 0 } {}
 	Vec4(f32 x, f32 y, f32 z, f32 w)
@@ -201,7 +202,7 @@ struct Vec4
 	static Vec4 FromValuePtr(f32* v);
 };
 
-struct Color
+struct BX_API Color
 {
 	Color() : data{ 0, 0, 0, 0 } {}
 	Color(f32 r, f32 g, f32 b, f32 a)
@@ -221,7 +222,7 @@ struct Color
 	static Vec4 FromValuePtr(f32* v);
 };
 
-struct Vec4i
+struct BX_API Vec4i
 {
 	Vec4i() : data{ 0, 0, 0, 0 } {}
 	Vec4i(i32 x, i32 y, i32 z, i32 w)
@@ -241,7 +242,7 @@ struct Vec4i
 	static Vec4i FromValuePtr(i32* v);
 };
 
-struct Quat
+struct BX_API Quat
 {
 	Quat() : data{ 0, 0, 0, 0 } {}
 	Quat(f32 x, f32 y, f32 z, f32 w)
@@ -278,7 +279,7 @@ struct Quat
 	static Quat FromValuePtr(f32* v);
 };
 
-struct Mat4
+struct BX_API Mat4
 {
 	Mat4() : data{ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 } {}
 	Mat4(Vec4 x, Vec4 y, Vec4 z, Vec4 w)
@@ -324,13 +325,13 @@ struct Mat4
 	static Mat4 FromValuePtr(f32* v);
 };
 
-struct Line
+struct BX_API Line
 {
 	Vec3 start;
 	Vec3 end;
 };
 
-struct Plane
+struct BX_API Plane
 {
 	Vec3 normal;
 	f32 d;
@@ -353,7 +354,7 @@ struct Plane
 	}
 };
 
-struct Frustrum
+struct BX_API Frustrum
 {
 	Plane planes[6]{};
 
@@ -366,7 +367,7 @@ struct Frustrum
 	}
 };
 
-struct Box3
+struct BX_API Box3
 {
 	// Constructors
 	Box3() : min(0, 0, 0), max(0, 0, 0) {}

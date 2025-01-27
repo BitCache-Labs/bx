@@ -1,4 +1,5 @@
 #include <engine/portaudio/audio_portaudio.hpp>
+#include <engine/log.hpp>
 
 //#include <rttr/registration.h>
 //RTTR_PLUGIN_REGISTRATION
@@ -7,16 +8,8 @@
 //        .constructor();
 //}
 
-AudioPortAudio& AudioPortAudio::Get()
-{
-    static AudioPortAudio instance;
-    return instance;
-}
-
-Audio& Audio::Get()
-{
-    return AudioPortAudio::Get();
-}
+BX_MODULE_DEFINE(AudioPortAudio)
+BX_MODULE_DEFINE_INTERFACE(Audio, AudioPortAudio)
 
 int AudioPortAudio::AudioCallback(
     const void* inputBuffer, void* outputBuffer,
@@ -90,7 +83,7 @@ bool AudioPortAudio::Initialize()
     PaError err = Pa_Initialize();
     if (err != paNoError)
     {
-        LOGE(Audio, "Failed to initialize PortAudio: {}", Pa_GetErrorText(err));
+        BX_LOGE(Audio, "Failed to initialize PortAudio: {}", Pa_GetErrorText(err));
         return false;
     }
 
@@ -106,14 +99,14 @@ bool AudioPortAudio::Initialize()
 
     if (err != paNoError)
     {
-        LOGE(Audio, "PortAudio failed to open default stream: {}", Pa_GetErrorText(err));
+        BX_LOGE(Audio, "PortAudio failed to open default stream: {}", Pa_GetErrorText(err));
         return false;
     }
 
     err = Pa_StartStream(m_stream);
     if (err != paNoError)
     {
-        LOGE(Audio, "PortAudio failed to start stream: {}", Pa_GetErrorText(err));
+        BX_LOGE(Audio, "PortAudio failed to start stream: {}", Pa_GetErrorText(err));
         return false;
     }
 
@@ -129,13 +122,13 @@ void AudioPortAudio::Shutdown()
     PaError err = Pa_StopStream(m_stream);
     if (err != paNoError)
     {
-        LOGE(Audio, "PortAudio failed to stop stream: ", Pa_GetErrorText(err));
+        BX_LOGE(Audio, "PortAudio failed to stop stream: ", Pa_GetErrorText(err));
     }
 
     err = Pa_CloseStream(m_stream);
     if (err != paNoError)
     {
-        LOGE(Audio, "PortAudio failed to close stream: ", Pa_GetErrorText(err));
+        BX_LOGE(Audio, "PortAudio failed to close stream: ", Pa_GetErrorText(err));
     }
 
     Pa_Terminate();

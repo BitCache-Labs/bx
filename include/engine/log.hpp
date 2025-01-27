@@ -1,26 +1,41 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/byte_types.hpp>
+#include <engine/macros.hpp>
+#include <engine/module.hpp>
+#include <engine/memory.hpp>
+#include <engine/thread.hpp>
 #include <engine/string.hpp>
 #include <engine/list.hpp>
 #include <engine/hash_map.hpp>
+#include <engine/function.hpp>
 
 #include <fmt/core.h>
 
-#include <functional>
-#include <mutex>
-#include <thread>
+#define LOG_CHANNEL(Channel) namespace LogChannel { struct BX_API Channel { static StringView Name() { return #Channel; } }; }
 
-#define LOG(Channel, Level, ...) Log::Get().Write(fmt::format(__VA_ARGS__), #Channel, Level, __FILE__, __LINE__)
-#define LOGD(Channel, ...) LOG(Channel, LogLevel::LOG_DEBUG, __VA_ARGS__)
-#define LOGI(Channel, ...) LOG(Channel, LogLevel::LOG_INFO, __VA_ARGS__)
-#define LOGW(Channel, ...) LOG(Channel, LogLevel::LOG_WARNING, __VA_ARGS__)
-#define LOGE(Channel, ...) LOG(Channel, LogLevel::LOG_ERROR, __VA_ARGS__)
-#define LOGF(Channel, ...) LOG(Channel, LogLevel::LOG_FATAL, __VA_ARGS__)
+LOG_CHANNEL(Engine)
+LOG_CHANNEL(File)
+LOG_CHANNEL(Window)
+LOG_CHANNEL(Graphics)
+LOG_CHANNEL(Audio)
+LOG_CHANNEL(Online)
 
-enum struct LogLevel { LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR, LOG_FATAL };
+#ifdef EDITOR_BUILD
+LOG_CHANNEL(Editor)
+#endif
 
-struct LogEntry
+#define BX_LOG(Channel, Level, ...) Log::Get().Write(fmt::format(__VA_ARGS__), LogChannel::Channel::Name(), Level, __FILE__, __LINE__)
+#define BX_LOGD(Channel, ...) BX_LOG(Channel, LogLevel::LOG_DEBUG, __VA_ARGS__)
+#define BX_LOGI(Channel, ...) BX_LOG(Channel, LogLevel::LOG_INFO, __VA_ARGS__)
+#define BX_LOGW(Channel, ...) BX_LOG(Channel, LogLevel::LOG_WARNING, __VA_ARGS__)
+#define BX_LOGE(Channel, ...) BX_LOG(Channel, LogLevel::LOG_ERROR, __VA_ARGS__)
+#define BX_LOGF(Channel, ...) BX_LOG(Channel, LogLevel::LOG_FATAL, __VA_ARGS__)
+
+enum struct BX_API LogLevel { LOG_DEBUG = 0, LOG_INFO = 1, LOG_WARNING = 2, LOG_ERROR = 3, LOG_FATAL = 4 };
+
+struct BX_API LogEntry
 {
 	LogEntry() {}
 	LogEntry(LogLevel level, const String& message)
@@ -30,35 +45,34 @@ struct LogEntry
 	String message;
 };
 
-class Log
+class BX_API Log
 {
-public:
-	static Log& Get();
+	BX_MODULE(Log)
 
+public:
 	void Write(StringView message,
 		const StringView channel,
 		const LogLevel level,
 		StringView file,
 		u32 line,
-		std::function<void()>&& onClick = {});
+		Function<void()>&& onClick = {});
 
 	void Clear();
 
 private:
-	friend class LogView;
+	friend class Console;
 
 	struct Channel
 	{
-		static constexpr SizeType MaxNameLength = 64;
-		char name[MaxNameLength]{};
-		bool enabled = true;
+		CString<64> name{};
+		bool enabled{ true };
 
-		bool operator<(const Channel& other) const { return std::strcmp(name, other.name) < 0; }
+		bool operator<(const Channel& other) const { return name.compare(other.name) < 0; }
 	};
 
 	struct Entry
 	{
-		Entry(const Channel& channel, LogLevel level, StringView file, u32 line, std::function<void()>&& onClick)
+		Entry(const Channel& channel, LogLevel level, StringView file, u32 line, Function<void()>&& onClick)
 			: channel(channel)
 			, level(level)
 			, file(file)
@@ -66,17 +80,17 @@ private:
 			, onClick(std::move(onClick))
 		{}
 
-		std::reference_wrapper<const Channel> channel;
+		RefWrapper<const Channel> channel;
 		LogLevel level;
 
 		StringView file{};
 		u32 line{};
 
-		std::function<void()> onClick;
+		Function<void()> onClick;
 	};
 
-	std::mutex m_mutex{};
-	std::thread::id m_mainThreadId = std::this_thread::get_id();
+	Mutex m_mutex{};
+	Thread::id m_mainThreadId{ std::this_thread::get_id() };
 
 	HashMap<u32, Channel> m_channels{};
 	List<Entry> m_entries{};

@@ -1,19 +1,18 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/string.hpp>
 #include <engine/memory.hpp>
 #include <engine/list.hpp>
 #include <engine/function.hpp>
 #include <engine/macros.hpp>
+#include <engine/module.hpp>
 
-#include <editor/editor_application.hpp>
-
-#include <rttr/rttr_enable.h>
-#include <rttr/registration.h>
+#include <editor/application.hpp>
 
 #include <imgui.h>
 
-enum struct EditorTheme
+enum struct BX_API EditorTheme
 {
 	DARK,
 	LIGHT,
@@ -26,17 +25,17 @@ enum struct EditorTheme
 // EditorView is the editor window equivalent, see: https://docs.unity3d.com/Manual/editor-EditorWindows.html
 // By this logic Editor will become EditorView, and 
 
-struct EditorMenuItemRegister
+struct BX_API EditorMenuItemRegister
 {
-	RTTR_ENABLE()
+	BX_TYPE(EditorMenuItemRegister)
 };
 
 #define EDITOR_MENUITEM(Path, Class)												\
 namespace                                                                           \
 {                                                                                   \
-    struct Class##MenuItemRegister final : public EditorMenuItemRegister			\
+    struct BX_API Class##MenuItemRegister final : public EditorMenuItemRegister		\
     {                                                                               \
-	RTTR_ENABLE(EditorMenuItemRegister)												\
+	BX_TYPE(Class##MenuItemRegister, EditorMenuItemRegister)						\
 	public:																			\
         Class##MenuItemRegister()													\
         {                                                                           \
@@ -46,28 +45,17 @@ namespace                                                                       
         }                                                                           \
 		static void Register()														\
 		{																			\
-			Editor::Get().AddMenuItem(Path, Class::ShowWindow);				\
+			Editor::Get().AddMenuItem(Path, Class::ShowWindow);						\
 		}																			\
     };                                                                              \
 }                                                                                   \
 static const Class##MenuItemRegister g_##Class##MenuItemRegister;
 
-#define EDITOR_MENUBAR(Callback)													\
-namespace                                                                           \
-{                                                                                   \
-    struct EditorMenuBarRegister													\
-    {                                                                               \
-        EditorMenuBarRegister()														\
-        {                                                                           \
-			Editor::Get().AddMenuBar(Callback);								\
-        }                                                                           \
-    };                                                                              \
-}                                                                                   \
-static const EditorMenuBarRegister g_EditorMenuBarRegister;
-
 template <typename T>
-class EditorInspector
+class BX_API EditorInspector
 {
+	BX_TYPE(EditorInspector)
+
 public:
 	static void OnGui(T& obj)
 	{
@@ -79,9 +67,9 @@ public:
 	}
 };
 
-class EditorWindow
+class BX_API EditorWindow
 {
-	RTTR_ENABLE()
+	BX_TYPE(EditorWindow)
 
 public:
 	virtual ~EditorWindow() {}
@@ -109,11 +97,11 @@ private:
 	ImGuiWindowFlags m_flags{ ImGuiWindowFlags_None };
 };
 
-class Editor
+class BX_API Editor
 {
-public:
-	static Editor& Get();
+	BX_MODULE(Editor)
 
+public:
 	bool Initialize();
 	void Shutdown();
 

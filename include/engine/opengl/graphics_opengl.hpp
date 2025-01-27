@@ -1,5 +1,7 @@
-#include <engine/graphics.hpp>
+#pragma once
 
+#include <engine/api.hpp>
+#include <engine/graphics.hpp>
 #include <engine/macros.hpp>
 #include <engine/enum.hpp>
 #include <engine/string.hpp>
@@ -33,12 +35,12 @@
 
 //#define GRAPHICS_OPENGL_BINDLESS
 
-struct ShaderImpl
+struct BX_API ShaderImpl
 {
     GLuint handle = 0;
 };
 
-struct BufferImpl
+struct BX_API BufferImpl
 {
     GLuint handle = 0;
     GLenum target = 0;
@@ -46,7 +48,7 @@ struct BufferImpl
     GLsizei stride = 0;
 };
 
-struct TextureImpl
+struct BX_API TextureImpl
 {
     GLuint texture = 0;
     GLuint sampler = 0;
@@ -56,7 +58,7 @@ struct TextureImpl
     GLuint64 handle = 0;
 };
 
-struct ResourceBindingImpl
+struct BX_API ResourceBindingImpl
 {
     struct Data
     {
@@ -70,7 +72,7 @@ struct ResourceBindingImpl
     HashMap<String, Data> resources;
 };
 
-struct PipelineImpl
+struct BX_API PipelineImpl
 {
     GLuint program = 0;
     GLuint vao = 0;
@@ -84,23 +86,10 @@ struct PipelineImpl
     GLuint bufferCount = 0;
 };
 
-class GraphicsOpenGL final : public Graphics
+class BX_API GraphicsOpenGL final : public Graphics
 {
-    //RTTR_ENABLE(Graphics)
+    BX_MODULE(GraphicsOpenGL, Graphics)
     friend class GraphicsOpenGLEditor;
-
-public:
-    static GraphicsOpenGL& Get();
-
-private:
-    GraphicsOpenGL() = default;
-    ~GraphicsOpenGL() = default;
-
-    GraphicsOpenGL(const GraphicsOpenGL&) = delete;
-    GraphicsOpenGL& operator=(const GraphicsOpenGL&) = delete;
-
-    GraphicsOpenGL(GraphicsOpenGL&&) = delete;
-    GraphicsOpenGL& operator=(GraphicsOpenGL&&) = delete;
 
 public:
     bool Initialize() override;

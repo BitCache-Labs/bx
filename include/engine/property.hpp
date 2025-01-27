@@ -3,17 +3,18 @@
 // This class is meant to be a way to reflect the memember of a class without using macros
 // WIP this currently doesn't achieve it's goal.
 
-#include <functional>
+#include <engine/api.hpp>
+#include <engine/function.hpp>
 
 /// Utility for functions get, set & ptr.
 template<typename TVal>
-using GetFn = std::function<const TVal& (void)>;
+using GetFn = Function<const TVal& (void)>;
 
 template<typename TVal>
-using SetFn = std::function<void(const TVal&)>;
+using SetFn = Function<void(const TVal&)>;
 
 template<typename TVal>
-using PtrFn = std::function<TVal* (void)>;
+using PtrFn = Function<TVal* (void)>;
 
 /// The property class and each specialization utility.
 template<typename TVal, bool Delegate, bool ReadOnly>
@@ -36,7 +37,7 @@ using PropertyDelGet = Property<TVal, true, true>;
 /// </summary>
 /// <typeparam name="TVal">Value type.</typeparam>
 template<typename TVal>
-class Property<TVal, false, false>
+class BX_API Property<TVal, false, false>
 {
 public:
     typedef TVal Value;
@@ -58,7 +59,7 @@ private:
 /// </summary>
 /// <typeparam name="TVal">Value type.</typeparam>
 template<typename TVal>
-class Property<TVal, true, false>
+class BX_API Property<TVal, true, false>
 {
 public:
     typedef TVal Value;
@@ -89,7 +90,7 @@ private:
 /// </summary>
 /// <typeparam name="TVal">Value type.</typeparam>
 template<typename TVal>
-class Property<TVal, false, true>
+class BX_API Property<TVal, false, true>
 {
 public:
     typedef TVal Value;
@@ -110,7 +111,7 @@ private:
 /// </summary>
 /// <typeparam name="TVal">Value type.</typeparam>
 template<typename TVal>
-class Property<TVal, true, true>
+class BX_API Property<TVal, true, true>
 {
 public:
     typedef TVal Value;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <engine/api.hpp>
 #include <engine/byte_types.hpp>
 
 #include <fmt/core.h>
@@ -17,7 +18,7 @@ class CString;
 class StringView;
 
 template <SizeType N>
-class CString
+class BX_API CString
 {
 public:
     CString();
@@ -69,7 +70,7 @@ private:
     char m_data[N];
 };
 
-class StringView
+class BX_API StringView
 {
 public:
     constexpr StringView() noexcept;

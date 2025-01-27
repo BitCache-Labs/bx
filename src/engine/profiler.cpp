@@ -1,6 +1,8 @@
 #include <engine/profiler.hpp>
 #include <engine/math.hpp>
 
+BX_MODULE_DEFINE(Profiler)
+
 ProfilerSection::ProfilerSection(const String& name) : m_name(name)
 {
     Profiler::Get().BeginSection(m_name);
@@ -9,12 +11,6 @@ ProfilerSection::ProfilerSection(const String& name) : m_name(name)
 ProfilerSection::~ProfilerSection()
 {
     Profiler::Get().EndSection(m_name);
-}
-
-Profiler& Profiler::Get()
-{
-    static Profiler instance;
-    return instance;
 }
 
 void Profiler::Update()

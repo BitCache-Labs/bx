@@ -1,6 +1,6 @@
 #pragma once
 
-#include <engine/type_traits.hpp>
+#include <engine/traits.hpp>
 
 namespace Enum
 {

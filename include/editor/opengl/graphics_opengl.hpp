@@ -1,7 +1,13 @@
+#pragma once
+
+#include <engine/api.hpp>
 #include <editor/editor.hpp>
 
-class GraphicsOpenGLEditor final : public EditorWindow
+class BX_API GraphicsOpenGLEditor final
+	: public EditorWindow
 {
+	BX_TYPE(GraphicsOpenGLEditor, EditorWindow)
+
 public:
 	static void ShowWindow();
 
