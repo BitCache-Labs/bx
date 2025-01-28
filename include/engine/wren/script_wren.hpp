@@ -2,6 +2,7 @@
 
 #include <engine/script.hpp>
 #include <engine/hash_map.hpp>
+#include <engine/hash.hpp>
 
 extern "C" {
 #include <wren.h>
@@ -25,7 +26,7 @@ struct ScriptVMImpl
 	HashMap<SizeType, WrenForeignMethodFn> foreignConstructors;
 	HashMap<SizeType, WrenFinalizerFn> foreignDestructors;
 
-	//HashMap<TypeId, ScriptClassInfo> m_foreignClassRegistry;
+	HashMap<TypeId, ScriptClassInfo> foreignClassRegistry;
 	HashMap<u32, TypeId> wrenTypeIdMap;
 
 	// Extra mappings for specialized template classes
@@ -42,17 +43,17 @@ public:
 	bool Initialize() override;
 	void Shutdown() override;
 
-	ScriptHandle CreateVm(const VmInfo& info) override;
-	void DestroyVm(ScriptHandle vm) override;
+	ScriptVM CreateVm(const VmInfo& info) override;
+	void DestroyVm(ScriptVM vm) override;
 
-	void ConfigureApi(ScriptHandle vm) override;
+	void ConfigureApi(ScriptVM vm) override;
 
-	void CollectGarbage(ScriptHandle vm) override;
+	void CollectGarbage(ScriptVM vm) override;
 
-	bool HasError(ScriptHandle vm) override;
-	void ClearError(ScriptHandle vm) override;
+	bool HasError(ScriptVM vm) override;
+	void ClearError(ScriptVM vm) override;
 
-	void BindVm(ScriptHandle vm) override;
+	void BindVm(ScriptVM vm) override;
 
 	void BeginModule(StringView moduleName) override;
 	void EndModule() override;
@@ -60,36 +61,35 @@ public:
 	void BeginClass(StringView className) override;
 	void EndClass() override;
 
-	void BindCFunction(bool isStatic, StringView signature, ScriptMethodFn fn) override;
+	void BindFunction(bool isStatic, StringView signature, ScriptMethodFn func) override;
 
-	bool GetSlotBool(ScriptHandle vm, i32 slot) override;
-	double GetSlotDouble(ScriptHandle vm, i32 slot) override;
-	StringView GetSlotString(ScriptHandle vm, i32 slot) override;
-	void* GetSlotObject(ScriptHandle vm, i32 slot) override;
+	void EnsureSlots(ScriptVM vm, i32 numSlots) override;
 
-	void SetSlotBool(ScriptHandle vm, i32 slot, bool value) override;
-	void SetSlotDouble(ScriptHandle vm, i32 slot, f64 value) override;
-	void SetSlotString(ScriptHandle vm, i32 slot, StringView text) override;
-	void* SetSlotNewObject(ScriptHandle vm, i32 slot, i32 classSlot, SizeType size) override;
+	bool GetSlotBool(ScriptVM vm, i32 slot) override;
+	double GetSlotDouble(ScriptVM vm, i32 slot) override;
+	StringView GetSlotString(ScriptVM vm, i32 slot) override;
+	void* GetSlotObject(ScriptVM vm, i32 slot) override;
+
+	void SetSlotBool(ScriptVM vm, i32 slot, bool value) override;
+	void SetSlotDouble(ScriptVM vm, i32 slot, f64 value) override;
+	void SetSlotString(ScriptVM vm, i32 slot, StringView text) override;
+	void* SetSlotNewObject(ScriptVM vm, i32 slot, i32 classSlot, SizeType size) override;
 
 private:
 	void RegisterClass(TypeId typeId) override;
-	void SetClass(ScriptHandle vm, i32 slot, TypeId typeId) override;
+	const ScriptClassInfo& GetClassInfo(TypeId typeId) override;
+
+	void SetClass(ScriptVM vm, i32 slot, TypeId typeId) override;
 
 	void RegisterConstructor(SizeType arity, StringView signature, ScriptMethodFn func) override;
 	void RegisterDestructor(ScriptFinalizerFn func) override;
-	void RegisterFunction(bool isStatic, StringView signature, ScriptMethodFn func) override;
-
-	void EnsureSlots(ScriptHandle vm, i32 numSlots) override;
 
 public:
-	ScriptVMImpl& GetVmImpl(WrenVM* vm);
+	ScriptVMImpl* GetVmImpl(WrenVM* vm);
 
 private:
-	HashMap<ScriptHandle, ScriptVMImpl> m_vmMap;
-
 	// Wren binding context state
-	ScriptVMImpl m_boundVm{};
+	ScriptVMImpl* m_boundVm{};
 	StringView m_moduleName = nullptr;
 	StringView m_className = nullptr;
 };

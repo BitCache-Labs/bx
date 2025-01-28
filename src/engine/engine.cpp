@@ -3,6 +3,7 @@
 #include <engine/time.hpp>
 #include <engine/window.hpp>
 #include <engine/graphics.hpp>
+#include <engine/script.hpp>
 #include <engine/online.hpp>
 
 #ifdef EDITOR_BUILD
@@ -32,7 +33,7 @@ int Engine::Run(int argc, char** args, Application& app)
         return EXIT_FAILURE;
     }
 
-    BX_LOGD(Engine, "Initializing application ...");
+    BX_LOGD(Engine, "Initializing application...");
     if (!app.Initialize())
     {
         BX_LOGE(Engine, "Failed to initialize application!");
@@ -92,6 +93,12 @@ bool Engine::Initialize() noexcept
         return false;
     }
 
+    if (!Script::Get().Initialize())
+    {
+        BX_LOGE(Engine, "Failed to initialize script module!");
+        return false;
+    }
+
 #if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
     if (!DebugDraw::Get().Initialize())
     {
@@ -124,6 +131,7 @@ void Engine::Shutdown() noexcept
     DebugDraw::Get().Shutdown();
 #endif
 
+    Script::Get().Shutdown();
     Graphics::Get().Shutdown();
     Window::Get().Shutdown();
     Online::Get().Shutdown();

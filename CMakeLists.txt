@@ -57,7 +57,7 @@ set (ENGINE_SRCS
 	"src/engine/audio.cpp"
 	"src/engine/script.cpp"
 
-	"src/framework/scene.cpp"
+	#"src/framework/scene.cpp"
 	"src/framework/camera.cpp"
 )
 
