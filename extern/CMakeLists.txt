@@ -62,20 +62,6 @@ add_subdirectory (rttr)
 # entt lib
 #add_subdirectory (entt)
 
-# Wren lib
-add_library (wren STATIC
-	"wren/src/optional/wren_opt_meta.c"
-	"wren/src/optional/wren_opt_random.c"
-	"wren/src/vm/wren_compiler.c"
-	"wren/src/vm/wren_core.c"
-	"wren/src/vm/wren_debug.c"
-	"wren/src/vm/wren_primitive.c"
-	"wren/src/vm/wren_utils.c"
-	"wren/src/vm/wren_value.c"
-	"wren/src/vm/wren_vm.c"
-)
-target_include_directories (wren PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/include ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/optional ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/vm)
-
 if (BX_WINDOW_BACKEND STREQUAL "GLFW")
 	# GLFW lib
 	if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -95,6 +81,22 @@ endif()
 if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
 	# Portaudio lib
 	add_subdirectory (portaudio)
+endif()
+
+if (BX_SCRIPT_BACKEND STREQUAL "Wren")
+	# Wren lib
+	add_library (wren STATIC
+		"wren/src/optional/wren_opt_meta.c"
+		"wren/src/optional/wren_opt_random.c"
+		"wren/src/vm/wren_compiler.c"
+		"wren/src/vm/wren_core.c"
+		"wren/src/vm/wren_debug.c"
+		"wren/src/vm/wren_primitive.c"
+		"wren/src/vm/wren_utils.c"
+		"wren/src/vm/wren_value.c"
+		"wren/src/vm/wren_vm.c"
+	)
+	target_include_directories (wren PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/include ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/optional ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/vm)
 endif()
 
 if (BX_ONLINE_BACKEND STREQUAL "Steam")

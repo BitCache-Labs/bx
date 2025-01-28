@@ -3,6 +3,13 @@
 BX_MODULE_DEFINE(OnlineSteam)
 BX_MODULE_DEFINE_INTERFACE(Online, OnlineSteam)
 
+static CSteamID ConvertId(u64 id)
+{
+    CSteamID steamId{};
+    steamId.SetFromUint64(id);
+    return steamId;
+}
+
 SteamCallback::SteamCallback()
     : m_callbackBeginAuthResponse(this, &SteamCallback::OnBeginAuthResponse)
     , m_callbackLobbyCreated(this, &SteamCallback::OnLobbyCreated)
@@ -67,7 +74,12 @@ void SteamCallback::OnLobbyMatchList(LobbyMatchList_t* pCallback)
     ctx.m_lobbyList.clear();
     for (uint32 i = 0; i < pCallback->m_nLobbiesMatching; ++i)
     {
-        ctx.m_lobbyList.push_back(SteamMatchmaking()->GetLobbyByIndex(i));
+        CSteamID lobbyId = SteamMatchmaking()->GetLobbyByIndex(i);
+
+        Lobby lobby{};
+        lobby.id = lobbyId.ConvertToUint64();
+        lobby.name = SteamMatchmaking()->GetLobbyData(lobbyId, "name");
+        ctx.m_lobbyList.push_back(lobby);
     }
     BX_LOGI(Online, "Found {} lobbies.", ctx.m_lobbyList.size());
 }
@@ -260,9 +272,9 @@ void OnlineSteam::CreateLobby(const LobbyInfo& info)
     SteamMatchmaking()->CreateLobby(k_ELobbyTypePublic, 4);
 }
 
-void OnlineSteam::JoinLobby(CSteamID lobbyId)
+void OnlineSteam::JoinLobby(const Lobby& lobby)
 {
-    SteamMatchmaking()->JoinLobby(lobbyId);
+    SteamMatchmaking()->JoinLobby(ConvertId(lobby.id));
 }
 
 void OnlineSteam::LeaveLobby()

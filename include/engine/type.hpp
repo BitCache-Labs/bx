@@ -1,9 +1,11 @@
 #pragma once
 
+#include <rttr/type.h>
 #include <rttr/rttr_enable.h>
+#include <rttr/registration.h>
+
 #define BX_TYPE(Name, ...) RTTR_ENABLE(__VA_ARGS__)
 
-#include <rttr/registration.h>
 #define BX_TYPE_REGISTRATION RTTR_REGISTRATION
 
 #define BX_PRIVATE(Name)                        \
@@ -27,3 +29,5 @@ private:                                        \
 #define BX_SINGLETON(Name)                     \
     BX_PRIVATE(Name)                           \
     BX_NOCOPY(Name)
+
+using TypeId = rttr::type::type_id;

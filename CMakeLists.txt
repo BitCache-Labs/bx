@@ -22,6 +22,10 @@ set (BX_AUDIO_BACKEND "PortAudio" CACHE STRING "Choose the audio backend: PortAu
 set_property (CACHE BX_AUDIO_BACKEND PROPERTY STRINGS "PortAudio")
 message ("Audio backend: ${BX_AUDIO_BACKEND}")
 
+set (BX_SCRIPT_BACKEND "Wren" CACHE STRING "Choose the script backend: Wren")
+set_property (CACHE BX_SCRIPT_BACKEND PROPERTY STRINGS "Wren")
+message ("Script backend: ${BX_SCRIPT_BACKEND}")
+
 set (BX_ONLINE_BACKEND "Steam" CACHE STRING "Choose the online backend: Steam")
 set_property (CACHE BX_ONLINE_BACKEND PROPERTY STRINGS "Steam")
 message ("Online backend: ${BX_ONLINE_BACKEND}")
@@ -51,11 +55,13 @@ set (ENGINE_SRCS
 	"src/engine/window.cpp"
 	"src/engine/graphics.cpp"
 	"src/engine/audio.cpp"
-	
+	"src/engine/script.cpp"
+
+	"src/framework/scene.cpp"
 	"src/framework/camera.cpp"
 )
 
-set (ENGINE_LIBS fmt stb glm wren rttr)
+set (ENGINE_LIBS fmt stb glm rttr)
 
 if (BX_BUILD_EDITOR)
 	set (ENGINE_SRCS ${ENGINE_SRCS}
@@ -111,6 +117,19 @@ if (BX_AUDIO_BACKEND STREQUAL "PortAudio")
 
 else ()
     message(FATAL_ERROR "Unknown audio backend: ${BX_AUDIO_BACKEND}")
+endif ()
+
+if (BX_SCRIPT_BACKEND STREQUAL "Wren")
+	target_compile_definitions(Engine PUBLIC SCRIPT_WREN_BACKEND)
+    set (ENGINE_SRCS ${ENGINE_SRCS} "src/engine/wren/script_wren.cpp")
+    set (ENGINE_LIBS ${ENGINE_LIBS} wren)
+
+	#if (BX_BUILD_EDITOR)
+	#	set (ENGINE_SRCS ${ENGINE_SRCS} "src/editor/portaudio/audio_portaudio.cpp")
+	#endif()
+
+else ()
+    message(FATAL_ERROR "Unknown script backend: ${BX_SCRIPT_BACKEND}")
 endif ()
 
 if (BX_ONLINE_BACKEND STREQUAL "Steam")

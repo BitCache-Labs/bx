@@ -50,18 +50,21 @@ public:
     void Update() override;
 
 public:
-    void GetNumberOfCurrentPlayers();
+    /*async*/ void GetNumberOfCurrentPlayers();
 
-    void CreateLobby(const LobbyInfo& info);
-    void JoinLobby(CSteamID lobbyId);
-    void LeaveLobby();
+    /*async*/ void CreateLobby(const LobbyInfo& info);
+    /*async*/ void JoinLobby(const Lobby& lobby);
+    /*async*/ void LeaveLobby();
+    /*async*/ void FetchLobbies();
 
-    void FetchLobbies();
+    /*async*/ void AddPlayer(const PlayerInfo& info);
 
     const bool InLobby() const { return m_currentLobby.IsValid() && m_currentLobby.IsLobby(); }
-    const List<CSteamID>& GetLobbies() const { return m_lobbyList; }
+    const List<Lobby>& GetLobbies() const { return m_lobbyList; }
 
     void SendMessage(const StringView message);
+
+private:
     void ReceiveMessages();
 
 private:
@@ -71,7 +74,7 @@ private:
 private:
     SteamCallback m_steamCallback{};
 
-    List<CSteamID> m_lobbyList{};
+    List<Lobby> m_lobbyList{};
     CSteamID m_currentLobby{};
     bool m_isHosting{ false };
 

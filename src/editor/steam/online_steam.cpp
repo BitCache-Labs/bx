@@ -1,6 +1,8 @@
 #include <editor/steam/online_steam.hpp>
 #include <engine/steam/online_steam.hpp>
 
+#include <imgui_internal.h>
+
 EDITOR_MENUITEM("Modules/Online/Steam", OnlineSteamEditor)
 void OnlineSteamEditor::ShowWindow()
 {
@@ -19,29 +21,48 @@ void OnlineSteamEditor::OnGui()
 	static CString<64> g_lobbyName{ "LobbyName" };
 	static CString<1024> g_message{};
 
+	bool inLobby = OnlineSteam::Get().InLobby();
+	if (inLobby) ImGui::BeginDisabled();
 	ImGui::Text("Lobby Name: ");
 	ImGui::SameLine();
 	ImGui::InputText("##LobbyName", g_lobbyName.data(), g_lobbyName.size());
-
-	if (ImGui::Button("Create Lobby"))
+	ImGui::SameLine();
+	if (ImGui::Button("Create"))
 		OnlineSteam::Get().CreateLobby(LobbyInfo{ g_lobbyName });
 
-	if (ImGui::Button("Refresh Lobbies"))
+	if (ImGui::Button("Refresh"))
 		OnlineSteam::Get().FetchLobbies();
 
 	ImGui::Text("Available Lobbies:");
 	const auto& lobbies = OnlineSteam::Get().GetLobbies();
-	for (size_t i = 0; i < lobbies.size(); ++i)
+
+	static SizeType g_selectedLobby = -1;
+	for (SizeType i = 0; i < lobbies.size(); ++i)
 	{
-		std::string lobbyName = SteamMatchmaking()->GetLobbyData(lobbies[i], "name");
-		if (ImGui::Button(lobbyName.empty() ? ("Lobby " + std::to_string(i)).c_str() : lobbyName.c_str()))
+		const auto& lobby = lobbies[i];
+		if (ImGui::Selectable(lobby.name.c_str(), g_selectedLobby == i))
 		{
-			OnlineSteam::Get().JoinLobby(lobbies[i]);
+			g_selectedLobby = i;
 		}
 	}
+	if (inLobby) ImGui::EndDisabled();
 
+	bool hasSelection = g_selectedLobby != -1 && g_selectedLobby < lobbies.size();
+	if (!hasSelection) ImGui::BeginDisabled();
+	if (ImGui::Button("Join"))
+		OnlineSteam::Get().JoinLobby(lobbies[g_selectedLobby]);
+	if (!hasSelection) ImGui::EndDisabled();
+
+	if (!inLobby) ImGui::BeginDisabled();
+	if (ImGui::Button("Leave"))
+		OnlineSteam::Get().LeaveLobby();
+	
 	ImGui::SeparatorText("Chat");
-	ImGui::InputText("##Message", g_message.data(), g_message.size());
-	if (ImGui::Button("Send"))
+	bool send = ImGui::InputText("##Message", g_message.data(), g_message.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+	if (ImGui::Button("Send") || send)
+	{
 		OnlineSteam::Get().SendMessage(g_message);
+		g_message.clear();
+	}
+	if (!inLobby) ImGui::EndDisabled();
 }
