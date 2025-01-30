@@ -175,100 +175,8 @@ void ScriptWren::Shutdown()
 {
 }
 
-ScriptVM ScriptWren::CreateVm(const VmInfo& info)
-{
-	WrenConfiguration config;
-	wrenInitConfiguration(&config);
-	config.writeFn = WrenWrite;
-	config.errorFn = WrenError;
-	config.bindForeignClassFn = WrenBindForeignClass;
-	config.bindForeignMethodFn = WrenBindForeignMethod;
-	config.bindForeignClassFn = WrenBindForeignClass;
-	config.loadModuleFn = WrenLoadModule;
-	config.initialHeapSize = 1024LL * 1024 * 32;
-	config.minHeapSize = 1024LL * 1024 * 16;
-	config.heapGrowthPercent = 80;
-	auto vm = wrenNewVM(&config);
-
-	auto userData = new ScriptVMImpl();
-	userData->vm = vm;
-
-	wrenSetUserData(vm, userData);
-	return (ScriptVM)vm;
-}
-
-void ScriptWren::DestroyVm(ScriptVM vm)
-{
-	auto wrenVm = (WrenVM*)vm;
-	if (wrenVm)
-	{
-		wrenFreeVM(wrenVm);
-		wrenVm = nullptr;
-	}
-
-	auto userData = GetVmImpl(wrenVm);
-	userData->wrenModulesSource.clear();
-	
-	userData->foreignMethods.clear();
-	userData->foreignConstructors.clear();
-	userData->foreignDestructors.clear();
-	
-	//impl.foreignClassRegistry.clear();
-	userData->wrenTypeIdMap.clear();
-
-	//m_resourceClassWrappers.clear();
-	//m_componentClassWrappers.clear();
-}
-
-static void WrenCompile(WrenVM* vm, StringView moduleName, StringView moduleSrc)
-{
-	auto ctx = ScriptWren::Get().GetVmImpl(vm);
-
-	const CString<64> moduleNameStr = moduleName;
-	if (ctx->wrenModulesSource.find(moduleNameStr) == ctx->wrenModulesSource.end())
-	{
-		switch (wrenInterpret(vm, moduleNameStr.c_str(), moduleSrc.data()))
-		{
-		case WREN_RESULT_COMPILE_ERROR:
-			ctx->error = true;
-			BX_LOGE(Script, "Wren compilation error on module: {}", moduleNameStr);
-			break;
-
-		case WREN_RESULT_RUNTIME_ERROR:
-			ctx->error = true;
-			BX_LOGE(Script, "Wren runtime error on module: {}", moduleNameStr);
-			break;
-
-		case WREN_RESULT_SUCCESS:
-			ctx->initialized = true;
-			BX_LOGI(Script, "Wren successfully compiled module: {}", moduleNameStr);
-			break;
-		}
-
-		ctx->wrenModulesSource.insert(std::make_pair(moduleNameStr, moduleSrc.data()));
-	}
-}
-
-#if defined DEBUG_BUILD || defined EDITOR_BUILD
-#define LOAD_ENGINE_MODULE(ModuleName) { String src = File::ReadTextFile(ENGINE_PATH"/wren/"#ModuleName".wren"); WrenCompile(m_vm, #ModuleName, src.c_str()); }
-
-#else
-extern "C" {
-#include "core_wren.h"
-#include "device_wren.h"
-#include "math_wren.h"
-#include "graphicm_wren.h"
-#include "physicm_wren.h"
-#include "audio_wren.h"
-#include "ecm_wren.h"
-#include "framework_wren.h"
-}
-
-#define LOAD_ENGINE_MODULE(ModuleName) { WrenCompile(m_vm, #ModuleName, ModuleName##_wren_data); }
-#endif
-
-void ScriptWren::ConfigureApi(ScriptVM vm)
-{
+//void ScriptWren::ConfigureApi(ScriptHandle vm)
+//{
 	//LOAD_ENGINE_MODULE(core);
 	//LOAD_ENGINE_MODULE(device);
 	//LOAD_ENGINE_MODULE(math);
@@ -315,29 +223,145 @@ void ScriptWren::ConfigureApi(ScriptVM vm)
 	//
 	//	wrenCall(m_vm, m_configMethod);
 	//}
-}
+//}
 
-void ScriptWren::CollectGarbage(ScriptVM vm)
+ScriptHandle ScriptWren::CreateVm(const ScriptVmInfo& info)
 {
-	//wrenCollectGarbage(m_vm);
+	auto userData = new ScriptVMImpl();
+
+	WrenConfiguration config;
+	wrenInitConfiguration(&config);
+	config.reallocateFn = 0;
+	config.resolveModuleFn = 0;
+	config.loadModuleFn = WrenLoadModule;
+	config.bindForeignMethodFn = WrenBindForeignMethod;
+	config.bindForeignClassFn = WrenBindForeignClass;
+	config.writeFn = WrenWrite;
+	config.errorFn = WrenError;
+	config.initialHeapSize = info.initialHeapSize;
+	config.minHeapSize = info.minHeapSize;
+	config.heapGrowthPercent = info.heapGrowthPercent;
+	config.userData = userData;
+	auto vm = wrenNewVM(&config);
+	userData->vm = vm;
+
+	auto handle = (ScriptHandle)vm;
+	BindVm(handle);
+
+	// Get the list of all classes derived from ScriptApiRegister
+	auto derivedClasses = rttr::type::get<ScriptApiRegister>().get_derived_classes();
+	for (const auto& derivedClass : derivedClasses)
+	{
+		const auto& derivedClassName = derivedClass.get_name();
+		BX_LOGD(Script, "Registering script api: {}", derivedClassName.data());
+
+		// Retrieve the "Register" method from the derived class
+		auto registerMethod = derivedClass.get_method("Register");
+		if (!registerMethod.is_valid())
+		{
+			BX_LOGE(Script, "Register method not found for class: {}", derivedClassName.data());
+			continue;
+		}
+
+		rttr::instance instance;  // Create a default instance, we are calling a static function
+		registerMethod.invoke(instance, handle);
+	}
+
+	BindVm(SCRIPT_INVALID_HANDLE);
+	return handle;
 }
 
-bool ScriptWren::HasError(ScriptVM vm)
+void ScriptWren::DestroyVm(ScriptHandle vm)
+{
+	auto wrenVm = (WrenVM*)vm;
+	if (wrenVm)
+	{
+		wrenFreeVM(wrenVm);
+		wrenVm = nullptr;
+	}
+
+	auto userData = GetVmImpl(wrenVm);
+	userData->wrenModulesSource.clear();
+	
+	userData->foreignMethods.clear();
+	userData->foreignConstructors.clear();
+	userData->foreignDestructors.clear();
+	
+	//impl.foreignClassRegistry.clear();
+	userData->wrenTypeIdMap.clear();
+
+	//m_resourceClassWrappers.clear();
+	//m_componentClassWrappers.clear();
+}
+
+#if defined DEBUG_BUILD || defined EDITOR_BUILD
+#define LOAD_ENGINE_MODULE(ModuleName) { String src = File::ReadTextFile(ENGINE_PATH"/wren/"#ModuleName".wren"); WrenCompile(m_vm, #ModuleName, src.c_str()); }
+
+#else
+extern "C" {
+#include "core_wren.h"
+#include "device_wren.h"
+#include "math_wren.h"
+#include "graphicm_wren.h"
+#include "physicm_wren.h"
+#include "audio_wren.h"
+#include "ecm_wren.h"
+#include "framework_wren.h"
+}
+
+#define LOAD_ENGINE_MODULE(ModuleName) { WrenCompile(m_vm, #ModuleName, ModuleName##_wren_data); }
+#endif
+
+bool ScriptWren::HasError(ScriptHandle vm)
 {
 	//return m_error;
 	return false;
 }
 
-void ScriptWren::ClearError(ScriptVM vm)
+void ScriptWren::ClearError(ScriptHandle vm)
 {
 	//m_error = false;
 }
 
-void ScriptWren::BindVm(ScriptVM vm)
+void ScriptWren::BindVm(ScriptHandle vm)
 {
 	if (vm == nullptr)
+	{
 		m_boundVm = nullptr;
+		return;
+	}
 	m_boundVm = GetVmImpl((WrenVM*)vm);
+}
+
+void ScriptWren::CompileString(StringView moduleName, StringView string)
+{
+	const CString<64> moduleNameStr = moduleName;
+	if (m_boundVm->wrenModulesSource.find(moduleNameStr) == m_boundVm->wrenModulesSource.end())
+	{
+		switch (wrenInterpret(m_boundVm->vm, moduleNameStr.c_str(), string.data()))
+		{
+		case WREN_RESULT_COMPILE_ERROR:
+			m_boundVm->error = true;
+			BX_LOGE(Script, "Wren compilation error on module: {}", moduleNameStr);
+			break;
+
+		case WREN_RESULT_RUNTIME_ERROR:
+			m_boundVm->error = true;
+			BX_LOGE(Script, "Wren runtime error on module: {}", moduleNameStr);
+			break;
+
+		case WREN_RESULT_SUCCESS:
+			m_boundVm->initialized = true;
+			BX_LOGI(Script, "Wren successfully compiled module: {}", moduleNameStr);
+			break;
+		}
+
+		m_boundVm->wrenModulesSource.insert(std::make_pair(moduleNameStr, string.data()));
+	}
+}
+
+void ScriptWren::CompileFile(StringView moduleName, StringView filepath)
+{
 }
 
 void ScriptWren::BeginModule(StringView moduleName)
@@ -558,49 +582,73 @@ void ScriptWren::BindFunction(bool isStatic, StringView signature, ScriptMethodF
 //	obj->~ScriptObj();
 //}
 
-void ScriptWren::EnsureSlots(ScriptVM vm, i32 numSlots)
+void ScriptWren::EnsureSlots(ScriptHandle vm, i32 numSlots)
 {
 	wrenEnsureSlots((WrenVM*)vm, numSlots);
 }
 
-bool ScriptWren::GetSlotBool(ScriptVM vm, i32 slot)
+bool ScriptWren::GetSlotBool(ScriptHandle vm, i32 slot)
 {
 	return wrenGetSlotBool((WrenVM*)vm, slot);
 }
 
-double ScriptWren::GetSlotDouble(ScriptVM vm, i32 slot)
-{
-	return wrenGetSlotDouble((WrenVM*)vm, slot);
+#define DECLARE_GET_SLOT_NUM(Num, Name)									\
+Num ScriptWren::GetSlot##Name(ScriptHandle vm, i32 slot)				\
+{																		\
+	return static_cast<Num>(wrenGetSlotDouble((WrenVM*)vm, slot));		\
 }
 
-StringView ScriptWren::GetSlotString(ScriptVM vm, i32 slot)
+DECLARE_GET_SLOT_NUM(u8, U8)
+DECLARE_GET_SLOT_NUM(u16, U16)
+DECLARE_GET_SLOT_NUM(u32, U32)
+DECLARE_GET_SLOT_NUM(u64, U64)
+DECLARE_GET_SLOT_NUM(i8, I8)
+DECLARE_GET_SLOT_NUM(i16, I16)
+DECLARE_GET_SLOT_NUM(i32, I32)
+DECLARE_GET_SLOT_NUM(i64, I64)
+DECLARE_GET_SLOT_NUM(f32, F32)
+DECLARE_GET_SLOT_NUM(f64, F64)
+
+StringView ScriptWren::GetSlotString(ScriptHandle vm, i32 slot)
 {
 	return wrenGetSlotString((WrenVM*)vm, slot);
 }
 
-void* ScriptWren::GetSlotObject(ScriptVM vm, i32 slot)
+void* ScriptWren::GetSlotObject(ScriptHandle vm, i32 slot)
 {
 	return wrenGetSlotForeign((WrenVM*)vm, slot);
 }
 
-void ScriptWren::SetSlotBool(ScriptVM vm, i32 slot, bool value)
+void ScriptWren::SetSlotBool(ScriptHandle vm, i32 slot, bool value)
 {
 	wrenSetSlotBool((WrenVM*)vm, slot, value);
 }
 
-void ScriptWren::SetSlotDouble(ScriptVM vm, i32 slot, f64 value)
-{
-	wrenSetSlotDouble((WrenVM*)vm, slot, value);
+#define DECLARE_SET_SLOT_NUM(Num, Name)									\
+void ScriptWren::SetSlot##Name(ScriptHandle vm, i32 slot, Num value)	\
+{																		\
+	wrenSetSlotDouble((WrenVM*)vm, slot, static_cast<Num>(value));		\
 }
 
-void ScriptWren::SetSlotString(ScriptVM vm, i32 slot, StringView text)
+DECLARE_SET_SLOT_NUM(u8, U8)
+DECLARE_SET_SLOT_NUM(u16, U16)
+DECLARE_SET_SLOT_NUM(u32, U32)
+DECLARE_SET_SLOT_NUM(u64, U64)
+DECLARE_SET_SLOT_NUM(i8, I8)
+DECLARE_SET_SLOT_NUM(i16, I16)
+DECLARE_SET_SLOT_NUM(i32, I32)
+DECLARE_SET_SLOT_NUM(i64, I64)
+DECLARE_SET_SLOT_NUM(f32, F32)
+DECLARE_SET_SLOT_NUM(f64, F64)
+
+void ScriptWren::SetSlotString(ScriptHandle vm, i32 slot, StringView text)
 {
 	wrenSetSlotString((WrenVM*)vm, slot, text.data());
 }
 
-void* ScriptWren::SetSlotNewObject(ScriptVM vm, i32 slot, i32 classSlot, SizeType size)
+void* ScriptWren::SetSlotNewObject(ScriptHandle vm, i32 slot, i32 classSlot, SizeType size)
 {
-	wrenSetSlotNewForeign((WrenVM*)vm, slot, classSlot, size);
+	return wrenSetSlotNewForeign((WrenVM*)vm, slot, classSlot, size);
 }
 
 void ScriptWren::RegisterClass(TypeId typeId)
@@ -623,7 +671,7 @@ const ScriptClassInfo& ScriptWren::GetClassInfo(TypeId typeId)
 	return it->second;
 }
 
-void ScriptWren::SetClass(ScriptVM vm, i32 slot, TypeId typeId)
+void ScriptWren::SetClass(ScriptHandle vm, i32 slot, TypeId typeId)
 {
 	const auto& info = ScriptWren::GetClassInfo(typeId);
 

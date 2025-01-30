@@ -5,6 +5,8 @@
 #include <engine/macros.hpp>
 #include <engine/module.hpp>
 
+#include <engine/script.hpp>
+
 class BX_API Engine
 {
     BX_MODULE(Engine)
@@ -25,4 +27,6 @@ private:
 
 private:
     bool m_isRunning = true;
+
+    ScriptHandle m_vm{ SCRIPT_INVALID_HANDLE };
 };

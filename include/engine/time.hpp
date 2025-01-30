@@ -76,7 +76,7 @@ public:
         return Elapsed<std::chrono::duration<f32>>().count();
     }
 
-    inline f32 ElapsedMilliseconds() const noexcept
+    inline i64 ElapsedMilliseconds() const noexcept
     {
         return Elapsed<std::chrono::milliseconds>().count();
     }

@@ -27,7 +27,7 @@ GLuint GraphicsOpenGL::GetTextureHandle(GraphicsHandle texture)
 }
 
 template <typename T>
-void RebalanceMap(std::unordered_map<GraphicsHandle, T>& map)
+void RebalanceMap(HashMap<GraphicsHandle, T>& map)
 {
     if (map.load_factor() > MAX_LOAD_FACTOR)
     {

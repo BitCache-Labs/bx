@@ -43,17 +43,16 @@ public:
 	bool Initialize() override;
 	void Shutdown() override;
 
-	ScriptVM CreateVm(const VmInfo& info) override;
-	void DestroyVm(ScriptVM vm) override;
+	ScriptHandle CreateVm(const ScriptVmInfo& info) override;
+	void DestroyVm(ScriptHandle vm) override;
 
-	void ConfigureApi(ScriptVM vm) override;
+	bool HasError(ScriptHandle vm) override;
+	void ClearError(ScriptHandle vm) override;
 
-	void CollectGarbage(ScriptVM vm) override;
+	void BindVm(ScriptHandle vm) override;
 
-	bool HasError(ScriptVM vm) override;
-	void ClearError(ScriptVM vm) override;
-
-	void BindVm(ScriptVM vm) override;
+	void CompileString(StringView moduleName, StringView string) override;
+	void CompileFile(StringView moduleName, StringView filepath) override;
 
 	void BeginModule(StringView moduleName) override;
 	void EndModule() override;
@@ -63,23 +62,41 @@ public:
 
 	void BindFunction(bool isStatic, StringView signature, ScriptMethodFn func) override;
 
-	void EnsureSlots(ScriptVM vm, i32 numSlots) override;
+	void EnsureSlots(ScriptHandle vm, i32 numSlots) override;
 
-	bool GetSlotBool(ScriptVM vm, i32 slot) override;
-	double GetSlotDouble(ScriptVM vm, i32 slot) override;
-	StringView GetSlotString(ScriptVM vm, i32 slot) override;
-	void* GetSlotObject(ScriptVM vm, i32 slot) override;
+	bool GetSlotBool(ScriptHandle vm, i32 slot) override;
+	u8 GetSlotU8(ScriptHandle vm, i32 slot) override;
+	u16 GetSlotU16(ScriptHandle vm, i32 slot) override;
+	u32 GetSlotU32(ScriptHandle vm, i32 slot) override;
+	u64 GetSlotU64(ScriptHandle vm, i32 slot) override;
+	i8 GetSlotI8(ScriptHandle vm, i32 slot) override;
+	i16 GetSlotI16(ScriptHandle vm, i32 slot) override;
+	i32 GetSlotI32(ScriptHandle vm, i32 slot) override;
+	i64 GetSlotI64(ScriptHandle vm, i32 slot) override;
+	f32 GetSlotF32(ScriptHandle vm, i32 slot) override;
+	f64 GetSlotF64(ScriptHandle vm, i32 slot) override;
+	StringView GetSlotString(ScriptHandle vm, i32 slot) override;
+	void* GetSlotObject(ScriptHandle vm, i32 slot) override;
 
-	void SetSlotBool(ScriptVM vm, i32 slot, bool value) override;
-	void SetSlotDouble(ScriptVM vm, i32 slot, f64 value) override;
-	void SetSlotString(ScriptVM vm, i32 slot, StringView text) override;
-	void* SetSlotNewObject(ScriptVM vm, i32 slot, i32 classSlot, SizeType size) override;
+	void SetSlotBool(ScriptHandle vm, i32 slot, bool value) override;
+	void SetSlotU8(ScriptHandle vm, i32 slot, u8 value) override;
+	void SetSlotU16(ScriptHandle vm, i32 slot, u16 value) override;
+	void SetSlotU32(ScriptHandle vm, i32 slot, u32 value) override;
+	void SetSlotU64(ScriptHandle vm, i32 slot, u64 value) override;
+	void SetSlotI8(ScriptHandle vm, i32 slot, i8 value) override;
+	void SetSlotI16(ScriptHandle vm, i32 slot, i16 value) override;
+	void SetSlotI32(ScriptHandle vm, i32 slot, i32 value) override;
+	void SetSlotI64(ScriptHandle vm, i32 slot, i64 value) override;
+	void SetSlotF32(ScriptHandle vm, i32 slot, f32 value) override;
+	void SetSlotF64(ScriptHandle vm, i32 slot, f64 value) override;
+	void SetSlotString(ScriptHandle vm, i32 slot, StringView text) override;
+	void* SetSlotNewObject(ScriptHandle vm, i32 slot, i32 classSlot, SizeType size) override;
 
 private:
 	void RegisterClass(TypeId typeId) override;
 	const ScriptClassInfo& GetClassInfo(TypeId typeId) override;
 
-	void SetClass(ScriptVM vm, i32 slot, TypeId typeId) override;
+	void SetClass(ScriptHandle vm, i32 slot, TypeId typeId) override;
 
 	void RegisterConstructor(SizeType arity, StringView signature, ScriptMethodFn func) override;
 	void RegisterDestructor(ScriptFinalizerFn func) override;

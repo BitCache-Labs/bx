@@ -4,8 +4,7 @@
 #include <engine/module.hpp>
 #include <engine/list.hpp>
 #include <engine/math.hpp>
-
-//#include <rttr/rttr_enable.h>
+#include <engine/log.hpp>
 
 using AudioHandle = u64;
 constexpr AudioHandle AUDIO_INVALID_HANDLE = -1;
@@ -29,6 +28,8 @@ public:
 	virtual void Shutdown() = 0;
 
 	virtual AudioHandle GetDefaultChannel() = 0;
+
+	void Test() { BX_LOGI(Audio, "HEEEEEEEELLLLLOOOOOO"); }
 
 	virtual void CreateChannel(const ChannelInfo& info) = 0;
 	virtual void DestroyChannel(const AudioHandle channel) = 0;

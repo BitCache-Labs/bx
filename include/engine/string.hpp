@@ -536,6 +536,21 @@ inline bool StringView::operator>=(const StringView& other) const
 }
 
 // fmt::formatter Implementation
+template <SizeType N>
+struct fmt::formatter<CString<N>>
+{
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const CString<N>& sv, FormatContext& ctx) const -> decltype(ctx.out())
+    {
+        return fmt::format_to(ctx.out(), "{}", fmt::string_view(sv.data(), sv.size()));
+    }
+};
+
 template <>
 struct fmt::formatter<StringView>
 {
