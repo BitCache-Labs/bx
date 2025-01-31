@@ -7,6 +7,7 @@
 #include <engine/function.hpp>
 #include <engine/macros.hpp>
 #include <engine/module.hpp>
+#include <engine/uuid.hpp>
 
 #include <editor/application.hpp>
 
@@ -30,7 +31,8 @@ struct BX_API EditorMenuItemRegister
 	BX_TYPE(EditorMenuItemRegister)
 };
 
-#define EDITOR_MENUITEM(Path, Class)												\
+#define BX_EDITOR_MENUITEM_REGISTRATION(Path, Class)								\
+static void Class##MenuItemShowWindow();											\
 namespace                                                                           \
 {                                                                                   \
     struct BX_API Class##MenuItemRegister final : public EditorMenuItemRegister		\
@@ -45,11 +47,12 @@ namespace                                                                       
         }                                                                           \
 		static void Register()														\
 		{																			\
-			Editor::Get().AddMenuItem(Path, Class::ShowWindow);						\
+			Editor::Get().AddMenuItem(Path, Class##MenuItemShowWindow);				\
 		}																			\
     };                                                                              \
 }                                                                                   \
-static const Class##MenuItemRegister g_##Class##MenuItemRegister;
+static const Class##MenuItemRegister g_##Class##MenuItemRegister;					\
+static void Class##MenuItemShowWindow()
 
 template <typename T>
 class BX_API EditorInspector
@@ -95,6 +98,7 @@ private:
 
 	CString<64> m_title{ "Editor" };
 	ImGuiWindowFlags m_flags{ ImGuiWindowFlags_None };
+	UUID m_uuid{ GenUUID::MakeUUID() };
 };
 
 class BX_API Editor

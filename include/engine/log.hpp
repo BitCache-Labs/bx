@@ -45,6 +45,7 @@ struct BX_API LogEntry
 	String message;
 };
 
+// TODO: Rename to Console
 class BX_API Log
 {
 	BX_MODULE(Log)
@@ -60,6 +61,7 @@ public:
 	void Clear();
 
 private:
+	// TODO: Rename to ConsoleEditor
 	friend class Console;
 
 	struct Channel

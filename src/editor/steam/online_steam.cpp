@@ -3,8 +3,7 @@
 
 #include <imgui_internal.h>
 
-EDITOR_MENUITEM("Modules/Online/Steam", OnlineSteamEditor)
-void OnlineSteamEditor::ShowWindow()
+BX_EDITOR_MENUITEM_REGISTRATION("Modules/Online/Steam", OnlineSteamEditor)
 {
 	Editor::Get().AddWindow<OnlineSteamEditor>();
 }

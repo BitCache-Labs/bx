@@ -1,24 +1,49 @@
 #pragma once
 
-#include <bx/engine/core/math.hpp>
-#include <bx/engine/core/ecs.hpp>
-#include <bx/engine/containers/string.hpp>
-#include <bx/engine/containers/list.hpp>
-#include <bx/engine/containers/hash_map.hpp>
+#include <engine/api.hpp>
+#include <engine/scene.hpp>
+#include <engine/math.hpp>
+//#include <engine/ecs.hpp>
+#include <engine/script.hpp>
+#include <engine/string.hpp>
+#include <engine/list.hpp>
+#include <engine/hash_map.hpp>
+#include <engine/function.hpp>
 
-#include <functional>
+class BX_API World
+	: public Scene
+{
+	BX_TYPE(World, Scene)
 
+public:
+	World();
+	~World();
+
+	void Play() override;
+	void Pause() override;
+	void Stop() override;
+	void Update() override;
+	void Render() override;
+
+private:
+	friend class WorldEditor;
+
+	bool m_running{ false };
+	ScriptHandle m_vm{ SCRIPT_INVALID_HANDLE };
+};
+
+/*
 struct GameObjectData;
 class GameObjectBase;
 class GameObject;
 class Scene;
 
-using GameObjectBindClassFn = std::function<void()>;
-using GameObjectConstructFn = std::function<bool(const GameObjectData&)>;
+using GameObjectBindClassFn = Function<void()>;
+using GameObjectConstructFn = Function<bool(const GameObjectData&)>;
 
-using GameObjectBindObjectFn = std::function<void()>;
-using GameObjectStartFn = std::function<void()>;
-using GameObjectUpdateFn = std::function<void()>;
+using GameObjectBindObjectFn = Function<void()>;
+using GameObjectStartFn = Function<void()>;
+using GameObjectUpdateFn = Function<void()>;
 
 struct GameObjectMetaData
 {
@@ -170,3 +195,4 @@ private:
 	List<GameObjectBase*> m_pendingRemoved;
 	List<GameObjectBase*> m_gameObjects;
 };
+*/

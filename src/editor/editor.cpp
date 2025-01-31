@@ -168,7 +168,13 @@ void Editor::OnGui(EditorApplication& app)
             open = &window.m_isOpen;
         }
 
-        if (ImGui::Begin(window.m_title, open, window.m_flags))
+		CString<64> title{};
+		if (window.m_isExclusive)
+			title = window.m_title;
+		else
+			title.format("{}##{}", window.m_title.c_str(), window.m_uuid);
+
+        if (ImGui::Begin(title.c_str(), open, window.m_flags))
         {
 			window.OnGui();
         }

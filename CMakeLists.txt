@@ -57,7 +57,7 @@ set (ENGINE_SRCS
 	"src/engine/audio.cpp"
 	"src/engine/script.cpp"
 
-	#"src/framework/scene.cpp"
+	"src/framework/world.cpp"
 	"src/framework/camera.cpp"
 )
 
@@ -67,6 +67,7 @@ if (BX_BUILD_EDITOR)
 	set (ENGINE_SRCS ${ENGINE_SRCS}
 		"src/editor/editor.cpp"
 		
+		"src/framework/editor/world_editor.cpp"
 	)
 	set (ENGINE_LIBS ${ENGINE_LIBS} imgui implot ImGuizmo)
 endif()

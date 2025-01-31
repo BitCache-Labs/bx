@@ -1,7 +1,6 @@
 #include <editor/opengl/graphics_opengl.hpp>
 
-EDITOR_MENUITEM("Modules/Graphics/OpenGL", GraphicsOpenGLEditor)
-void GraphicsOpenGLEditor::ShowWindow()
+BX_EDITOR_MENUITEM_REGISTRATION("Modules/Graphics/OpenGL", GraphicsOpenGLEditor)
 {
 	Editor::Get().AddWindow<GraphicsOpenGLEditor>();
 }

@@ -1,8 +1,7 @@
 #include <editor/glfw/window_glfw.hpp>
 #include <engine/glfw/window_glfw.hpp>
 
-EDITOR_MENUITEM("Modules/Window/GLFW", WindowGLFWEditor)
-void WindowGLFWEditor::ShowWindow()
+BX_EDITOR_MENUITEM_REGISTRATION("Modules/Window/GLFW", WindowGLFWEditor)
 {
 	Editor::Get().AddWindow<WindowGLFWEditor>();
 }

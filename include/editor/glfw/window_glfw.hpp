@@ -9,9 +9,6 @@ class BX_API WindowGLFWEditor final
 	BX_TYPE(WindowGLFWEditor, EditorWindow)
 
 public:
-	static void ShowWindow();
-
-public:
 	WindowGLFWEditor();
 	void OnGui() override;
 };

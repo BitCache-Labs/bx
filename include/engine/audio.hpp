@@ -29,8 +29,6 @@ public:
 
 	virtual AudioHandle GetDefaultChannel() = 0;
 
-	void Test() { BX_LOGI(Audio, "HEEEEEEEELLLLLOOOOOO"); }
-
 	virtual void CreateChannel(const ChannelInfo& info) = 0;
 	virtual void DestroyChannel(const AudioHandle channel) = 0;
 	virtual void SetChannelVolume(const AudioHandle channel, f32 volume) = 0;

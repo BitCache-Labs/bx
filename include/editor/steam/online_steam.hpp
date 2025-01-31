@@ -9,9 +9,6 @@ class BX_API OnlineSteamEditor final
 	BX_TYPE(OnlineSteamEditor, EditorWindow)
 
 public:
-	static void ShowWindow();
-
-public:
 	OnlineSteamEditor();
 	void OnGui() override;
 };

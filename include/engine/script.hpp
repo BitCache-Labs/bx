@@ -19,13 +19,19 @@ constexpr ScriptHandle SCRIPT_INVALID_HANDLE = nullptr;
 using ScriptMethodFn = void(*)(ScriptHandle vm);
 using ScriptFinalizerFn = void(*)(void* data);
 
+struct BX_API ScriptModuleSource
+{
+	CString<64> moduleName{};
+	StringView moduleSource{};
+};
+
 struct BX_API ScriptApiRegister
 {
 	BX_TYPE(ScriptApiRegister)
 };
 
-#define SCRIPT_API_REGISTRATION(Class)												\
-static void Class##ApiRegisterCallback(ScriptHandle vm);							\
+#define BX_SCRIPT_API_REGISTRATION(Class)											\
+static ScriptModuleSource Class##ApiRegisterCallback();								\
 namespace                                                                           \
 {                                                                                   \
     struct BX_API Class##ScriptApiRegister final : public ScriptApiRegister			\
@@ -38,14 +44,14 @@ namespace                                                                       
 			class_<Class##ScriptApiRegister>(STR(Class##_ScriptApiRegister))		\
 			.method("Register", Class##ScriptApiRegister::Register);				\
         }                                                                           \
-        static void Register(ScriptHandle vm)										\
+        static ScriptModuleSource Register()										\
         {                                                                           \
-			Class##ApiRegisterCallback(vm);											\
+			return Class##ApiRegisterCallback();									\
         }                                                                           \
     };                                                                              \
 }                                                                                   \
 static const Class##ScriptApiRegister g_##Class##ScriptApiRegister;					\
-static void Class##ApiRegisterCallback(ScriptHandle vm)
+static ScriptModuleSource Class##ApiRegisterCallback()
 
 struct BX_API ScriptVmInfo
 {
@@ -98,10 +104,8 @@ public:
 	virtual bool HasError(ScriptHandle vm) = 0;
 	virtual void ClearError(ScriptHandle vm) = 0;
 
-	virtual void BindVm(ScriptHandle vm) = 0;
-
-	virtual void CompileString(StringView moduleName, StringView string) = 0;
-	virtual void CompileFile(StringView moduleName, StringView filepath) = 0;
+	virtual void CompileString(ScriptHandle vm, StringView moduleName, StringView string) = 0;
+	virtual void CompileFile(ScriptHandle vm, StringView moduleName, StringView filepath) = 0;
 
 	virtual void BeginModule(StringView moduleName) = 0;
 	virtual void EndModule() = 0;
@@ -223,7 +227,6 @@ DECLARE_SCRIPT_ARG(i32, I32)
 DECLARE_SCRIPT_ARG(i64, I64)
 DECLARE_SCRIPT_ARG(f32, F32)
 DECLARE_SCRIPT_ARG(f64, F64)
-
 DECLARE_SCRIPT_ARG(StringView, String)
 
 // TODO: FIX: Need a cast conversion from StringView to const char* -> (const char*)string_view;
@@ -509,7 +512,7 @@ private:
 	static R CallImpl(ScriptHandle vm, R(C::* f)(Args...), meta::index_sequence<index...>)
 	{
 		using Traits = meta::function_traits<decltype(f)>;
-		ScriptObj* obj = static_cast<ScriptObj*>(ScriptArg<void*>::Get(vm, 0));
+		ScriptObj* obj = static_cast<ScriptObj*>(Script::Get().GetSlotObject(vm, 0));
 		C* ptr = static_cast<C*>(obj->Ptr());
 		return (ptr->*f)(ScriptArg<typename Traits::template argument_t<index>>::Get(vm, index + 1)...);
 	}
@@ -519,7 +522,7 @@ private:
 	static R CallImpl(ScriptHandle vm, R(C::* f)(Args...) const, meta::index_sequence<index...>)
 	{
 		using Traits = meta::function_traits<decltype(f)>;
-		ScriptObj* obj = static_cast<ScriptObj*>(ScriptArg<void*>::Get(vm, 0));
+		ScriptObj* obj = static_cast<ScriptObj*>(Script::Get().GetSlotObject(vm, 0));
 		C* ptr = static_cast<C*>(obj->Ptr());
 		return (ptr->*f)(ScriptArg<typename Traits::template argument_t<index>>::Get(vm, index + 1)...);
 	}

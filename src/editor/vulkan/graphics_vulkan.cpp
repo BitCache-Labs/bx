@@ -1,6 +1,9 @@
 #include <editor/vulkan/graphics_vulkan.hpp>
 
-EDITOR_MENU("Modules/Graphics/Vulkan", []() { EditorManager::Get().AddView(meta::make_unique<GraphicsVulkanEditor>()); })
+BX_EDITOR_MENUITEM_REGISTRATION("Modules/Graphics/Vulkan", GraphicsVulkanEditor)
+{
+	Editor::Get().AddWindow<GraphicsVulkanEditor>();
+}
 
 GraphicsVulkanEditor::GraphicsVulkanEditor()
 {

@@ -1,7 +1,6 @@
 #include <editor/portaudio/audio_portaudio.hpp>
 
-EDITOR_MENUITEM("Modules/Audio/PortAudio", AudioPortAudioEditor)
-void AudioPortAudioEditor::ShowWindow()
+BX_EDITOR_MENUITEM_REGISTRATION("Modules/Audio/PortAudio", AudioPortAudioEditor)
 {
 	Editor::Get().AddWindow<AudioPortAudioEditor>();
 }

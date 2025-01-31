@@ -9,9 +9,6 @@ class BX_API GraphicsOpenGLEditor final
 	BX_TYPE(GraphicsOpenGLEditor, EditorWindow)
 
 public:
-	static void ShowWindow();
-
-public:
 	GraphicsOpenGLEditor();
 	void OnGui() override;
 };

@@ -1,20 +1,40 @@
-#include "bx/framework/gameobject.hpp"
+#include <framework/world.hpp>
+#include <engine/macros.hpp>
+#include <engine/file.hpp>
+#include <engine/application.hpp>
+#include <engine/hash_map.hpp>
 
-#include <bx/engine/core/macros.hpp>
-#include <bx/engine/core/file.hpp>
-#include <bx/engine/core/application.hpp>
-#include <bx/engine/containers/hash_map.hpp>
+World::World()
+{
+	ScriptVmInfo info{};
+	m_vm = Script::Get().CreateVm(info);
+}
 
-#include <cereal/archives/json.hpp>
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/types/polymorphic.hpp>
+World::~World()
+{
+}
 
-#include "bx/framework/gameobject.serial.hpp"
+void World::Play()
+{
+}
 
-#include <cstring>
-#include <fstream>
-#include <sstream>
+void World::Pause()
+{
+}
 
+void World::Stop()
+{
+}
+
+void World::Update()
+{
+}
+
+void World::Render()
+{
+}
+
+/*
 static List<String> g_gameObjectClasses;
 static HashMap<String, GameObjectMetaData> g_gameObjectMetaDataMap;
 
@@ -291,3 +311,4 @@ void Scene::Update()
 		go->GetEntity().Destroy();
 	m_pendingRemoved.clear();
 }
+*/

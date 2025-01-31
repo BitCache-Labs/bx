@@ -1,6 +1,9 @@
 #include <editor/opengl/graphics_opengles.hpp>
 
-EDITOR_MENU("Modules/Graphics/OpenGLES", []() { EditorManager::Get().AddView(meta::make_unique<GraphicsOpenGLESEditor>()); })
+BX_EDITOR_MENUITEM_REGISTRATION("Modules/Graphics/OpenGLES", GraphicsOpenGLESEditor)
+{
+	Editor::Get().AddWindow<GraphicsOpenGLESEditor>();
+}
 
 GraphicsOpenGLESEditor::GraphicsOpenGLESEditor()
 {

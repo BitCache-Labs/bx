@@ -99,8 +99,6 @@ bool Engine::Initialize() noexcept
         return false;
     }
 
-    m_vm = Script::Get().CreateVm(ScriptVmInfo{});
-
 #if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
     if (!DebugDraw::Get().Initialize())
     {
