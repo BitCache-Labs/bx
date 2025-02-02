@@ -115,6 +115,18 @@ WorldEditor::WorldEditor(SceneManager& sceneManager)
 
 WorldEditor::~WorldEditor()
 {
+    Graphics::Get().DestroyShader(m_vertShader);
+    Graphics::Get().DestroyShader(m_pixelShader);
+    Graphics::Get().DestroyPipeline(m_pipeline);
+
+    Graphics::Get().DestroyBuffer(m_constantBuffer);
+    Graphics::Get().DestroyBuffer(m_modelBuffer);
+
+    Graphics::Get().DestroyResourceBinding(m_resources);
+    Graphics::Get().DestroyTexture(m_renderTarget);
+    Graphics::Get().DestroyTexture(m_renderTargetIDs);
+    Graphics::Get().DestroyTexture(m_depthStencil);
+
     m_sceneManager.DestroyScene(m_world);
 }
 
@@ -446,14 +458,17 @@ void WorldEditor::Render(World& world, const ImVec2& size)
 
             info.format = TextureFormat::RG32_UINT;
             info.flags = TextureFlags::SHADER_RESOURCE | TextureFlags::RENDER_TARGET;
+            info.enableMipmaps = false;
             m_renderTargetIDs = Graphics::Get().CreateTexture(info, data);
 
             info.format = TextureFormat::RGBA8_UNORM;
             info.flags = TextureFlags::SHADER_RESOURCE | TextureFlags::RENDER_TARGET;
+            info.enableMipmaps = false;
             m_renderTarget = Graphics::Get().CreateTexture(info, data);
 
             info.format = TextureFormat::D24_UNORM_S8_UINT;
             info.flags = TextureFlags::DEPTH_STENCIL;
+            info.enableMipmaps = false;
             m_depthStencil = Graphics::Get().CreateTexture(info, data);
         }
     }
@@ -523,13 +538,13 @@ void WorldEditor::Render(World& world, const ImVec2& size)
 
     const f32 viewport[] = { 0.0f, 0.0f, m_screenSize.x, m_screenSize.y };
     Graphics::Get().SetViewport(viewport);
+    
+    static f32 clearColor[] = { 1.2f, .2f, .2f, 1.f };
+    Graphics::Get().ClearRenderTarget(m_renderTarget, clearColor);
+    Graphics::Get().ClearDepthStencil(m_depthStencil, GraphicsClearFlags::DEPTH, 1.0f, 0);
 
     // Render to the normal color render target
     Graphics::Get().SetRenderTarget(m_renderTarget, m_depthStencil);
-
-    static f32 clearColor[] = { .2f, .2f, .2f, 1.f };
-    Graphics::Get().ClearRenderTarget(m_renderTarget, clearColor);
-    Graphics::Get().ClearDepthStencil(m_depthStencil, GraphicsClearFlags::DEPTH, 1.0f, 0);
 
     //renderer.BindConstants(g_sceneCam.GetView(), g_sceneCam.GetProjection(), g_sceneCam.GetViewProjection());
     //renderer.DrawCommands();
@@ -573,9 +588,8 @@ void WorldEditor::Render(World& world, const ImVec2& size)
 
     world.OnRender();
 
-#if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
     Debug::Get().RenderDraws(m_camera.GetViewProjection());
-#endif
+    Debug::Get().ClearDraws();
 
     Graphics::Get().SetRenderTarget(Graphics::Get().GetCurrentBackBufferRT(), Graphics::Get().GetDepthBuffer());
 }

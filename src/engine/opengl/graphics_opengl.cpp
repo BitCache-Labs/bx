@@ -491,7 +491,9 @@ GraphicsHandle GraphicsOpenGL::CreateTexture(const TextureInfo& info, const Buff
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, info.width, info.height, 0, format, type, data.pData);
-    glGenerateMipmap(GL_TEXTURE_2D);
+
+    if (info.enableMipmaps)
+        glGenerateMipmap(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 #endif

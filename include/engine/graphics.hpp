@@ -51,6 +51,7 @@ struct BX_API TextureInfo
 	u32 width{ 0 };
 	u32 height{ 0 };
 	TextureFlags flags{ TextureFlags::SHADER_RESOURCE };
+	bool enableMipmaps{ true };
 };
 
 struct BX_API BufferData

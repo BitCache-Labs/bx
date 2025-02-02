@@ -21,7 +21,7 @@ static GLenum GetTextureFormat(TextureFormat format)
     case TextureFormat::RGBA8_UNORM:        return GL_RGBA8;
     case TextureFormat::RGB8_UNORM:         return GL_RGB8;
 #endif
-    case TextureFormat::RG32_UINT:          return GL_RG_INTEGER;
+    case TextureFormat::RG32_UINT:          return GL_RG32UI;// GL_RG_INTEGER;
     case TextureFormat::D24_UNORM_S8_UINT:  return GL_DEPTH_STENCIL;
 
     default:
