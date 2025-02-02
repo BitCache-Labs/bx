@@ -10,5 +10,5 @@ class BX_API GraphicsOpenGLEditor final
 
 public:
 	GraphicsOpenGLEditor();
-	void OnGui() override;
+	void OnGui(EditorApplication& app) override;
 };

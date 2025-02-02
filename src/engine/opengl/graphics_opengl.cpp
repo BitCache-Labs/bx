@@ -20,12 +20,6 @@ static T& GetImpl(GraphicsHandle handle, HashMap<GraphicsHandle, T>& map)
     return it->second;
 }
 
-GLuint GraphicsOpenGL::GetTextureHandle(GraphicsHandle texture)
-{
-    const auto& texture_impl = GetImpl(texture, m_textures);
-    return texture_impl.texture;
-}
-
 template <typename T>
 void RebalanceMap(HashMap<GraphicsHandle, T>& map)
 {
@@ -431,7 +425,7 @@ GraphicsHandle GraphicsOpenGL::CreateShader(const ShaderInfo& info)
         return INVALID_GRAPHICS_HANDLE;
     }
 
-    auto src = header + info.source;
+    auto src = header + info.source.to_string();
     const char* const psrc = src.c_str();
 
     GLuint shader_handle = 0;
@@ -843,3 +837,11 @@ void GraphicsOpenGL::SetWireframe(bool enabled)
 {
     m_ctx.m_wireframe = enabled;
 }
+
+#ifdef EDITOR_BUILD
+u64 GraphicsOpenGL::GetImTextureID(GraphicsHandle texture)
+{
+    const auto& texture_impl = GetImpl(texture, m_textures);
+    return texture_impl.texture;
+}
+#endif

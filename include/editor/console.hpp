@@ -3,12 +3,12 @@
 #include <engine/api.hpp>
 #include <editor/editor.hpp>
 
-class Console final
+class BX_API ConsoleEditor final
 	: public EditorWindow
 {
-	BX_TYPE(Console, EditorWindow)
+	BX_TYPE(ConsoleEditor, EditorWindow)
 
 public:
-	Console();
-	void OnGui() override;
+	ConsoleEditor();
+	void OnGui(EditorApplication& app) override;
 };

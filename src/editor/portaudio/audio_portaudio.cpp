@@ -12,6 +12,6 @@ AudioPortAudioEditor::AudioPortAudioEditor()
 	SetPresistent(false);
 }
 
-void AudioPortAudioEditor::OnGui()
+void AudioPortAudioEditor::OnGui(EditorApplication& app)
 {
 }

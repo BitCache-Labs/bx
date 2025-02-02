@@ -69,7 +69,7 @@ struct BX_API ResourceBindingImpl
 
         GraphicsHandle handle = INVALID_GRAPHICS_HANDLE;
     };
-    HashMap<String, Data> resources;
+    HashMap<CString<64>, Data> resources;
 };
 
 struct BX_API PipelineImpl
@@ -166,10 +166,9 @@ public:
         //SetRenderTarget(renderTarget, depthStencil);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
-#endif
 
-public:
-    u32 GetTextureHandle(GraphicsHandle texture);
+    u64 GetImTextureID(GraphicsHandle texture) override;
+#endif
 
 private:
     GraphicsContext m_ctx{};

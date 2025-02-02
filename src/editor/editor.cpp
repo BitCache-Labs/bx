@@ -137,7 +137,7 @@ void Editor::AddWindow(UniquePtr<EditorWindow> window)
                 return;
         }
     }
-	m_editorWindows.emplace_back(std::move(window));
+	m_pendingEditorWindows.emplace_back(std::move(window));
 }
 
 void Editor::OnGui(EditorApplication& app)
@@ -158,6 +158,12 @@ void Editor::OnGui(EditorApplication& app)
     }
 	PopMenuTheme();
 
+	while (!m_pendingEditorWindows.empty())
+	{
+		m_editorWindows.push_back(std::move(m_pendingEditorWindows.back()));
+		m_pendingEditorWindows.pop_back();
+	}
+
     for (auto it = m_editorWindows.begin(); it != m_editorWindows.end();)
     {
         auto& window = **it;
@@ -176,7 +182,7 @@ void Editor::OnGui(EditorApplication& app)
 
         if (ImGui::Begin(title.c_str(), open, window.m_flags))
         {
-			window.OnGui();
+			window.OnGui(app);
         }
         ImGui::End();
 

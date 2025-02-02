@@ -1,11 +1,17 @@
 #include <editor/settings.hpp>
 
-#include <imgui.h>
-#include <imgui_internal.h>
-
-void SettingsEditor::Present(bool& show)
+BX_EDITOR_MENUITEM_REGISTRATION("Window/Settings", SettingsEditor)
 {
-	ImGui::Begin("Settings");
+    Editor::Get().AddWindow<SettingsEditor>();
+}
 
-	ImGui::End();
+SettingsEditor::SettingsEditor()
+{
+    SetTitle("Settings");
+    SetExclusive(true);
+    SetPresistent(false);
+}
+
+void SettingsEditor::OnGui(EditorApplication& app)
+{
 }

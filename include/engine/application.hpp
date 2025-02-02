@@ -2,10 +2,12 @@
 
 #include <engine/api.hpp>
 #include <engine/type.hpp>
+#include <engine/scene.hpp>
 
 class BX_API Application
+    : public SceneManager
 {
-    BX_TYPE(Application)
+    BX_TYPE(Application, SceneManager)
 
 public:
     virtual ~Application() {}

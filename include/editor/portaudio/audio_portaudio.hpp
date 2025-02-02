@@ -10,5 +10,5 @@ class BX_API AudioPortAudioEditor final
 
 public:
 	AudioPortAudioEditor();
-	void OnGui() override;
+	void OnGui(EditorApplication& app) override;
 };

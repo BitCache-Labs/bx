@@ -10,20 +10,22 @@
 #include <engine/hash_map.hpp>
 #include <engine/function.hpp>
 
-class BX_API World
+class BX_API World final
 	: public Scene
 {
 	BX_TYPE(World, Scene)
 
 public:
-	World();
-	~World();
+	void OnCreate() override;
+	void OnDestroy() override;
 
-	void Play() override;
-	void Pause() override;
-	void Stop() override;
-	void Update() override;
-	void Render() override;
+	void OnActiveSceneChanged(SceneHandle oldScene, SceneHandle newScene) override;
+
+	void OnPlay() override;
+	void OnPause() override;
+	void OnStop() override;
+	void OnUpdate() override;
+	void OnRender() override;
 
 private:
 	friend class WorldEditor;

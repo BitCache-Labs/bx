@@ -51,6 +51,7 @@ set (ENGINE_SRCS
 	"src/engine/profiler.cpp"
 	"src/engine/uuid.cpp"
 	"src/engine/file.cpp"
+	"src/engine/debug.cpp"
 
 	"src/engine/window.cpp"
 	"src/engine/graphics.cpp"
@@ -66,6 +67,10 @@ set (ENGINE_LIBS fmt stb glm rttr)
 if (BX_BUILD_EDITOR)
 	set (ENGINE_SRCS ${ENGINE_SRCS}
 		"src/editor/editor.cpp"
+		"src/editor/console.cpp"
+		"src/editor/profiler.cpp"
+		"src/editor/settings.cpp"
+		"src/editor/assets.cpp"
 		
 		"src/framework/editor/world_editor.cpp"
 	)

@@ -76,7 +76,7 @@ class BX_API EditorWindow
 
 public:
 	virtual ~EditorWindow() {}
-	virtual void OnGui() = 0;
+	virtual void OnGui(EditorApplication& app) = 0;
 
 	bool IsOpen() const { return m_isOpen; }
 	void SetPresistent(bool isPersistent) { m_isPersistent = isPersistent; }
@@ -111,8 +111,12 @@ public:
 
 	void AddMenuItem(StringView path, Function<void()>&& callback);
 	
-	template <typename T>
-	void AddWindow() { AddWindow(meta::make_unique<T>()); }
+	template <typename T, typename... Args>
+	void AddWindow(Args&&... args)
+	{
+		static_assert(std::is_base_of<EditorWindow, T>::value, "T must derive from EditorWindow");
+		AddWindow(meta::make_unique<T>(std::forward<Args>(args)...));
+	}
 
 	void OnGui(EditorApplication& app);
 	void Clear();
@@ -128,9 +132,10 @@ private:
 	void PopMenuTheme();
 
 private:
-	f32 m_uiScale = 1.0f;
+	f32 m_uiScale{ 1.0f };
 	EditorTheme m_currentTheme{ EditorTheme::ACRYLIC };
 
-	List<Function<void()>> m_menuItems;
-	List<UniquePtr<EditorWindow>> m_editorWindows;
+	List<Function<void()>> m_menuItems{};
+	List<UniquePtr<EditorWindow>> m_editorWindows{};
+	List<UniquePtr<EditorWindow>> m_pendingEditorWindows{};
 };

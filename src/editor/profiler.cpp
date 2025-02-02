@@ -1,5 +1,22 @@
 #include <editor/profiler.hpp>
 
+BX_EDITOR_MENUITEM_REGISTRATION("Window/Profiler", ProfilerEditor)
+{
+    Editor::Get().AddWindow<ProfilerEditor>();
+}
+
+ProfilerEditor::ProfilerEditor()
+{
+    SetTitle("Profiler");
+    SetExclusive(true);
+    SetPresistent(false);
+}
+
+void ProfilerEditor::OnGui(EditorApplication& app)
+{
+}
+
+/*
 #include <engine/profiler.hpp>
 #include <engine/time.hpp>
 #include <engine/list.hpp>
@@ -89,3 +106,4 @@ void ProfilerEditor::Present(const char* title, bool& isOpen)
 
     ImGui::End();
 }
+*/

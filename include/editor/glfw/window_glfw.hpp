@@ -10,5 +10,5 @@ class BX_API WindowGLFWEditor final
 
 public:
 	WindowGLFWEditor();
-	void OnGui() override;
+	void OnGui(EditorApplication& app) override;
 };

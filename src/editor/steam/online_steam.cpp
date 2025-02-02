@@ -15,7 +15,7 @@ OnlineSteamEditor::OnlineSteamEditor()
 	SetPresistent(false);
 }
 
-void OnlineSteamEditor::OnGui()
+void OnlineSteamEditor::OnGui(EditorApplication& app)
 {
 	static CString<64> g_lobbyName{ "LobbyName" };
 	static CString<1024> g_message{};

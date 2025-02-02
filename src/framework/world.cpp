@@ -4,33 +4,38 @@
 #include <engine/application.hpp>
 #include <engine/hash_map.hpp>
 
-World::World()
+void World::OnCreate()
 {
 	ScriptVmInfo info{};
 	m_vm = Script::Get().CreateVm(info);
 }
 
-World::~World()
+void World::OnDestroy()
+{
+	Script::Get().DestroyVm(m_vm);
+}
+
+void World::OnActiveSceneChanged(SceneHandle oldScene, SceneHandle newScene)
 {
 }
 
-void World::Play()
+void World::OnPlay()
 {
 }
 
-void World::Pause()
+void World::OnPause()
 {
 }
 
-void World::Stop()
+void World::OnStop()
 {
 }
 
-void World::Update()
+void World::OnUpdate()
 {
 }
 
-void World::Render()
+void World::OnRender()
 {
 }
 

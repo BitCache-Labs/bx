@@ -12,6 +12,6 @@ GraphicsOpenGLEditor::GraphicsOpenGLEditor()
 	SetPresistent(false);
 }
 
-void GraphicsOpenGLEditor::OnGui()
+void GraphicsOpenGLEditor::OnGui(EditorApplication& app)
 {
 }

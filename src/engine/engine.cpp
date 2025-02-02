@@ -5,6 +5,7 @@
 #include <engine/graphics.hpp>
 #include <engine/script.hpp>
 #include <engine/online.hpp>
+#include <engine/debug.hpp>
 
 #ifdef EDITOR_BUILD
 #include <editor/editor.hpp>
@@ -53,7 +54,7 @@ int Engine::Run(int argc, char** args, Application& app)
         app.Render();
 
 #if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
-        DebugDraw::Get().Clear();
+        Debug::Get().ClearDraws();
 #endif
 
 #ifdef EDITOR_BUILD
@@ -100,7 +101,7 @@ bool Engine::Initialize() noexcept
     }
 
 #if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
-    if (!DebugDraw::Get().Initialize())
+    if (!Debug::Get().Initialize())
     {
         BX_LOGE(Engine, "Failed to initialize debug module!");
         return false;
@@ -128,7 +129,7 @@ void Engine::Shutdown() noexcept
 #endif
 
 #if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
-    DebugDraw::Get().Shutdown();
+    Debug::Get().Shutdown();
 #endif
 
     Script::Get().Shutdown();

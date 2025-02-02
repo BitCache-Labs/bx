@@ -1,5 +1,22 @@
 #include <editor/console.hpp>
 
+BX_EDITOR_MENUITEM_REGISTRATION("Window/Console", ConsoleEditor)
+{
+    Editor::Get().AddWindow<ConsoleEditor>();
+}
+
+ConsoleEditor::ConsoleEditor()
+{
+    SetTitle("Console");
+    SetExclusive(true);
+    SetPresistent(false);
+}
+
+void ConsoleEditor::OnGui(EditorApplication& app)
+{
+}
+
+/*
 #include <engine/log.hpp>
 
 #include <imgui.h>
@@ -178,3 +195,4 @@ void Console::OnGui()
 
     //ImGui::End();
 }
+*/

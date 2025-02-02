@@ -67,11 +67,18 @@ operator&(EnumT lhs, EnumT rhs) noexcept
 }
 
 // Bitwise OR operator for EnumT, EnumT
+//template <typename EnumT>
+//constexpr meta::enable_if_t<meta::is_enum<EnumT>::value && !Enum::has_bitwise_or<void, EnumT>::value, meta::underlying_type_t<EnumT>>
+//operator|(EnumT lhs, EnumT rhs) noexcept
+//{
+//    return Enum::as_value(lhs) | Enum::as_value(rhs);
+//}
+
 template <typename EnumT>
-constexpr meta::enable_if_t<meta::is_enum<EnumT>::value && !Enum::has_bitwise_or<void, EnumT>::value, meta::underlying_type_t<EnumT>>
+constexpr meta::enable_if_t<meta::is_enum<EnumT>::value && !Enum::has_bitwise_or<void, EnumT>::value, EnumT>
 operator|(EnumT lhs, EnumT rhs) noexcept
 {
-    return Enum::as_value(lhs) | Enum::as_value(rhs);
+    return Enum::as_type<EnumT>(Enum::as_value(lhs) | Enum::as_value(rhs));
 }
 
 // Bitwise XOR operator for EnumT, EnumT

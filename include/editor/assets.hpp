@@ -3,12 +3,12 @@
 #include <engine/api.hpp>
 #include <editor/editor.hpp>
 
-class BX_API OnlineSteamEditor final
+class BX_API AssetsEditor final
 	: public EditorWindow
 {
-	BX_TYPE(OnlineSteamEditor, EditorWindow)
+	BX_TYPE(AssetsEditor, EditorWindow)
 
 public:
-	OnlineSteamEditor();
+	AssetsEditor();
 	void OnGui(EditorApplication& app) override;
 };

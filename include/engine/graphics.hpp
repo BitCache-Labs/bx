@@ -10,8 +10,6 @@
 // TODO: Replace const char* with StringView
 #include <engine/string.hpp>
 
-//#include <rttr/rttr_enable.h>
-
 using GraphicsHandle = u64;
 constexpr GraphicsHandle INVALID_GRAPHICS_HANDLE = -1;
 
@@ -35,24 +33,24 @@ enum struct BX_API PipelineFaceCull { NONE, CW, CCW };
 
 struct BX_API ShaderInfo
 {
-	ShaderType shaderType = ShaderType::UNKNOWN;
-	const char* source = nullptr;
+	ShaderType shaderType{ ShaderType::UNKNOWN };
+	StringView source{};
 };
 
 struct BX_API BufferInfo
 {
-	u32 strideBytes = 0;
-	BufferType type = BufferType::UNIFORM_BUFFER;
-	BufferUsage usage = BufferUsage::DYNAMIC;
-	BufferAccess access = BufferAccess::WRITE;
+	u32 strideBytes{ 0 };
+	BufferType type{ BufferType::UNIFORM_BUFFER };
+	BufferUsage usage{ BufferUsage::DYNAMIC };
+	BufferAccess access{ BufferAccess::WRITE };
 };
 
 struct BX_API TextureInfo
 {
-	TextureFormat format = TextureFormat::UNKNOWN;
-	u32 width = 0;
-	u32 height = 0;
-	TextureFlags flags = TextureFlags::SHADER_RESOURCE;
+	TextureFormat format{ TextureFormat::UNKNOWN };
+	u32 width{ 0 };
+	u32 height{ 0 };
+	TextureFlags flags{ TextureFlags::SHADER_RESOURCE };
 };
 
 struct BX_API BufferData
@@ -62,31 +60,31 @@ struct BX_API BufferData
 		: pData(pData)
 		, dataSize(dataSize) {}
 
-	const void* pData = nullptr;
-	u32 dataSize = 0;
+	const void* pData{ nullptr };
+	u32 dataSize{ 0 };
 };
 
 struct BX_API ResourceBindingElement
 {
 	ResourceBindingElement() {}
-	ResourceBindingElement(ShaderType shaderType, const char* name, u32 count, ResourceBindingType type, ResourceBindingAccess access)
+	ResourceBindingElement(ShaderType shaderType, StringView name, u32 count, ResourceBindingType type, ResourceBindingAccess access)
 		: shaderType(shaderType)
 		, name(name)
 		, count(count)
 		, type(type)
 		, access(access) {}
 
-	ShaderType shaderType = ShaderType::UNKNOWN;
-	const char* name = nullptr;
-	u32 count = 0;
-	ResourceBindingType type = ResourceBindingType::UNKNOWN;
-	ResourceBindingAccess access = ResourceBindingAccess::STATIC;
+	ShaderType shaderType{ ShaderType::UNKNOWN };
+	StringView name{};
+	u32 count{ 0 };
+	ResourceBindingType type{ ResourceBindingType::UNKNOWN };
+	ResourceBindingAccess access{ ResourceBindingAccess::STATIC };
 };
 
 struct BX_API ResourceBindingInfo
 {
-	const ResourceBindingElement* resources = nullptr;
-	u32 numResources = 0;
+	const ResourceBindingElement* resources{ nullptr };
+	u32 numResources{ 0 };
 };
 
 struct BX_API LayoutElement
@@ -101,32 +99,32 @@ struct BX_API LayoutElement
 		, relativeOffset(relativeOffset)
 		, instanceDataStepRate(instanceDataStepRate) {}
 
-	u32 inputIndex = 0;
-	u32 bufferSlot = 0;
-	u32 numComponents = 0;
-	GraphicsValueType valueType = GraphicsValueType::FLOAT32;
-	bool isNormalized = false;
-	u32 relativeOffset = 0;
-	u32 instanceDataStepRate = 0;
+	u32 inputIndex{ 0 };
+	u32 bufferSlot{ 0 };
+	u32 numComponents{ 0 };
+	GraphicsValueType valueType{ GraphicsValueType::FLOAT32 };
+	bool isNormalized{ false };
+	u32 relativeOffset{ 0 };
+	u32 instanceDataStepRate{ 0 };
 };
 
 struct BX_API PipelineInfo
 {
-	u32 numRenderTargets = 0;
+	u32 numRenderTargets{ 0 };
 	TextureFormat renderTargetFormats[8] = { TextureFormat::UNKNOWN };
-	TextureFormat depthStencilFormat = TextureFormat::UNKNOWN;
+	TextureFormat depthStencilFormat{ TextureFormat::UNKNOWN };
 
-	PipelineTopology topology = PipelineTopology::UNDEFINED;
-	PipelineFaceCull faceCull = PipelineFaceCull::NONE;
+	PipelineTopology topology{ PipelineTopology::UNDEFINED };
+	PipelineFaceCull faceCull{ PipelineFaceCull::NONE };
 
-	bool depthEnable = true;
-	bool blendEnable = false;
+	bool depthEnable{ true };
+	bool blendEnable{ false };
 
-	GraphicsHandle vertShader = INVALID_GRAPHICS_HANDLE;
-	GraphicsHandle pixelShader = INVALID_GRAPHICS_HANDLE;
+	GraphicsHandle vertShader{ INVALID_GRAPHICS_HANDLE };
+	GraphicsHandle pixelShader{ INVALID_GRAPHICS_HANDLE };
 
-	const LayoutElement* layoutElements = nullptr;
-	u32 numElements = 0;
+	const LayoutElement* layoutElements{ nullptr };
+	u32 numElements{ 0 };
 };
 
 struct BX_API DrawAttribs
@@ -135,7 +133,7 @@ struct BX_API DrawAttribs
 	DrawAttribs(u32 numVertices)
 		: numVertices(numVertices) {}
 
-	u32 numVertices = 0;
+	u32 numVertices{ 0 };
 };
 
 struct BX_API DrawIndexedAttribs
@@ -144,9 +142,9 @@ struct BX_API DrawIndexedAttribs
 	DrawIndexedAttribs(GraphicsValueType indexType, u32 numIndices)
 		: indexType(indexType), numIndices(numIndices) {}
 
-	GraphicsValueType indexType = GraphicsValueType::UINT32;
-	u32 numIndices = 0;
-	u32 offset = 0;
+	GraphicsValueType indexType{ GraphicsValueType::UINT32 };
+	u32 numIndices{ 0 };
+	u32 offset{ 0 };
 };
 
 class BX_API Graphics
@@ -208,43 +206,7 @@ public:
 	virtual void ShutdownImGui() = 0;
 	virtual void NewFrameImGui() = 0;
 	virtual void EndFrameImGui() = 0;
+
+	virtual u64 GetImTextureID(GraphicsHandle texture) = 0;
 #endif
 };
-
-#if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
-class BX_API DebugDraw
-{
-	BX_MODULE(DebugDraw)
-
-public:
-	bool Initialize();
-	void Shutdown();
-
-	void Line(const Vec3& a, const Vec3& b, u32 color);
-	void Box(const Box3& box, u32 color);
-
-	void Render(const Mat4& viewProj);
-	void Clear();
-
-private:
-	GraphicsHandle m_vertexShader{ INVALID_GRAPHICS_HANDLE };
-	GraphicsHandle m_pixelShader{ INVALID_GRAPHICS_HANDLE };
-	GraphicsHandle m_pipeline{ INVALID_GRAPHICS_HANDLE };
-
-	GraphicsHandle m_vertexBuffer{ INVALID_GRAPHICS_HANDLE };
-
-	struct Vertex
-	{
-		Vec3 position{};
-		u32 color{};
-
-		Vertex() {}
-		Vertex(const Vec3& p, u32 c)
-			: position(p)
-			, color(c)
-		{}
-	};
-
-	List<Vertex> m_vertices{};
-};
-#endif

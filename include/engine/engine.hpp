@@ -1,9 +1,8 @@
 #pragma once
 
 #include <engine/api.hpp>
-#include <engine/application.hpp>
-#include <engine/macros.hpp>
 #include <engine/module.hpp>
+#include <engine/application.hpp>
 
 class BX_API Engine
 {

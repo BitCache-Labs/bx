@@ -13,7 +13,7 @@ WindowGLFWEditor::WindowGLFWEditor()
 	SetPresistent(false);
 }
 
-void WindowGLFWEditor::OnGui()
+void WindowGLFWEditor::OnGui(EditorApplication& app)
 {
 	auto& impl = WindowGLFW::Get();
 	const char* glfwVersion = glfwGetVersionString();
