@@ -7,6 +7,7 @@
 //#include <engine/ecs.hpp>
 //#include <engine/resource.hpp>
 #include <engine/traits.hpp>
+#include <engine/enum.hpp>
 #include <engine/string.hpp>
 #include <engine/array.hpp>
 #include <engine/list.hpp>
@@ -101,11 +102,15 @@ public:
 	virtual ScriptHandle CreateVm(const ScriptVmInfo& info) = 0;
 	virtual void DestroyVm(ScriptHandle vm) = 0;
 
+	virtual ScriptHandle CreateFunction(ScriptHandle vm, StringView signature) = 0;
+	virtual void DestroyFunction(ScriptHandle vm, ScriptHandle function) = 0;
+	virtual void CallFunction(ScriptHandle vm, ScriptHandle function) = 0;
+
 	virtual bool HasError(ScriptHandle vm) = 0;
 	virtual void ClearError(ScriptHandle vm) = 0;
 
-	virtual void CompileString(ScriptHandle vm, StringView moduleName, StringView string) = 0;
-	virtual void CompileFile(ScriptHandle vm, StringView moduleName, StringView filepath) = 0;
+	virtual bool CompileString(ScriptHandle vm, StringView moduleName, StringView string) = 0;
+	virtual bool CompileFile(ScriptHandle vm, StringView moduleName, StringView filepath) = 0;
 
 	virtual void BeginModule(StringView moduleName) = 0;
 	virtual void EndModule() = 0;
@@ -128,6 +133,7 @@ public:
 	virtual f64 GetSlotF64(ScriptHandle vm, i32 slot) = 0;
 	virtual StringView GetSlotString(ScriptHandle vm, i32 slot) = 0;
 	virtual void* GetSlotObject(ScriptHandle vm, i32 slot) = 0;
+	virtual ScriptHandle GetSlotHandle(ScriptHandle vm, i32 slot) = 0;
 
 	virtual void SetSlotBool(ScriptHandle vm, i32 slot, bool value) = 0;
 	virtual void SetSlotU8(ScriptHandle vm, i32 slot, u8 value) = 0;
@@ -142,6 +148,7 @@ public:
 	virtual void SetSlotF64(ScriptHandle vm, i32 slot, f64 value) = 0;
 	virtual void SetSlotString(ScriptHandle vm, i32 slot, StringView text) = 0;
 	virtual void* SetSlotNewObject(ScriptHandle vm, i32 slot, i32 classSlot, SizeType size) = 0;
+	virtual void SetSlotHandle(ScriptHandle vm, i32 slot, ScriptHandle handle) = 0;
 
 	virtual void EnsureSlots(ScriptHandle vm, i32 numSlots) = 0;
 
@@ -152,13 +159,19 @@ public:
 	template <typename T>
 	void BeginClass(StringView className, ScriptMethodFn allocate, ScriptFinalizerFn finalize);
 
+	template <typename T, typename U = std::underlying_type_t<T>>
+	void BeginEnumClass(StringView className);
+
 	//template <typename TData>
 	//void BeginResourceClass(StringView className);
 	//template <typename TCmp>
 	//void BeginComponentClass(StringView className);
 
-	template<typename F, F f>
+	template<typename Fn, Fn F>
 	void BindFunction(bool isStatic, StringView signature);
+
+	template<typename Fn, Fn F>
+	void BindModuleFunction(StringView signature);
 
 	template<typename T, typename U, U T::* Field>
 	void BindGetter(StringView signature);
@@ -166,7 +179,7 @@ public:
 	template<typename T, typename U, U T::* Field>
 	void BindSetter(StringView signature);
 
-	template <typename T, typename U, const U Val>
+	template <typename T, T Val>
 	void BindEnumVal(StringView signature);
 
 private:
@@ -192,14 +205,14 @@ private:
 		SetClass(vm, slot, Type<T>::Id());
 	}
 
-	template<typename T, typename... Args, SizeType... index>
-	void Construct(ScriptHandle vm, void* memory, meta::index_sequence<index...>);
+	template<typename T, typename... Args, SizeType... Index>
+	static void Construct(ScriptHandle vm, void* memory, meta::index_sequence<Index...>);
 
 	template<typename T, typename... Args>
-	void Allocate(ScriptHandle vm);
+	static void Allocate(ScriptHandle vm);
 
 	template<typename T>
-	void Finalize(void* data);
+	static void Finalize(void* data);
 };
 
 // Script API inspired by: https://github.com/Nelarius/wrenpp
@@ -271,7 +284,7 @@ struct ScriptArg
 
 	static void Set(ScriptHandle vm, i32 slot, T val)
 	{
-		Script::SetClass<T>(vm, slot);
+		Script::Get().SetClass<T>(vm, slot);
 		ScriptObj* obj = new (Script::Get().SetSlotNewObject(vm, slot, slot, sizeof(ScriptObjVal<T>))) ScriptObjVal<T>();
 		new (obj->Ptr()) T(val);
 	}
@@ -288,7 +301,7 @@ struct ScriptArg<T&>
 
 	static void Set(ScriptHandle vm, i32 slot, T& val)
 	{
-		Script::SetClass<T>(vm, slot);
+		Script::Get().SetClass<T>(vm, slot);
 		new (Script::Get().SetSlotNewObject(vm, slot, slot, sizeof(ScriptObjPtr<T>))) ScriptObjPtr<T>(&val);
 	}
 };
@@ -304,7 +317,7 @@ struct ScriptArg<const T&>
 
 	static void Set(ScriptHandle vm, i32 slot, const T& val)
 	{
-		Script::SetClass<T>(vm, slot);
+		Script::Get().SetClass<T>(vm, slot);
 		new (Script::Get().SetSlotNewObject(vm, slot, slot, sizeof(ScriptObjPtr<T>))) ScriptObjPtr<T>(const_cast<T*>(&val));
 	}
 };
@@ -320,7 +333,7 @@ struct ScriptArg<T*>
 
 	static void Set(ScriptHandle vm, i32 slot, T* val)
 	{
-		Script::SetClass<T>(vm, slot);
+		Script::Get().SetClass<T>(vm, slot);
 		new (Script::Get().SetSlotNewObject(vm, slot, slot, sizeof(ScriptObjPtr<T>))) ScriptObjPtr<T>(val);
 	}
 };
@@ -336,7 +349,7 @@ struct ScriptArg<const T*>
 
 	static void Set(ScriptHandle vm, i32 slot, const T* val)
 	{
-		Script::SetClass<T>(vm, slot);
+		Script::Get().SetClass<T>(vm, slot);
 		new (Script::Get().SetSlotNewObject(vm, slot, slot, sizeof(ScriptObjPtr<T>))) ScriptObjPtr<T>(const_cast<T*>(val));
 	}
 };
@@ -442,7 +455,7 @@ struct ScriptArg<const T*>
 //	template <typename U>
 //	static void Set(ScriptHandle vm, i32 slot, U val)
 //	{
-//		Script::SetClass<MetaResource>(vm, slot);
+//		Script::Get().SetClass<MetaResource>(vm, slot);
 //		ScriptObj* obj = new (ScriptArg<void*>::Set(vm, slot, slot, sizeof(ScriptObjVal<Resource<T>>))) ScriptObjVal<Resource<T>>();
 //		new (obj->Ptr()) Resource<T>(val);
 //	}
@@ -460,7 +473,7 @@ struct ScriptArg<const T*>
 //	template <typename U>
 //	static void Set(ScriptHandle vm, i32 slot, U val)
 //	{
-//		Script::SetClass<MetaResource>(vm, slot);
+//		Script::Get().SetClass<MetaResource>(vm, slot);
 //		ScriptObj* obj = new (ScriptArg<void*>::Set(vm, slot, slot, sizeof(ScriptObjVal<Resource<T>>))) ScriptObjVal<Resource<T>>();
 //		new (obj->Ptr()) Resource<T>(val);
 //	}
@@ -474,57 +487,57 @@ private:
 
 	// function pointer
 	template<typename R, typename... Args>
-	static R CallWithArguments(ScriptHandle vm, R(*f)(Args...))
+	static R CallWithArguments(ScriptHandle vm, R(*F)(Args...))
 	{
-		constexpr SizeType arity = meta::function_traits<decltype(f)>::arity;
-		Script::EnsureSlots(vm, arity);
-		return CallImpl(vm, f, meta::make_index_sequence<arity>{});
+		constexpr SizeType arity = meta::function_traits<decltype(F)>::arity;
+		Script::Get().EnsureSlots(vm, arity);
+		return CallImpl(vm, F, meta::make_index_sequence<arity>{});
 	}
 
 	// member function pointer
 	template<typename R, typename C, typename... Args>
-	static R CallWithArguments(ScriptHandle vm, R(C::* f)(Args...))
+	static R CallWithArguments(ScriptHandle vm, R(C::*F)(Args...))
 	{
-		constexpr SizeType arity = meta::function_traits<decltype(f)>::arity;
-		Script::EnsureSlots(vm, arity);
-		return CallImpl(vm, f, meta::make_index_sequence<arity>{});
+		constexpr SizeType arity = meta::function_traits<decltype(F)>::arity;
+		Script::Get().EnsureSlots(vm, arity);
+		return CallImpl(vm, F, meta::make_index_sequence<arity>{});
 	}
 
 	// const member function pointer
 	template<typename R, typename C, typename... Args>
-	static R CallWithArguments(ScriptHandle vm, R(C::* f)(Args...) const)
+	static R CallWithArguments(ScriptHandle vm, R(C::*F)(Args...) const)
 	{
-		constexpr SizeType arity = meta::function_traits<decltype(f)>::arity;
-		Script::EnsureSlots(vm, arity);
-		return CallImpl(vm, f, meta::make_index_sequence<arity>{});
+		constexpr SizeType arity = meta::function_traits<decltype(F)>::arity;
+		Script::Get().EnsureSlots(vm, arity);
+		return CallImpl(vm, F, meta::make_index_sequence<arity>{});
 	}
 
 	// function pointer
 	template<typename R, typename... Args, SizeType... index>
-	static R CallImpl(ScriptHandle vm, R(*f)(Args...), meta::index_sequence<index...>)
+	static R CallImpl(ScriptHandle vm, R(*F)(Args...), meta::index_sequence<index...>)
 	{
-		using Traits = meta::function_traits<meta::remove_reference_t<decltype(f)>>;
-		return f(ScriptArg<typename Traits::template argument_t<index>>::Get(vm, index + 1)...);
+		using Traits = meta::function_traits<meta::remove_reference_t<decltype(F)>>;
+		return F(ScriptArg<typename Traits::template argument_t<index>>::Get(vm, index + 1)...);
 	}
 
 	// member function pointer
 	template<typename R, typename C, typename... Args, SizeType... index>
-	static R CallImpl(ScriptHandle vm, R(C::* f)(Args...), meta::index_sequence<index...>)
+	static R CallImpl(ScriptHandle vm, R(C::*F)(Args...), meta::index_sequence<index...>)
 	{
-		using Traits = meta::function_traits<decltype(f)>;
+		using Traits = meta::function_traits<decltype(F)>;
 		ScriptObj* obj = static_cast<ScriptObj*>(Script::Get().GetSlotObject(vm, 0));
 		C* ptr = static_cast<C*>(obj->Ptr());
-		return (ptr->*f)(ScriptArg<typename Traits::template argument_t<index>>::Get(vm, index + 1)...);
+		return (ptr->*F)(ScriptArg<typename Traits::template argument_t<index>>::Get(vm, index + 1)...);
 	}
 
 	// const member function pointer
 	template<typename R, typename C, typename... Args, SizeType... index>
-	static R CallImpl(ScriptHandle vm, R(C::* f)(Args...) const, meta::index_sequence<index...>)
+	static R CallImpl(ScriptHandle vm, R(C::*F)(Args...) const, meta::index_sequence<index...>)
 	{
-		using Traits = meta::function_traits<decltype(f)>;
+		using Traits = meta::function_traits<decltype(F)>;
 		ScriptObj* obj = static_cast<ScriptObj*>(Script::Get().GetSlotObject(vm, 0));
 		C* ptr = static_cast<C*>(obj->Ptr());
-		return (ptr->*f)(ScriptArg<typename Traits::template argument_t<index>>::Get(vm, index + 1)...);
+		return (ptr->*F)(ScriptArg<typename Traits::template argument_t<index>>::Get(vm, index + 1)...);
 	}
 };
 
@@ -540,23 +553,23 @@ private:
 
 	// function pointer
 	template<typename R, typename... Args>
-	static void Call(ScriptHandle vm, R(*f)(Args...))
+	static void Call(ScriptHandle vm, R(*F)(Args...))
 	{
-		ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(*)(Args...)>(f));
+		ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(*)(Args...)>(F));
 	}
 
 	// member function pointer
 	template<typename R, typename C, typename... Args>
-	static void Call(ScriptHandle vm, R(C::* f)(Args...))
+	static void Call(ScriptHandle vm, R(C::*F)(Args...))
 	{
-		ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(C::*)(Args...)>(f));
+		ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(C::*)(Args...)>(F));
 	}
 
 	// const member function pointer
 	template<typename R, typename C, typename... Args>
-	static void Call(ScriptHandle vm, R(C::* f)(Args...) const)
+	static void Call(ScriptHandle vm, R(C::*F)(Args...) const)
 	{
-		ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(C::*)(Args...) const>(f));
+		ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(C::*)(Args...) const>(F));
 	}
 };
 
@@ -569,65 +582,65 @@ private:
 
 	// function pointer
 	template<typename R, typename... Args>
-	static void Call(ScriptHandle vm, R(*f)(Args...))
+	static void Call(ScriptHandle vm, R(*F)(Args...))
 	{
-		using ReturnType = typename meta::function_traits<meta::remove_reference_t<decltype(f)>>::return_type;
-		ScriptArg<ReturnType>::Set(vm, 0, ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(*)(Args...)>(f)));
+		using ReturnType = typename meta::function_traits<meta::remove_reference_t<decltype(F)>>::return_type;
+		ScriptArg<ReturnType>::Set(vm, 0, ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(*)(Args...)>(F)));
 	}
 
 	// member function pointer
 	template<typename R, typename C, typename... Args>
-	static void Call(ScriptHandle vm, R(C::* f)(Args...))
+	static void Call(ScriptHandle vm, R(C::*F)(Args...))
 	{
-		using ReturnType = typename meta::function_traits<meta::remove_reference_t<decltype(f)>>::return_type;
-		ScriptArg<ReturnType>::Set(vm, 0, ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(C::*)(Args...)>(f)));
+		using ReturnType = typename meta::function_traits<meta::remove_reference_t<decltype(F)>>::return_type;
+		ScriptArg<ReturnType>::Set(vm, 0, ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(C::*)(Args...)>(F)));
 	}
 
 	// const member function pointer
 	template<typename R, typename C, typename... Args>
-	static void Call(ScriptHandle vm, R(C::* f)(Args...) const)
+	static void Call(ScriptHandle vm, R(C::*F)(Args...) const)
 	{
-		using ReturnType = typename meta::function_traits<meta::remove_reference_t<decltype(f)>>::return_type;
-		ScriptArg<ReturnType>::Set(vm, 0, ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(C::*)(Args...) const>(f)));
+		using ReturnType = typename meta::function_traits<meta::remove_reference_t<decltype(F)>>::return_type;
+		ScriptArg<ReturnType>::Set(vm, 0, ScriptInvokeImpl::CallWithArguments(vm, std::forward<R(C::*)(Args...) const>(F)));
 	}
 };
 
 template<typename Signature, Signature>
 class ScriptInvokeWrapper;
 
-template<typename R, typename... Args, R(*f)(Args...)>
-class ScriptInvokeWrapper<R(*)(Args...), f>
+template<typename R, typename... Args, R(*F)(Args...)>
+class ScriptInvokeWrapper<R(*)(Args...), F>
 {
 private:
 	friend class Script;
 
 	static void Call(ScriptHandle vm)
 	{
-		ScriptInvoke<std::is_void<R>::value>::Call(vm, f);
+		ScriptInvoke<std::is_void<R>::value>::Call(vm, F);
 	}
 };
 
-template<typename R, typename C, typename... Args, R(C::* f)(Args...)>
-class ScriptInvokeWrapper<R(C::*)(Args...), f>
+template<typename R, typename C, typename... Args, R(C::*F)(Args...)>
+class ScriptInvokeWrapper<R(C::*)(Args...), F>
 {
 private:
 	friend class Script;
 
 	static void Call(ScriptHandle vm)
 	{
-		ScriptInvoke<std::is_void<R>::value>::Call(vm, f);
+		ScriptInvoke<std::is_void<R>::value>::Call(vm, F);
 	}
 };
 
-template<typename R, typename C, typename... Args, R(C::* f)(Args...) const>
-class ScriptInvokeWrapper<R(C::*)(Args...) const, f>
+template<typename R, typename C, typename... Args, R(C::*F)(Args...) const>
+class ScriptInvokeWrapper<R(C::*)(Args...) const, F>
 {
 private:
 	friend class Script;
 
 	static void Call(ScriptHandle vm)
 	{
-		ScriptInvoke<std::is_void<R>::value>::Call(vm, f);
+		ScriptInvoke<std::is_void<R>::value>::Call(vm, F);
 	}
 };
 
@@ -650,7 +663,7 @@ private:
 	}
 };
 
-template<typename T, typename U, const U Val>
+template<typename T, T Val>
 class ScriptEnumVal
 {
 private:
@@ -658,23 +671,23 @@ private:
 
 	static void Get(ScriptHandle vm)
 	{
-		ScriptArg<T>::Set(vm, 0, T(Val));
+		ScriptArg<T>::Set(vm, 0, Val);
 	}
 };
 
-template<typename T, typename... Args, SizeType... index>
-void Script::Construct(ScriptHandle vm, void* memory, meta::index_sequence<index...>)
+template<typename T, typename... Args, SizeType... Index>
+void Script::Construct(ScriptHandle vm, void* memory, meta::index_sequence<Index...>)
 {
 	using Traits = meta::parameter_pack_traits<Args...>;
-	EnsureSlots(vm, Traits::count);
+	Script::Get().EnsureSlots(vm, Traits::count);
 	ScriptObjVal<T>* obj = new (memory) ScriptObjVal<T>{};
-	new (obj->Ptr()) T{ ScriptArg<typename Traits::template parameter_t<index>>::Get(vm, index + 1)... };
+	new (obj->Ptr()) T{ ScriptArg<typename Traits::template parameter_t<Index>>::Get(vm, Index + 1)... };
 }
 
 template<typename T, typename... Args>
 void Script::Allocate(ScriptHandle vm)
 {
-	void* memory = ScriptArg<void*>::Set(vm, 0, 0, sizeof(ScriptObjVal<T>));
+	void* memory = Script::Get().SetSlotNewObject(vm, 0, 0, sizeof(ScriptObjVal<T>));
 	Construct<T, Args...>(vm, memory, meta::make_index_sequence<meta::parameter_pack_traits<Args...>::count>{});
 }
 
@@ -705,6 +718,29 @@ void Script::BeginClass(StringView className, ScriptMethodFn allocate, ScriptFin
 	RegisterClass(Type<T>::Id());
 	RegisterConstructor(0, "", allocate);
 	RegisterDestructor(finalize);
+}
+
+template <typename T, typename U>
+void Script::BeginEnumClass(StringView className)
+{
+	BeginClass(className);
+	RegisterClass(Type<T>::Id());
+
+	RegisterConstructor(0, "",
+		[](ScriptHandle vm)
+		{
+			void* memory = Script::Get().SetSlotNewObject(vm, 0, 0, sizeof(ScriptObjVal<T>));
+			Script::Get().EnsureSlots(vm, 1);
+			ScriptObjVal<T>* obj = new (memory) ScriptObjVal<T>{};
+			new (obj->Ptr()) T(Enum::as_type<T>(ScriptArg<U>::Get(vm, 1)));
+		});
+
+	RegisterDestructor(
+		[](void* data)
+		{
+			ScriptObj* obj = static_cast<ScriptObj*>(data);
+			obj->~ScriptObj();
+		});
 }
 
 //template <typename TData>
@@ -757,26 +793,32 @@ void Script::BeginClass(StringView className, ScriptMethodFn allocate, ScriptFin
 //	RegisterComponentClass(Type<TCmp>::Id(), wrapper);
 //}
 
-template<typename F, F f>
+template<typename Fn, Fn F>
 void Script::BindFunction(bool isStatic, StringView signature)
 {
-	RegisterFunction(isStatic, signature, ScriptInvokeWrapper<decltype(f), f>::Call);
+	BindFunction(isStatic, signature, ScriptInvokeWrapper<decltype(F), F>::Call);
+}
+
+template<typename Fn, Fn F>
+void Script::BindModuleFunction(StringView signature)
+{
+	BindFunction(false, signature, ScriptInvokeWrapper<decltype(F), F>::Call);
 }
 
 template<typename T, typename U, U T::* Field>
 void Script::BindGetter(StringView signature)
 {
-	RegisterFunction(false, signature, ScriptProperty<T, U, Field>::Get);
+	BindFunction(false, signature, ScriptProperty<T, U, Field>::Get);
 }
 
 template<typename T, typename U, U T::* Field>
 void Script::BindSetter(StringView signature)
 {
-	RegisterFunction(false, signature, ScriptProperty<T, U, Field>::Set);
+	BindFunction(false, signature, ScriptProperty<T, U, Field>::Set);
 }
 
-template <typename T, typename U, const U Val>
+template <typename T, T Val>
 void Script::BindEnumVal(StringView signature)
 {
-	RegisterFunction(true, signature, ScriptEnumVal<T, U, Val>::Get);
+	BindFunction(true, signature, ScriptEnumVal<T, Val>::Get);
 }

@@ -27,11 +27,20 @@ public:
 	void OnUpdate() override;
 	void OnRender() override;
 
+public:
+	void Reload();
+
 private:
 	friend class WorldEditor;
 
-	bool m_running{ false };
+	bool m_playing{ false };
+	bool m_paused{ false };
+
 	ScriptHandle m_vm{ SCRIPT_INVALID_HANDLE };
+	ScriptHandle m_newFn{ SCRIPT_INVALID_HANDLE };
+	ScriptHandle m_updateFn{ SCRIPT_INVALID_HANDLE };
+	ScriptHandle m_renderFn{ SCRIPT_INVALID_HANDLE };
+	ScriptHandle m_instance{ SCRIPT_INVALID_HANDLE };
 };
 
 /*

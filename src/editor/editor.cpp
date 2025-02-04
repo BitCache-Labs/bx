@@ -75,6 +75,7 @@ void Editor::Shutdown()
 {
 	BX_LOGD(Editor, "Editor shutting down ...");
 
+	Clear();
     Graphics::Get().ShutdownImGui();
     Window::Get().ShutdownImGui();
     ImGui::DestroyContext();

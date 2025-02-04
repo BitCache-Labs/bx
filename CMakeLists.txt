@@ -74,7 +74,7 @@ if (BX_BUILD_EDITOR)
 		
 		"src/framework/editor/world_editor.cpp"
 	)
-	set (ENGINE_LIBS ${ENGINE_LIBS} imgui implot ImGuizmo)
+	set (ENGINE_LIBS ${ENGINE_LIBS} imgui implot ImGuizmo IconFontCppHeaders)
 endif()
 
 if (BX_WINDOW_BACKEND STREQUAL "GLFW")

@@ -33,7 +33,9 @@
 
 #define MAX_BOUND_VERTEX_BUFFERS                        16
 
-//#define GRAPHICS_OPENGL_BINDLESS
+#ifndef DEBUG_BUILD
+#define GRAPHICS_OPENGL_BINDLESS
+#endif
 
 struct BX_API ShaderImpl
 {
@@ -51,7 +53,9 @@ struct BX_API BufferImpl
 struct BX_API TextureImpl
 {
     GLuint texture = 0;
+#ifdef GRAPHICS_OPENGL_BINDLESS
     GLuint sampler = 0;
+#endif
     GLuint fbo = 0;
     GLuint rbo = 0;
 
@@ -159,6 +163,8 @@ public:
 
     void EndFrameImGui() override
     {
+        Graphics::Get().SetRenderTarget(Graphics::Get().GetCurrentBackBufferRT(), Graphics::Get().GetDepthBuffer());
+
         ImGui::Render();
 
         //GraphicsHandle renderTarget = GetCurrentBackBufferRT();

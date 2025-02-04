@@ -5,7 +5,7 @@ static const StringView g_audioSrc = R"(
 class Audio {
     //foreign static test()
 }
-Audio.test()
+//Audio.test()
 )";
 
 BX_SCRIPT_API_REGISTRATION(Audio)

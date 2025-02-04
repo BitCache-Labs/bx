@@ -1,6 +1,32 @@
-#include <engine/debug.hpp>
-
 #if defined(EDITOR_BUILD) || defined(DEBUG_BUILD)
+
+#include <engine/debug.hpp>
+#include <engine/script.hpp>
+
+static const StringView g_debugSrc = R"(
+class Debug {
+    //foreign static test()
+}
+//Audio.test()
+)";
+
+//BX_SCRIPT_API_REGISTRATION(Debug)
+//{
+//    Script::Get().BeginModule("debug");
+//    {
+//        Script::Get().BeginClass("Debug");
+//        {
+//            //Script::Get().BindFunction(true, "test()", [](ScriptHandle vm) { Audio::Get().Test(); });
+//        }
+//        Script::Get().EndClass();
+//    }
+//    Script::Get().EndModule();
+//
+//    ScriptModuleSource src{};
+//    src.moduleName = "debug";
+//    src.moduleSource = g_debugSrc;
+//    return src;
+//}
 
 BX_MODULE_DEFINE(Debug)
 
@@ -169,4 +195,5 @@ void Debug::ClearDraws()
 {
     m_vertices.clear();
 }
+
 #endif

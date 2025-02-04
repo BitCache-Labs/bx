@@ -5,6 +5,8 @@
 #include <engine/window.hpp>
 #include <engine/debug.hpp>
 
+#include <IconsFontAwesome5.h>
+
 WorldEditor::WorldEditor(SceneManager& sceneManager)
     : m_sceneManager(sceneManager)
 {
@@ -130,9 +132,351 @@ WorldEditor::~WorldEditor()
     m_sceneManager.DestroyScene(m_world);
 }
 
+void WorldEditor::OnToolbarGui(World& world)
+{
+    f32 ok_timer = 0;// -= Time::GetDeltaTime();
+    ImVec2 topPanelSize;
+
+    //if (Script::HasError() || show_data || show_profiler || show_scene || show_entity || show_assets
+    //	|| (ImGui::IsMousePosValid() && ImGui::GetMousePos().y < 100.0f))
+    if ((!world.m_playing || world.m_paused) ||
+        (world.m_playing && ImGui::IsMousePosValid() &&
+            (ImGui::GetMousePos().y - ImGui::GetWindowPos().y) < 100.0f))
+    {
+        if (ImGui::BeginMenuBar())
+        {
+            topPanelSize = ImGui::GetWindowSize();
+
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("New", "CTRL+N")) {}
+                if (ImGui::MenuItem("Open", "CTRL+O"))
+                {
+                    //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+                    //
+                    //Runtime::Reload();
+                    //Scene::Load(scene);
+                }
+                if (ImGui::MenuItem("Save", "CTRL+S"))
+                {
+                    //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+                    //Scene::Save(scene);
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Exit"))
+                {
+                    //Runtime::Close();
+                }
+
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Edit"))
+            {
+                if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+                if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+                ImGui::Separator();
+                if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+                if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+                if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+
+        // Inside your parent window code (i.e. inside an ImGui::Begin/End block)
+
+        // Determine the available content region size:
+        ImVec2 contentSize = ImGui::GetContentRegionAvail();
+
+        // If you want to fix the toolbar height, you can set it here. For example:
+        const float toolbarHeight = 30.0f; // or any value you like
+
+        // Begin the child window that will act as the toolbar.
+        // The child window inherits its parent's position and clipping.
+        if (ImGui::BeginChild("##ApplicationToolbarChild",
+            ImVec2(contentSize.x, toolbarHeight),
+            false, // No border by default; adjust as needed
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoScrollWithMouse |
+            ImGuiWindowFlags_NoDocking))
+        {
+            // Store the current height of the toolbar child
+            topPanelSize.y = ImGui::GetWindowSize().y;
+
+            // Save current style colors if needed.
+            ImGuiStyle& style = ImGui::GetStyle();
+            ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_WindowBg]);
+
+            // Lay out the toolbar items on the same line.
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_ADJUST))
+            {
+                //theme = !theme;
+                //SelectTheme();
+            }
+            //Tooltip("Theme");
+
+            ImGui::SameLine();
+            ImGui::Separator();
+
+            //ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+            //ImGui::SameLine();
+            //
+            //ImGui::Text("| Engine v%s |", BX_VERSION_STR);
+            //Tooltip("Version");
+            //ImGui::SameLine();
+            //
+            //if (ImGui::Button(ICON_FA_QUESTION_CIRCLE))
+            //{
+            //    // TODO: About dialog
+            //}
+            //Tooltip("About");
+            //
+            //ImGui::PopStyleColor(); // Pop text color
+
+            ImGui::SameLine();
+            ImGui::Separator();
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_BUG))
+            {
+                //show_settings = !show_settings;
+            }
+            //Tooltip("Debug");
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_CHART_PIE))
+            {
+                //show_profiler = !show_profiler;
+            }
+            //Tooltip("Profiler");
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_DATABASE)) // ICON_FA_COG alternative
+            {
+                //show_data = !show_data;
+            }
+            //Tooltip("Data");
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_TERMINAL))
+            {
+                //show_console = !show_console;
+            }
+            //Tooltip("Console");
+
+            ImGui::SameLine();
+            ImGui::Separator();
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_LIST))
+            {
+                //show_scene = !show_scene;
+            }
+            //Tooltip("Scene");
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_EDIT))
+            {
+                //show_inspector = !show_inspector;
+            }
+            //Tooltip("Inspector");
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_IMAGES))
+            {
+                //show_assets = !show_assets;
+            }
+            //Tooltip("Assets");
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_ID_BADGE))
+            {
+                //show_gameobjects = !show_gameobjects;
+            }
+            //Tooltip("GameObjects");
+
+            ImGui::SameLine();
+            ImGui::Separator();
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_SYNC_ALT))
+            {
+                //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+                //Runtime::Reload();
+                //Scene::Load(scene);
+            }
+            //Tooltip("Reload");
+
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[world.m_playing ? ImGuiCol_ButtonHovered : ImGuiCol_Button]);
+            if (ImGui::Button(ICON_FA_PLAY))
+            {
+                world.m_playing = !world.m_playing;
+                if (!world.m_playing)
+                {
+                    world.m_paused = false;
+                    //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+                    //Runtime::Reload();
+                    //Scene::Load(scene);
+                    //Window::SetCursorMode(CursorMode::NORMAL);
+                }
+                else
+                {
+                    //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+                    //Scene::Save(scene);
+                    //Window::SetCursorMode(CursorMode::DISABLED);
+                }
+            }
+            ImGui::PopStyleColor();
+            //Tooltip("Play");
+
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[world.m_paused ? ImGuiCol_ButtonHovered : ImGuiCol_Button]);
+            if (ImGui::Button(ICON_FA_PAUSE))
+            {
+                world.m_paused = !world.m_paused;
+            }
+            ImGui::PopStyleColor();
+            //Tooltip("Pause");
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_FAST_FORWARD))
+            {
+            }//next_frame = true;
+            //Tooltip("Next Frame");
+
+            ImGui::SameLine();
+            ImGui::Separator();
+
+            //ImGui::SameLine();
+            //if (ok_timer > 0.0f)
+            //{
+            //    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.1f, 1.0f, 0.1f, 1.0f));
+            //    if (ImGui::Button(ICON_FA_CHECK_CIRCLE))
+            //        ok_timer = 0.0f;
+            //    ImGui::PopStyleColor();
+            //    Tooltip("Reload Complete");
+            //}
+            //
+            //ImGui::SameLine();
+            //if (Script::Get().HasError(world.m_vm))
+            //{
+            //    paused = true;
+            //    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.1f, 0.1f, 1.0f));
+            //    if (ImGui::Button(ICON_FA_TIMES_CIRCLE))
+            //    {
+            //        Script::Get().ClearError(world.m_vm);
+            //        paused = false;
+            //    }
+            //    Tooltip("Script Error! Check output.");
+            //    ImGui::PopStyleColor();
+            //}
+
+            //if (xs::data::has_chages()) {
+            //	ImGui::SameLine();
+            //	ImGui::PushStyleColor(ImGuiCol_Text, 0xFFFF5FB9);
+            //	if (ImGui::Button(ICON_FA_EXCLAMATION_TRIANGLE)) {
+            //		show_data = true;
+            //	}
+            //	ImGui::PopStyleColor();
+            //	Tooltip("Data has unsaved changes");
+            //}
+
+            ImGui::PopStyleColor(); // Pop the button style color pushed earlier
+
+        } // End of child window content
+
+        ImGui::EndChild();
+    }
+
+    /*
+    if (!IsPlaying() || IsPaused())
+    {
+        // Setup Dockspace
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + topPanelSize.y));
+        ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, viewport->Size.y - topPanelSize.y));
+        ImGui::SetNextWindowViewport(viewport->ID);
+        windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::Begin("##DockSpace", nullptr, windowFlags);
+        ImGui::PopStyleVar(2);
+
+        // Dockspace
+        ImGuiID dockspaceId = ImGui::GetID("##DockSpaceID");
+        ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+        if (show_data)
+        {
+            DataView::Present(show_data);
+        }
+
+        if (show_profiler)
+        {
+            ProfilerView::Present(show_profiler);
+        }
+
+        if (show_inspector)
+        {
+            InspectorView::Present(show_inspector);
+        }
+
+        if (show_assets)
+        {
+            AssetsView::Present(show_assets);
+        }
+
+        if (show_gameobjects)
+        {
+            GameObjectView::Present(show_gameobjects);
+        }
+
+        if (show_console)
+        {
+            ConsoleView::Present(show_console);
+        }
+
+        //if (show_settings)
+        //{
+        //	SettingsView::Inspect(show_settings);
+        //}
+
+        if (show_scene)
+        {
+            SceneView::Present(show_scene);
+        }
+
+        ImGui::End();
+    }
+    else
+    {
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
+        {
+            Window::SetCursorMode(CursorMode::DISABLED);
+        }
+
+        if (ImGui::IsKeyDown(ImGuiKey_LeftShift) && ImGui::IsKeyPressed(ImGuiKey_F1))
+        {
+            Window::SetCursorMode(CursorMode::NORMAL);
+        }
+    }
+
+    //ImGui::EndDisabled();
+    */
+}
+
 void WorldEditor::OnGui(EditorApplication& app)
 {
     auto& world = static_cast<World&>(*m_sceneManager.GetScene(m_world));
+
+    OnToolbarGui(world);
 
     m_frames++;
     m_timer += Time::Get().DeltaTime();
@@ -146,6 +490,7 @@ void WorldEditor::OnGui(EditorApplication& app)
     CString<64> fps;
     fps.format("FPS: {}", m_fps);
     ImGui::Text(fps);
+    ImGui::SameLine();
 
     //ObjectRef selected = Selection::GetSelected();
     //EntityId deletedId = INVALID_ENTITY_ID;
@@ -182,7 +527,10 @@ void WorldEditor::OnGui(EditorApplication& app)
     //if (ImGui::Checkbox("##PhysicsDebugDraw", &m_physicsDebugDraw))
     //    Physics::Get().SetDebugDraw(g_physicsDebugDraw);
 
-    bool sceneActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || ImGui::IsWindowHovered();
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        ImGui::FocusWindow(ImGui::GetCurrentWindow());
+
+    bool sceneActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);// || ImGui::IsWindowHovered();
     if (sceneActive)
     {
         Update(world);
@@ -332,34 +680,37 @@ void WorldEditor::OnGui(EditorApplication& app)
 
 void WorldEditor::Update(World& world)
 {
-    // Update camera rotation
-    Vec2 mousePos{ Window::Get().GetMouseX(), Window::Get().GetMouseY() };
-    Vec2 viewDelta = mousePos - m_mousePos;
-    m_mousePos = mousePos;
+    // Get the ImGui IO structure for input state
+    ImGuiIO& io = ImGui::GetIO();
 
-    if (Window::Get().GetMouseButton(MouseButton::MOUSE_BUTTON_RIGHT))
+    // Rotate camera when the right mouse button is held down
+    if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
-        m_cameraRot.x += viewDelta.y * m_lookSpeed;
-        m_cameraRot.y -= viewDelta.x * m_lookSpeed;
+        // Use mouse delta provided by ImGui
+        m_cameraRot.x += io.MouseDelta.y * m_lookSpeed;
+        m_cameraRot.y -= io.MouseDelta.x * m_lookSpeed;
     }
 
-    // Update camera position
-    Vec3 moveDelta{};
-    if (Window::Get().GetKey(Key::W))
+    // Initialize movement delta vector to zero
+    Vec3 moveDelta{ 0.0f, 0.0f, 0.0f };
+
+    // Use ImGui key queries for movement keys
+    if (ImGui::IsKeyDown(ImGuiKey_W))
         moveDelta.z += 1;
-    if (Window::Get().GetKey(Key::S))
+    if (ImGui::IsKeyDown(ImGuiKey_S))
         moveDelta.z -= 1;
-    if (Window::Get().GetKey(Key::A))
+    if (ImGui::IsKeyDown(ImGuiKey_A))
         moveDelta.x += 1;
-    if (Window::Get().GetKey(Key::D))
+    if (ImGui::IsKeyDown(ImGuiKey_D))
         moveDelta.x -= 1;
-    if (Window::Get().GetKey(Key::E))
+    if (ImGui::IsKeyDown(ImGuiKey_E))
         moveDelta.y += 1;
-    if (Window::Get().GetKey(Key::Q))
+    if (ImGui::IsKeyDown(ImGuiKey_Q))
         moveDelta.y -= 1;
 
-    f32 moveSpeed = m_moveSpeed;
-    if (Window::Get().GetKey(Key::SPACE))
+    // Set move speed and boost it if SPACE is held down
+    float moveSpeed = m_moveSpeed;
+    if (ImGui::IsKeyDown(ImGuiKey_Space))
         moveSpeed *= 20;
 
     Quat camRot = Quat::Euler(m_cameraRot.x, m_cameraRot.y, m_cameraRot.z);
@@ -538,13 +889,13 @@ void WorldEditor::Render(World& world, const ImVec2& size)
 
     const f32 viewport[] = { 0.0f, 0.0f, m_screenSize.x, m_screenSize.y };
     Graphics::Get().SetViewport(viewport);
-    
-    static f32 clearColor[] = { 1.2f, .2f, .2f, 1.f };
-    Graphics::Get().ClearRenderTarget(m_renderTarget, clearColor);
-    Graphics::Get().ClearDepthStencil(m_depthStencil, GraphicsClearFlags::DEPTH, 1.0f, 0);
 
     // Render to the normal color render target
     Graphics::Get().SetRenderTarget(m_renderTarget, m_depthStencil);
+    
+    static f32 clearColor[] = { .2f, .2f, .2f, 1.f };
+    Graphics::Get().ClearRenderTarget(m_renderTarget, clearColor);
+    Graphics::Get().ClearDepthStencil(m_depthStencil, GraphicsClearFlags::DEPTH, 1.0f, 0);
 
     //renderer.BindConstants(g_sceneCam.GetView(), g_sceneCam.GetProjection(), g_sceneCam.GetViewProjection());
     //renderer.DrawCommands();
@@ -590,6 +941,4 @@ void WorldEditor::Render(World& world, const ImVec2& size)
 
     Debug::Get().RenderDraws(m_camera.GetViewProjection());
     Debug::Get().ClearDraws();
-
-    Graphics::Get().SetRenderTarget(Graphics::Get().GetCurrentBackBufferRT(), Graphics::Get().GetDepthBuffer());
 }

@@ -22,7 +22,7 @@ static GLenum GetTextureFormat(TextureFormat format)
     case TextureFormat::RGB8_UNORM:         return GL_RGB8;
 #endif
     case TextureFormat::RG32_UINT:          return GL_RG32UI;// GL_RG_INTEGER;
-    case TextureFormat::D24_UNORM_S8_UINT:  return GL_DEPTH_STENCIL;
+    case TextureFormat::D24_UNORM_S8_UINT:  return GL_DEPTH24_STENCIL8;// GL_DEPTH_STENCIL;
 
     default:
         BX_FAIL("Texture format not supported!");

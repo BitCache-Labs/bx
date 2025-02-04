@@ -4,14 +4,43 @@
 #include <engine/application.hpp>
 #include <engine/hash_map.hpp>
 
-void World::OnCreate()
+#include <engine/wren/script_wren.hpp>
+
+void World::Reload()
 {
+	if (m_vm != SCRIPT_INVALID_HANDLE)
+	{
+		OnDestroy();
+	}
+
 	ScriptVmInfo info{};
 	m_vm = Script::Get().CreateVm(info);
+
+	m_newFn = Script::Get().CreateFunction(m_vm, "new()");
+	m_updateFn = Script::Get().CreateFunction(m_vm, "update()");
+	m_renderFn = Script::Get().CreateFunction(m_vm, "render()");
+
+	Script::Get().CompileFile(m_vm, "test", File::Get().GetPath("/assets/test.wren"));
+
+	Script::Get().EnsureSlots(m_vm, 1);
+	wrenGetVariable((WrenVM*)m_vm, "test", "Test", 0);
+	auto testClass = Script::Get().GetSlotHandle(m_vm, 0);
+	Script::Get().SetSlotHandle(m_vm, 0, testClass);
+
+	Script::Get().CallFunction(m_vm, m_newFn);
+	m_instance = Script::Get().GetSlotHandle(m_vm, 0);
+}
+
+void World::OnCreate()
+{
+	Reload();
 }
 
 void World::OnDestroy()
 {
+	Script::Get().DestroyFunction(m_vm, m_newFn);
+	Script::Get().DestroyFunction(m_vm, m_updateFn);
+	Script::Get().DestroyFunction(m_vm, m_renderFn);
 	Script::Get().DestroyVm(m_vm);
 }
 
@@ -21,22 +50,34 @@ void World::OnActiveSceneChanged(SceneHandle oldScene, SceneHandle newScene)
 
 void World::OnPlay()
 {
+	m_playing = true;
+	m_paused = false;
 }
 
 void World::OnPause()
 {
+	m_paused = true;
 }
 
 void World::OnStop()
 {
+	m_playing = false;
+	m_paused = false;
 }
 
 void World::OnUpdate()
 {
+	if (m_playing && !m_paused)
+	{
+		Script::Get().SetSlotHandle(m_vm, 0, m_instance);
+		Script::Get().CallFunction(m_vm, m_updateFn);
+	}
 }
 
 void World::OnRender()
 {
+	Script::Get().SetSlotHandle(m_vm, 0, m_instance);
+	Script::Get().CallFunction(m_vm, m_renderFn);
 }
 
 /*

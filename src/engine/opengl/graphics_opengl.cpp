@@ -320,14 +320,14 @@ void GraphicsOpenGL::SetRenderTarget(const GraphicsHandle renderTarget, const Gr
     GLenum status = glCheckNamedFramebufferStatus(renderTarget_impl.fbo, GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE)
     {
-        BX_LOGE(Graphics, "Framebuffer is incomplete: 0x%X", status);
+        BX_LOGE(Graphics, "Framebuffer is incomplete: {}", status);
         return;
     }
 
     // Bind the framebuffer for rendering
     glBindFramebuffer(GL_FRAMEBUFFER, renderTarget_impl.fbo);
 
-    // Optionally, set the draw buffer (only one attachment in this case)
+    // Set the draw buffer (only one attachment in this case)
     GLenum drawBuffer = GL_COLOR_ATTACHMENT0;
     glNamedFramebufferDrawBuffers(renderTarget_impl.fbo, 1, &drawBuffer);
 }
@@ -356,52 +356,42 @@ void GraphicsOpenGL::SetViewport(const f32 viewport[4])
 
 void GraphicsOpenGL::ClearRenderTarget(const GraphicsHandle rt, const f32 clearColor[4])
 {
-    if (rt != INVALID_GRAPHICS_HANDLE)
-    {
-        const auto& renderTarget_impl = GetImpl(rt, m_textures);
-
-        // Bind the framebuffer to clear
-        glBindFramebuffer(GL_FRAMEBUFFER, renderTarget_impl.fbo);
-
-        // Clear the color buffer with specified clear color
-        glClearBufferfv(GL_COLOR, 0, clearColor);
-    }
-    else
-    {
-        // Clear the default framebuffer
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // TODO: The bound render targets should be restored after these operations if not the same.
+    //if (rt != INVALID_GRAPHICS_HANDLE)
+    //{
+    //    const auto& renderTarget_impl = GetImpl(rt, m_textures);
+    //    glClearNamedFramebufferfv(renderTarget_impl.fbo, GL_COLOR, 0, clearColor);
+    //}
+    //else
+    //{
+    //    // Clear the default framebuffer
+    //    glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
         glClear(GL_COLOR_BUFFER_BIT);
-    }
+    //}
 }
 
 void GraphicsOpenGL::ClearDepthStencil(const GraphicsHandle dt, GraphicsClearFlags flags, f32 depth, i32 stencil)
 {
-    if (dt != INVALID_GRAPHICS_HANDLE)
-    {
-        const auto& depthStencil_impl = GetImpl(dt, m_textures);
-
-        // Bind the framebuffer to clear
-        glBindFramebuffer(GL_FRAMEBUFFER, depthStencil_impl.fbo);
-
-        // Clear depth and/or stencil
-        if (flags & GraphicsClearFlags::DEPTH)
-            glClearBufferfv(GL_DEPTH, 0, &depth);
-        
-        if (flags & GraphicsClearFlags::STENCIL)
-            glClearBufferiv(GL_STENCIL, 0, &stencil);
-    }
-    else
-    {
-        // Clear the default framebuffer depth/stencil
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    // TODO: Depth stencil render target needs an fbo to clear, and also make sure bound RT is restored.
+    //if (dt != INVALID_GRAPHICS_HANDLE)
+    //{
+    //    const auto& depthStencil_impl = GetImpl(dt, m_textures);
+    //    glClearNamedFramebufferfv(depthStencil_impl.rbo, GL_DEPTH, 0, &depth);
+    //    glClearNamedFramebufferiv(depthStencil_impl.rbo, GL_STENCIL, 0, &stencil);
+    //    //glClearNamedFramebufferfi(renderTarget_impl.fbo, GL_DEPTH_STENCIL, 0, depth, stencil);
+    //}
+    //else
+    //{
+    //    // Clear the default framebuffer depth/stencil
+    //    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
         GLbitfield mask = 0;
         if (flags & GraphicsClearFlags::DEPTH) mask |= GL_DEPTH_BUFFER_BIT;
         if (flags & GraphicsClearFlags::STENCIL) mask |= GL_STENCIL_BUFFER_BIT;
-
+    
         glClear(mask);
-    }
+    //}
 }
 
 GraphicsHandle GraphicsOpenGL::CreateShader(const ShaderInfo& info)
@@ -463,40 +453,44 @@ GraphicsHandle GraphicsOpenGL::CreateTexture(const TextureInfo& info, const Buff
     GLenum format = GetTextureBaseFormat(info.format);
     GLenum type = GetTextureType(info.format);
 
+    if (info.flags & TextureFlags::SHADER_RESOURCE)
+    {
 #ifdef GRAPHICS_OPENGL_BINDLESS
-    glCreateSamplers(1, &texture_impl.sampler);
-    glSamplerParameteri(texture_impl.sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glSamplerParameteri(texture_impl.sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glSamplerParameteri(texture_impl.sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glSamplerParameteri(texture_impl.sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glCreateSamplers(1, &texture_impl.sampler);
+        glSamplerParameteri(texture_impl.sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glSamplerParameteri(texture_impl.sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glSamplerParameteri(texture_impl.sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glSamplerParameteri(texture_impl.sampler, GL_TEXTURE_MIN_FILTER, info.enableMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 
-    glCreateTextures(GL_TEXTURE_2D, 1, &texture_impl.texture);
-    glTextureStorage2D(texture_impl.texture, 1, internalFormat, info.width, info.height);
+        glCreateTextures(GL_TEXTURE_2D, 1, &texture_impl.texture);
+        glTextureStorage2D(texture_impl.texture, 1, internalFormat, info.width, info.height);
 
-    if (data.pData)
-        glTextureSubImage2D(texture_impl.texture, 0, 0, 0, info.width, info.height, format, type, data.pData);
+        if (data.pData)
+            glTextureSubImage2D(texture_impl.texture, 0, 0, 0, info.width, info.height, format, type, data.pData);
 
-    glGenerateTextureMipmap(texture_impl.texture);
+        if (info.enableMipmaps)
+            glGenerateTextureMipmap(texture_impl.texture);
 
-    ENSURE(glGetTextureSamplerHandleARB != nullptr);
-    texture_impl.handle = glGetTextureSamplerHandleARB(texture_impl.texture, texture_impl.sampler);
-    glMakeTextureHandleResidentARB(texture_impl.handle);
+        BX_ENSURE(glGetTextureSamplerHandleARB != nullptr);
+        texture_impl.handle = glGetTextureSamplerHandleARB(texture_impl.texture, texture_impl.sampler);
+        glMakeTextureHandleResidentARB(texture_impl.handle);
 #else
-    glGenTextures(1, &texture_impl.texture);
-    glBindTexture(GL_TEXTURE_2D, texture_impl.texture);
+        glGenTextures(1, &texture_impl.texture);
+        glBindTexture(GL_TEXTURE_2D, texture_impl.texture);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, info.enableMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, info.width, info.height, 0, format, type, data.pData);
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, info.width, info.height, 0, format, type, data.pData);
 
-    if (info.enableMipmaps)
-        glGenerateMipmap(GL_TEXTURE_2D);
+        if (info.enableMipmaps)
+            glGenerateMipmap(GL_TEXTURE_2D);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 #endif
+    }
 
     if ((i32)info.flags & (i32)TextureFlags::RENDER_TARGET)
     {
@@ -510,8 +504,11 @@ GraphicsHandle GraphicsOpenGL::CreateTexture(const TextureInfo& info, const Buff
         glNamedRenderbufferStorage(texture_impl.rbo, internalFormat, info.width, info.height);
     }
 
-    m_textures.insert(std::make_pair(texture_impl.texture, texture_impl));
-    return texture_impl.texture;
+    static GraphicsHandle g_counter{ 0 };
+    GraphicsHandle handle = g_counter++;
+
+    m_textures.insert(std::make_pair(handle, texture_impl));
+    return handle;
 }
 
 void GraphicsOpenGL::DestroyTexture(const GraphicsHandle texture)

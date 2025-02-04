@@ -15,8 +15,8 @@ public:
     int Run(int argc, char** args, Application& app);
 
 private:
-    bool Initialize() noexcept;
-    void Shutdown() noexcept;
+    bool Initialize(Application& app) noexcept;
+    void Shutdown(Application& app) noexcept;
 
 #ifdef EDITOR_BUILD
     void OnGui(Application& app) noexcept;

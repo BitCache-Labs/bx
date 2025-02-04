@@ -28,6 +28,9 @@ public:
     void Render(World& world, const ImVec2& size);
 
 private:
+    void OnToolbarGui(World& world);
+
+private:
     SceneManager& m_sceneManager;
     SceneHandle m_world{ SCENE_INVALID_HANDLE };
 
@@ -55,7 +58,6 @@ private:
     GraphicsHandle m_depthStencil{ INVALID_GRAPHICS_HANDLE };
 
     // Camera data
-    Vec2 m_mousePos{ 0, 0 };
     Vec3 m_cameraPos{ 0, 5, 0 };
     Vec3 m_cameraRot{ 0, 0, 0 };
     f32 m_lookSpeed = 0.1f;

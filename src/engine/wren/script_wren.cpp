@@ -136,6 +136,7 @@ WrenLoadModuleResult ScriptWren::WrenLoadModule(WrenVM* vm, const char* moduleNa
 	//	ctx->wrenModulesSource.insert(std::make_pair(moduleNameStr, moduleSrc));
 	//}
 
+	BX_ENSURE(userData->ctx->m_wrenModulesSource.find(moduleNameStr) != userData->ctx->m_wrenModulesSource.end());
 	res.source = userData->ctx->m_wrenModulesSource[moduleNameStr].c_str();
 	return res;
 }
@@ -295,32 +296,37 @@ ScriptHandle ScriptWren::CreateVm(const ScriptVmInfo& info)
 void ScriptWren::DestroyVm(ScriptHandle vm)
 {
 	auto wrenVm = (WrenVM*)vm;
+
+	auto userData = GetVmImpl(wrenVm);
+	userData->initialized = false;
+	userData->error = false;
+	userData->ctx = nullptr;
+	userData->vm = nullptr;
+
 	if (wrenVm)
 	{
 		wrenFreeVM(wrenVm);
 		wrenVm = nullptr;
 	}
-
-	auto userData = GetVmImpl(wrenVm);
 }
 
-#if defined DEBUG_BUILD || defined EDITOR_BUILD
-#define LOAD_ENGINE_MODULE(ModuleName) { String src = File::ReadTextFile(ENGINE_PATH"/wren/"#ModuleName".wren"); WrenCompile(m_vm, #ModuleName, src.c_str()); }
-
-#else
-extern "C" {
-#include "core_wren.h"
-#include "device_wren.h"
-#include "math_wren.h"
-#include "graphicm_wren.h"
-#include "physicm_wren.h"
-#include "audio_wren.h"
-#include "ecm_wren.h"
-#include "framework_wren.h"
+ScriptHandle ScriptWren::CreateFunction(ScriptHandle vm, StringView signature)
+{
+	auto wrenVm = (WrenVM*)vm;
+	auto handle = wrenMakeCallHandle(wrenVm, signature.data());
+	return handle;
 }
 
-#define LOAD_ENGINE_MODULE(ModuleName) { WrenCompile(m_vm, #ModuleName, ModuleName##_wren_data); }
-#endif
+void ScriptWren::DestroyFunction(ScriptHandle vm, ScriptHandle function)
+{
+	wrenReleaseHandle((WrenVM*)vm, (WrenHandle*)function);
+}
+
+void ScriptWren::CallFunction(ScriptHandle vm, ScriptHandle function)
+{
+	wrenCall((WrenVM*)vm, (WrenHandle*)function);
+	//wrenCallFunction();
+}
 
 bool ScriptWren::HasError(ScriptHandle vm)
 {
@@ -333,8 +339,10 @@ void ScriptWren::ClearError(ScriptHandle vm)
 	//m_error = false;
 }
 
-void ScriptWren::CompileString(ScriptHandle vm, StringView moduleName, StringView string)
+bool ScriptWren::CompileString(ScriptHandle vm, StringView moduleName, StringView string)
 {
+	bool success = true;
+
 	auto wrenVm = (WrenVM*)vm;
 	auto userData = GetVmImpl(wrenVm);
 
@@ -344,11 +352,13 @@ void ScriptWren::CompileString(ScriptHandle vm, StringView moduleName, StringVie
 		switch (wrenInterpret(wrenVm, moduleNameStr.c_str(), string.data()))
 		{
 		case WREN_RESULT_COMPILE_ERROR:
+			success = false;
 			userData->error = true;
 			BX_LOGE(Script, "Wren compilation error on module: {}", moduleNameStr);
 			break;
 
 		case WREN_RESULT_RUNTIME_ERROR:
+			success = false;
 			userData->error = true;
 			BX_LOGE(Script, "Wren runtime error on module: {}", moduleNameStr);
 			break;
@@ -359,12 +369,17 @@ void ScriptWren::CompileString(ScriptHandle vm, StringView moduleName, StringVie
 			break;
 		}
 
-		m_wrenModulesSource.insert(std::make_pair(moduleNameStr, string.data()));
+		if (success)
+			m_wrenModulesSource.insert(std::make_pair(moduleNameStr, string.data()));
 	}
+
+	return success;
 }
 
-void ScriptWren::CompileFile(ScriptHandle vm, StringView moduleName, StringView filepath)
+bool ScriptWren::CompileFile(ScriptHandle vm, StringView moduleName, StringView filepath)
 {
+	auto src = File::Get().ReadText(filepath);
+	return CompileString(vm, moduleName, src);
 }
 
 void ScriptWren::BeginModule(StringView moduleName)
@@ -622,6 +637,11 @@ void* ScriptWren::GetSlotObject(ScriptHandle vm, i32 slot)
 	return wrenGetSlotForeign((WrenVM*)vm, slot);
 }
 
+ScriptHandle ScriptWren::GetSlotHandle(ScriptHandle vm, i32 slot)
+{
+	return wrenGetSlotHandle((WrenVM*)vm, slot);
+}
+
 void ScriptWren::SetSlotBool(ScriptHandle vm, i32 slot, bool value)
 {
 	wrenSetSlotBool((WrenVM*)vm, slot, value);
@@ -652,6 +672,11 @@ void ScriptWren::SetSlotString(ScriptHandle vm, i32 slot, StringView text)
 void* ScriptWren::SetSlotNewObject(ScriptHandle vm, i32 slot, i32 classSlot, SizeType size)
 {
 	return wrenSetSlotNewForeign((WrenVM*)vm, slot, classSlot, size);
+}
+
+void ScriptWren::SetSlotHandle(ScriptHandle vm, i32 slot, ScriptHandle handle)
+{
+	wrenSetSlotHandle((WrenVM*)vm, slot, (WrenHandle*)handle);
 }
 
 void ScriptWren::RegisterClass(TypeId typeId)

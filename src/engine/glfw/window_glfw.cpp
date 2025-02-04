@@ -131,7 +131,7 @@ bool WindowGLFW::Initialize()
 #ifdef __arm__
 	if (putenv((char*)"DISPLAY=:0"))
 	{
-		LOGE(Window, "Failed to set DISPLAY enviroment variable!");
+		BX_LOGE(Window, "Failed to set DISPLAY enviroment variable!");
 		return false;
 	}
 #endif
@@ -143,7 +143,7 @@ bool WindowGLFW::Initialize()
 		return false;
 	}
 
-	const String& title = "Titlte";// Data::GetString("Title", "Title", DataTarget::SYSTEM);
+	const String& title = "Title";// Data::GetString("Title", "Title", DataTarget::SYSTEM);
 	i32 width = 800;// Data::GetInt("Width", 800, DataTarget::SYSTEM);
 	i32 height = 600;// Data::GetInt("Height", 600, DataTarget::SYSTEM);
 

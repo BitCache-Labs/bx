@@ -29,6 +29,7 @@ public:
     inline SceneHandle GetActiveScene() const;
 
     inline const HashMap<SceneHandle, UniquePtr<Scene>>& GetScenes() const;
+    inline void ClearScenes();
 
 private:
     SceneHandle m_activeScene{ SCENE_INVALID_HANDLE };
@@ -132,3 +133,8 @@ inline void SceneManager::SetActiveScene(SceneHandle scene)
 inline SceneHandle SceneManager::GetActiveScene() const { return m_activeScene; }
 
 inline const HashMap<SceneHandle, UniquePtr<Scene>>& SceneManager::GetScenes() const { return m_scenes; }
+
+inline void SceneManager::ClearScenes()
+{
+    m_scenes.clear();
+}

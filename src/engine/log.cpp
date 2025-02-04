@@ -37,11 +37,11 @@ void Log::Write(StringView message,
 
 	if (std::this_thread::get_id() != m_mainThreadId)
 	{
-		formattedMessage.format("[{} | Thread {}] {} ({}): {}", GetLogLevelString(level), tidHash(std::this_thread::get_id()), File::Get().GetFilename(file), line, message);
+		formattedMessage.format("[{}:{} | {}] {} ({}): {}", GetLogLevelString(level), channel, tidHash(std::this_thread::get_id()), File::Get().GetFilename(file), line, message);
 	}
 	else
 	{
-		formattedMessage.format("[{}] {} ({}): {}", GetLogLevelString(level), File::Get().GetFilename(file), line, message);
+		formattedMessage.format("[{}:{}] {} ({}): {}", GetLogLevelString(level), channel, File::Get().GetFilename(file), line, message);
 	}
 
 	auto existingChannel = m_channels.find(channelHash);

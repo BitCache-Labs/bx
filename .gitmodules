@@ -46,3 +46,12 @@
 [submodule "extern/clay"]
 	path = extern/clay
 	url = https://github.com/nicbarker/clay.git
+[submodule "extern/IconFontCppHeaders"]
+	path = extern/IconFontCppHeaders
+	url = https://github.com/juliettef/IconFontCppHeaders.git
+[submodule "assets/free-fonts"]
+	path = assets/free-fonts
+	url = https://github.com/jenskutilek/free-fonts.git
+[submodule "assets/Font-Awesome"]
+	path = assets/Font-Awesome
+	url = https://github.com/FortAwesome/Font-Awesome.git

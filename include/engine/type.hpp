@@ -32,3 +32,9 @@ private:                                        \
     BX_NOCOPY(Name)
 
 using TypeId = rttr::type::type_id;
+
+template <typename T>
+struct BX_API Type
+{
+    static TypeId Id() { return rttr::type::get<T>().get_id(); }
+};
