@@ -86,9 +86,19 @@ public:
     SizeType find(const char* str, SizeType pos = 0) const noexcept;
     SizeType find(const String& str, SizeType pos = 0) const noexcept;
     SizeType find(const StringView& sv, SizeType pos = 0) const noexcept;
-
     template <SizeType M>
     SizeType find(const CString<M> cstr, SizeType pos = 0) const noexcept;
+    //SizeType find_first_of(const char* str) const noexcept;
+    //SizeType find_first_of(const CString& str) const noexcept;
+    //SizeType find_first_not_of(const char* str) const noexcept;
+    //SizeType find_first_not_of(const CString& str) const noexcept;
+    SizeType find_last_of(const char* str, SizeType pos = String::npos) const noexcept;
+    SizeType find_last_of(const String& str, SizeType pos = String::npos) const noexcept;
+    SizeType find_last_of(const StringView& sv, SizeType pos = String::npos) const noexcept;
+    template <SizeType M>
+    SizeType find_last_of(const CString<M> cstr, SizeType pos = String::npos) const noexcept;
+    //SizeType find_last_not_of(const char* str) const noexcept;
+    //SizeType find_last_not_of(const CString& str) const noexcept;
 
 private:
     char m_data[N];
@@ -113,11 +123,11 @@ public:
     constexpr bool empty() const noexcept;
 
     String to_string() const;
-    SizeType find_last_of(const char* chars) const noexcept;
     SizeType find(StringView str, SizeType pos = 0) const noexcept;
     SizeType find(char ch, SizeType pos = 0) const noexcept;
     SizeType find(const char* s, SizeType pos, SizeType count) const;
     SizeType find(const char* s, SizeType pos = 0) const;
+    SizeType find_last_of(const StringView& sv, SizeType pos = String::npos) const noexcept;
     StringView substr(SizeType pos, SizeType count = String::npos) const noexcept;
 
     int compare(const StringView& other) const noexcept;
@@ -396,45 +406,45 @@ inline CString<N>::operator const char* () const { return m_data; }
 template <SizeType N>
 void CString<N>::replace(SizeType pos, SizeType len, const StringView& sv)
 {
-    if (pos > length)
+    if (pos > length())
     {
         throw std::out_of_range("replace: pos is out of range");
     }
 
-    if (pos + len > length)
+    if (pos + len > length())
     {
-        len = length - pos;
+        len = length() - pos;
     }
 
-    SizeType newLength = length - len + sv.size();
+    SizeType newLength = length() - len + sv.size();
     if (newLength > N)
     {
         throw std::length_error("replace: resulting string exceeds capacity");
     }
 
-    SizeType tailLength = length - (pos + len);
+    SizeType tailLength = length() - (pos + len);
     if (tailLength > 0)
     {
-        std::memmove(&data[pos + sv.size()], &data[pos + len], tailLength + 1);
+        std::memmove(&m_data[pos + sv.size()], &m_data[pos + len], tailLength + 1);
     }
     else
     {
-        data[newLength] = '\0';
+        m_data[newLength] = '\0';
     }
 
-    std::memcpy(&data[pos], sv.data(), sv.size());
+    std::memcpy(&m_data[pos], sv.data(), sv.size());
 }
 
 template <SizeType N>
 SizeType CString<N>::find(const char* str, SizeType pos) const noexcept
 {
-    return find(StringView{ str });
+    return find(StringView{ str }, pos);
 }
 
 template <SizeType N>
 SizeType CString<N>::find(const String& str, SizeType pos) const noexcept
 {
-    return find(StringView{ str });
+    return find(StringView{ str }, pos);
 }
 
 template <SizeType N>
@@ -448,7 +458,33 @@ template <SizeType N>
 template <SizeType M>
 SizeType CString<N>::find(const CString<M> cstr, SizeType pos) const noexcept
 {
-    return find(StringView{ cstr });
+    return find(StringView{ cstr }, pos);
+}
+
+template <SizeType N>
+SizeType CString<N>::find_last_of(const char* str, SizeType pos) const noexcept
+{
+    return find_last_of(StringView{ str }, pos);
+}
+
+template <SizeType N>
+SizeType CString<N>::find_last_of(const String& str, SizeType pos) const noexcept
+{
+    return find_last_of(StringView{ str }, pos);
+}
+
+template <SizeType N>
+SizeType CString<N>::find_last_of(const StringView& sv, SizeType pos) const noexcept
+{
+    auto thisSv = StringView{ *this };
+    return thisSv.find_last_of(sv, pos);
+}
+
+template <SizeType N>
+template <SizeType M>
+SizeType CString<N>::find_last_of(const CString<M> cstr, SizeType pos) const noexcept
+{
+    return find_last_of(StringView{ cstr }, pos);
 }
 
 // StringView Implementation
@@ -491,18 +527,6 @@ constexpr bool StringView::empty() const noexcept { return m_size == 0; }
 inline String StringView::to_string() const
 {
     return String(m_data, m_size);
-}
-
-inline SizeType StringView::find_last_of(const char* chars) const noexcept
-{
-    for (SizeType i = m_size; i > 0; --i)
-    {
-        if (std::strchr(chars, m_data[i - 1]))
-        {
-            return i - 1;
-        }
-    }
-    return String::npos;
 }
 
 inline /*constexpr*/ SizeType StringView::find(StringView v, SizeType pos) const noexcept
@@ -562,6 +586,26 @@ inline /*constexpr*/ SizeType StringView::find(const char* s, SizeType pos, Size
 inline /*constexpr*/ SizeType StringView::find(const char* s, SizeType pos) const
 {
     return find(s, pos, std::strlen(s));
+}
+
+inline SizeType StringView::find_last_of(const StringView& sv, SizeType pos) const noexcept
+{
+    if (sv.size() == 0 || m_size == 0)
+        return String::npos;
+
+    if (pos >= m_size)
+        pos = m_size - 1;
+
+    for (SizeType i = pos + 1; i-- > 0; )
+    {
+        for (SizeType j = 0; j < sv.size(); ++j)
+        {
+            if (m_data[i] == sv.data()[j])
+                return i;
+        }
+    }
+
+    return String::npos;
 }
 
 inline StringView StringView::substr(SizeType pos, SizeType count) const noexcept

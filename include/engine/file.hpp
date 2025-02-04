@@ -18,7 +18,7 @@ struct BX_API FileHandle
     bool isDirectory{ false };
 };
 
-using FindEachCallback = std::function<void(const String& path, const String& name)>;
+using FindEachCallback = std::function<void(const CString<512>& path, const CString<64>& name)>;
 
 class BX_API File
 {

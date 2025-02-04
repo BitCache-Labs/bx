@@ -1,6 +1,7 @@
 #include <engine/engine.hpp>
 #include <engine/log.hpp>
 #include <engine/time.hpp>
+#include <engine/file.hpp>
 #include <engine/window.hpp>
 #include <engine/graphics.hpp>
 #include <engine/script.hpp>
@@ -67,6 +68,12 @@ bool Engine::Initialize(Application& app) noexcept
     app.Configure();
 
     BX_LOGD(Engine, "Engine initializing ...");
+
+    if (!File::Get().Initialize())
+    {
+        BX_LOGE(Engine, "Failed to initialize file module!");
+        return false;
+    }
 
     if (!Online::Get().Initialize())
     {
@@ -141,6 +148,8 @@ void Engine::Shutdown(Application& app) noexcept
     Graphics::Get().Shutdown();
     Window::Get().Shutdown();
     Online::Get().Shutdown();
+
+    File::Get().Shutdown();
 
     app.ClearScenes();
 

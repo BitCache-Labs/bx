@@ -487,11 +487,6 @@ void WorldEditor::OnGui(EditorApplication& app)
         m_timer = Math::FMod(m_timer, 1.f);
     }
 
-    CString<64> fps;
-    fps.format("FPS: {}", m_fps);
-    ImGui::Text(fps);
-    ImGui::SameLine();
-
     //ObjectRef selected = Selection::GetSelected();
     //EntityId deletedId = INVALID_ENTITY_ID;
     //
@@ -518,6 +513,10 @@ void WorldEditor::OnGui(EditorApplication& app)
     Render(world, contentRegionAvail);
     ImGui::Image(Graphics::Get().GetImTextureID(m_renderTarget), contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
     ImGui::SetCursorScreenPos(gizmoPos);
+
+    CString<64> fps;
+    fps.format("FPS: {}", m_fps);
+    ImGui::Text(fps);
 
     //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
     //ImGui::Text("Current Scene: %s", scene.c_str());

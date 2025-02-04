@@ -123,18 +123,18 @@ WrenLoadModuleResult ScriptWren::WrenLoadModule(WrenVM* vm, const char* moduleNa
 	CString<64> moduleNameFmt{};
 	moduleNameFmt.format("{}.wren", moduleNameStr);
 
-	//if (ctx->wrenModulesSource.find(moduleNameStr) == ctx->wrenModulesSource.end())
-	//{
-	//	String filepath;
-	//	if (!File::Find("[assets]", moduleNameFmt, filepath))
-	//	{
-	//		BX_LOGE(Script, "Module '{}' can not be found!", moduleNameFmt);
-	//		return res;
-	//	}
-	//
-	//	String moduleSrc = File::ReadTextFile(filepath);
-	//	ctx->wrenModulesSource.insert(std::make_pair(moduleNameStr, moduleSrc));
-	//}
+	if (userData->ctx->m_wrenModulesSource.find(moduleNameStr) == userData->ctx->m_wrenModulesSource.end())
+	{
+		CString<512> filepath;
+		if (!File::Get().Find("[assets]", moduleNameFmt, filepath))
+		{
+			BX_LOGE(Script, "Module '{}' can not be found!", moduleNameFmt);
+			return res;
+		}
+	
+		String moduleSrc = File::Get().ReadText(filepath);
+		userData->ctx->m_wrenModulesSource.insert(std::make_pair(moduleNameStr, moduleSrc));
+	}
 
 	BX_ENSURE(userData->ctx->m_wrenModulesSource.find(moduleNameStr) != userData->ctx->m_wrenModulesSource.end());
 	res.source = userData->ctx->m_wrenModulesSource[moduleNameStr].c_str();
@@ -341,13 +341,15 @@ void ScriptWren::ClearError(ScriptHandle vm)
 
 bool ScriptWren::CompileString(ScriptHandle vm, StringView moduleName, StringView string)
 {
+	// TODO: Move m_wrenModulesSource to the vm context
+
 	bool success = true;
 
 	auto wrenVm = (WrenVM*)vm;
 	auto userData = GetVmImpl(wrenVm);
 
 	const CString<64> moduleNameStr = moduleName;
-	if (m_wrenModulesSource.find(moduleNameStr) == m_wrenModulesSource.end())
+	//if (m_wrenModulesSource.find(moduleNameStr) == m_wrenModulesSource.end())
 	{
 		switch (wrenInterpret(wrenVm, moduleNameStr.c_str(), string.data()))
 		{
@@ -369,7 +371,10 @@ bool ScriptWren::CompileString(ScriptHandle vm, StringView moduleName, StringVie
 			break;
 		}
 
-		if (success)
+		//if (success)
+		//	m_wrenModulesSource.insert(std::make_pair(moduleNameStr, string.data()));
+
+		if (m_wrenModulesSource.find(moduleNameStr) == m_wrenModulesSource.end())
 			m_wrenModulesSource.insert(std::make_pair(moduleNameStr, string.data()));
 	}
 
