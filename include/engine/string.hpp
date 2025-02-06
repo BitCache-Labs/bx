@@ -83,6 +83,7 @@ public:
     //void swap(CString& other);
 
     // Search
+    SizeType find(char ch, SizeType pos = 0) const noexcept;
     SizeType find(const char* str, SizeType pos = 0) const noexcept;
     SizeType find(const String& str, SizeType pos = 0) const noexcept;
     SizeType find(const StringView& sv, SizeType pos = 0) const noexcept;
@@ -436,55 +437,59 @@ void CString<N>::replace(SizeType pos, SizeType len, const StringView& sv)
 }
 
 template <SizeType N>
+SizeType CString<N>::find(char ch, SizeType pos = 0) const noexcept
+{
+    return StringView(*this).find(ch, pos);
+}
+
+template <SizeType N>
 SizeType CString<N>::find(const char* str, SizeType pos) const noexcept
 {
-    return find(StringView{ str }, pos);
+    return StringView(*this).find(str, pos);
 }
 
 template <SizeType N>
 SizeType CString<N>::find(const String& str, SizeType pos) const noexcept
 {
-    return find(StringView{ str }, pos);
+    return StringView(*this).find(str, pos);
 }
 
 template <SizeType N>
 SizeType CString<N>::find(const StringView& sv, SizeType pos) const noexcept
 {
-    auto thisSv = StringView{ *this };
-    return thisSv.find(sv, pos);
+    return StringView(*this).find(sv, pos);
 }
 
 template <SizeType N>
 template <SizeType M>
 SizeType CString<N>::find(const CString<M> cstr, SizeType pos) const noexcept
 {
-    return find(StringView{ cstr }, pos);
+    return StringView(*this).find(StringView(cstr), pos);
 }
 
 template <SizeType N>
 SizeType CString<N>::find_last_of(const char* str, SizeType pos) const noexcept
 {
-    return find_last_of(StringView{ str }, pos);
+    return StringView(*this).find_last_of(str, pos);
 }
 
 template <SizeType N>
 SizeType CString<N>::find_last_of(const String& str, SizeType pos) const noexcept
 {
-    return find_last_of(StringView{ str }, pos);
+    return StringView(*this).find_last_of(str, pos);
 }
 
 template <SizeType N>
 SizeType CString<N>::find_last_of(const StringView& sv, SizeType pos) const noexcept
 {
-    auto thisSv = StringView{ *this };
-    return thisSv.find_last_of(sv, pos);
+    return StringView(*this).find_last_of(sv, pos);
 }
 
 template <SizeType N>
 template <SizeType M>
 SizeType CString<N>::find_last_of(const CString<M> cstr, SizeType pos) const noexcept
 {
-    return find_last_of(StringView{ cstr }, pos);
+    return StringView(*this).find_last_of(StringView(cstr), pos);
 }
 
 // StringView Implementation

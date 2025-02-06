@@ -125,7 +125,7 @@ WrenLoadModuleResult ScriptWren::WrenLoadModule(WrenVM* vm, const char* moduleNa
 
 	if (userData->ctx->m_wrenModulesSource.find(moduleNameStr) == userData->ctx->m_wrenModulesSource.end())
 	{
-		CString<512> filepath;
+		FilePath filepath{};
 		if (!File::Get().Find("[assets]", moduleNameFmt, filepath))
 		{
 			BX_LOGE(Script, "Module '{}' can not be found!", moduleNameFmt);

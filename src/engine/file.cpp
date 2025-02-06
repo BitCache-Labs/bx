@@ -34,8 +34,9 @@ BX_MODULE_DEFINE(File)
 bool File::Initialize()
 {
 #if defined(BX_PLATFORM_PC) || defined(BX_PLATFORM_LINUX)
-    AddWildcard("[assets]", GAME_PATH"/assets");
-    AddWildcard("[settings]", GAME_PATH"/settings");
+    AddMountPoint("[assets:game]", GAME_PATH"/assets");
+    AddMountPoint("[assets:engine]", ENGINE_PATH);
+    AddMountPoint("[settings:game]", GAME_PATH"/settings");
 
     // All platforms
     if (!Exists(GetPath("[settings]/.ini")))
@@ -60,24 +61,25 @@ bool File::Initialize()
 
     if (pValue != nullptr)
     {
-        CString<512> save_path{};
+        FilePath save_path{};
         save_path.format("{}/{}/", pValue, gameStr);
 
         if (!Exists(save_path))
             CreateDirectory(save_path);
 
-        AddWildcard("[save]", save_path);
+        AddMountPoint("[save:local]", save_path);
     }
 
 #elif defined(BX_PLATFORM_LINUX)
     const char* homeDir = std::getenv("HOME");
     if (homeDir)
     {
-        String save_path = String(homeDir) + "/." + gameStr + "/";
+        FilePath save_path{};
+        save_path.format("{}/.{}/", homeDir, gameStr);
         if (!Exists(save_path))
             CreateDirectory(save_path);
 
-        AddWildcard("[save]", save_path);
+        AddMountPoint("[save:local]", save_path);
     }
 #endif
 
@@ -92,17 +94,56 @@ void File::Shutdown()
 {
 }
 
-void File::AddWildcard(StringView wildcard, StringView value)
+static u8 ExtractMountPoint(StringView str, FileName& category, FileName& postfix)
 {
-    if (!Exists(value))
+    category.clear();
+    postfix.clear();
+
+    auto start = str.find('[');
+    auto end = str.find(']');
+    if (start == String::npos || end == String::npos || start > end)
+        return 0;
+
+    StringView mountCategory = str.substr(start + 1, end - start - 1);
+    auto splitPos = mountCategory.find(':');
+
+    if (splitPos == String::npos)
     {
-        if (!CreateDirectory(value))
+        category = mountCategory;
+        return 1;
+    }
+
+    category = mountCategory.substr(start, splitPos);
+    postfix = mountCategory.substr(splitPos + 1, end);
+
+    if (category.empty() || postfix.empty())
+        return 0;
+
+    return 2;
+}
+
+void File::AddMountPoint(StringView mountName, StringView path)
+{
+    if (!Exists(path))
+    {
+        if (!CreateDirectory(path))
         {
             BX_LOGE(File, "Failed to create directory!");
             BX_FAIL("Create directory failed!");
         }
     }
-    m_wildcards[wildcard] = value;
+
+    FileName category{};
+    FileName postfix{};
+    if (ExtractMountPoint(mountName, category, postfix) != 2)
+    {
+        BX_LOGE(File, "Invalid mount point format: {}", mountName);
+        return;
+    }
+
+    // Insert mount point, preserving registration order
+    auto& mountList = m_mountPoints[category];
+    mountList.push_back({ postfix, path });
 }
 
 bool File::Exists(StringView path)
@@ -135,18 +176,49 @@ StringView File::GetFilename(StringView file)
     return file.substr(lastSlash + 1);
 }
 
-CString<512> File::GetPath(StringView filename)
+static FilePath ReplaceMountPoint(StringView str, StringView path)
 {
-    CString<512> filepath{ filename };
+    auto start = str.find('[');
+    auto end = str.find(']');
+    if (start == String::npos || end == String::npos || start > end)
+        return str;
 
-    for (const auto& p : m_wildcards)
-    {
-        auto pos = filepath.find(p.first);
-        if (pos != String::npos)
-            filepath.replace(pos, p.first.length(), p.second);
-    }
+    auto length = end - start + 1;
+    FilePath filepath{ str };
+    filepath.replace(start, length, path);
 
     return filepath;
+}
+
+FilePath File::GetPath(StringView filename)
+{
+    FileName category{};
+    FileName postfix{};
+
+    // If not a valid path try to strip away wildcards and return
+    if (ExtractMountPoint(filename, category, postfix) == 0)
+        return ReplaceMountPoint(filename, "");
+
+    auto it = m_mountPoints.find(category);
+    if (it == m_mountPoints.end())
+        return ReplaceMountPoint(filename, "");
+
+    const List<MountPoint>& mountList = it->second;
+
+    // Only category provided use default path
+    if (!mountList.empty() && postfix.empty())
+        return ReplaceMountPoint(filename, mountList[0].path);
+
+    // Search mount list for matching postfix
+    for (const auto& entry : mountList)
+    {
+        if (entry.name == postfix)
+            return ReplaceMountPoint(filename, entry.path);
+    }
+
+    // No mount point found strip away wildcards from path at least
+    BX_LOGE(File, "No matching mount point found for: {}", filename);
+    return ReplaceMountPoint(filename, "");
 }
 
 StringView File::GetExt(StringView filename)
@@ -179,8 +251,8 @@ List<StringView> File::SplitPath(StringView path, char delimiter)
 
 bool File::Move(StringView oldPath, StringView newPath)
 {
-    String oldFullPath = File::GetPath(oldPath);
-    String newFullPath = File::GetPath(newPath);
+    const auto oldFullPath = GetPath(oldPath);
+    const auto newFullPath = GetPath(newPath);
 
 #if defined(BX_PLATFORM_PC)
     LPCSTR oldFileName = oldFullPath.c_str();
@@ -210,7 +282,7 @@ bool File::Move(StringView oldPath, StringView newPath)
 bool File::Delete(StringView filename)
 {
 #if defined(BX_PLATFORM_PC)
-    const String fullpath = GetPath(filename);
+    const auto fullpath = GetPath(filename);
 
     DWORD attributes = GetFileAttributes(fullpath.c_str());
     if (attributes == INVALID_FILE_ATTRIBUTES)
@@ -282,7 +354,7 @@ bool File::ListFiles(StringView root, List<FileHandle>& files)
 {
 #if defined(BX_PLATFORM_PC)
 
-    String rootPath = GetPath(root);
+    const auto rootPath = GetPath(root);
 
     if (rootPath.size() > (MAX_PATH - 3))
         return false;
@@ -325,7 +397,7 @@ bool File::ListFiles(StringView root, List<FileHandle>& files)
 
 #elif defined(BX_PLATFORM_LINUX)
 
-    String rootPath = GetPath(root);
+    const auto rootPath = GetPath(root);
 
     DIR* dir = opendir(rootPath.c_str());
     if (dir == NULL)
@@ -364,7 +436,7 @@ bool File::ListFiles(StringView root, List<FileHandle>& files)
 #endif
 }
 
-bool File::Find(StringView root, StringView filename, CString<512>& filepath)
+bool File::Find(StringView root, StringView filename, FilePath& filepath)
 {
     List<FileHandle> files;
     if (!ListFiles(root, files))
@@ -423,7 +495,7 @@ String File::ReadText(StringView filename)
     if (!ifs.is_open())
     {
         BX_LOGE(File, "Failed to open file: {}", filename);
-        return String();
+        return String{};
     }
 
     std::stringstream buffer;
@@ -431,10 +503,10 @@ String File::ReadText(StringView filename)
     if (!ifs)
     {
         BX_LOGE(File, "Failed to read from file: {}", filename);
-        return String();
+        return String{};
     }
 
-    return String(buffer.str());
+    return String{ buffer.str() };
 }
 
 bool File::WriteText(StringView filename, StringView text)

@@ -13,6 +13,7 @@ WorldEditor::WorldEditor(SceneManager& sceneManager)
 	SetTitle("World");
 	SetExclusive(false);
 	SetPresistent(false);
+    SetFlags(ImGuiWindowFlags_MenuBar);
 
 	m_world = m_sceneManager.CreateScene<World>();
 
@@ -132,10 +133,102 @@ WorldEditor::~WorldEditor()
     m_sceneManager.DestroyScene(m_world);
 }
 
+static void AlignForWidth(float width, float alignment = 0.5f)
+{
+    ImGuiStyle& style = ImGui::GetStyle();
+    float avail = ImGui::GetContentRegionAvail().x;
+    float off = (avail - width) * alignment;
+    if (off > 0.0f)
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + off);
+}
+
+void WorldEditor::OnMenuBarGui(World& world)
+{
+    Editor::Get().PushMenuTheme();
+    if (ImGui::BeginMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("New", "CTRL+N")) {}
+            if (ImGui::MenuItem("Open", "CTRL+O"))
+            {
+                //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+                //
+                //Runtime::Reload();
+                //Scene::Load(scene);
+            }
+            if (ImGui::MenuItem("Save", "CTRL+S"))
+            {
+                //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+                //Scene::Save(scene);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit"))
+            {
+                //Runtime::Close();
+            }
+
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Edit"))
+        {
+            if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+            if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+            ImGui::Separator();
+            if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+            if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+            if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::Button(ICON_FA_LIST))
+        {
+            //show_scene = !show_scene;
+        }
+        //Tooltip("Scene");
+
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_EDIT))
+        {
+            //show_inspector = !show_inspector;
+        }
+        //Tooltip("Inspector");
+
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_IMAGES))
+        {
+            //show_assets = !show_assets;
+        }
+        //Tooltip("Assets");
+
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_ID_BADGE))
+        {
+            //show_gameobjects = !show_gameobjects;
+        }
+        //Tooltip("GameObjects");
+
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_SYNC_ALT))
+        {
+            //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
+            //Runtime::Reload();
+            //Scene::Load(scene);
+        }
+        //Tooltip("Reload");
+
+        ImGui::EndMenuBar();
+    }
+    Editor::Get().PopMenuTheme();
+}
+
 void WorldEditor::OnToolbarGui(World& world)
 {
     f32 ok_timer = 0;// -= Time::GetDeltaTime();
-    ImVec2 topPanelSize;
 
     //if (Script::HasError() || show_data || show_profiler || show_scene || show_entity || show_assets
     //	|| (ImGui::IsMousePosValid() && ImGui::GetMousePos().y < 100.0f))
@@ -143,175 +236,27 @@ void WorldEditor::OnToolbarGui(World& world)
         (world.m_playing && ImGui::IsMousePosValid() &&
             (ImGui::GetMousePos().y - ImGui::GetWindowPos().y) < 100.0f))
     {
-        if (ImGui::BeginMenuBar())
-        {
-            topPanelSize = ImGui::GetWindowSize();
-
-            if (ImGui::BeginMenu("File"))
-            {
-                if (ImGui::MenuItem("New", "CTRL+N")) {}
-                if (ImGui::MenuItem("Open", "CTRL+O"))
-                {
-                    //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
-                    //
-                    //Runtime::Reload();
-                    //Scene::Load(scene);
-                }
-                if (ImGui::MenuItem("Save", "CTRL+S"))
-                {
-                    //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
-                    //Scene::Save(scene);
-                }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Exit"))
-                {
-                    //Runtime::Close();
-                }
-
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("Edit"))
-            {
-                if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
-                if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
-                ImGui::Separator();
-                if (ImGui::MenuItem("Cut", "CTRL+X")) {}
-                if (ImGui::MenuItem("Copy", "CTRL+C")) {}
-                if (ImGui::MenuItem("Paste", "CTRL+V")) {}
-
-                ImGui::EndMenu();
-            }
-            ImGui::EndMenuBar();
-        }
-
-        // Inside your parent window code (i.e. inside an ImGui::Begin/End block)
-
         // Determine the available content region size:
         ImVec2 contentSize = ImGui::GetContentRegionAvail();
 
-        // If you want to fix the toolbar height, you can set it here. For example:
-        const float toolbarHeight = 30.0f; // or any value you like
-
         // Begin the child window that will act as the toolbar.
         // The child window inherits its parent's position and clipping.
-        if (ImGui::BeginChild("##ApplicationToolbarChild",
-            ImVec2(contentSize.x, toolbarHeight),
-            false, // No border by default; adjust as needed
-            ImGuiWindowFlags_NoDecoration |
-            ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoScrollWithMouse |
-            ImGuiWindowFlags_NoDocking))
+        if (ImGui::BeginChild("##ApplicationToolbarChild", ImVec2(contentSize.x, ImGui::GetFrameHeightWithSpacing())))
         {
-            // Store the current height of the toolbar child
-            topPanelSize.y = ImGui::GetWindowSize().y;
+            ImGuiStyle& style = ImGui::GetStyle();
+
+            float width = 0.0f;
+            width += ImGui::CalcTextSize(ICON_FA_PLAY).x;
+            width += style.ItemSpacing.x;
+            width += ImGui::CalcTextSize(ICON_FA_PAUSE).x;
+            width += style.ItemSpacing.x;
+            width += ImGui::CalcTextSize(ICON_FA_FAST_FORWARD).x;
+            AlignForWidth(width);
 
             // Save current style colors if needed.
-            ImGuiStyle& style = ImGui::GetStyle();
             ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_WindowBg]);
-
-            // Lay out the toolbar items on the same line.
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_ADJUST))
-            {
-                //theme = !theme;
-                //SelectTheme();
-            }
-            //Tooltip("Theme");
-
-            ImGui::SameLine();
-            ImGui::Separator();
-
-            //ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-            //ImGui::SameLine();
-            //
-            //ImGui::Text("| Engine v%s |", BX_VERSION_STR);
-            //Tooltip("Version");
-            //ImGui::SameLine();
-            //
-            //if (ImGui::Button(ICON_FA_QUESTION_CIRCLE))
-            //{
-            //    // TODO: About dialog
-            //}
-            //Tooltip("About");
-            //
-            //ImGui::PopStyleColor(); // Pop text color
-
-            ImGui::SameLine();
-            ImGui::Separator();
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_BUG))
-            {
-                //show_settings = !show_settings;
-            }
-            //Tooltip("Debug");
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_CHART_PIE))
-            {
-                //show_profiler = !show_profiler;
-            }
-            //Tooltip("Profiler");
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_DATABASE)) // ICON_FA_COG alternative
-            {
-                //show_data = !show_data;
-            }
-            //Tooltip("Data");
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_TERMINAL))
-            {
-                //show_console = !show_console;
-            }
-            //Tooltip("Console");
-
-            ImGui::SameLine();
-            ImGui::Separator();
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_LIST))
-            {
-                //show_scene = !show_scene;
-            }
-            //Tooltip("Scene");
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_EDIT))
-            {
-                //show_inspector = !show_inspector;
-            }
-            //Tooltip("Inspector");
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_IMAGES))
-            {
-                //show_assets = !show_assets;
-            }
-            //Tooltip("Assets");
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_ID_BADGE))
-            {
-                //show_gameobjects = !show_gameobjects;
-            }
-            //Tooltip("GameObjects");
-
-            ImGui::SameLine();
-            ImGui::Separator();
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_SYNC_ALT))
-            {
-                //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
-                //Runtime::Reload();
-                //Scene::Load(scene);
-            }
-            //Tooltip("Reload");
-
-            ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[world.m_playing ? ImGuiCol_ButtonHovered : ImGuiCol_Button]);
+
             if (ImGui::Button(ICON_FA_PLAY))
             {
                 world.m_playing = !world.m_playing;
@@ -348,8 +293,8 @@ void WorldEditor::OnToolbarGui(World& world)
             }//next_frame = true;
             //Tooltip("Next Frame");
 
-            ImGui::SameLine();
-            ImGui::Separator();
+            //ImGui::SameLine();
+            //ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 
             //ImGui::SameLine();
             //if (ok_timer > 0.0f)
@@ -472,20 +417,27 @@ void WorldEditor::OnToolbarGui(World& world)
     */
 }
 
-void WorldEditor::OnGui(EditorApplication& app)
+void WorldEditor::OnInfoGui(World& world)
 {
-    auto& world = static_cast<World&>(*m_sceneManager.GetScene(m_world));
-
-    OnToolbarGui(world);
-
     m_frames++;
     m_timer += Time::Get().DeltaTime();
     if (m_timer >= 1.f)
     {
         m_fps = (i32)(m_frames / m_timer);
-        m_frames = 0;
+        m_frames = 1;
         m_timer = Math::FMod(m_timer, 1.f);
     }
+
+    CString<64> fps;
+    fps.format("FPS: {}", m_fps);
+    ImGui::Text(fps);
+}
+
+void WorldEditor::OnGui(EditorApplication& app)
+{
+    auto& world = static_cast<World&>(*m_sceneManager.GetScene(m_world));
+
+    OnMenuBarGui(world);
 
     //ObjectRef selected = Selection::GetSelected();
     //EntityId deletedId = INVALID_ENTITY_ID;
@@ -514,9 +466,8 @@ void WorldEditor::OnGui(EditorApplication& app)
     ImGui::Image(Graphics::Get().GetImTextureID(m_renderTarget), contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
     ImGui::SetCursorScreenPos(gizmoPos);
 
-    CString<64> fps;
-    fps.format("FPS: {}", m_fps);
-    ImGui::Text(fps);
+    OnToolbarGui(world);
+    OnInfoGui(world);
 
     //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
     //ImGui::Text("Current Scene: %s", scene.c_str());

@@ -28,7 +28,9 @@ public:
     void Render(World& world, const ImVec2& size);
 
 private:
+    void OnMenuBarGui(World& world);
     void OnToolbarGui(World& world);
+    void OnInfoGui(World& world);
 
 private:
     SceneManager& m_sceneManager;

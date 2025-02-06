@@ -42,7 +42,7 @@ namespace                                                                       
 		Class##ScriptApiRegister()													\
         {                                                                           \
 			rttr::registration::													\
-			class_<Class##ScriptApiRegister>(STR(Class##_ScriptApiRegister))		\
+			class_<Class##ScriptApiRegister>(BX_STR(Class##_ScriptApiRegister))		\
 			.method("Register", Class##ScriptApiRegister::Register);				\
         }                                                                           \
         static ScriptModuleSource Register()										\

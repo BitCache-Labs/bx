@@ -8,17 +8,26 @@
 
 #include <fstream>
 
+using FilePath = CString<256>;
+using FileName = CString<64>;
+
 using InputFileStream = std::ifstream;
 using OutputFileStream = std::ofstream;
 
+using FindEachCallback = std::function<void(const FilePath& path, const FileName& name)>;
+
 struct BX_API FileHandle
 {
-    CString<512> filepath{};
-    CString<64> filename{};
+    FilePath filepath{};
+    FileName filename{};
     bool isDirectory{ false };
 };
 
-using FindEachCallback = std::function<void(const CString<512>& path, const CString<64>& name)>;
+struct BX_API MountPoint
+{
+    FileName name{};
+    FilePath path{};
+};
 
 class BX_API File
 {
@@ -28,12 +37,12 @@ public:
     bool Initialize();
     void Shutdown();
 
-    void AddWildcard(StringView wildcard, StringView value);
+    void AddMountPoint(StringView mountName, StringView path);
 
     bool Exists(StringView path);
     u64 LastWrite(StringView filename);
 
-    CString<512> GetPath(StringView filename);
+    FilePath GetPath(StringView filename);
 
     StringView GetExt(StringView filename);
     StringView RemoveExt(StringView filename);
@@ -47,7 +56,7 @@ public:
     bool CreateDirectory(StringView path);
 
     bool ListFiles(StringView root, List<FileHandle>& files);
-    bool Find(StringView root, StringView filename, CString<512>& filepath);
+    bool Find(StringView root, StringView filename, FilePath& filepath);
     void FindEach(StringView root, StringView ext, const FindEachCallback& callback);
     
     String ReadText(StringView filename);
@@ -56,5 +65,5 @@ public:
     List<char> ReadBinary(StringView filename);
 
 private:
-    HashMap<CString<64>, CString<512>> m_wildcards{};
+    HashMap<FileName, List<MountPoint>> m_mountPoints{};
 };

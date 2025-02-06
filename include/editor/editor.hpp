@@ -42,7 +42,7 @@ namespace                                                                       
         Class##MenuItemRegister()													\
         {                                                                           \
 			rttr::registration::													\
-			class_<Class##MenuItemRegister>(STR(Class##_MenuItemRegister))			\
+			class_<Class##MenuItemRegister>(BX_STR(Class##_MenuItemRegister))			\
 			.method("Register", Class##MenuItemRegister::Register);					\
         }                                                                           \
 		static void Register()														\
@@ -121,6 +121,8 @@ public:
 	void OnGui(EditorApplication& app);
 	void Clear();
 
+	inline f32 GetUIScale() const { return m_uiScale; }
+
 private:
 	void AddWindow(UniquePtr<EditorWindow> window);
 
@@ -128,6 +130,8 @@ private:
 	void RegisterMenuItems();
 
 	void ApplyTheme();
+
+public:
 	void PushMenuTheme();
 	void PopMenuTheme();
 

@@ -30,6 +30,8 @@ set (BX_ONLINE_BACKEND "Steam" CACHE STRING "Choose the online backend: Steam")
 set_property (CACHE BX_ONLINE_BACKEND PROPERTY STRINGS "Steam")
 message ("Online backend: ${BX_ONLINE_BACKEND}")
 
+add_compile_definitions (ENGINE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets")
+
 # Engine library
 add_library(Engine STATIC)
 
