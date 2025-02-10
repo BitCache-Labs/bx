@@ -90,7 +90,7 @@ bool Debug::Initialize()
         };
 
         pipeInfo.layoutElements = layoutElems;
-        pipeInfo.numElements = ARRAYSIZE(layoutElems);
+        pipeInfo.numElements = BX_ARRAYSIZE(layoutElems);
 
         pipeInfo.vertShader = m_vertexShader;
         pipeInfo.pixelShader = m_pixelShader;

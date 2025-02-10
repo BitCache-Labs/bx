@@ -6,30 +6,31 @@
 #include <engine/byte_types.hpp>
 #include <engine/macros.hpp>
 #include <engine/list.hpp>
-
-// TODO: Replace const char* with StringView
 #include <engine/string.hpp>
+#include <engine/log.hpp>
+
+LOG_CHANNEL(Graphics)
 
 using GraphicsHandle = u64;
 constexpr GraphicsHandle INVALID_GRAPHICS_HANDLE = -1;
 
-enum struct BX_API GraphicsClearFlags { NONE, DEPTH, STENCIL };
-enum struct BX_API GraphicsValueType { UNDEFINED, INT8, INT16, INT32, UINT8, UINT16, UINT32, FLOAT16, FLOAT32, MAT4 };
+BX_ENUM_TYPE(GraphicsClearFlags) : u8 { NONE, DEPTH, STENCIL, ENUM_COUNT };
+BX_ENUM_TYPE(GraphicsValueType) : u8 { UNDEFINED, INT8, INT16, INT32, UINT8, UINT16, UINT32, FLOAT16, FLOAT32, MAT4, ENUM_COUNT };
 
-enum struct BX_API ShaderType { UNKNOWN, VERTEX, PIXEL, GEOMETRY, COMPUTE };
+BX_ENUM_TYPE(ShaderType) : u8 { UNKNOWN, VERTEX, PIXEL, GEOMETRY, COMPUTE, ENUM_COUNT };
 
-enum struct BX_API BufferType { VERTEX_BUFFER, INDEX_BUFFER, UNIFORM_BUFFER, STORAGE_BUFFER };
-enum struct BX_API BufferUsage { IMMUTABLE, DEFAULT, DYNAMIC };
-enum struct BX_API BufferAccess { NONE, READ, WRITE };
+BX_ENUM_TYPE(BufferType) : u8 { VERTEX_BUFFER, INDEX_BUFFER, UNIFORM_BUFFER, STORAGE_BUFFER, ENUM_COUNT };
+BX_ENUM_TYPE(BufferUsage) : u8 { IMMUTABLE, DEFAULT, DYNAMIC, ENUM_COUNT };
+BX_ENUM_TYPE(BufferAccess) : u8 { NONE, READ, WRITE, ENUM_COUNT };
 
-enum struct BX_API TextureFormat { UNKNOWN, RGB8_UNORM, RGBA8_UNORM, RG32_UINT, D24_UNORM_S8_UINT }; // GL_R16
-enum struct BX_API TextureFlags { NONE = BIT(0), SHADER_RESOURCE = BIT(1), RENDER_TARGET = BIT(2), DEPTH_STENCIL = BIT(3) };
+BX_ENUM_TYPE(TextureFormat) : u8 { UNKNOWN, RGB8_UNORM, RGBA8_UNORM, RG32_UINT, D24_UNORM_S8_UINT, ENUM_COUNT }; // GL_R16
+BX_ENUM_TYPE(TextureFlags) : u32 { NONE = BX_BIT(0), SHADER_RESOURCE = BX_BIT(1), RENDER_TARGET = BX_BIT(2), DEPTH_STENCIL = BX_BIT(3) };
 
-enum struct BX_API ResourceBindingType { UNKNOWN, TEXTURE, UNIFORM_BUFFER, STORAGE_BUFFER };
-enum struct BX_API ResourceBindingAccess { STATIC, MUTABLE, DYNAMIC };
+BX_ENUM_TYPE(ResourceBindingType) : u8 { UNKNOWN, TEXTURE, UNIFORM_BUFFER, STORAGE_BUFFER, ENUM_COUNT };
+BX_ENUM_TYPE(ResourceBindingAccess) : u8 { STATIC, MUTABLE, DYNAMIC, ENUM_COUNT };
 
-enum struct BX_API PipelineTopology { UNDEFINED, POINTS, LINES, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN };
-enum struct BX_API PipelineFaceCull { NONE, CW, CCW };
+BX_ENUM_TYPE(PipelineTopology) : u8 { UNDEFINED, POINTS, LINES, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN, ENUM_COUNT };
+BX_ENUM_TYPE(PipelineFaceCull) : u8 { NONE, CW, CCW, ENUM_COUNT };
 
 struct BX_API ShaderInfo
 {
@@ -185,7 +186,7 @@ public:
 
 	virtual GraphicsHandle CreateResourceBinding(const ResourceBindingInfo& info) = 0;
 	virtual void DestroyResourceBinding(const GraphicsHandle resources) = 0;
-	virtual void BindResource(const GraphicsHandle resources, const char* name, GraphicsHandle resource) = 0;
+	virtual void BindResource(const GraphicsHandle resources, StringView name, GraphicsHandle resource) = 0;
 
 	virtual GraphicsHandle CreatePipeline(const PipelineInfo& info) = 0;
 	virtual void DestroyPipeline(const GraphicsHandle pipeline) = 0;

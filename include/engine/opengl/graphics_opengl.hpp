@@ -124,7 +124,7 @@ public:
 
     GraphicsHandle CreateResourceBinding(const ResourceBindingInfo& info) override;
     void DestroyResourceBinding(const GraphicsHandle resources) override;
-    void BindResource(const GraphicsHandle resources, const char* name, GraphicsHandle resource) override;
+    void BindResource(const GraphicsHandle resources, StringView name, GraphicsHandle resource) override;
 
     GraphicsHandle CreatePipeline(const PipelineInfo& info) override;
     void DestroyPipeline(const GraphicsHandle pipeline) override;

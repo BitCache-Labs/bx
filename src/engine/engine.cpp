@@ -65,8 +65,6 @@ int Engine::Run(int argc, char** args, Application& app)
 
 bool Engine::Initialize(Application& app) noexcept
 {
-    app.Configure();
-
     BX_LOGD(Engine, "Engine initializing ...");
 
     if (!File::Get().Initialize())
@@ -74,6 +72,10 @@ bool Engine::Initialize(Application& app) noexcept
         BX_LOGE(Engine, "Failed to initialize file module!");
         return false;
     }
+
+    BX_LOGD(Engine, "Application configuring ...");
+    app.Configure();
+    BX_LOGD(Engine, "Application configured.");
 
     if (!Online::Get().Initialize())
     {

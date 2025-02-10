@@ -4,9 +4,11 @@
 #include <engine/module.hpp>
 #include <engine/string.hpp>
 #include <engine/list.hpp>
-#include <engine/hash_map.hpp>
+#include <engine/log.hpp>
 
 #include <fstream>
+
+LOG_CHANNEL(File)
 
 using FilePath = CString<256>;
 using FileName = CString<64>;
@@ -31,39 +33,36 @@ struct BX_API MountPoint
 
 class BX_API File
 {
-    BX_MODULE(File)
+    BX_MODULE_INTERFACE(File)
 
 public:
-    bool Initialize();
-    void Shutdown();
+    virtual bool Initialize() = 0;
+    virtual void Shutdown() = 0;
 
-    void AddMountPoint(StringView mountName, StringView path);
+    virtual void AddMountPoint(StringView mountName, StringView path) = 0;
 
-    bool Exists(StringView path);
-    u64 LastWrite(StringView filename);
+    virtual bool Exists(StringView path) = 0;
+    virtual u64 LastWrite(StringView filename) = 0;
 
-    FilePath GetPath(StringView filename);
+    virtual FilePath GetPath(StringView filename) = 0;
 
-    StringView GetExt(StringView filename);
-    StringView RemoveExt(StringView filename);
+    virtual StringView GetExt(StringView filename) = 0;
+    virtual StringView RemoveExt(StringView filename) = 0;
 
-    StringView GetFilename(StringView file);
-    List<StringView> SplitPath(StringView path, char delimiter = '/');
+    virtual StringView GetFilename(StringView file) = 0;
+    virtual List<StringView> SplitPath(StringView path, char delimiter = '/') = 0;
 
-    bool Move(StringView oldPath, StringView newPath);
-    bool Delete(StringView path);
+    virtual bool Move(StringView oldPath, StringView newPath) = 0;
+    virtual bool Delete(StringView path) = 0;
 
-    bool CreateDirectory(StringView path);
+    virtual bool CreateDirectory(StringView path) = 0;
 
-    bool ListFiles(StringView root, List<FileHandle>& files);
-    bool Find(StringView root, StringView filename, FilePath& filepath);
-    void FindEach(StringView root, StringView ext, const FindEachCallback& callback);
+    virtual bool ListFiles(StringView root, List<FileHandle>& files) = 0;
+    virtual bool Find(StringView root, StringView filename, FilePath& filepath) = 0;
+    virtual void FindEach(StringView root, StringView ext, const FindEachCallback& callback) = 0;
     
-    String ReadText(StringView filename);
-    bool WriteText(StringView filename, StringView text);
+    virtual String ReadText(StringView filename) = 0;
+    virtual bool WriteText(StringView filename, StringView text) = 0;
 
-    List<char> ReadBinary(StringView filename);
-
-private:
-    HashMap<FileName, List<MountPoint>> m_mountPoints{};
+    virtual List<char> ReadBinary(StringView filename) = 0;
 };

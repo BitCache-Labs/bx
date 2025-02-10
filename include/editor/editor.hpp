@@ -8,18 +8,12 @@
 #include <engine/macros.hpp>
 #include <engine/module.hpp>
 #include <engine/uuid.hpp>
+#include <engine/log.hpp>
 
 #include <editor/application.hpp>
+#include <editor/imgui_ex.hpp>
 
-#include <imgui.h>
-
-enum struct BX_API EditorTheme
-{
-	DARK,
-	LIGHT,
-	GRAY,
-	ACRYLIC
-};
+LOG_CHANNEL(Editor)
 
 // So we need to change this to reflect something more like Unity
 // Editor<T> is the inspector equivalent, see: https://docs.unity3d.com/Manual/editor-CustomEditors.html
@@ -131,12 +125,21 @@ private:
 
 	void ApplyTheme();
 
-public:
-	void PushMenuTheme();
-	void PopMenuTheme();
+private:
+	void OnMainMenuBarGui(EditorApplication& app);
 
 private:
 	f32 m_uiScale{ 1.0f };
+
+	//bool m_showGameObjects = true;
+	//bool m_showScene = true;
+	//bool m_showInspector = true;
+	bool m_showAssets = true;
+	bool m_showConsole = true;
+	//bool m_showData = false;
+	bool m_showProfiler = false;
+	bool m_showSettings = false;
+
 	EditorTheme m_currentTheme{ EditorTheme::ACRYLIC };
 
 	List<Function<void()>> m_menuItems{};

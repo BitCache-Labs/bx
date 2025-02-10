@@ -15,17 +15,6 @@
 
 #define LOG_CHANNEL(Channel) namespace LogChannel { struct BX_API Channel { static StringView Name() { return #Channel; } }; }
 
-LOG_CHANNEL(Engine)
-LOG_CHANNEL(File)
-LOG_CHANNEL(Window)
-LOG_CHANNEL(Graphics)
-LOG_CHANNEL(Audio)
-LOG_CHANNEL(Online)
-
-#ifdef EDITOR_BUILD
-LOG_CHANNEL(Editor)
-#endif
-
 #define BX_LOG(Channel, Level, ...) Log::Get().Write(fmt::format(__VA_ARGS__), LogChannel::Channel::Name(), Level, __FILE__, __LINE__)
 #define BX_LOGD(Channel, ...) BX_LOG(Channel, LogLevel::LOG_DEBUG, __VA_ARGS__)
 #define BX_LOGI(Channel, ...) BX_LOG(Channel, LogLevel::LOG_INFO, __VA_ARGS__)
@@ -33,7 +22,7 @@ LOG_CHANNEL(Editor)
 #define BX_LOGE(Channel, ...) BX_LOG(Channel, LogLevel::LOG_ERROR, __VA_ARGS__)
 #define BX_LOGF(Channel, ...) BX_LOG(Channel, LogLevel::LOG_FATAL, __VA_ARGS__)
 
-enum struct BX_API LogLevel { LOG_DEBUG = 0, LOG_INFO = 1, LOG_WARNING = 2, LOG_ERROR = 3, LOG_FATAL = 4 };
+BX_ENUM_TYPE(LogLevel) : u8 { LOG_DEBUG = 0, LOG_INFO = 1, LOG_WARNING = 2, LOG_ERROR = 3, LOG_FATAL = 4, ENUM_COUNT };
 
 struct BX_API LogEntry
 {

@@ -3,6 +3,9 @@
 #include <engine/api.hpp>
 #include <engine/module.hpp>
 #include <engine/application.hpp>
+#include <engine/log.hpp>
+
+LOG_CHANNEL(Engine)
 
 class BX_API Engine
 {

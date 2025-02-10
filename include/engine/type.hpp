@@ -1,9 +1,13 @@
 #pragma once
 
+#include <engine/api.hpp>
+
 #include <rttr/type.h>
 #include <rttr/rttr_enable.h>
 #include <rttr/registration.h>
 #include <rttr/rttr_cast.h>
+
+#define BX_ENUM_TYPE(Name) enum struct BX_API Name
 
 #define BX_TYPE(Name, ...) RTTR_ENABLE(__VA_ARGS__)
 

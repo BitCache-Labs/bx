@@ -142,12 +142,21 @@ extern "C" static void __cdecl SteamAPIDebugTextHook(int nSeverity, const char* 
 
 bool OnlineSteam::Initialize()
 {
+    // TODO: Get App ID from transient settings, the user client must set this on app startup not on disk!
     u32 appId = 480;
 
-#ifdef DEBUG_BUILD
-    CString<64> appIdStr{};
-    appIdStr.format("{}", appId);
-    File::Get().WriteText("steam_appid.txt", appIdStr.c_str());
+#if defined(DEBUG_BUILD) || defined(EDITOR_BUILD)
+    if (!File::Get().Exists("steam_appid.txt"))
+    {
+        CString<64> appIdStr{};
+        appIdStr.format("{}", 480);
+        File::Get().WriteText("steam_appid.txt", appIdStr.c_str());
+    }
+    else
+    {
+        auto appIdStr = File::Get().ReadText("steam_appid.txt");
+        appId = std::atoi(appIdStr.c_str());
+    }
 #endif
 
     if (SteamAPI_RestartAppIfNecessary(appId))

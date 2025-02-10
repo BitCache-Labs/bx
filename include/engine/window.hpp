@@ -3,8 +3,11 @@
 #include <engine/api.hpp>
 #include <engine/byte_types.hpp>
 #include <engine/module.hpp>
+#include <engine/log.hpp>
 
-enum struct BX_API GamepadButton
+LOG_CHANNEL(Window)
+
+BX_ENUM_TYPE(GamepadButton) : u16
 {
 	BUTTON_SOUTH = 0,
 	BUTTON_EAST = 1,
@@ -25,28 +28,34 @@ enum struct BX_API GamepadButton
 	DPAD_UP = 11,
 	DPAD_RIGHT = 12,
 	DPAD_DOWN = 13,
-	DPAD_LEFT = 14
+	DPAD_LEFT = 14,
+
+	ENUM_COUNT
 };
 
-enum struct BX_API GamepadAxis
+BX_ENUM_TYPE(GamepadAxis) : u16
 {
 	STICK_LEFT_X = 0,
 	STICK_LEFT_Y = 1,
 	STICK_RIGHT_X = 2,
 	STICK_RIGHT_Y = 3,
 	TRIGGER_LEFT = 4,
-	TRIGGER_RIGHT = 5
+	TRIGGER_RIGHT = 5,
+
+	ENUM_COUNT
 };
 
-enum struct BX_API MouseButton
+BX_ENUM_TYPE(MouseButton) : u16
 {
 	MOUSE_BUTTON_LEFT = 0,
 	MOUSE_BUTTON_RIGHT = 1,
-	MOUSE_BUTTON_MIDDLE = 2
+	MOUSE_BUTTON_MIDDLE = 2,
+
+	ENUM_COUNT
 };
 
 // TODO: add more keys
-enum struct BX_API Key
+BX_ENUM_TYPE(Key) : u16
 {
 	RIGHT = 262,
 	LEFT = 263,
@@ -84,12 +93,14 @@ enum struct BX_API Key
 	Z = 90
 };
 
-enum struct BX_API CursorMode
+BX_ENUM_TYPE(CursorMode) : u16
 {
 	NORMAL,
 	HIDDEN,
 	DISABLED,
-	CAPTURED
+	CAPTURED,
+
+	ENUM_COUNT
 };
 
 typedef void (*WindowGLProc)(void);

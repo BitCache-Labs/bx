@@ -387,8 +387,8 @@ void GraphicsOpenGL::ClearDepthStencil(const GraphicsHandle dt, GraphicsClearFla
     //    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
         GLbitfield mask = 0;
-        if (flags & GraphicsClearFlags::DEPTH) mask |= GL_DEPTH_BUFFER_BIT;
-        if (flags & GraphicsClearFlags::STENCIL) mask |= GL_STENCIL_BUFFER_BIT;
+        if (Enum::has_flag(flags, GraphicsClearFlags::DEPTH)) mask |= GL_DEPTH_BUFFER_BIT;
+        if (Enum::has_flag(flags, GraphicsClearFlags::STENCIL)) mask |= GL_STENCIL_BUFFER_BIT;
     
         glClear(mask);
     //}
@@ -453,7 +453,7 @@ GraphicsHandle GraphicsOpenGL::CreateTexture(const TextureInfo& info, const Buff
     GLenum format = GetTextureBaseFormat(info.format);
     GLenum type = GetTextureType(info.format);
 
-    if (info.flags & TextureFlags::SHADER_RESOURCE)
+    if (Enum::has_flag(info.flags, TextureFlags::SHADER_RESOURCE))
     {
 #ifdef GRAPHICS_OPENGL_BINDLESS
         glCreateSamplers(1, &texture_impl.sampler);
@@ -576,7 +576,7 @@ void GraphicsOpenGL::DestroyResourceBinding(const GraphicsHandle resources)
     }
 }
 
-void GraphicsOpenGL::BindResource(const GraphicsHandle resources, const char* name, GraphicsHandle resource)
+void GraphicsOpenGL::BindResource(const GraphicsHandle resources, StringView name, GraphicsHandle resource)
 {
     auto& resource_impl = GetImpl(resources, m_resources);
 

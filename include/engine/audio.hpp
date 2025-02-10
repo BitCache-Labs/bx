@@ -6,6 +6,8 @@
 #include <engine/math.hpp>
 #include <engine/log.hpp>
 
+LOG_CHANNEL(Audio)
+
 using AudioHandle = u64;
 constexpr AudioHandle AUDIO_INVALID_HANDLE = -1;
 

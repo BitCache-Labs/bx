@@ -4,6 +4,9 @@
 #include <engine/module.hpp>
 #include <engine/byte_types.hpp>
 #include <engine/string.hpp>
+#include <engine/log.hpp>
+
+LOG_CHANNEL(Online)
 
 struct BX_API LobbyInfo
 {

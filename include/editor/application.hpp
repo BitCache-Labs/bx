@@ -9,5 +9,5 @@ class BX_API EditorApplication
 	BX_TYPE(EditorApplication, Application)
 
 public:
-	virtual void OnMainMenuBar() = 0;
+	virtual void OnMainMenuBarGui() = 0;
 };

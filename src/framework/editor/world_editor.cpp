@@ -5,8 +5,6 @@
 #include <engine/window.hpp>
 #include <engine/debug.hpp>
 
-#include <IconsFontAwesome5.h>
-
 WorldEditor::WorldEditor(SceneManager& sceneManager)
     : m_sceneManager(sceneManager)
 {
@@ -144,7 +142,7 @@ static void AlignForWidth(float width, float alignment = 0.5f)
 
 void WorldEditor::OnMenuBarGui(World& world)
 {
-    Editor::Get().PushMenuTheme();
+    ImGui::PushMenuBarTheme();
     if (ImGui::BeginMenuBar())
     {
         if (ImGui::BeginMenu("File"))
@@ -189,20 +187,6 @@ void WorldEditor::OnMenuBarGui(World& world)
         //Tooltip("Scene");
 
         ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_EDIT))
-        {
-            //show_inspector = !show_inspector;
-        }
-        //Tooltip("Inspector");
-
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_IMAGES))
-        {
-            //show_assets = !show_assets;
-        }
-        //Tooltip("Assets");
-
-        ImGui::SameLine();
         if (ImGui::Button(ICON_FA_ID_BADGE))
         {
             //show_gameobjects = !show_gameobjects;
@@ -223,7 +207,7 @@ void WorldEditor::OnMenuBarGui(World& world)
 
         ImGui::EndMenuBar();
     }
-    Editor::Get().PopMenuTheme();
+    ImGui::PopMenuBarTheme();
 }
 
 void WorldEditor::OnToolbarGui(World& world)
