@@ -79,7 +79,7 @@ set (BX_ENGINE_SRCS
 	"src/framework/camera.cpp"
 )
 
-set (BX_ENGINE_LIBS fmt stb glm rttr rapidjson)
+set (BX_ENGINE_LIBS fmt stb glm rttr cereal rapidjson)
 
 if (BX_BUILD_EDITOR)
 	set (BX_ENGINE_SRCS ${BX_ENGINE_SRCS}

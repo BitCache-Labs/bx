@@ -55,3 +55,6 @@
 [submodule "assets/Font-Awesome"]
 	path = assets/Font-Awesome
 	url = https://github.com/FortAwesome/Font-Awesome.git
+[submodule "extern/cereal"]
+	path = extern/cereal
+	url = https://github.com/USCiLab/cereal.git
