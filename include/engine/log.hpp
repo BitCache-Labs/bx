@@ -15,6 +15,8 @@
 
 #define LOG_CHANNEL(Channel) namespace LogChannel { struct BX_API Channel { static StringView Name() { return #Channel; } }; }
 
+LOG_CHANNEL(Log)
+
 #define BX_LOG(Channel, Level, ...) Log::Get().Write(fmt::format(__VA_ARGS__), LogChannel::Channel::Name(), Level, __FILE__, __LINE__)
 #define BX_LOGD(Channel, ...) BX_LOG(Channel, LogLevel::LOG_DEBUG, __VA_ARGS__)
 #define BX_LOGI(Channel, ...) BX_LOG(Channel, LogLevel::LOG_INFO, __VA_ARGS__)
