@@ -359,6 +359,7 @@ namespace rttr
                 rttr::variant wrapped_var = item.is_sequential_container() ? item : item.extract_wrapped_value();
                 ObjectWrapper wrapper{ wrapped_var };
                 archive(wrapper);
+                BX_ENSURE(wrapper.data.convert(array_value_type));
                 BX_ENSURE(view.set_value(i, wrapper.data));
             }
         }
