@@ -65,4 +65,7 @@ public:
     virtual bool WriteText(StringView filename, StringView text) = 0;
 
     virtual List<char> ReadBinary(StringView filename) = 0;
+
+    virtual OutputFileStream OutputStream(const StringView& filename) = 0;
+    virtual InputFileStream InputStream(const StringView& filename) = 0;
 };

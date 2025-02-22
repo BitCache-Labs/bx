@@ -40,6 +40,9 @@ public:
 
     List<char> ReadBinary(StringView filename) override;
 
+    OutputFileStream OutputStream(const StringView& filename) override;
+    InputFileStream InputStream(const StringView& filename) override;
+
 private:
     HashMap<FileName, List<MountPoint>> m_mountPoints{};
 };

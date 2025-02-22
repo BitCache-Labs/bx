@@ -11,6 +11,7 @@
 #include <algorithm>
 
 using String = std::string;
+using StringStream = std::stringstream;
 
 template <SizeType N>
 class CString;

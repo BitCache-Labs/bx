@@ -63,7 +63,6 @@ set (BX_ENGINE_SRCS
 	"src/engine/profiler.cpp"
 	"src/engine/uuid.cpp"
 	"src/engine/debug.cpp"
-	"src/engine/serial.cpp"
 
 	# Modules
 	"src/engine/file.cpp"

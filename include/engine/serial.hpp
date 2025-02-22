@@ -6,9 +6,11 @@
 #include <engine/log.hpp>
 #include <engine/guard.hpp>
 #include <engine/memory.hpp>
+#include <engine/file.hpp>
 
 #include <cereal/cereal.hpp>
 #include <cereal/types/string.hpp>
+#include <cereal/archives/json.hpp>
 
 LOG_CHANNEL(Serial)
 
@@ -21,12 +23,12 @@ namespace rttr
             static constexpr const char* no_serialize = "NO_SERIALIZE";
         }
 
-        struct ObjectWrapper
+        struct BX_API ObjectWrapper
         {
             rttr::variant data{};
         };
 
-        struct EnumWrapper
+        struct BX_API EnumWrapper
         {
             rttr::variant data{};
         };
@@ -114,7 +116,7 @@ namespace rttr
         template<class Archive>
         void save_array(Archive& archive, const rttr::variant_sequential_view& view)
         {
-            archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size()))); // number of elements
+            archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size())));
             
             for (const auto& item : view)
             {
@@ -263,11 +265,14 @@ namespace rttr
     namespace serial
     {
         template <class Archive, typename T>
-        void extract_basic_type(Archive& archive, const rttr::string_view& name, rttr::variant& obj)
+        void load_val(Archive& archive, const rttr::string_view& name, rttr::variant& obj)
         {
-            T v{};
-            archive(cereal::make_nvp(name.data(), v));
-            obj = v;
+            T val{};
+            if (!name.empty())
+                archive(cereal::make_nvp(name.data(), val));
+            else
+                archive(val);
+            obj = val;
         }
 
         template <class Archive>
@@ -298,29 +303,29 @@ namespace rttr
             if (type.is_arithmetic())
             {
                 if (type == rttr::type::get<bool>())
-                    extract_basic_type<Archive, bool>(archive, name, obj);
+                    load_val<Archive, bool>(archive, name, obj);
                 else if (type == rttr::type::get<char>())
-                    extract_basic_type<Archive, bool>(archive, name, obj);
+                    load_val<Archive, bool>(archive, name, obj);
                 else if (type == rttr::type::get<i8>())
-                    extract_basic_type<Archive, i8>(archive, name, obj);
+                    load_val<Archive, i8>(archive, name, obj);
                 else if (type == rttr::type::get<i16>())
-                    extract_basic_type<Archive, i16>(archive, name, obj);
+                    load_val<Archive, i16>(archive, name, obj);
                 else if (type == rttr::type::get<i32>())
-                    extract_basic_type<Archive, i32>(archive, name, obj);
+                    load_val<Archive, i32>(archive, name, obj);
                 else if (type == rttr::type::get<i64>())
-                    extract_basic_type<Archive, i64>(archive, name, obj);
+                    load_val<Archive, i64>(archive, name, obj);
                 else if (type == rttr::type::get<u8>())
-                    extract_basic_type<Archive, u8>(archive, name, obj);
+                    load_val<Archive, u8>(archive, name, obj);
                 else if (type == rttr::type::get<u16>())
-                    extract_basic_type<Archive, u16>(archive, name, obj);
+                    load_val<Archive, u16>(archive, name, obj);
                 else if (type == rttr::type::get<u32>())
-                    extract_basic_type<Archive, u32>(archive, name, obj);
+                    load_val<Archive, u32>(archive, name, obj);
                 else if (type == rttr::type::get<u64>())
-                    extract_basic_type<Archive, u64>(archive, name, obj);
+                    load_val<Archive, u64>(archive, name, obj);
                 else if (type == rttr::type::get<f32>())
-                    extract_basic_type<Archive, f32>(archive, name, obj);
+                    load_val<Archive, f32>(archive, name, obj);
                 else if (type == rttr::type::get<f64>())
-                    extract_basic_type<Archive, f64>(archive, name, obj);
+                    load_val<Archive, f64>(archive, name, obj);
 
                 return true;
             }
@@ -334,7 +339,7 @@ namespace rttr
             }
             else if (type == rttr::type::get<String>())
             {
-                extract_basic_type<Archive, String>(archive, name, obj);
+                load_val<Archive, String>(archive, name, obj);
                 return true;
             }
 
