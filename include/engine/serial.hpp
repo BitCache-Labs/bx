@@ -16,6 +16,11 @@ namespace rttr
 {
     namespace serial
     {
+        namespace tags
+        {
+            static constexpr const char* no_serialize = "NO_SERIALIZE";
+        }
+
         struct ObjectWrapper
         {
             rttr::variant data{};
@@ -198,7 +203,7 @@ namespace rttr
 
             for (auto prop : prop_list)
             {
-                if (prop.get_metadata("NO_SERIALIZE"))
+                if (prop.get_metadata(rttr::serial::tags::no_serialize))
                     continue;
 
                 rttr::variant prop_value = prop.get_value(inst);
@@ -372,7 +377,7 @@ namespace rttr
 
             for (auto prop : prop_list)
             {
-                if (prop.get_metadata("NO_SERIALIZE"))
+                if (prop.get_metadata(rttr::serial::tags::no_serialize))
                     continue;
 
                 const rttr::type prop_type = prop.get_type();
