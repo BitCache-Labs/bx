@@ -127,40 +127,32 @@ namespace rttr
             }
         }
 
-        /*template<class Archive>
+        template<class Archive>
         void save_map(Archive& archive, const rttr::variant_associative_view& view)
         {
-            static const rttr::string_view key_name("key");
-            static const rttr::string_view value_name("value");
+            static const rttr::string_view key_name{ "key" };
+            static const rttr::string_view value_name{ "value" };
 
-            writer.StartArray();
+            archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size())));
 
             if (view.is_key_only_type())
             {
-                for (auto& item : view)
+                for (const auto& item : view)
                 {
-                    write_variant(item.first, writer);
+                    if (save_basic_type(archive, "", item.first))
+                        continue;
+
+                    archive(ObjectWrapper{ item.first });
                 }
             }
             else
             {
-                for (auto& item : view)
+                for (const auto& item : view)
                 {
-                    writer.StartObject();
-                    writer.String(key_name.data(), static_cast<rapidjson::SizeType>(key_name.length()), false);
-
-                    write_variant(item.first, writer);
-
-                    writer.String(value_name.data(), static_cast<rapidjson::SizeType>(value_name.length()), false);
-
-                    write_variant(item.second, writer);
-
-                    writer.EndObject();
+                    archive(cereal::make_map_item(ObjectWrapper{ item.first }, ObjectWrapper{ item.second }));
                 }
             }
-
-            writer.EndArray();
-        }*/
+        }
 
         inline rttr::variant unwrap_instance(const rttr::variant& obj)
         {
@@ -232,7 +224,7 @@ namespace rttr
             }
             else if (obj.is_associative_container())
             {
-                //save_map(archive, obj.create_associative_view());
+                save_map(archive, obj.create_associative_view());
             }
             else
             {
@@ -297,49 +289,53 @@ namespace rttr
             auto wrapped_type = value_type.is_wrapper() ? value_type.get_wrapped_type() : value_type;
             bool is_wrapper = wrapped_type != value_type;
 
-            const rttr::type& type = is_wrapper ? wrapped_type : value_type;
-            const rttr::variant& var = is_wrapper ? obj.extract_wrapped_value() : obj;
+            rttr::type type = is_wrapper ? wrapped_type : value_type;
+            rttr::variant var = is_wrapper ? obj.extract_wrapped_value() : obj;
 
             if (type.is_arithmetic())
             {
                 if (type == rttr::type::get<bool>())
-                    load_val<Archive, bool>(archive, name, obj);
+                    load_val<Archive, bool>(archive, name, var);
                 else if (type == rttr::type::get<char>())
-                    load_val<Archive, bool>(archive, name, obj);
+                    load_val<Archive, bool>(archive, name, var);
                 else if (type == rttr::type::get<i8>())
-                    load_val<Archive, i8>(archive, name, obj);
+                    load_val<Archive, i8>(archive, name, var);
                 else if (type == rttr::type::get<i16>())
-                    load_val<Archive, i16>(archive, name, obj);
+                    load_val<Archive, i16>(archive, name, var);
                 else if (type == rttr::type::get<i32>())
-                    load_val<Archive, i32>(archive, name, obj);
+                    load_val<Archive, i32>(archive, name, var);
                 else if (type == rttr::type::get<i64>())
-                    load_val<Archive, i64>(archive, name, obj);
+                    load_val<Archive, i64>(archive, name, var);
                 else if (type == rttr::type::get<u8>())
-                    load_val<Archive, u8>(archive, name, obj);
+                    load_val<Archive, u8>(archive, name, var);
                 else if (type == rttr::type::get<u16>())
-                    load_val<Archive, u16>(archive, name, obj);
+                    load_val<Archive, u16>(archive, name, var);
                 else if (type == rttr::type::get<u32>())
-                    load_val<Archive, u32>(archive, name, obj);
+                    load_val<Archive, u32>(archive, name, var);
                 else if (type == rttr::type::get<u64>())
-                    load_val<Archive, u64>(archive, name, obj);
+                    load_val<Archive, u64>(archive, name, var);
                 else if (type == rttr::type::get<f32>())
-                    load_val<Archive, f32>(archive, name, obj);
+                    load_val<Archive, f32>(archive, name, var);
                 else if (type == rttr::type::get<f64>())
-                    load_val<Archive, f64>(archive, name, obj);
+                    load_val<Archive, f64>(archive, name, var);
 
+                obj = var;
                 return true;
             }
             else if (type.is_enumeration())
             {
-                EnumWrapper wrapper{ obj };
+                EnumWrapper wrapper{ var };
                 archive(cereal::make_nvp(name.data(), wrapper));
-                obj = wrapper.data;
+                var = wrapper.data;
 
+                obj = var;
                 return true;
             }
             else if (type == rttr::type::get<String>())
             {
-                load_val<Archive, String>(archive, name, obj);
+                load_val<Archive, String>(archive, name, var);
+                
+                obj = var;
                 return true;
             }
 
@@ -371,6 +367,113 @@ namespace rttr
                 archive(wrapper);
                 BX_ENSURE(wrapper.data.convert(array_value_type));
                 BX_ENSURE(view.set_value(i, wrapper.data));
+            }
+        }
+
+        inline rttr::variant extract_map_item_basic(rttr::type type)
+        {
+            if (type.is_arithmetic())
+            {
+                if (type == rttr::type::get<bool>())
+                    return false;
+                else if (type == rttr::type::get<char>())
+                    return false;
+                else if (type == rttr::type::get<i8>())
+                    return (i8)0;
+                else if (type == rttr::type::get<i16>())
+                    return (i16)0;
+                else if (type == rttr::type::get<i32>())
+                    return (i32)0;
+                else if (type == rttr::type::get<i64>())
+                    return (i64)0;
+                else if (type == rttr::type::get<u8>())
+                    return (u8)0;
+                else if (type == rttr::type::get<u16>())
+                    return (u16)0;
+                else if (type == rttr::type::get<u32>())
+                    return (u32)0;
+                else if (type == rttr::type::get<u64>())
+                    return (u64)0;
+                else if (type == rttr::type::get<f32>())
+                    return (f32)0;
+                else if (type == rttr::type::get<f64>())
+                    return (f64)0;
+            }
+
+            if (type.is_enumeration())
+                return type.create();
+
+            if (type == rttr::type::get<String>())
+                return String{};
+        }
+
+        inline rttr::variant extract_map_item_inst(rttr::type type)
+        {
+            rttr::constructor ctor = type.get_constructor();
+            for (auto& item : type.get_constructors())
+            {
+                if (item.get_instantiated_type() == type)
+                    ctor = item;
+            }
+            return ctor.invoke();
+        }
+
+        template <class Archive>
+        void load_map(Archive& archive, rttr::variant_associative_view& view)
+        {
+            cereal::size_type size{};
+            archive(cereal::make_size_tag(size));
+
+            for (cereal::size_type i = 0; i < size; ++i)
+            {
+                if (view.is_key_only_type())
+                {
+                    auto item = extract_map_item(view.get_key_type());
+
+                    if (load_basic_type(archive, "", item))
+                    {
+                        BX_ENSURE(item.convert(view.get_key_type()));
+                        auto ret = view.insert(item);
+                        BX_ENSURE(ret.second);
+                        continue;
+                    }
+
+                    rttr::variant wrapped_var = item.is_sequential_container() ? item : item.extract_wrapped_value();
+                    ObjectWrapper wrapper{ wrapped_var };
+                    archive(wrapper);
+                    BX_ENSURE(wrapper.data.convert(view.get_key_type()));
+                    auto ret = view.insert(wrapper.data);
+                    BX_ENSURE(ret.second);
+                }
+                else
+                {
+                    auto item_key_type = view.get_key_type();
+                    auto item_value_type = view.get_value_type();
+
+                    auto item_key = extract_map_item(view.get_key_type());
+                    auto item_value = extract_map_item(view.get_value_type());
+
+                    bool en = item_key.get_type().is_enumeration();
+
+                    rttr::variant wrapped_key_var = item_key;// .is_sequential_container() ? item_key : item_key.extract_wrapped_value();
+                    auto key_wrapper = ObjectWrapper{ wrapped_key_var };
+
+                    rttr::variant wrapped_value_var = item_value;// .is_sequential_container() ? item_value : item_value.extract_wrapped_value();
+                    auto value_wrapper = ObjectWrapper{ wrapped_value_var };
+
+                    auto t = key_wrapper.data.get_type();
+
+                    archive(cereal::make_map_item(key_wrapper, value_wrapper));
+
+                    BX_ENSURE(key_wrapper.data.convert(view.get_key_type()));
+                    BX_ENSURE(value_wrapper.data.convert(view.get_value_type()));
+
+                    if (key_wrapper.data && value_wrapper.data)
+                    {
+                        auto ret = view.insert(key_wrapper.data, value_wrapper.data);
+                        BX_ENSURE(ret.second);
+                    }
+                }
             }
         }
 
@@ -443,10 +546,10 @@ namespace rttr
             {
                 load_array(archive, obj.create_sequential_view());
             }
-            //else if (var.is_associative_container())
-            //{
-            //    write_associative_container(var.create_associative_view(), writer);
-            //}
+            else if (obj.is_associative_container())
+            {
+                load_map(archive, obj.create_associative_view());
+            }
             else
             {
                 validate_variant(archive, obj);
