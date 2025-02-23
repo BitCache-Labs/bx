@@ -325,10 +325,13 @@ namespace rttr
             else if (type.is_enumeration())
             {
                 EnumWrapper wrapper{ var };
-                archive(cereal::make_nvp(name.data(), wrapper));
-                var = wrapper.data;
 
-                obj = var;
+                if (!name.empty())
+                    archive(cereal::make_nvp(name.data(), wrapper));
+                else
+                    archive(wrapper);
+
+                obj = wrapper.data;
                 return true;
             }
             else if (type == rttr::type::get<String>())
@@ -370,7 +373,31 @@ namespace rttr
             }
         }
 
-        inline rttr::variant extract_map_item_basic(rttr::type type)
+        template <class Archive>
+        void validate_variant(Archive& archive, rttr::variant& obj)
+        {
+            const rttr::instance inst{ obj };
+            bool is_wrapper = obj.get_type().get_raw_type().is_wrapper();
+            bool is_valid = is_wrapper ? inst.get_wrapped_instance().is_valid() : inst.is_valid();
+
+            if (!is_valid)
+            {
+                if (is_wrapper)
+                {
+                    String type_name{};
+                    archive(cereal::make_nvp("@type", type_name));
+
+                    rttr::type actual_type = rttr::type::get_by_name(type_name);
+                    obj = actual_type.create();
+                }
+                else
+                {
+                    obj = obj.get_type().create();
+                }
+            }
+        }
+
+        inline rttr::variant create_map_item(rttr::type type)
         {
             if (type.is_arithmetic())
             {
@@ -401,14 +428,22 @@ namespace rttr
             }
 
             if (type.is_enumeration())
-                return type.create();
+            {
+                auto val = *type.get_enumeration().get_values().begin();
+                return val;
+            }
 
             if (type == rttr::type::get<String>())
                 return String{};
-        }
 
-        inline rttr::variant extract_map_item_inst(rttr::type type)
-        {
+            if (type.is_wrapper())
+            {
+                auto wrapped_type = type.get_wrapped_type().get_raw_type();
+                auto val = wrapped_type.create();
+                auto t = val.get_type();
+                return val;
+            }
+
             rttr::constructor ctor = type.get_constructor();
             for (auto& item : type.get_constructors())
             {
@@ -428,7 +463,7 @@ namespace rttr
             {
                 if (view.is_key_only_type())
                 {
-                    auto item = extract_map_item(view.get_key_type());
+                    auto item = create_map_item(view.get_key_type());
 
                     if (load_basic_type(archive, "", item))
                     {
@@ -438,7 +473,7 @@ namespace rttr
                         continue;
                     }
 
-                    rttr::variant wrapped_var = item.is_sequential_container() ? item : item.extract_wrapped_value();
+                    rttr::variant wrapped_var = item;// .is_sequential_container() ? item : item.extract_wrapped_value();
                     ObjectWrapper wrapper{ wrapped_var };
                     archive(wrapper);
                     BX_ENSURE(wrapper.data.convert(view.get_key_type()));
@@ -447,21 +482,16 @@ namespace rttr
                 }
                 else
                 {
-                    auto item_key_type = view.get_key_type();
-                    auto item_value_type = view.get_value_type();
-
-                    auto item_key = extract_map_item(view.get_key_type());
-                    auto item_value = extract_map_item(view.get_value_type());
-
-                    bool en = item_key.get_type().is_enumeration();
+                    auto item_key = create_map_item(view.get_key_type());
+                    auto item_value = create_map_item(view.get_value_type());
 
                     rttr::variant wrapped_key_var = item_key;// .is_sequential_container() ? item_key : item_key.extract_wrapped_value();
+                    auto t1 = wrapped_key_var.get_type();
                     auto key_wrapper = ObjectWrapper{ wrapped_key_var };
 
                     rttr::variant wrapped_value_var = item_value;// .is_sequential_container() ? item_value : item_value.extract_wrapped_value();
+                    auto t2 = wrapped_value_var.get_type();
                     auto value_wrapper = ObjectWrapper{ wrapped_value_var };
-
-                    auto t = key_wrapper.data.get_type();
 
                     archive(cereal::make_map_item(key_wrapper, value_wrapper));
 
@@ -505,30 +535,6 @@ namespace rttr
                 ObjectWrapper wrapper{ prop_value };
                 archive(cereal::make_nvp(prop_name.data(), wrapper));
                 BX_ENSURE(prop.set_value(obj, wrapper.data));
-            }
-        }
-
-        template <class Archive>
-        void validate_variant(Archive& archive, rttr::variant& obj)
-        {
-            const rttr::instance inst{ obj };
-            bool is_wrapper = obj.get_type().get_raw_type().is_wrapper();
-            bool is_valid = is_wrapper ? inst.get_wrapped_instance().is_valid() : inst.is_valid();
-
-            if (!is_valid)
-            {
-                if (is_wrapper)
-                {
-                    String type_name{};
-                    archive(cereal::make_nvp("@type", type_name));
-
-                    rttr::type actual_type = rttr::type::get_by_name(type_name);
-                    obj = actual_type.create();
-                }
-                else
-                {
-                    obj = obj.get_type().create();
-                }
             }
         }
 

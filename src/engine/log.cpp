@@ -28,7 +28,7 @@ void Log::Write(StringView message,
 {
 	static Hash<StringView> svHash;
 	static Hash<Thread::id> tidHash;
-	static CString<2048> formattedMessage;
+	static CString<1048576> formattedMessage; // 1MB of static storage, should cover all cases of log string size
 
 	SizeType channelHash = svHash(channel.data());
 

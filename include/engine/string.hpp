@@ -438,7 +438,7 @@ void CString<N>::replace(SizeType pos, SizeType len, const StringView& sv)
 }
 
 template <SizeType N>
-SizeType CString<N>::find(char ch, SizeType pos = 0) const noexcept
+SizeType CString<N>::find(char ch, SizeType pos) const noexcept
 {
     return StringView(*this).find(ch, pos);
 }
