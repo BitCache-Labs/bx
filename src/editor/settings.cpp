@@ -1,6 +1,6 @@
 #include <editor/settings.hpp>
 
-BX_EDITOR_MENUITEM_REGISTRATION("Window/Settings", SettingsEditor)
+BX_EDITOR_MENUITEM_REGISTRATION(ICON_EDITOR"/Windows/Settings", SettingsEditor)
 {
     Editor::Get().AddWindow<SettingsEditor>();
 }

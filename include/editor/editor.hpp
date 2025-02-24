@@ -9,9 +9,12 @@
 #include <engine/module.hpp>
 #include <engine/uuid.hpp>
 #include <engine/log.hpp>
+#include <engine/type.hpp>
 
 #include <editor/application.hpp>
 #include <editor/imgui_ex.hpp>
+
+#define ICON_EDITOR ICON_FA_TOOLS
 
 LOG_CHANNEL(Editor)
 
@@ -85,6 +88,7 @@ public:
 
 private:
 	friend class Editor;
+	BX_TYPE_REGISTRATION_FRIEND
 
 	bool m_isOpen{ true };
 	bool m_isPersistent{ false };
@@ -92,7 +96,7 @@ private:
 
 	CString<64> m_title{ "Editor" };
 	ImGuiWindowFlags m_flags{ ImGuiWindowFlags_None };
-	UUID m_uuid{ GenUUID::MakeUUID() };
+	UUID m_uuid{ 0 };
 };
 
 class BX_API Editor
@@ -109,7 +113,7 @@ public:
 	void AddWindow(Args&&... args)
 	{
 		static_assert(std::is_base_of<EditorWindow, T>::value, "T must derive from EditorWindow");
-		AddWindow(meta::make_unique<T>(std::forward<Args>(args)...));
+		AddWindow(SharedPtr<T>(new T(std::forward<Args>(args)...)));
 	}
 
 	void OnGui(EditorApplication& app);
@@ -118,7 +122,7 @@ public:
 	inline f32 GetUIScale() const { return m_uiScale; }
 
 private:
-	void AddWindow(UniquePtr<EditorWindow> window);
+	void AddWindow(SharedPtr<EditorWindow> window);
 
 private:
 	void RegisterMenuItems();
@@ -131,18 +135,15 @@ private:
 private:
 	f32 m_uiScale{ 1.0f };
 
-	//bool m_showGameObjects = true;
-	//bool m_showScene = true;
-	//bool m_showInspector = true;
+	bool m_showInspector = true;
 	bool m_showAssets = true;
 	bool m_showConsole = true;
-	//bool m_showData = false;
 	bool m_showProfiler = false;
 	bool m_showSettings = false;
 
 	EditorTheme m_currentTheme{ EditorTheme::ACRYLIC };
 
 	List<Function<void()>> m_menuItems{};
-	List<UniquePtr<EditorWindow>> m_editorWindows{};
-	List<UniquePtr<EditorWindow>> m_pendingEditorWindows{};
+	List<SharedPtr<EditorWindow>> m_editorWindows{};
+	List<SharedPtr<EditorWindow>> m_pendingEditorWindows{};
 };

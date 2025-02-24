@@ -1,6 +1,6 @@
 #include <editor/console.hpp>
 
-BX_EDITOR_MENUITEM_REGISTRATION("Window/Console", ConsoleEditor)
+BX_EDITOR_MENUITEM_REGISTRATION(ICON_EDITOR"/Windows/Console", ConsoleEditor)
 {
     Editor::Get().AddWindow<ConsoleEditor>();
 }

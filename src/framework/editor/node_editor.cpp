@@ -5,9 +5,12 @@
 #include <engine/window.hpp>
 #include <engine/debug.hpp>
 
-BX_EDITOR_MENUITEM_REGISTRATION("Assets/Create/Node", NodeEditorWindow)
+BX_ASSET_REGISTRATION(Node)
 {
-    Editor::Get().AddWindow<NodeEditorWindow>();
+    AssetEditorInfo info{};
+    info.onContextMenuGui = NodeEditorWindow::OnAssetContextMenuGui;
+    info.onImport = NodeEditorWindow::OnAssetImport;
+    return info;
 }
 
 NodeEditorWindow::NodeEditorWindow() {
@@ -91,4 +94,14 @@ void NodeEditorWindow::OnGui(EditorApplication& app) {
             IM_COL32(200, 200, 100, 255),
             3.0f);
     }
+}
+
+void NodeEditorWindow::OnAssetContextMenuGui(EditorApplication& app, AssetsEditor& assets)
+{
+    if (ImGui::MenuItem("Node"))
+        Editor::Get().AddWindow<NodeEditorWindow>();
+}
+
+void NodeEditorWindow::OnAssetImport(EditorApplication& app, AssetsEditor& assets)
+{
 }

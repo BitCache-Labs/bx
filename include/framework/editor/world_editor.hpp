@@ -1,12 +1,13 @@
 #pragma once
 
-#include <engine/api.hpp>
-#include <engine/graphics.hpp>
-#include <editor/editor.hpp>
 #include <framework/world.hpp>
 #include <framework/camera.hpp>
 
-#include <imgui_internal.h>
+#include <engine/api.hpp>
+#include <engine/graphics.hpp>
+
+#include <editor/editor.hpp>
+#include <editor/assets.hpp>
 
 struct BX_API ConstantData
 {
@@ -19,21 +20,27 @@ class BX_API WorldEditor final
     BX_TYPE(WorldEditor, EditorWindow)
 
 public:
-    WorldEditor(SceneManager& sceneManager);
+    WorldEditor();
     ~WorldEditor();
 
     void OnGui(EditorApplication& app) override;
+
+    static void OnAssetContextMenuGui(EditorApplication& app, AssetsEditor& assets);
+    static void OnAssetImport(EditorApplication& app, AssetsEditor& assets);
 
     void Update(World& world);
     void Render(World& world, const ImVec2& size);
 
 private:
+    void Initialize(EditorApplication& app);
+
     void OnMenuBarGui(World& world);
     void OnToolbarGui(World& world);
     void OnInfoGui(World& world);
 
 private:
-    SceneManager& m_sceneManager;
+    BX_TYPE_REGISTRATION_FRIEND
+
     SceneHandle m_world{ SCENE_INVALID_HANDLE };
 
     f32 m_timer{ 1.f };

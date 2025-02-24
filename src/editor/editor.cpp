@@ -1,14 +1,21 @@
 #include <editor/editor.hpp>
+
 #include <engine/engine.hpp>
 #include <engine/version.hpp>
 #include <engine/window.hpp>
 #include <engine/graphics.hpp>
 #include <engine/file.hpp>
 #include <engine/enum.hpp>
+#include <engine/guard.hpp>
+#include <engine/serial.hpp>
+
+#include <editor/assets.hpp>
 
 BX_TYPE_REGISTRATION
 {
-	rttr::registration::class_<EditorWindow>("EditorWindow");
+	rttr::registration::class_<EditorWindow>("EditorWindow")
+	.property("uuid", &EditorWindow::m_uuid)
+	;
 }
 
 BX_MODULE_DEFINE(Editor)
@@ -45,7 +52,7 @@ bool Editor::Initialize()
 	//CString<128> selawkPath = "selawk.ttf";
 	//io.Fonts->AddFontFromFileTTF(selawkPath.data(), fontSize * UIScale, &config);
 
-	static const ImWchar icons_ranges[] = { 0xf000, 0xf3ff, 0 }; // will not be copied by AddFont* so keep in scope.
+	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 }; // will not be copied by AddFont* so keep in scope.
 	config.MergeMode = true;
 	config.OversampleH = 8;
 	config.OversampleV = 8;
@@ -71,6 +78,17 @@ bool Editor::Initialize()
 
 	RegisterMenuItems();
 
+	BX_LOGD(Editor, "Loading open editors ...");
+	{
+		auto stream = File::Get().InputStream("[settings]/editors.json");
+		if (stream.is_open())
+		{
+			cereal::JSONInputArchive archive(stream);
+			BX_TRYCATCH(archive(cereal::make_nvp("editors", m_pendingEditorWindows)));
+		}
+	}
+	BX_LOGD(Editor, "Load complete.");
+
 	BX_LOGD(Editor, "Editor initialized successfully.");
     return true;
 }
@@ -78,6 +96,17 @@ bool Editor::Initialize()
 void Editor::Shutdown()
 {
 	BX_LOGD(Editor, "Editor shutting down ...");
+
+	BX_LOGD(Editor, "Saving open editors ...");
+	{
+		auto stream = File::Get().OutputStream("[settings]/editors.json");
+		if (stream.is_open())
+		{
+			cereal::JSONOutputArchive archive(stream);
+			BX_TRYCATCH(archive(cereal::make_nvp("editors", m_editorWindows)));
+		}
+	}
+	BX_LOGD(Editor, "Save complete.");
 
 	Clear();
     Graphics::Get().ShutdownImGui();
@@ -132,7 +161,7 @@ void Editor::AddMenuItem(StringView path, Function<void()>&& callback)
 		});
 }
 
-void Editor::AddWindow(UniquePtr<EditorWindow> window)
+void Editor::AddWindow(SharedPtr<EditorWindow> window)
 {
     if (window->m_isExclusive)
     {
@@ -142,6 +171,11 @@ void Editor::AddWindow(UniquePtr<EditorWindow> window)
                 return;
         }
     }
+	else
+	{
+		window->m_uuid = GenUUID::MakeUUID();
+	}
+
 	m_pendingEditorWindows.emplace_back(std::move(window));
 }
 
@@ -296,11 +330,11 @@ void Editor::OnMainMenuBarGui(EditorApplication& app)
 		}
 		ImGui::Tooltip("Profiler");
 
-		if (ImGui::Button(ICON_FA_DATABASE)) // ICON_FA_COG alternative
+		if (ImGui::Button(ICON_FA_COG))
 		{
 			m_showSettings = !m_showSettings;
 		}
-		ImGui::Tooltip("Data");
+		ImGui::Tooltip("Settings");
 
 		if (ImGui::Button(ICON_FA_TERMINAL))
 		{
@@ -317,6 +351,7 @@ void Editor::OnMainMenuBarGui(EditorApplication& app)
 		if (ImGui::Button(ICON_FA_IMAGES))
 		{
 			//show_assets = !show_assets;
+			Editor::Get().AddWindow<AssetsEditor>();
 		}
 		ImGui::Tooltip("Assets");
 

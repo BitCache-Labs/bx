@@ -40,12 +40,14 @@ namespace rttr
     namespace serial
     {
         template <class Archive, typename T>
-        void save_val(Archive& archive, const rttr::string_view& name, const T& val)
+        void save_val(Archive& archive, const rttr::string_view& name, const T& val, bool ok)
         {
+            BX_ENSURE(ok);
+
             if (!name.empty())
-                archive(cereal::make_nvp(name.data(), val));
+                BX_TRYCATCH(archive(cereal::make_nvp(name.data(), val)))
             else
-                archive(val);
+                BX_TRYCATCH(archive(val))
         }
 
         template <class Archive>
@@ -53,11 +55,11 @@ namespace rttr
         {
             bool enum_is_str = false;
             auto enum_str = obj.to_string(&enum_is_str);
-            archive(cereal::make_nvp("enum_str", enum_is_str ? enum_str : ""));
+            BX_TRYCATCH(archive(cereal::make_nvp("enum_str", enum_is_str ? enum_str : "")))
 
             bool enum_is_val = false;
             auto enum_val = obj.to_int32(&enum_is_val);
-            archive(cereal::make_nvp("enum_val", enum_is_val ? enum_val : 0));
+            BX_TRYCATCH(archive(cereal::make_nvp("enum_val", enum_is_val ? enum_val : 0)))
         }
 
         template<class Archive>
@@ -69,44 +71,46 @@ namespace rttr
 
             const rttr::type& type = is_wrapper ? wrapped_type : value_type;
             const rttr::variant& var = is_wrapper ? obj.extract_wrapped_value() : obj;
+            
+            bool ok = false;
 
             if (type.is_arithmetic())
             {
                 if (type == rttr::type::get<bool>())
-                    save_val(archive, name, var.to_bool());
+                    save_val(archive, name, var.to_bool(), true);
                 else if (type == rttr::type::get<char>())
-                    save_val(archive, name, var.to_bool());
+                    save_val(archive, name, var.to_bool(), true);
                 else if (type == rttr::type::get<i8>())
-                    save_val(archive, name, var.to_int8());
+                    save_val(archive, name, var.to_int8(&ok), ok);
                 else if (type == rttr::type::get<i16>())
-                    save_val(archive, name, var.to_int16());
+                    save_val(archive, name, var.to_int16(&ok), ok);
                 else if (type == rttr::type::get<i32>())
-                    save_val(archive, name, var.to_int32());
+                    save_val(archive, name, var.to_int32(&ok), ok);
                 else if (type == rttr::type::get<i64>())
-                    save_val(archive, name, var.to_int64());
+                    save_val(archive, name, var.to_int64(&ok), ok);
                 else if (type == rttr::type::get<u8>())
-                    save_val(archive, name, var.to_uint8());
+                    save_val(archive, name, var.to_uint8(&ok), ok);
                 else if (type == rttr::type::get<u16>())
-                    save_val(archive, name, var.to_uint16());
+                    save_val(archive, name, var.to_uint16(&ok), ok);
                 else if (type == rttr::type::get<u32>())
-                    save_val(archive, name, var.to_uint32());
+                    save_val(archive, name, var.to_uint32(&ok), ok);
                 else if (type == rttr::type::get<u64>())
-                    save_val(archive, name, var.to_uint64());
+                    save_val(archive, name, var.to_uint64(&ok), ok);
                 else if (type == rttr::type::get<f32>())
-                    save_val(archive, name, var.to_float());
+                    save_val(archive, name, var.to_float(&ok), ok);
                 else if (type == rttr::type::get<f64>())
-                    save_val(archive, name, var.to_double());
+                    save_val(archive, name, var.to_double(&ok), ok);
 
                 return true;
             }
             else if (type.is_enumeration())
             {
-                save_val(archive, name, EnumWrapper{ var });
+                save_val(archive, name, EnumWrapper{ var }, ok);
                 return true;
             }
             else if (type == rttr::type::get<String>())
             {
-                save_val(archive, name, var.to_string());
+                save_val(archive, name, var.to_string(&ok), ok);
                 return true;
             }
 
@@ -116,14 +120,14 @@ namespace rttr
         template<class Archive>
         void save_array(Archive& archive, const rttr::variant_sequential_view& view)
         {
-            archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size())));
+            BX_TRYCATCH(archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size()))))
             
             for (const auto& item : view)
             {
                 if (save_basic_type(archive, "", item))
                     continue;
 
-                archive(ObjectWrapper{ item });
+                BX_TRYCATCH(archive(ObjectWrapper{ item }))
             }
         }
 
@@ -133,7 +137,7 @@ namespace rttr
             static const rttr::string_view key_name{ "key" };
             static const rttr::string_view value_name{ "value" };
 
-            archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size())));
+            BX_TRYCATCH(archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size()))))
 
             if (view.is_key_only_type())
             {
@@ -142,14 +146,14 @@ namespace rttr
                     if (save_basic_type(archive, "", item.first))
                         continue;
 
-                    archive(ObjectWrapper{ item.first });
+                    BX_TRYCATCH(archive(ObjectWrapper{ item.first }))
                 }
             }
             else
             {
                 for (const auto& item : view)
                 {
-                    archive(cereal::make_map_item(ObjectWrapper{ item.first }, ObjectWrapper{ item.second }));
+                    BX_TRYCATCH(archive(cereal::make_map_item(ObjectWrapper{ item.first }, ObjectWrapper{ item.second })))
                 }
             }
         }
@@ -180,7 +184,7 @@ namespace rttr
                 // TODO: Make a serialization function for StringView and CString<N>
                 rttr::type actual_type = inst.get_derived_type();
                 rttr::string_view type_name = actual_type.get_name();
-                archive(cereal::make_nvp("@type", type_name.to_string()));
+                BX_TRYCATCH(archive(cereal::make_nvp("@type", type_name.to_string())))
             }
 
             // Now write the properties.
@@ -191,7 +195,7 @@ namespace rttr
             {
                 bool ok = false;
                 auto text = obj.to_string(&ok);
-                archive(ok ? text : "unknown");
+                BX_TRYCATCH(archive(ok ? text : "unknown"))
                 return;
             }
 
@@ -208,7 +212,7 @@ namespace rttr
                 if (save_basic_type(archive, prop_name, prop_value))
                     continue;
 
-                archive(cereal::make_nvp(prop_name.data(), ObjectWrapper{ prop_value }));
+                BX_TRYCATCH(archive(cereal::make_nvp(prop_name.data(), ObjectWrapper{ prop_value })))
             }
         }
 
@@ -261,9 +265,9 @@ namespace rttr
         {
             T val{};
             if (!name.empty())
-                archive(cereal::make_nvp(name.data(), val));
+                BX_TRYCATCH(archive(cereal::make_nvp(name.data(), val)))
             else
-                archive(val);
+                BX_TRYCATCH(archive(val))
             obj = val;
         }
 
@@ -273,8 +277,8 @@ namespace rttr
             String enum_str{};
             i32 enum_val{};
 
-            archive(cereal::make_nvp("enum_str", enum_str));
-            archive(cereal::make_nvp("enum_val", enum_val));
+            BX_TRYCATCH(archive(cereal::make_nvp("enum_str", enum_str)))
+            BX_TRYCATCH(archive(cereal::make_nvp("enum_val", enum_val)))
 
             if (!enum_str.empty())
                 obj = enum_str;
@@ -327,9 +331,9 @@ namespace rttr
                 EnumWrapper wrapper{ var };
 
                 if (!name.empty())
-                    archive(cereal::make_nvp(name.data(), wrapper));
+                    BX_TRYCATCH(archive(cereal::make_nvp(name.data(), wrapper)))
                 else
-                    archive(wrapper);
+                    BX_TRYCATCH(archive(wrapper))
 
                 obj = wrapper.data;
                 return true;
@@ -349,7 +353,7 @@ namespace rttr
         void load_array(Archive& archive, rttr::variant_sequential_view& view)
         {
             cereal::size_type size{};
-            archive(cereal::make_size_tag(size));
+            BX_TRYCATCH(archive(cereal::make_size_tag(size)))
 
             view.set_size(size);
             const rttr::type array_value_type = view.get_rank_type(1);
@@ -367,7 +371,7 @@ namespace rttr
 
                 rttr::variant wrapped_var = item.is_sequential_container() ? item : item.extract_wrapped_value();
                 ObjectWrapper wrapper{ wrapped_var };
-                archive(wrapper);
+                BX_TRYCATCH(archive(wrapper))
                 BX_ENSURE(wrapper.data.convert(array_value_type));
                 BX_ENSURE(view.set_value(i, wrapper.data));
             }
@@ -385,7 +389,7 @@ namespace rttr
                 if (is_wrapper)
                 {
                     String type_name{};
-                    archive(cereal::make_nvp("@type", type_name));
+                    BX_TRYCATCH(archive(cereal::make_nvp("@type", type_name)))
 
                     rttr::type actual_type = rttr::type::get_by_name(type_name);
                     obj = actual_type.create();
@@ -457,7 +461,7 @@ namespace rttr
         void load_map(Archive& archive, rttr::variant_associative_view& view)
         {
             cereal::size_type size{};
-            archive(cereal::make_size_tag(size));
+            BX_TRYCATCH(archive(cereal::make_size_tag(size)))
 
             for (cereal::size_type i = 0; i < size; ++i)
             {
@@ -475,7 +479,7 @@ namespace rttr
 
                     rttr::variant wrapped_var = item;// .is_sequential_container() ? item : item.extract_wrapped_value();
                     ObjectWrapper wrapper{ wrapped_var };
-                    archive(wrapper);
+                    BX_TRYCATCH(archive(wrapper))
                     BX_ENSURE(wrapper.data.convert(view.get_key_type()));
                     auto ret = view.insert(wrapper.data);
                     BX_ENSURE(ret.second);
@@ -493,7 +497,7 @@ namespace rttr
                     auto t2 = wrapped_value_var.get_type();
                     auto value_wrapper = ObjectWrapper{ wrapped_value_var };
 
-                    archive(cereal::make_map_item(key_wrapper, value_wrapper));
+                    BX_TRYCATCH(archive(cereal::make_map_item(key_wrapper, value_wrapper)))
 
                     BX_ENSURE(key_wrapper.data.convert(view.get_key_type()));
                     BX_ENSURE(value_wrapper.data.convert(view.get_value_type()));
@@ -533,7 +537,7 @@ namespace rttr
                 }
 
                 ObjectWrapper wrapper{ prop_value };
-                archive(cereal::make_nvp(prop_name.data(), wrapper));
+                BX_TRYCATCH(archive(cereal::make_nvp(prop_name.data(), wrapper)))
                 BX_ENSURE(prop.set_value(obj, wrapper.data));
             }
         }
@@ -568,7 +572,7 @@ namespace rttr
                 else
                 {
                     String text{};
-                    archive(text);
+                    BX_TRYCATCH(archive(text))
                 }
             }
         }

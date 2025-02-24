@@ -1,6 +1,6 @@
 #include <editor/profiler.hpp>
 
-BX_EDITOR_MENUITEM_REGISTRATION("Window/Profiler", ProfilerEditor)
+BX_EDITOR_MENUITEM_REGISTRATION(ICON_EDITOR"/Windows/Profiler", ProfilerEditor)
 {
     Editor::Get().AddWindow<ProfilerEditor>();
 }

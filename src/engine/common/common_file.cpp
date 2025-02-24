@@ -568,13 +568,11 @@ List<char> CommonFile::ReadBinary(StringView filename)
 OutputFileStream CommonFile::OutputStream(const StringView& filename)
 {
     OutputFileStream stream(GetPath(filename));
-    BX_ENSURE(stream.is_open());
     return stream;
 }
 
 InputFileStream CommonFile::InputStream(const StringView& filename)
 {
     InputFileStream stream(GetPath(filename));
-    BX_ENSURE(stream.is_open());
     return stream;
 }

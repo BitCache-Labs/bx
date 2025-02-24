@@ -1,6 +1,7 @@
 #pragma once
 
 #include <engine/api.hpp>
+#include <engine/type.hpp>
 #include <engine/byte_types.hpp>
 
 #include <cmath>
@@ -44,6 +45,9 @@ namespace Math
 
 struct BX_API Vec2
 {
+	BX_TYPE(Vec2)
+public:
+
 	Vec2() : data{ 0, 0 } {}
 	Vec2(f32 x, f32 y)
 		: data{ x, y }

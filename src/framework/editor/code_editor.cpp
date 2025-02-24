@@ -4,19 +4,25 @@
 #include <engine/enum.hpp>
 #include <engine/window.hpp>
 #include <engine/debug.hpp>
+#include <engine/log.hpp>
 
-BX_EDITOR_MENUITEM_REGISTRATION("Assets/Create/Code", CodeEditorWindow)
+BX_ASSET_REGISTRATION(Code)
 {
-    Editor::Get().AddWindow<CodeEditorWindow>();
+    AssetEditorInfo info{};
+    info.onContextMenuGui = CodeEditorWindow::OnAssetContextMenuGui;
+    info.onImport = CodeEditorWindow::OnAssetImport;
+    return info;
 }
 
-CodeEditorWindow::CodeEditorWindow() {
+CodeEditorWindow::CodeEditorWindow()
+{
     SetTitle("Code Editor");
     // Initialize with some default code.
     m_codeBuffer = "// Write your code here...\n\nint main() {\n    return 0;\n}\n";
 }
 
-void CodeEditorWindow::OnGui(EditorApplication& app) {
+void CodeEditorWindow::OnGui(EditorApplication& app)
+{
     // Determine the available space for the editor.
     ImVec2 editorSize = ImGui::GetContentRegionAvail();
     // Ensure a minimum height for the editor.
@@ -26,5 +32,14 @@ void CodeEditorWindow::OnGui(EditorApplication& app) {
     // Render a multi-line text input widget.
     // The "##CodeEditor" label uses a hidden label to avoid visual clutter.
     ImGui::InputTextMultiline("##CodeEditor", &m_codeBuffer, editorSize, ImGuiInputTextFlags_AllowTabInput);
+}
 
+void CodeEditorWindow::OnAssetContextMenuGui(EditorApplication& app, AssetsEditor& assets)
+{
+    if (ImGui::MenuItem("Code"))
+        Editor::Get().AddWindow<CodeEditorWindow>();
+}
+
+void CodeEditorWindow::OnAssetImport(EditorApplication& app, AssetsEditor& assets)
+{
 }

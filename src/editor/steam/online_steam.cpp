@@ -1,9 +1,7 @@
 #include <editor/steam/online_steam.hpp>
 #include <engine/steam/online_steam.hpp>
 
-#include <imgui_internal.h>
-
-BX_EDITOR_MENUITEM_REGISTRATION("Modules/Online/Steam", OnlineSteamEditor)
+BX_EDITOR_MENUITEM_REGISTRATION(ICON_EDITOR"/Modules/Online", OnlineSteamEditor)
 {
 	Editor::Get().AddWindow<OnlineSteamEditor>();
 }

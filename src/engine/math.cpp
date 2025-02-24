@@ -1,6 +1,16 @@
 #include <engine/math.hpp>
 #include <engine/script.hpp>
 
+BX_TYPE_REGISTRATION
+{
+    rttr::registration::class_<Vec3>("Vec3")
+    .constructor()(rttr::policy::ctor::as_object)
+    .property("x", &Vec3::x)
+    .property("y", &Vec3::y)
+    .property("z", &Vec3::z)
+    ;
+}
+
 #ifdef MATH_API
 static const StringView g_mathSrc = R"(
 import "random" for Random

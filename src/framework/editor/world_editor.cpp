@@ -5,16 +5,54 @@
 #include <engine/window.hpp>
 #include <engine/debug.hpp>
 
-WorldEditor::WorldEditor(SceneManager& sceneManager)
-    : m_sceneManager(sceneManager)
+BX_ASSET_REGISTRATION(World)
+{
+    AssetEditorInfo info{};
+    info.onContextMenuGui = WorldEditor::OnAssetContextMenuGui;
+    info.onImport = WorldEditor::OnAssetImport;
+    return info;
+}
+
+BX_TYPE_REGISTRATION
+{
+    rttr::registration::class_<WorldEditor>("WorldEditor")
+    .constructor()(rttr::policy::ctor::as_std_shared_ptr)
+    .property("cameraPos", &WorldEditor::m_cameraPos)
+    .property("cameraRot", &WorldEditor::m_cameraRot)
+    .property("lookSpeed", &WorldEditor::m_lookSpeed)
+    .property("moveSpeed", &WorldEditor::m_moveSpeed)
+    ;
+
+    rttr::type::register_wrapper_converter_for_base_classes<SharedPtr<WorldEditor>>();
+}
+
+WorldEditor::WorldEditor()
 {
 	SetTitle("World");
 	SetExclusive(false);
 	SetPresistent(false);
     SetFlags(ImGuiWindowFlags_MenuBar);
+}
 
-	m_world = m_sceneManager.CreateScene<World>();
+WorldEditor::~WorldEditor()
+{
+    Graphics::Get().DestroyShader(m_vertShader);
+    Graphics::Get().DestroyShader(m_pixelShader);
+    Graphics::Get().DestroyPipeline(m_pipeline);
 
+    Graphics::Get().DestroyBuffer(m_constantBuffer);
+    Graphics::Get().DestroyBuffer(m_modelBuffer);
+
+    Graphics::Get().DestroyResourceBinding(m_resources);
+    Graphics::Get().DestroyTexture(m_renderTarget);
+    Graphics::Get().DestroyTexture(m_renderTargetIDs);
+    Graphics::Get().DestroyTexture(m_depthStencil);
+
+    //m_sceneManager.DestroyScene(m_world);
+}
+
+void WorldEditor::Initialize(EditorApplication& app)
+{
     // Create shaders
     {
         static const char* vsrc =
@@ -112,23 +150,8 @@ WorldEditor::WorldEditor(SceneManager& sceneManager)
         Graphics::Get().BindResource(m_resources, "ConstantBuffer", m_constantBuffer);
         Graphics::Get().BindResource(m_resources, "ModelBuffer", m_modelBuffer);
     }
-}
 
-WorldEditor::~WorldEditor()
-{
-    Graphics::Get().DestroyShader(m_vertShader);
-    Graphics::Get().DestroyShader(m_pixelShader);
-    Graphics::Get().DestroyPipeline(m_pipeline);
-
-    Graphics::Get().DestroyBuffer(m_constantBuffer);
-    Graphics::Get().DestroyBuffer(m_modelBuffer);
-
-    Graphics::Get().DestroyResourceBinding(m_resources);
-    Graphics::Get().DestroyTexture(m_renderTarget);
-    Graphics::Get().DestroyTexture(m_renderTargetIDs);
-    Graphics::Get().DestroyTexture(m_depthStencil);
-
-    m_sceneManager.DestroyScene(m_world);
+    m_world = app.CreateScene<World>();
 }
 
 static void AlignForWidth(float width, float alignment = 0.5f)
@@ -419,7 +442,10 @@ void WorldEditor::OnInfoGui(World& world)
 
 void WorldEditor::OnGui(EditorApplication& app)
 {
-    auto& world = static_cast<World&>(*m_sceneManager.GetScene(m_world));
+    if (m_world == SCENE_INVALID_HANDLE)
+        Initialize(app);
+
+    auto& world = static_cast<World&>(*app.GetScene(m_world));
 
     OnMenuBarGui(world);
 
@@ -610,6 +636,16 @@ void WorldEditor::OnGui(EditorApplication& app)
     //
     //    Entity(deletedId).Destroy();
     //}
+}
+
+void WorldEditor::OnAssetContextMenuGui(EditorApplication& app, AssetsEditor& assets)
+{
+    if (ImGui::MenuItem("World"))
+        Editor::Get().AddWindow<WorldEditor>();
+}
+
+void WorldEditor::OnAssetImport(EditorApplication& app, AssetsEditor& assets)
+{
 }
 
 void WorldEditor::Update(World& world)

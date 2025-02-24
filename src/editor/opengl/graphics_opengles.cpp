@@ -1,6 +1,6 @@
 #include <editor/opengl/graphics_opengles.hpp>
 
-BX_EDITOR_MENUITEM_REGISTRATION("Modules/Graphics/OpenGLES", GraphicsOpenGLESEditor)
+BX_EDITOR_MENUITEM_REGISTRATION(ICON_EDITOR"/Modules/Graphics", GraphicsOpenGLESEditor)
 {
 	Editor::Get().AddWindow<GraphicsOpenGLESEditor>();
 }

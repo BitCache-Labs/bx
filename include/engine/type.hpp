@@ -5,6 +5,7 @@
 #include <rttr/type.h>
 #include <rttr/rttr_enable.h>
 #include <rttr/registration.h>
+#include <rttr/registration_friend.h>
 #include <rttr/rttr_cast.h>
 
 #define BX_ENUM_TYPE(Name) enum struct BX_API Name
@@ -12,6 +13,7 @@
 #define BX_TYPE(Name, ...) RTTR_ENABLE(__VA_ARGS__)
 
 #define BX_TYPE_REGISTRATION RTTR_REGISTRATION
+#define BX_TYPE_REGISTRATION_FRIEND RTTR_REGISTRATION_FRIEND
 
 #define BX_PRIVATE(Name)                        \
 private:                                        \
