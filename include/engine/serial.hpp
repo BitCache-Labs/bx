@@ -6,11 +6,12 @@
 #include <engine/log.hpp>
 #include <engine/guard.hpp>
 #include <engine/memory.hpp>
-#include <engine/file.hpp>
 
 #include <cereal/cereal.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/archives/json.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/archives/portable_binary.hpp>
 
 LOG_CHANNEL(Serial)
 
@@ -45,9 +46,13 @@ namespace rttr
             BX_ENSURE(ok);
 
             if (!name.empty())
-                BX_TRYCATCH(archive(cereal::make_nvp(name.data(), val)))
+            {
+                BX_TRYCATCH(archive(cereal::make_nvp(name.data(), val)));
+            }
             else
-                BX_TRYCATCH(archive(val))
+            {
+                BX_TRYCATCH(archive(val));
+            }
         }
 
         template <class Archive>
@@ -55,11 +60,11 @@ namespace rttr
         {
             bool enum_is_str = false;
             auto enum_str = obj.to_string(&enum_is_str);
-            BX_TRYCATCH(archive(cereal::make_nvp("enum_str", enum_is_str ? enum_str : "")))
+            BX_TRYCATCH(archive(cereal::make_nvp("enum_str", enum_is_str ? enum_str : "")));
 
             bool enum_is_val = false;
             auto enum_val = obj.to_int32(&enum_is_val);
-            BX_TRYCATCH(archive(cereal::make_nvp("enum_val", enum_is_val ? enum_val : 0)))
+            BX_TRYCATCH(archive(cereal::make_nvp("enum_val", enum_is_val ? enum_val : 0)));
         }
 
         template<class Archive>
@@ -70,7 +75,7 @@ namespace rttr
             bool is_wrapper = wrapped_type != value_type;
 
             const rttr::type& type = is_wrapper ? wrapped_type : value_type;
-            const rttr::variant& var = is_wrapper ? obj.extract_wrapped_value() : obj;
+            const rttr::variant var = is_wrapper ? obj.extract_wrapped_value() : obj;
             
             bool ok = false;
 
@@ -120,14 +125,14 @@ namespace rttr
         template<class Archive>
         void save_array(Archive& archive, const rttr::variant_sequential_view& view)
         {
-            BX_TRYCATCH(archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size()))))
+            BX_TRYCATCH(archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size()))));
             
             for (const auto& item : view)
             {
                 if (save_basic_type(archive, "", item))
                     continue;
 
-                BX_TRYCATCH(archive(ObjectWrapper{ item }))
+                BX_TRYCATCH(archive(ObjectWrapper{ item }));
             }
         }
 
@@ -137,7 +142,7 @@ namespace rttr
             static const rttr::string_view key_name{ "key" };
             static const rttr::string_view value_name{ "value" };
 
-            BX_TRYCATCH(archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size()))))
+            BX_TRYCATCH(archive(cereal::make_size_tag(static_cast<cereal::size_type>(view.get_size()))));
 
             if (view.is_key_only_type())
             {
@@ -146,45 +151,51 @@ namespace rttr
                     if (save_basic_type(archive, "", item.first))
                         continue;
 
-                    BX_TRYCATCH(archive(ObjectWrapper{ item.first }))
+                    BX_TRYCATCH(archive(ObjectWrapper{ item.first }));
                 }
             }
             else
             {
                 for (const auto& item : view)
                 {
-                    BX_TRYCATCH(archive(cereal::make_map_item(ObjectWrapper{ item.first }, ObjectWrapper{ item.second })))
+                    BX_TRYCATCH(archive(cereal::make_map_item(ObjectWrapper{ item.first }, ObjectWrapper{ item.second })));
                 }
             }
         }
 
-        inline rttr::variant unwrap_instance(const rttr::variant& obj)
+        inline rttr::instance unwrap_instance(const rttr::variant& obj)
         {
-            rttr::variant unwrapped_inst{ obj };
-            bool is_wrapper{ true };
-            do
+            if (obj.get_type().get_raw_type().is_wrapper())
             {
-                is_wrapper = unwrapped_inst.get_type().get_raw_type().is_wrapper();
-                unwrapped_inst = is_wrapper ? unwrapped_inst.extract_wrapped_value() : unwrapped_inst;
+                rttr::variant unwrapped_inst{ obj };
+                while (unwrapped_inst.get_type().get_raw_type().is_wrapper())
+                {
+                    unwrapped_inst = unwrapped_inst.extract_wrapped_value();
+                }
+                return unwrapped_inst;
+            }
 
-            } while (is_wrapper);
-            return unwrapped_inst;
+            return obj;
         }
 
         template<class Archive>
         void save_instance(Archive& archive, const rttr::variant& obj)
         {
-            bool is_wrapper = obj.get_type().get_raw_type().is_wrapper();
-            const rttr::instance inst = is_wrapper ? unwrap_instance(obj) : obj;
+            const rttr::instance inst = unwrap_instance(obj);
+            BX_ENSURE(inst.is_valid());
 
-            //bool is_derived = inst.get_type() != inst.get_derived_type();
-            if (is_wrapper)// && is_derived)
+            bool is_wrapper = obj.get_type().get_raw_type().is_wrapper();
+            bool is_derived = inst.get_type().get_raw_type() != inst.get_derived_type();
+            if (is_wrapper && is_derived)
             {
                 // Write out a special property for the type.
                 // TODO: Make a serialization function for StringView and CString<N>
                 rttr::type actual_type = inst.get_derived_type();
                 rttr::string_view type_name = actual_type.get_name();
-                BX_TRYCATCH(archive(cereal::make_nvp("@type", type_name.to_string())))
+                BX_TRYCATCH_FAIL(
+                    archive(cereal::make_nvp("@type", type_name.to_string())),
+                    "Failed to serialize wrapped instance type info!"
+                );
             }
 
             // Now write the properties.
@@ -195,7 +206,7 @@ namespace rttr
             {
                 bool ok = false;
                 auto text = obj.to_string(&ok);
-                BX_TRYCATCH(archive(ok ? text : "unknown"))
+                BX_TRYCATCH(archive(ok ? text : "unknown"));
                 return;
             }
 
@@ -211,8 +222,8 @@ namespace rttr
                 const auto prop_name = prop.get_name();
                 if (save_basic_type(archive, prop_name, prop_value))
                     continue;
-
-                BX_TRYCATCH(archive(cereal::make_nvp(prop_name.data(), ObjectWrapper{ prop_value })))
+                
+                BX_TRYCATCH(archive(cereal::make_nvp(prop_name.data(), ObjectWrapper{ prop_value })));
             }
         }
 
@@ -265,9 +276,13 @@ namespace rttr
         {
             T val{};
             if (!name.empty())
-                BX_TRYCATCH(archive(cereal::make_nvp(name.data(), val)))
+            {
+                BX_TRYCATCH(archive(cereal::make_nvp(name.data(), val)));
+            }
             else
-                BX_TRYCATCH(archive(val))
+            {
+                BX_TRYCATCH(archive(val));
+            }
             obj = val;
         }
 
@@ -277,8 +292,8 @@ namespace rttr
             String enum_str{};
             i32 enum_val{};
 
-            BX_TRYCATCH(archive(cereal::make_nvp("enum_str", enum_str)))
-            BX_TRYCATCH(archive(cereal::make_nvp("enum_val", enum_val)))
+            BX_TRYCATCH(archive(cereal::make_nvp("enum_str", enum_str)));
+            BX_TRYCATCH(archive(cereal::make_nvp("enum_val", enum_val)));
 
             if (!enum_str.empty())
                 obj = enum_str;
@@ -331,9 +346,13 @@ namespace rttr
                 EnumWrapper wrapper{ var };
 
                 if (!name.empty())
-                    BX_TRYCATCH(archive(cereal::make_nvp(name.data(), wrapper)))
+                {
+                    BX_TRYCATCH(archive(cereal::make_nvp(name.data(), wrapper)));
+                }
                 else
-                    BX_TRYCATCH(archive(wrapper))
+                {
+                    BX_TRYCATCH(archive(wrapper));
+                }
 
                 obj = wrapper.data;
                 return true;
@@ -353,12 +372,13 @@ namespace rttr
         void load_array(Archive& archive, rttr::variant_sequential_view& view)
         {
             cereal::size_type size{};
-            BX_TRYCATCH(archive(cereal::make_size_tag(size)))
+            BX_TRYCATCH(archive(cereal::make_size_tag(size)));
 
             view.set_size(size);
             const rttr::type array_value_type = view.get_rank_type(1);
 
-            for (cereal::size_type i = 0; i < size; ++i)
+            // We load in reverse order to maintain the original order when saving
+            for (cereal::size_type i = size; i-- > 0; )
             {
                 auto item = view.get_value(i);
 
@@ -371,7 +391,7 @@ namespace rttr
 
                 rttr::variant wrapped_var = item.is_sequential_container() ? item : item.extract_wrapped_value();
                 ObjectWrapper wrapper{ wrapped_var };
-                BX_TRYCATCH(archive(wrapper))
+                BX_TRYCATCH(archive(wrapper));
                 BX_ENSURE(wrapper.data.convert(array_value_type));
                 BX_ENSURE(view.set_value(i, wrapper.data));
             }
@@ -389,7 +409,10 @@ namespace rttr
                 if (is_wrapper)
                 {
                     String type_name{};
-                    BX_TRYCATCH(archive(cereal::make_nvp("@type", type_name)))
+                    BX_TRYCATCH_FAIL(
+                        archive(cereal::make_nvp("@type", type_name)),
+                        "Failed to deserialize wrapped instance type info!"
+                    );
 
                     rttr::type actual_type = rttr::type::get_by_name(type_name);
                     obj = actual_type.create();
@@ -461,7 +484,7 @@ namespace rttr
         void load_map(Archive& archive, rttr::variant_associative_view& view)
         {
             cereal::size_type size{};
-            BX_TRYCATCH(archive(cereal::make_size_tag(size)))
+            BX_TRYCATCH(archive(cereal::make_size_tag(size)));
 
             for (cereal::size_type i = 0; i < size; ++i)
             {
@@ -479,7 +502,7 @@ namespace rttr
 
                     rttr::variant wrapped_var = item;// .is_sequential_container() ? item : item.extract_wrapped_value();
                     ObjectWrapper wrapper{ wrapped_var };
-                    BX_TRYCATCH(archive(wrapper))
+                    BX_TRYCATCH(archive(wrapper));
                     BX_ENSURE(wrapper.data.convert(view.get_key_type()));
                     auto ret = view.insert(wrapper.data);
                     BX_ENSURE(ret.second);
@@ -497,7 +520,7 @@ namespace rttr
                     auto t2 = wrapped_value_var.get_type();
                     auto value_wrapper = ObjectWrapper{ wrapped_value_var };
 
-                    BX_TRYCATCH(archive(cereal::make_map_item(key_wrapper, value_wrapper)))
+                    BX_TRYCATCH(archive(cereal::make_map_item(key_wrapper, value_wrapper)));
 
                     BX_ENSURE(key_wrapper.data.convert(view.get_key_type()));
                     BX_ENSURE(value_wrapper.data.convert(view.get_value_type()));
@@ -537,7 +560,7 @@ namespace rttr
                 }
 
                 ObjectWrapper wrapper{ prop_value };
-                BX_TRYCATCH(archive(cereal::make_nvp(prop_name.data(), wrapper)))
+                BX_TRYCATCH(archive(cereal::make_nvp(prop_name.data(), wrapper)));
                 BX_ENSURE(prop.set_value(obj, wrapper.data));
             }
         }
@@ -572,7 +595,7 @@ namespace rttr
                 else
                 {
                     String text{};
-                    BX_TRYCATCH(archive(text))
+                    BX_TRYCATCH(archive(text));
                 }
             }
         }

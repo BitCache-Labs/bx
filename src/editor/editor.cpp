@@ -237,7 +237,7 @@ void Editor::OnGui(EditorApplication& app)
             ++it;
     }
 
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 
     Graphics::Get().EndFrameImGui();
     Window::Get().EndFrameImGui();

@@ -9,10 +9,16 @@
 #include <editor/editor.hpp>
 #include <editor/assets.hpp>
 
-struct Code {};
+struct Code
+{
+    String buffer{};
+};
 
-// A basic code editor window derived from EditorWindow.
-class CodeEditorWindow : public EditorWindow {
+class CodeEditorWindow
+    : public EditorWindow
+{
+    BX_TYPE(CodeEditorWindow, EditorWindow)
+
 public:
     CodeEditorWindow();
     virtual ~CodeEditorWindow() = default;
@@ -24,5 +30,7 @@ public:
     static void OnAssetImport(EditorApplication& app, AssetsEditor& assets);
 
 private:
-    std::string m_codeBuffer;  // Holds the code text.
+    BX_TYPE_REGISTRATION_FRIEND;
+    
+    Code m_code{};
 };

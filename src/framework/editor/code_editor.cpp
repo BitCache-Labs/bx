@@ -14,11 +14,26 @@ BX_ASSET_REGISTRATION(Code)
     return info;
 }
 
+BX_TYPE_REGISTRATION
+{
+    rttr::registration::class_<Code>("Code")
+    .constructor()(rttr::policy::ctor::as_object)
+    .property("buffer", &Code::buffer)
+    ;
+
+    rttr::registration::class_<CodeEditorWindow>("CodeEditorWindow")
+    .constructor()(rttr::policy::ctor::as_std_shared_ptr)
+    .property("code", &CodeEditorWindow::m_code)
+    ;
+
+    rttr::type::register_wrapper_converter_for_base_classes<SharedPtr<CodeEditorWindow>>();
+}
+
 CodeEditorWindow::CodeEditorWindow()
 {
     SetTitle("Code Editor");
     // Initialize with some default code.
-    m_codeBuffer = "// Write your code here...\n\nint main() {\n    return 0;\n}\n";
+    m_code.buffer = "// Write your code here...\n\nint main() {\n    return 0;\n}\n";
 }
 
 void CodeEditorWindow::OnGui(EditorApplication& app)
@@ -31,7 +46,7 @@ void CodeEditorWindow::OnGui(EditorApplication& app)
 
     // Render a multi-line text input widget.
     // The "##CodeEditor" label uses a hidden label to avoid visual clutter.
-    ImGui::InputTextMultiline("##CodeEditor", &m_codeBuffer, editorSize, ImGuiInputTextFlags_AllowTabInput);
+    ImGui::InputTextMultiline("##CodeEditor", &m_code.buffer, editorSize, ImGuiInputTextFlags_AllowTabInput);
 }
 
 void CodeEditorWindow::OnAssetContextMenuGui(EditorApplication& app, AssetsEditor& assets)

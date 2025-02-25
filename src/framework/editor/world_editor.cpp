@@ -443,7 +443,15 @@ void WorldEditor::OnInfoGui(World& world)
 void WorldEditor::OnGui(EditorApplication& app)
 {
     if (m_world == SCENE_INVALID_HANDLE)
+    {
         Initialize(app);
+
+        // TODO: Tmp fix, if we run the full function when initialized
+        // we get a crash for a lookup of render target that isn't created yet.
+        // The update here is just to initialize the camera state.
+        Update(static_cast<World&>(*app.GetScene(m_world)));
+        return;
+    }
 
     auto& world = static_cast<World&>(*app.GetScene(m_world));
 
