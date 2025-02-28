@@ -153,8 +153,6 @@ void Engine::Shutdown(Application& app) noexcept
 
     File::Get().Shutdown();
 
-    app.ClearScenes();
-
     BX_LOGD(Engine, "Engine shutdown complete.");
 }
 

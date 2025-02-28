@@ -151,7 +151,7 @@ void WorldEditor::Initialize(EditorApplication& app)
         Graphics::Get().BindResource(m_resources, "ModelBuffer", m_modelBuffer);
     }
 
-    m_world = app.CreateScene<World>();
+    m_world.OnInitialize();
 }
 
 static void AlignForWidth(float width, float alignment = 0.5f)
@@ -442,20 +442,20 @@ void WorldEditor::OnInfoGui(World& world)
 
 void WorldEditor::OnGui(EditorApplication& app)
 {
-    if (m_world == SCENE_INVALID_HANDLE)
+    if (!m_initialized)
     {
         Initialize(app);
 
         // TODO: Tmp fix, if we run the full function when initialized
         // we get a crash for a lookup of render target that isn't created yet.
         // The update here is just to initialize the camera state.
-        Update(static_cast<World&>(*app.GetScene(m_world)));
+        Update(m_world);
+
+        m_initialized = true;
         return;
     }
 
-    auto& world = static_cast<World&>(*app.GetScene(m_world));
-
-    OnMenuBarGui(world);
+    OnMenuBarGui(m_world);
 
     //ObjectRef selected = Selection::GetSelected();
     //EntityId deletedId = INVALID_ENTITY_ID;
@@ -480,12 +480,12 @@ void WorldEditor::OnGui(EditorApplication& app)
     ImVec2 contentRegionAvail = ImGui::GetContentRegionAvail();
     ImVec2 gizmoPos = ImVec2(windowPos.x + cursorPos.x, windowPos.y + cursorPos.y);
 
-    Render(world, contentRegionAvail);
+    Render(m_world, contentRegionAvail);
     ImGui::Image(Graphics::Get().GetImTextureID(m_renderTarget), contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
     ImGui::SetCursorScreenPos(gizmoPos);
 
-    OnToolbarGui(world);
-    OnInfoGui(world);
+    OnToolbarGui(m_world);
+    OnInfoGui(m_world);
 
     //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
     //ImGui::Text("Current Scene: %s", scene.c_str());
@@ -501,7 +501,7 @@ void WorldEditor::OnGui(EditorApplication& app)
     bool sceneActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);// || ImGui::IsWindowHovered();
     if (sceneActive)
     {
-        Update(world);
+        Update(m_world);
     }
 
     // Use transform gizmo if selected

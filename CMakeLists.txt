@@ -57,20 +57,25 @@ add_subdirectory (extern)
 
 set (BX_ENGINE_SRCS
 	# Core
+	"src/engine/debug.cpp"
+	"src/engine/ecs.cpp"
 	"src/engine/engine.cpp"
+	"src/engine/gameobject.cpp"
 	"src/engine/log.cpp"
 	"src/engine/math.cpp"
 	"src/engine/profiler.cpp"
+	"src/engine/resource.cpp"
+	"src/engine/scene.cpp"
 	"src/engine/uuid.cpp"
-	"src/engine/debug.cpp"
 
 	# Modules
-	"src/engine/file.cpp"
-	"src/engine/window.cpp"
-	"src/engine/graphics.cpp"
 	"src/engine/audio.cpp"
+	"src/engine/file.cpp"
+	"src/engine/graphics.cpp"
 	"src/engine/script.cpp"
+	"src/engine/window.cpp"
 
+	# TODO: Make this is to a customize module
 	"src/engine/common/common_file.cpp"
 
 	# Framework (TODO: Put into new lib bx-framework)
@@ -78,7 +83,7 @@ set (BX_ENGINE_SRCS
 	"src/framework/camera.cpp"
 )
 
-set (BX_ENGINE_LIBS fmt stb glm rttr cereal rapidjson)
+set (BX_ENGINE_LIBS fmt stb glm rttr cereal)
 
 if (BX_BUILD_EDITOR)
 	set (BX_ENGINE_SRCS ${BX_ENGINE_SRCS}

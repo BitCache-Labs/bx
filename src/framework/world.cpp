@@ -1,4 +1,13 @@
 #include <framework/world.hpp>
+
+#include <engine/math.hpp>
+#include <engine/ecs.hpp>
+#include <engine/script.hpp>
+#include <engine/string.hpp>
+#include <engine/list.hpp>
+#include <engine/hash_map.hpp>
+#include <engine/function.hpp>
+#include <engine/memory.hpp>
 #include <engine/macros.hpp>
 #include <engine/file.hpp>
 #include <engine/application.hpp>
@@ -6,355 +15,28 @@
 
 #include <engine/wren/script_wren.hpp>
 
-void World::Reload()
-{
-	if (m_vm != SCRIPT_INVALID_HANDLE)
-	{
-		OnDestroy();
-	}
-
-	ScriptVmInfo info{};
-	m_vm = Script::Get().CreateVm(info);
-
-	m_newFn = Script::Get().CreateFunction(m_vm, "new()");
-	m_updateFn = Script::Get().CreateFunction(m_vm, "update()");
-	m_renderFn = Script::Get().CreateFunction(m_vm, "render()");
-	
-	Script::Get().CompileFile(m_vm, "test", File::Get().GetPath("[assets]/test.wren"));
-	
-	Script::Get().EnsureSlots(m_vm, 1);
-	wrenGetVariable((WrenVM*)m_vm, "test", "Test", 0);
-	auto testClass = Script::Get().GetSlotHandle(m_vm, 0);
-	Script::Get().SetSlotHandle(m_vm, 0, testClass);
-	
-	Script::Get().CallFunction(m_vm, m_newFn);
-	m_instance = Script::Get().GetSlotHandle(m_vm, 0);
-}
-
-void World::OnCreate()
-{
-	Reload();
-}
-
-void World::OnDestroy()
-{
-	Script::Get().DestroyFunction(m_vm, m_newFn);
-	Script::Get().DestroyFunction(m_vm, m_updateFn);
-	Script::Get().DestroyFunction(m_vm, m_renderFn);
-	Script::Get().DestroyVm(m_vm);
-}
-
-void World::OnActiveSceneChanged(SceneHandle oldScene, SceneHandle newScene)
+World::World()
 {
 }
 
-void World::OnPlay()
+World::~World()
 {
-	m_playing = true;
-	m_paused = false;
 }
 
-void World::OnPause()
+void World::OnInitialize()
 {
-	m_paused = true;
+	m_scene = CreateScene();
 }
 
-void World::OnStop()
+void World::OnShutdown()
 {
-	m_playing = false;
-	m_paused = false;
+	DestroyScene(m_scene);
 }
 
 void World::OnUpdate()
 {
-	if (m_playing && !m_paused)
-	{
-		Script::Get().SetSlotHandle(m_vm, 0, m_instance);
-		Script::Get().CallFunction(m_vm, m_updateFn);
-	}
 }
 
 void World::OnRender()
 {
-	Script::Get().SetSlotHandle(m_vm, 0, m_instance);
-	Script::Get().CallFunction(m_vm, m_renderFn);
 }
-
-/*
-static List<String> g_gameObjectClasses;
-static HashMap<String, GameObjectMetaData> g_gameObjectMetaDataMap;
-
-static Scene g_currentScene;
-
-class GameObjectReceiver : public Receiver
-{
-public:
-	void Receive(const EntityDestroyed& ev)
-	{
-		auto& gameObjects = g_currentScene.m_gameObjects;
-		auto it = std::find_if(gameObjects.begin(), gameObjects.end(),
-			[ev](const GameObjectBase* obj)
-			{
-				return obj->GetEntity() == ev.entity;
-			});
-
-		if (it != gameObjects.end())
-			gameObjects.erase(it);
-	}
-};
-
-static GameObjectReceiver g_receiver;
-
-GameObjectData GameObjectData::Load(const String& filepath)
-{
-	GameObjectData gameObjData;
-
-	std::ifstream stream(File::GetPath(filepath));
-	cereal::JSONInputArchive ar(stream);
-	ar(cereal::make_nvp("gameobject", gameObjData));
-
-	return gameObjData;
-}
-
-void GameObjectData::Save(const String& filepath, const GameObjectData& data)
-{
-	std::ofstream stream(File::GetPath(filepath));
-	cereal::JSONOutputArchive ar(stream);
-	ar(cereal::make_nvp("gameobject", data));
-}
-
-GameObjectBase::GameObjectBase(Scene& scene, const GameObjectData& data, GameObjectBindObjectFn bindObjFn, GameObjectStartFn startFn, GameObjectUpdateFn updateFn)
-	: m_scene(scene)
-	, m_name(data.name)
-	, m_className(data.className)
-	, m_bindObjFn(bindObjFn)
-	, m_startFn(startFn)
-	, m_updateFn(updateFn)
-{
-	if (data.entity.GetId() == INVALID_ENTITY_ID)
-		m_entity = EntityManager::CreateEntity();
-	else
-		m_entity = EntityManager::CreateEntityWithId(data.entity.GetId());
-
-	m_scene.Add(this);
-}
-
-GameObjectBase::~GameObjectBase()
-{
-	if (m_entity.IsValid())
-		m_entity.Destroy();
-}
-
-void GameObjectBase::Initialize(const GameObjectData& data)
-{
-	for (const auto& cmp : data.components)
-	{
-		for (auto cmpPtr : m_entity.GetComponents())
-		{
-			if (cmpPtr->GetTypeId() == cmp->GetTypeId())
-			{
-				cmpPtr->Copy(*cmp);
-			}
-		}
-	}
-}
-
-void GameObjectBase::Destroy()
-{
-	m_scene.Remove(this);
-}
-
-void GameObject::Initialize()
-{
-	Event::Subscribe<EntityDestroyed, GameObjectReceiver>(g_receiver);
-}
-
-void GameObject::Shutdown()
-{
-	g_gameObjectMetaDataMap.clear();
-	g_gameObjectClasses.clear();
-
-	g_currentScene.m_gameObjects.clear();
-}
-
-void GameObject::Register(const String& className, const GameObjectMetaData& metaData)
-{
-	g_gameObjectClasses.emplace_back(className);
-	g_gameObjectMetaDataMap.insert(std::make_pair(className, metaData));
-
-	ENGINE_LOGD("Registered GameObject class: {}", className);
-}
-
-const List<String>& GameObject::GetClasses()
-{
-	return g_gameObjectClasses;
-}
-
-const GameObjectMetaData& GameObject::GetClassMetaData(const String& className)
-{
-	auto it = g_gameObjectMetaDataMap.find(className);
-	ENGINE_ASSERT(it != g_gameObjectMetaDataMap.end(), "GameObject class not registered!");
-	return it->second;
-}
-
-GameObjectBase& GameObject::New(Scene& scene, const String& className)
-{
-	GameObjectData data{ className, className, Entity::Invalid() };
-	return NewFromData(scene, data);
-}
-
-GameObjectBase& GameObject::NewFromData(Scene& scene, const GameObjectData& data)
-{
-	const auto& metaData = GetClassMetaData(data.className);
-	metaData.bindClassFn();
-	if (!metaData.constructFn(data))
-	{
-		throw std::exception("Failed to construct game object!");
-	}
-
-	return *scene.m_gameObjects[scene.m_gameObjects.size() - 1];
-}
-
-GameObjectBase& GameObject::Load(Scene& scene, const String& filepath)
-{
-	GameObjectData gameObjData = GameObjectData::Load(filepath);
-
-	auto& obj = GameObject::NewFromData(Scene::GetCurrent(), gameObjData);
-	obj.SetName(gameObjData.name);
-
-	SizeType i = 0;
-	for (auto cmpPtr : obj.GetEntity().GetComponents())
-	{
-		cmpPtr->Copy(*gameObjData.components[i++]);
-	}
-
-	return obj;
-}
-
-void GameObject::Save(const GameObjectBase& gameObj, const String& filepath)
-{
-	GameObjectData gameObjData;
-	gameObjData.name = gameObj.GetName();
-	gameObjData.className = gameObj.GetClassName();
-	gameObjData.entity = Entity::Invalid();
-
-	const auto& cmpPtrs = gameObj.GetEntity().GetComponents();
-	gameObjData.components.reserve(cmpPtrs.size());
-	for (const auto cmpPtr : cmpPtrs)
-	{
-		gameObjData.components.emplace_back(cmpPtr, [](ComponentBase*) {});
-	}
-
-	GameObjectData::Save(filepath, gameObjData);
-}
-
-GameObjectBase& GameObject::Find(Scene& scene, EntityId entityId)
-{
-	for (auto& gameObj : scene.m_gameObjects)
-		if (gameObj->GetEntity().GetId() == entityId)
-			return *gameObj;
-	ENGINE_FAIL("No game object found for entity ID!");
-}
-
-GameObjectBase& GameObject::Duplicate(const GameObjectBase& gameObj)
-{
-	String name = gameObj.GetName();
-	Entity entity = gameObj.GetEntity();
-
-	auto& copy = GameObject::New(Scene::GetCurrent(), gameObj.GetClassName());
-	copy.SetName(name);
-
-	const auto& cmps = entity.GetComponents();
-	const auto& copyCmps = copy.GetEntity().GetComponents();
-	for (SizeType i = 0; i < cmps.size(); ++i)
-	{
-		copyCmps[i]->Copy(*cmps[i]);
-	}
-	return copy;
-}
-
-void Scene::Create(const String& filename)
-{
-	Scene scene;
-	Save(scene, filename);
-}
-
-void Scene::Load(const String& filename)
-{
-	Application::Reload();
-	Load(g_currentScene, filename);
-}
-
-void Scene::Save(const String& filename)
-{
-	Save(g_currentScene, filename);
-}
-
-void Scene::Load(Scene& scene, const String& filename)
-{
-	if (!File::Exists(filename))
-	{
-		ENGINE_LOGW("Failed to load non-existent scene: {}", filename);
-		return;
-	}
-
-	scene.m_gameObjects.clear();
-	scene.m_pendingAdded.clear();
-	scene.m_pendingRemoved.clear();
-
-	try
-	{
-		std::ifstream stream(File::GetPath(filename));
-		cereal::JSONInputArchive ar(stream);
-		ar(cereal::make_nvp("scene", scene));
-	}
-	catch (cereal::Exception& e)
-	{
-		ENGINE_LOGW("Failed to load scene ({}): {}", filename, e.what());
-	}
-}
-
-void Scene::Save(const Scene& scene, const String& filename)
-{
-	try
-	{
-		std::ofstream stream(File::GetPath(filename));
-		cereal::JSONOutputArchive ar(stream);
-		ar(cereal::make_nvp("scene", scene));
-	}
-	catch (cereal::Exception& e)
-	{
-		ENGINE_LOGW("Failed to save scene ({}): {}", filename, e.what());
-	}
-}
-
-Scene& Scene::GetCurrent()
-{
-	return g_currentScene;
-}
-
-void Scene::Update()
-{
-	// Ensure all gameobjects are started before update
-	List<GameObjectBase*> added = m_pendingAdded;
-	while (!added.empty())
-	{
-		m_pendingAdded.clear();
-
-		// Start game objects
-		for (auto& go : added)
-			go->Start();
-
-		added = m_pendingAdded;
-	}
-
-	// Update game objects
-	for (const auto& go : m_gameObjects)
-		go->Update();
-
-	// Remove pending objects
-	for (const auto& go : m_pendingRemoved)
-		go->GetEntity().Destroy();
-	m_pendingRemoved.clear();
-}
-*/

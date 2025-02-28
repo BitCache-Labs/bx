@@ -5,6 +5,9 @@
 #include <engine/hash_map.hpp>
 #include <engine/memory.hpp>
 #include <engine/guard.hpp>
+#include <engine/ecs.hpp>
+#include <engine/script.hpp>
+#include <engine/gameobject.hpp>
 
 using SceneHandle = u64;
 constexpr SceneHandle SCENE_INVALID_HANDLE = -1;
@@ -16,24 +19,27 @@ class BX_API SceneManager
     BX_TYPE(SceneManager)
 
 public:
-    virtual ~SceneManager() = default;
-    virtual bool CanAddScene() = 0;
+    SceneManager();
+    virtual ~SceneManager();
 
 public:
-    template <typename T, typename... Args>
-    SceneHandle CreateScene(Args&&... args);
-    inline void DestroyScene(SceneHandle scene);
-    inline Scene* GetScene(SceneHandle scene) const;
+    SceneHandle CreateScene();
+    void DestroyScene(SceneHandle scene);
 
-    inline void SetActiveScene(SceneHandle scene);
-    inline SceneHandle GetActiveScene() const;
+    Scene& GetScene(SceneHandle scene);
+    inline const HashMap<SceneHandle, Scene>& GetScenes() const { return m_scenes; }
 
-    inline const HashMap<SceneHandle, UniquePtr<Scene>>& GetScenes() const;
-    inline void ClearScenes();
+    void ClearScenes();
 
 private:
-    SceneHandle m_activeScene{ SCENE_INVALID_HANDLE };
-    HashMap<SceneHandle, UniquePtr<Scene>> m_scenes{};
+    friend class Scene;
+
+    HashMap<SceneHandle, Scene> m_scenes{};
+
+    EntityManager m_entityMgr{};
+    SystemManager m_systemMgr{};
+
+    ScriptHandle m_vm{ SCRIPT_INVALID_HANDLE };
 };
 
 class BX_API Scene
@@ -41,100 +47,46 @@ class BX_API Scene
     BX_TYPE(Scene)
 
 public:
-    virtual ~Scene() = default;
+    Scene() = default;
+    ~Scene() = default;
 
-    virtual void OnCreate() = 0;
-    virtual void OnDestroy() = 0;
-
-    virtual void OnActiveSceneChanged(SceneHandle oldScene, SceneHandle newScene) = 0;
-
-    virtual void OnPlay() = 0;
-    virtual void OnPause() = 0;
-    virtual void OnStop() = 0;
-    virtual void OnUpdate() = 0;
-    virtual void OnRender() = 0;
-
-public:
     inline SceneManager& GetManager() { return *m_pManager; }
     
-    inline void SetHeadless(bool isHeadless) { m_isHeadless = isHeadless; }
-    inline bool IsHeadless() const { return m_isHeadless; }
+    inline const List<SharedPtr<GameObject>>& GetGameObjects() const { return m_gameObjects; }
+
+    void OnCreate();
+    void OnDestroy();
+
+    void OnUpdate();
 
 private:
     friend class SceneManager;
+
+    inline void Add(const SharedPtr<GameObject>& gameObj)
+    {
+        m_pendingAdded.emplace_back(gameObj);
+        m_gameObjects.emplace_back(gameObj);
+    }
+
+    inline void Remove(const SharedPtr<GameObject>& gameObj)
+    {
+        m_pendingRemoved.emplace_back(gameObj);
+        auto it = std::find_if(m_gameObjects.begin(), m_gameObjects.end(),
+            [gameObj](const SharedPtr<GameObject>& i)
+            {
+                return i->GetEntity() == gameObj->GetEntity();
+            });
+        m_gameObjects.erase(it);
+    }
+
+private:
     SceneManager* m_pManager{ nullptr };
-    bool m_isHeadless{ false };
+
+    ScriptHandle m_newFn{ SCRIPT_INVALID_HANDLE };
+    ScriptHandle m_updateFn{ SCRIPT_INVALID_HANDLE };
+    ScriptHandle m_instance{ SCRIPT_INVALID_HANDLE };
+
+    List<SharedPtr<GameObject>> m_pendingAdded{};
+    List<SharedPtr<GameObject>> m_pendingRemoved{};
+    List<SharedPtr<GameObject>> m_gameObjects{};
 };
-
-template <typename T, typename... Args>
-SceneHandle SceneManager::CreateScene(Args&&... args)
-{
-    static_assert(std::is_base_of<Scene, T>::value, "T must derive from Scene");
-
-    static SceneHandle g_counter = 0;
-    SceneHandle handle = SCENE_INVALID_HANDLE;
-    if (CanAddScene())
-    {
-        handle = g_counter++;
-        auto scene = meta::make_unique<T>(std::forward<Args>(args)...);
-        scene->m_pManager = this;
-        scene->OnCreate();
-        m_scenes.insert(std::make_pair(handle, std::move(scene)));
-    }
-    return handle;
-}
-
-inline void SceneManager::DestroyScene(SceneHandle scene)
-{
-    auto it = m_scenes.find(scene);
-    BX_ENSURE(it != m_scenes.end());
-    
-    it->second->OnStop();
-    it->second->OnDestroy();
-    
-    m_scenes.erase(it);
-
-    if (m_activeScene == scene)
-        m_activeScene = SCENE_INVALID_HANDLE;
-}
-
-inline Scene* SceneManager::GetScene(SceneHandle scene) const
-{
-    if (scene == SCENE_INVALID_HANDLE)
-        return nullptr;
-
-    auto it = m_scenes.find(scene);
-    BX_ENSURE(it != m_scenes.end());
-    return it->second.get();
-}
-
-inline void SceneManager::SetActiveScene(SceneHandle scene)
-{
-    if (m_activeScene == scene)
-        return;
-
-    if (m_activeScene != SCENE_INVALID_HANDLE)
-    {
-        auto it = m_scenes.find(m_activeScene);
-        BX_ENSURE(it != m_scenes.end());
-        it->second->OnStop();
-    }
-
-    for (const auto& it : m_scenes)
-        it.second->OnActiveSceneChanged(m_activeScene, scene);
-
-    m_activeScene = scene;
-
-    auto it = m_scenes.find(m_activeScene);
-    BX_ENSURE(it != m_scenes.end());
-    it->second->OnPlay();
-}
-
-inline SceneHandle SceneManager::GetActiveScene() const { return m_activeScene; }
-
-inline const HashMap<SceneHandle, UniquePtr<Scene>>& SceneManager::GetScenes() const { return m_scenes; }
-
-inline void SceneManager::ClearScenes()
-{
-    m_scenes.clear();
-}

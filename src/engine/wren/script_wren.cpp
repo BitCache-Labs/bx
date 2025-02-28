@@ -3,19 +3,11 @@
 #include <engine/hash.hpp>
 #include <engine/macros.hpp>
 #include <engine/time.hpp>
-//#include <engine/input.hpp>
-//#include <engine/data.hpp>
 #include <engine/profiler.hpp>
 #include <engine/file.hpp>
 #include <engine/math.hpp>
-//#include <engine/ecs.hpp>
 #include <engine/string.hpp>
 #include <engine/hash_map.hpp>
-
-#include <engine/audio.hpp>
-#include <engine/graphics.hpp>
-//#include <engine/physics.hpp>
-#include <engine/window.hpp>
 
 #include <cstdio>
 #include <cstring>
@@ -109,16 +101,25 @@ WrenForeignClassMethods ScriptWren::WrenBindForeignClass(WrenVM* vm, const char*
 
 WrenLoadModuleResult ScriptWren::WrenLoadModule(WrenVM* vm, const char* moduleName)
 {
+	WrenLoadModuleResult res{};
+
 	auto userData = ScriptWren::Get().GetVmImpl(vm);
 
 	const CString<64> moduleNameStr = moduleName;
-
-	WrenLoadModuleResult res{};
 
 	if (moduleNameStr.compare("random") == 0)
 		return res;
 	if (moduleNameStr.compare("meta") == 0)
 		return res;
+
+	for (const auto& src : userData->ctx->m_apiModuleSources)
+	{
+		if (!moduleNameStr.compare(src.moduleName))
+			continue;
+
+		res.source = src.moduleSource.data();
+		return res;
+	}
 
 	CString<64> moduleNameFmt{};
 	moduleNameFmt.format("{}.wren", moduleNameStr);
@@ -131,13 +132,14 @@ WrenLoadModuleResult ScriptWren::WrenLoadModule(WrenVM* vm, const char* moduleNa
 			BX_LOGE(Script, "Module '{}' can not be found!", moduleNameFmt);
 			return res;
 		}
-	
+
 		String moduleSrc = File::Get().ReadText(filepath);
 		userData->ctx->m_wrenModulesSource.insert(std::make_pair(moduleNameStr, moduleSrc));
 	}
 
 	BX_ENSURE(userData->ctx->m_wrenModulesSource.find(moduleNameStr) != userData->ctx->m_wrenModulesSource.end());
 	res.source = userData->ctx->m_wrenModulesSource[moduleNameStr].c_str();
+
 	return res;
 }
 
@@ -207,56 +209,6 @@ void ScriptWren::Shutdown()
 	//m_componentClassWrappers.clear();
 }
 
-//void ScriptWren::ConfigureApi(ScriptHandle vm)
-//{
-	//LOAD_ENGINE_MODULE(core);
-	//LOAD_ENGINE_MODULE(device);
-	//LOAD_ENGINE_MODULE(math);
-	//LOAD_ENGINE_MODULE(graphics);
-	//LOAD_ENGINE_MODULE(physics);
-	//LOAD_ENGINE_MODULE(audio);
-	//LOAD_ENGINE_MODULE(ecs);
-	//LOAD_ENGINE_MODULE(framework);
-	//
-	//File::FindEach("[assets]", ".wren",
-	//	[](const auto& path, const auto& name)
-	//	{
-	//		WrenCompile(m_vm, name.c_str(), File::ReadTextFile(path).c_str());
-	//	});
-	//
-	//for (auto& it : m_foreignClassRegistry)
-	//{
-	//	auto& info = it.second;
-	//
-	//	wrenEnsureSlots(m_vm, 1);
-	//	wrenGetVariable(m_vm, info.moduleName.data(), info.className.data(), 0);
-	//	info.handle = wrenGetSlotHandle(m_vm, 0);
-	//	auto objClass = wrenGetClass(m_vm, info.handle->value);
-	//
-	//	m_wrenTypeIdMap.insert(std::make_pair(objClass->name->hash, info.typeId));
-	//}
-	//
-	//if (m_initialized && !m_error)
-	//{
-	//	wrenEnsureSlots(m_vm, 1);
-	//	wrenGetVariable(m_vm, "game", "Game", 0);
-	//	m_gameClass = wrenGetSlotHandle(m_vm, 0);
-	//	wrenSetSlotHandle(m_vm, 0, m_gameClass);
-	//
-	//	m_configMethod = wrenMakeCallHandle(m_vm, "config()");
-	//	m_initMethod = wrenMakeCallHandle(m_vm, "init()");
-	//	m_updateMethod = wrenMakeCallHandle(m_vm, "update()");
-	//	m_renderMethod = wrenMakeCallHandle(m_vm, "render()");
-	//
-	//	m_goNewMethod = wrenMakeCallHandle(m_vm, "new(_)");
-	//	m_goEntityMethod = wrenMakeCallHandle(m_vm, "entity");
-	//	m_goStartMethod = wrenMakeCallHandle(m_vm, "start()");
-	//	m_goUpdateMethod = wrenMakeCallHandle(m_vm, "update()");
-	//
-	//	wrenCall(m_vm, m_configMethod);
-	//}
-//}
-
 ScriptHandle ScriptWren::CreateVm(const ScriptVmInfo& info)
 {
 	auto userData = new ScriptVMImpl();
@@ -289,6 +241,24 @@ ScriptHandle ScriptWren::CreateVm(const ScriptVmInfo& info)
 	{
 		CompileString(handle, src.moduleName, src.moduleSource);
 	}
+
+	//File::FindEach("[assets]", ".wren",
+	//	[](const auto& path, const auto& name)
+	//	{
+	//		WrenCompile(m_vm, name.c_str(), File::ReadTextFile(path).c_str());
+	//	});
+	//
+	//for (auto& it : m_foreignClassRegistry)
+	//{
+	//	auto& info = it.second;
+	//
+	//	wrenEnsureSlots(m_vm, 1);
+	//	wrenGetVariable(m_vm, info.moduleName.data(), info.className.data(), 0);
+	//	info.handle = wrenGetSlotHandle(m_vm, 0);
+	//	auto objClass = wrenGetClass(m_vm, info.handle->value);
+	//
+	//	m_wrenTypeIdMap.insert(std::make_pair(objClass->name->hash, info.typeId));
+	//}
 
 	return handle;
 }

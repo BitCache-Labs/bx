@@ -41,8 +41,9 @@ private:
 private:
     BX_TYPE_REGISTRATION_FRIEND
 
-    SceneHandle m_world{ SCENE_INVALID_HANDLE };
+    World m_world{};
 
+    bool m_initialized{ false };
     f32 m_timer{ 1.f };
     i32 m_frames{ 0 };
     i32 m_fps{ 0 };

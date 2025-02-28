@@ -18,13 +18,13 @@ set (SKIP_PERFORMANCE_COMPARISON ON CACHE BOOL "" FORCE)
 add_subdirectory (cereal)
 
 # rapidjson lib
-set (RAPIDJSON_BUILD_DOC OFF CACHE BOOL "" FORCE)
-set (RAPIDJSON_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set (RAPIDJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set (RAPIDJSON_BUILD_THIRDPARTY_GTEST OFF CACHE BOOL "" FORCE)
-add_subdirectory (rapidjson)
-target_include_directories(RapidJSON INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rapidjson/include>)
-add_library(rapidjson ALIAS RapidJSON)
+#set (RAPIDJSON_BUILD_DOC OFF CACHE BOOL "" FORCE)
+#set (RAPIDJSON_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+#set (RAPIDJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+#set (RAPIDJSON_BUILD_THIRDPARTY_GTEST OFF CACHE BOOL "" FORCE)
+#add_subdirectory (rapidjson)
+#target_include_directories(RapidJSON INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rapidjson/include>)
+#add_library(rapidjson ALIAS RapidJSON)
 
 # OpenFBX lib
 #add_subdirectory (OpenFBX)
