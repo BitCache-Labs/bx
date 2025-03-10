@@ -58,10 +58,8 @@ public:
 
 	void RegisterGameObject(const GameObjectClass& gameObjClass);
 	GameObject& CreateGameObject(Scene* scene, ScriptHandle classHandle);
-	GameObject& CreateGameObject(Scene* scene, const GameObjectClass classObjClass);
+	GameObject& CreateGameObject(Scene* scene, const GameObjectClass& gameObjClass);
 	GameObject& LoadGameObject(Scene* scene, const StringView filepath);
-
-	void InstantiateGameObject(GameObject& gameObj);
 
 	inline const List<GameObjectClass>& GetClasses() const { return m_classes; }
 	const GameObjectClass& GetClass(ScriptHandle handle) const;

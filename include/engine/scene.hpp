@@ -39,7 +39,7 @@ public:
     void Update();
 
     GameObject& AddGameObject(ScriptHandle classHandle);
-    void RemoveGameObject(const SizeType index);
+    void RemoveGameObject(GameObject* gameObj);
 
 private:
     SceneManager& m_sceneMgr;

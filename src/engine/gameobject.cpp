@@ -201,6 +201,7 @@ void GameObject::Update()
 
 void GameObject::Destroy()
 {
+    m_scene.RemoveGameObject(this);
 }
 
 GameObjectManager::GameObjectManager()
@@ -220,41 +221,40 @@ GameObject& GameObjectManager::CreateGameObject(Scene* scene, ScriptHandle class
 {
     BX_ENSURE(scene != nullptr);
 
-    auto& gameObj = scene->AddGameObject(classHandle);
-    return gameObj;
+    const auto& t = GetClass(classHandle);
+
+    return scene->AddGameObject(classHandle);
 }
 
-GameObject& GameObjectManager::LoadGameObject(Scene* scene, const StringView filepath)
+GameObject& GameObjectManager::CreateGameObject(Scene* scene, const GameObjectClass& gameObjClass)
 {
     BX_ENSURE(scene != nullptr);
 
     auto& script = Script::Get();
     const auto vm = scene->GetSceneManager().GetVm();
 
-    const auto& gameObjClass = m_classes.front(); // TODO: For testing, remove later with loaded stuff
-
     auto classHandle = script.MakeClassHandle(vm, gameObjClass.classModule, gameObjClass.className);
-    return scene->AddGameObject(classHandle);
+    auto& gameObj = scene->AddGameObject(classHandle);
+    
+    script.EnsureSlots(vm, 2);
+    script.SetSlotHandle(vm, 0, classHandle);
+    script.SetSlotArg(vm, 1, gameObj);
+    
+    const auto& handles = scene->GetSceneManager().GetCallHandles();
+    script.CallFunction(vm, handles.gameObjNewFn);
+
+    auto instance = script.GetSlotHandle(vm, 0);
+    gameObj.SetInstance(instance);
+
+    return gameObj;
 }
 
-void GameObjectManager::InstantiateGameObject(GameObject& gameObj)
+GameObject& GameObjectManager::LoadGameObject(Scene* scene, const StringView filepath)
 {
-    BX_ENSURE(gameObj.GetInstance() == SCRIPT_INVALID_HANDLE);
+    // TODO: For testing, remove later with loaded stuff
+    const auto& gameObjClass = m_classes.front();
 
-    auto& script = Script::Get();
-    const auto vm = gameObj.GetScene().GetSceneManager().GetVm();
-    const auto& handles = gameObj.GetScene().GetSceneManager().GetCallHandles();
-
-    script.EnsureSlots(vm, 1);
-
-    auto classHandle = gameObj.GetClassHandle();
-    script.SetSlotHandle(vm, 0, classHandle);
-
-    script.CallFunction(vm, handles.gameObjNewFn);
-    auto instance = script.GetSlotHandle(vm, 0);
-    script.ReleaseHandle(vm, classHandle);
-
-    gameObj.SetInstance(instance);
+    return CreateGameObject(scene, gameObjClass);
 }
 
 const GameObjectClass& GameObjectManager::GetClass(ScriptHandle handle) const

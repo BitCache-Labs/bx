@@ -55,9 +55,21 @@ GameObject& Scene::AddGameObject(ScriptHandle classHandle)
 	return *gameObj;
 }
 
-void Scene::RemoveGameObject(const SizeType index)
+void Scene::RemoveGameObject(GameObject* gameObj)
 {
-	BX_FAIL("TODO");
+	auto it = m_gameObjects.end();
+	for (auto i = m_gameObjects.begin(); i != m_gameObjects.end(); ++i)
+	{
+		if (i->get() == gameObj)
+		{
+			it = i;
+			break;
+		}
+	}
+	BX_ENSURE(it != m_gameObjects.end());
+
+	m_pendingRemoved.emplace_back(*it);
+	m_gameObjects.erase(it);
 }
 
 SceneManager::SceneManager()
@@ -71,7 +83,7 @@ SceneManager::SceneManager()
 	m_callHandles.sceneNewFn = script.MakeCallHandle(m_vm, "new()");
 	m_callHandles.sceneUpdateFn = script.MakeCallHandle(m_vm, "update()");
 
-	m_callHandles.gameObjNewFn = script.MakeCallHandle(m_vm, "new()");
+	m_callHandles.gameObjNewFn = script.MakeCallHandle(m_vm, "new(_)");
 	m_callHandles.gameObjStartFn = script.MakeCallHandle(m_vm, "start()");
 	m_callHandles.gameObjUpdateFn = script.MakeCallHandle(m_vm, "update()");
 }
@@ -118,6 +130,8 @@ Scene& SceneManager::AddScene(StringView moduleName, StringView className, Strin
 
 	scene->SetInstance(instance);
 	m_scenes.emplace_back(scene);
+
+	m_gameObjMgr.CreateGameObject(scene, m_gameObjMgr.GetClasses().front());
 
 	m_currentScene = nullptr;
 	return *scene;
