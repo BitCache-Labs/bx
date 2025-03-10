@@ -13,12 +13,14 @@ extern "C" {
 
 class ScriptWren;
 
-struct ScriptVMImpl
+struct ScriptWrenUserData
 {
-	bool initialized{ false };
-	bool error{ false };
 	WrenVM* vm{ nullptr };
 	ScriptWren* ctx{ nullptr };
+
+	bool initialized{ false };
+	bool error{ false };
+	void* data{ nullptr };
 };
 
 class BX_API ScriptWren final
@@ -33,26 +35,40 @@ public:
 	ScriptHandle CreateVm(const ScriptVmInfo& info) override;
 	void DestroyVm(ScriptHandle vm) override;
 
-	ScriptHandle CreateFunction(ScriptHandle vm, StringView signature) override;
-	void DestroyFunction(ScriptHandle vm, ScriptHandle function) override;
-	void CallFunction(ScriptHandle vm, ScriptHandle function) override;
-
-	bool HasError(ScriptHandle vm) override;
-	void ClearError(ScriptHandle vm) override;
+	void SetUserData(ScriptHandle vm, void* data) override;
+	void* GetUserData(ScriptHandle vm) override;
 
 	bool CompileString(ScriptHandle vm, StringView moduleName, StringView string) override;
 	bool CompileFile(ScriptHandle vm, StringView moduleName, StringView filepath) override;
 
+	bool HasError(ScriptHandle vm) override;
+	void ClearError(ScriptHandle vm) override;
+
+	ScriptHandle MakeCallHandle(ScriptHandle vm, StringView signature) override;
+	ScriptHandle MakeClassHandle(ScriptHandle vm, StringView moduleName, StringView className) override;
+	void ReleaseHandle(ScriptHandle vm, ScriptHandle handle) override;
+	u64 GetHandleValue(ScriptHandle handle) override;
+
+	void EnsureSlots(ScriptHandle vm, i32 numSlots) override;
+	void CallFunction(ScriptHandle vm, ScriptHandle handle) override;
+
 	void BeginModule(StringView moduleName) override;
+	StringView GetCurrentModule() const override;
 	void EndModule() override;
 
-	void BeginClass(StringView className) override;
+	void BeginClass(StringView className, TypeId typeId) override;
+	StringView GetCurrentClass() const override;
 	void EndClass() override;
+
+	const ScriptClassInfo& GetClassInfo(TypeId typeId) override;
+	void SetClass(ScriptHandle vm, i32 slot, TypeId typeId) override;
+
+	void BindConstructor(StringView signature, ScriptMethodFn func) override;
+	void BindDestructor(ScriptFinalizerFn func) override;
 
 	void BindFunction(bool isStatic, StringView signature, ScriptMethodFn func) override;
 
-	void EnsureSlots(ScriptHandle vm, i32 numSlots) override;
-
+	// Getters
 	bool GetSlotBool(ScriptHandle vm, i32 slot) override;
 	u8 GetSlotU8(ScriptHandle vm, i32 slot) override;
 	u16 GetSlotU16(ScriptHandle vm, i32 slot) override;
@@ -68,6 +84,10 @@ public:
 	void* GetSlotObject(ScriptHandle vm, i32 slot) override;
 	ScriptHandle GetSlotHandle(ScriptHandle vm, i32 slot) override;
 
+	i32 GetListCount(ScriptHandle vm, i32 slot) override;
+	void GetListElement(ScriptHandle vm, i32 listSlot, i32 index, i32 elementSlot) override;
+
+	// Setters
 	void SetSlotBool(ScriptHandle vm, i32 slot, bool value) override;
 	void SetSlotU8(ScriptHandle vm, i32 slot, u8 value) override;
 	void SetSlotU16(ScriptHandle vm, i32 slot, u16 value) override;
@@ -83,17 +103,12 @@ public:
 	void* SetSlotNewObject(ScriptHandle vm, i32 slot, i32 classSlot, SizeType size) override;
 	void SetSlotHandle(ScriptHandle vm, i32 slot, ScriptHandle handle) override;
 
-private:
-	void RegisterClass(TypeId typeId) override;
-	const ScriptClassInfo& GetClassInfo(TypeId typeId) override;
-
-	void SetClass(ScriptHandle vm, i32 slot, TypeId typeId) override;
-
-	void RegisterConstructor(SizeType arity, StringView signature, ScriptMethodFn func) override;
-	void RegisterDestructor(ScriptFinalizerFn func) override;
+	void SetSlotNewList(ScriptHandle vm, i32 slot) override;
+	void SetListElement(ScriptHandle vm, i32 listSlot, i32 index, i32 elementSlot) override;
+	void InsertInList(ScriptHandle vm, i32 listSlot, i32 index, i32 elementSlot) override;
 
 public:
-	ScriptVMImpl* GetVmImpl(WrenVM* vm);
+	ScriptWrenUserData* GetUserData(WrenVM* vm);
 
 private:
 	static WrenForeignMethodFn WrenBindForeignMethod(WrenVM* vm, const char* moduleName, const char* className, bool isStatic, const char* signature);
@@ -120,8 +135,4 @@ private:
 
 	HashMap<TypeId, ScriptClassInfo> m_foreignClassRegistry{};
 	HashMap<u32, TypeId> m_wrenTypeIdMap{};
-
-	// Extra mappings for specialized template classes
-	//HashMap<TypeId, ResourceClassWrapper> m_resourceClassWrappers;
-	//HashMap<TypeId, ComponentClassWrapper> m_componentClassWrappers;
 };

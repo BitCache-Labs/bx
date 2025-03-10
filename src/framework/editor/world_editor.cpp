@@ -32,27 +32,7 @@ WorldEditor::WorldEditor()
 	SetExclusive(false);
 	SetPresistent(false);
     SetFlags(ImGuiWindowFlags_MenuBar);
-}
 
-WorldEditor::~WorldEditor()
-{
-    Graphics::Get().DestroyShader(m_vertShader);
-    Graphics::Get().DestroyShader(m_pixelShader);
-    Graphics::Get().DestroyPipeline(m_pipeline);
-
-    Graphics::Get().DestroyBuffer(m_constantBuffer);
-    Graphics::Get().DestroyBuffer(m_modelBuffer);
-
-    Graphics::Get().DestroyResourceBinding(m_resources);
-    Graphics::Get().DestroyTexture(m_renderTarget);
-    Graphics::Get().DestroyTexture(m_renderTargetIDs);
-    Graphics::Get().DestroyTexture(m_depthStencil);
-
-    //m_sceneManager.DestroyScene(m_world);
-}
-
-void WorldEditor::Initialize(EditorApplication& app)
-{
     // Create shaders
     {
         static const char* vsrc =
@@ -152,6 +132,25 @@ void WorldEditor::Initialize(EditorApplication& app)
     }
 
     m_world.OnInitialize();
+}
+
+WorldEditor::~WorldEditor()
+{
+    m_world.OnShutdown();
+
+    Graphics::Get().DestroyShader(m_vertShader);
+    Graphics::Get().DestroyShader(m_pixelShader);
+    Graphics::Get().DestroyPipeline(m_pipeline);
+
+    Graphics::Get().DestroyBuffer(m_constantBuffer);
+    Graphics::Get().DestroyBuffer(m_modelBuffer);
+
+    Graphics::Get().DestroyResourceBinding(m_resources);
+    Graphics::Get().DestroyTexture(m_renderTarget);
+    Graphics::Get().DestroyTexture(m_renderTargetIDs);
+    Graphics::Get().DestroyTexture(m_depthStencil);
+
+    //m_sceneManager.DestroyScene(m_world);
 }
 
 static void AlignForWidth(float width, float alignment = 0.5f)
@@ -442,19 +441,6 @@ void WorldEditor::OnInfoGui(World& world)
 
 void WorldEditor::OnGui(EditorApplication& app)
 {
-    if (!m_initialized)
-    {
-        Initialize(app);
-
-        // TODO: Tmp fix, if we run the full function when initialized
-        // we get a crash for a lookup of render target that isn't created yet.
-        // The update here is just to initialize the camera state.
-        Update(m_world);
-
-        m_initialized = true;
-        return;
-    }
-
     OnMenuBarGui(m_world);
 
     //ObjectRef selected = Selection::GetSelected();
@@ -481,7 +467,10 @@ void WorldEditor::OnGui(EditorApplication& app)
     ImVec2 gizmoPos = ImVec2(windowPos.x + cursorPos.x, windowPos.y + cursorPos.y);
 
     Render(m_world, contentRegionAvail);
-    ImGui::Image(Graphics::Get().GetImTextureID(m_renderTarget), contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
+    
+    if (m_renderTarget != INVALID_GRAPHICS_HANDLE)
+        ImGui::Image(Graphics::Get().GetImTextureID(m_renderTarget), contentRegionAvail, ImVec2(0, 1), ImVec2(1, 0));
+
     ImGui::SetCursorScreenPos(gizmoPos);
 
     OnToolbarGui(m_world);
@@ -703,7 +692,7 @@ void WorldEditor::Update(World& world)
 
     m_constantData.viewProjMtx = m_camera.GetViewProjection();
 
-    world.OnUpdate();
+    world.Update();
 }
 
 static void DrawXZGrid(const Vec3& cameraPos, f32 zfar)
@@ -915,7 +904,7 @@ void WorldEditor::Render(World& world, const ImVec2& size)
     bufferData.pData = &m_constantData;
     Graphics::Get().UpdateBuffer(m_constantBuffer, bufferData);
 
-    world.OnRender();
+    //world.Render();
 
     Debug::Get().RenderDraws(m_camera.GetViewProjection());
     Debug::Get().ClearDraws();

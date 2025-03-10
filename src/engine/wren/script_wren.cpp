@@ -33,16 +33,16 @@ static SizeType GetMethodHash(StringView moduleName, StringView className, bool 
 		^ m_strHash(signature);
 }
 
-ScriptVMImpl* ScriptWren::GetVmImpl(WrenVM* vm)
+ScriptWrenUserData* ScriptWren::GetUserData(WrenVM* vm)
 {
 	auto userData = wrenGetUserData(vm);
 	BX_ENSURE(userData != nullptr);
-	return static_cast<ScriptVMImpl*>(userData);
+	return static_cast<ScriptWrenUserData*>(userData);
 }
 
 WrenForeignMethodFn ScriptWren::WrenBindForeignMethod(WrenVM* vm, const char* moduleName, const char* className, bool isStatic, const char* signature)
 {
-	auto userData = ScriptWren::Get().GetVmImpl(vm);
+	auto userData = ScriptWren::Get().GetUserData(vm);
 
 	const StringView moduleNameStr = moduleName;
 	const StringView classNameStr = className;
@@ -62,7 +62,7 @@ WrenForeignMethodFn ScriptWren::WrenBindForeignMethod(WrenVM* vm, const char* mo
 
 WrenForeignMethodFn ScriptWren::WrenAllocate(WrenVM* vm, const SizeType classHash)
 {
-	auto userData = ScriptWren::Get().GetVmImpl(vm);
+	auto userData = ScriptWren::Get().GetUserData(vm);
 
 	const auto it = userData->ctx->m_foreignConstructors.find(classHash);
 	if (it != userData->ctx->m_foreignConstructors.end())
@@ -72,7 +72,7 @@ WrenForeignMethodFn ScriptWren::WrenAllocate(WrenVM* vm, const SizeType classHas
 
 WrenFinalizerFn ScriptWren::WrenFinalizer(WrenVM* vm, const SizeType classHash)
 {
-	auto userData = ScriptWren::Get().GetVmImpl(vm);
+	auto userData = ScriptWren::Get().GetUserData(vm);
 
 	const auto it = userData->ctx->m_foreignDestructors.find(classHash);
 	if (it != userData->ctx->m_foreignDestructors.end())
@@ -103,7 +103,7 @@ WrenLoadModuleResult ScriptWren::WrenLoadModule(WrenVM* vm, const char* moduleNa
 {
 	WrenLoadModuleResult res{};
 
-	auto userData = ScriptWren::Get().GetVmImpl(vm);
+	auto userData = ScriptWren::Get().GetUserData(vm);
 
 	const CString<64> moduleNameStr = moduleName;
 
@@ -154,7 +154,7 @@ void ScriptWren::WrenWrite(WrenVM* vm, const char* text)
 
 void ScriptWren::WrenError(WrenVM* vm, WrenErrorType errorType, const char* module, const i32 line, const char* msg)
 {
-	auto ctx = ScriptWren::Get().GetVmImpl(vm);
+	auto userData = ScriptWren::Get().GetUserData(vm);
 
 	switch (errorType)
 	{
@@ -166,7 +166,7 @@ void ScriptWren::WrenError(WrenVM* vm, WrenErrorType errorType, const char* modu
 		BX_LOGE(Script, "[Runtime] {}", msg); break;
 	}
 
-	ctx->error = true;
+	userData->error = true;
 }
 
 bool ScriptWren::Initialize()
@@ -211,7 +211,7 @@ void ScriptWren::Shutdown()
 
 ScriptHandle ScriptWren::CreateVm(const ScriptVmInfo& info)
 {
-	auto userData = new ScriptVMImpl();
+	auto userData = new ScriptWrenUserData();
 
 	// Create vm
 	WrenConfiguration config;
@@ -267,7 +267,7 @@ void ScriptWren::DestroyVm(ScriptHandle vm)
 {
 	auto wrenVm = (WrenVM*)vm;
 
-	auto userData = GetVmImpl(wrenVm);
+	auto userData = GetUserData(wrenVm);
 	userData->initialized = false;
 	userData->error = false;
 	userData->ctx = nullptr;
@@ -280,43 +280,28 @@ void ScriptWren::DestroyVm(ScriptHandle vm)
 	}
 }
 
-ScriptHandle ScriptWren::CreateFunction(ScriptHandle vm, StringView signature)
+void ScriptWren::SetUserData(ScriptHandle vm, void* data)
 {
-	auto wrenVm = (WrenVM*)vm;
-	auto handle = wrenMakeCallHandle(wrenVm, signature.data());
-	return handle;
+	auto userData = GetUserData((WrenVM*)vm);
+	userData->data = data;
 }
 
-void ScriptWren::DestroyFunction(ScriptHandle vm, ScriptHandle function)
+void* ScriptWren::GetUserData(ScriptHandle vm)
 {
-	wrenReleaseHandle((WrenVM*)vm, (WrenHandle*)function);
-}
-
-void ScriptWren::CallFunction(ScriptHandle vm, ScriptHandle function)
-{
-	wrenCall((WrenVM*)vm, (WrenHandle*)function);
-	//wrenCallFunction();
-}
-
-bool ScriptWren::HasError(ScriptHandle vm)
-{
-	//return m_error;
-	return false;
-}
-
-void ScriptWren::ClearError(ScriptHandle vm)
-{
-	//m_error = false;
+	auto userData = GetUserData((WrenVM*)vm);
+	return userData->data;
 }
 
 bool ScriptWren::CompileString(ScriptHandle vm, StringView moduleName, StringView string)
 {
+	BeginModule(moduleName);
+
 	// TODO: Move m_wrenModulesSource to the vm context
 
 	bool success = true;
 
 	auto wrenVm = (WrenVM*)vm;
-	auto userData = GetVmImpl(wrenVm);
+	auto userData = GetUserData(wrenVm);
 
 	const CString<64> moduleNameStr = moduleName;
 	//if (m_wrenModulesSource.find(moduleNameStr) == m_wrenModulesSource.end())
@@ -348,6 +333,7 @@ bool ScriptWren::CompileString(ScriptHandle vm, StringView moduleName, StringVie
 			m_wrenModulesSource.insert(std::make_pair(moduleNameStr, string.data()));
 	}
 
+	EndModule();
 	return success;
 }
 
@@ -357,9 +343,63 @@ bool ScriptWren::CompileFile(ScriptHandle vm, StringView moduleName, StringView 
 	return CompileString(vm, moduleName, src);
 }
 
+bool ScriptWren::HasError(ScriptHandle vm)
+{
+	//return m_error;
+	return false;
+}
+
+void ScriptWren::ClearError(ScriptHandle vm)
+{
+	//m_error = false;
+}
+
+ScriptHandle ScriptWren::MakeCallHandle(ScriptHandle vm, StringView signature)
+{
+	auto wrenVm = (WrenVM*)vm;
+	auto handle = wrenMakeCallHandle(wrenVm, signature.data());
+	return handle;
+}
+
+ScriptHandle ScriptWren::MakeClassHandle(ScriptHandle vm, StringView moduleName, StringView className)
+{
+	auto wrenVm = (WrenVM*)vm;
+	wrenGetVariable(wrenVm, moduleName.data(), className.data(), 0);
+	return wrenGetSlotHandle(wrenVm, 0);
+}
+
+void ScriptWren::ReleaseHandle(ScriptHandle vm, ScriptHandle function)
+{
+	wrenReleaseHandle((WrenVM*)vm, (WrenHandle*)function);
+}
+
+u64 ScriptWren::GetHandleValue(ScriptHandle handle)
+{
+	auto wrenHandle = (WrenHandle*)handle;
+	return wrenHandle->value;
+}
+
+void ScriptWren::EnsureSlots(ScriptHandle vm, i32 numSlots)
+{
+	wrenEnsureSlots((WrenVM*)vm, numSlots);
+}
+
+void ScriptWren::CallFunction(ScriptHandle vm, ScriptHandle handle)
+{
+	auto wrenVm = (WrenVM*)vm;
+	auto wrenHandle = (WrenHandle*)handle;
+	wrenCall(wrenVm, wrenHandle);
+	//wrenCallFunction();
+}
+
 void ScriptWren::BeginModule(StringView moduleName)
 {
 	m_moduleName = moduleName;
+}
+
+StringView ScriptWren::GetCurrentModule() const
+{
+	return m_moduleName;
 }
 
 void ScriptWren::EndModule()
@@ -367,9 +407,24 @@ void ScriptWren::EndModule()
 	m_moduleName = nullptr;
 }
 
-void ScriptWren::BeginClass(StringView className)
+void ScriptWren::BeginClass(StringView className, TypeId typeId)
 {
 	m_className = className;
+
+	if (m_foreignClassRegistry.find(typeId) == m_foreignClassRegistry.end())
+	{
+		ScriptClassInfo info;
+		info.moduleName = m_moduleName;
+		info.className = m_className;
+		info.typeId = typeId;
+
+		m_foreignClassRegistry.insert(std::make_pair(typeId, info));
+	}
+}
+
+StringView ScriptWren::GetCurrentClass() const
+{
+	return m_className;
 }
 
 void ScriptWren::EndClass()
@@ -377,207 +432,43 @@ void ScriptWren::EndClass()
 	m_className = nullptr;
 }
 
+const ScriptClassInfo& ScriptWren::GetClassInfo(TypeId typeId)
+{
+	auto it = m_foreignClassRegistry.find(typeId);
+	BX_ASSERT(it != m_foreignClassRegistry.end(), "Class is not registered!");
+	return it->second;
+}
+
+void ScriptWren::SetClass(ScriptHandle vm, i32 slot, TypeId typeId)
+{
+	const auto& info = ScriptWren::GetClassInfo(typeId);
+
+	EnsureSlots(vm, slot + 1);
+	wrenGetVariable((WrenVM*)vm, info.moduleName.data(), info.className.data(), slot);
+
+	// TODO: Test this
+	//auto it = m_foreignClassRegistry.find(typeId);
+	//BX_ASSERT(it != m_foreignClassRegistry.end(), "Class is not registered!");
+	//const auto& info = it->second;
+	//wrenSetSlotHandle(vm, slot, info.handle);
+}
+
+void ScriptWren::BindConstructor(StringView signature, ScriptMethodFn func)
+{
+	const SizeType hash = GetClassHash(m_moduleName, m_className);
+	m_foreignConstructors.insert(std::make_pair(hash, (WrenForeignMethodFn)func));
+}
+
+void ScriptWren::BindDestructor(ScriptFinalizerFn func)
+{
+	const SizeType hash = GetClassHash(m_moduleName, m_className);
+	m_foreignDestructors.insert(std::make_pair(hash, (WrenFinalizerFn)func));
+}
+
 void ScriptWren::BindFunction(bool isStatic, StringView signature, ScriptMethodFn func)
 {
 	const SizeType hash = GetMethodHash(m_moduleName, m_className, isStatic, signature);
 	m_foreignMethods.insert(std::make_pair(hash, (WrenForeignMethodFn)func));
-}
-
-//void ScriptWren::RegisterResourceClass(TypeId typeId, const ResourceClassWrapper& wrapper)
-//{
-//	m_resourceClassWrappers.insert(std::make_pair(typeId, wrapper));
-//}
-//
-//static void GetResourceCallInfo(WrenVM* vm, ResourceClassWrapper& wrapper)
-//{
-//	WrenHandle* handle = wrenGetSlotHandle(vm, 1);
-//	ObjClass* objClass = wrenGetClass(vm, handle->value);
-//
-//	auto it = m_wrenTypeIdMap.find(objClass->name->hash);
-//	BX_ASSERT(it != m_wrenTypeIdMap.end(), "Class is not registered!");
-//	const auto& typeId = it->second;
-//
-//	auto it2 = m_resourceClassWrappers.find(typeId);
-//	BX_ASSERT(it2 != m_resourceClassWrappers.end(), "Resource is not registered!");
-//	wrapper = it2->second;
-//}
-//
-//static void ResourceCreate(WrenVM* vm)
-//{
-//	ResourceClassWrapper wrapper;
-//	GetResourceCallInfo(vm, wrapper);
-//	wrapper.createFn(vm);
-//}
-//
-//static void GetResourceCallInfo(WrenVM* vm, MetaResource& res, ResourceClassWrapper& wrapper)
-//{
-//	wrenEnsureSlots(vm, 2);
-//	res = ScriptArg<MetaResource>::Get(vm, 0);
-//
-//	WrenHandle* handle = wrenGetSlotHandle(vm, 1);
-//	ObjClass* objClass = wrenGetClass(vm, handle->value);
-//
-//	auto it = m_wrenTypeIdMap.find(objClass->name->hash);
-//	BX_ASSERT(it != m_wrenTypeIdMap.end(), "Class is not registered!");
-//	const auto& typeId = it->second;
-//
-//	auto it2 = m_resourceClassWrappers.find(typeId);
-//	BX_ASSERT(it2 != m_resourceClassWrappers.end(), "Resource is not registered!");
-//	wrapper = it2->second;
-//}
-//
-//static void ResourceGetData(WrenVM* vm)
-//{
-//	MetaResource res;
-//	ResourceClassWrapper wrapper;
-//	GetResourceCallInfo(vm, res, wrapper);
-//	wrapper.getDataFn(vm, res);
-//}
-//
-//void ScriptWren::RegisterComponentClass(TypeId typeId, const ComponentClassWrapper& wrapper)
-//{
-//	m_componentClassWrappers.insert(std::make_pair(typeId, wrapper));
-//}
-//
-//static void GetComponentCallInfo(WrenVM* vm, Entity& entity, ComponentClassWrapper& wrapper)
-//{
-//	wrenEnsureSlots(vm, 2);
-//	entity = ScriptArg<Entity&>::Get(vm, 0);
-//
-//	WrenHandle* handle = wrenGetSlotHandle(vm, 1);
-//	ObjClass* objClass = wrenGetClass(vm, handle->value);
-//
-//	auto it = m_wrenTypeIdMap.find(objClass->name->hash);
-//	BX_ASSERT(it != m_wrenTypeIdMap.end(), "Class is not registered!");
-//	const auto& typeId = it->second;
-//
-//	auto it2 = m_componentClassWrappers.find(typeId);
-//	BX_ASSERT(it2 != m_componentClassWrappers.end(), "Component is not registered!");
-//	wrapper = it2->second;
-//}
-//
-//static void EntityHasComponent(WrenVM* vm)
-//{
-//	Entity entity;
-//	ComponentClassWrapper wrapper;
-//	GetComponentCallInfo(vm, entity, wrapper);
-//	wrapper.hasComponentFn(vm, entity);
-//}
-//
-//static void EntityAddComponent(WrenVM* vm)
-//{
-//	Entity entity;
-//	ComponentClassWrapper wrapper;
-//	GetComponentCallInfo(vm, entity, wrapper);
-//	wrapper.addComponentFn(vm, entity);
-//}
-//
-//static void EntityGetComponent(WrenVM* vm)
-//{
-//	Entity entity;
-//	ComponentClassWrapper wrapper;
-//	GetComponentCallInfo(vm, entity, wrapper);
-//	wrapper.getComponentFn(vm, entity);
-//}
-//
-//static void EntityRemoveComponent(WrenVM* vm)
-//{
-//	Entity entity;
-//	ComponentClassWrapper wrapper;
-//	GetComponentCallInfo(vm, entity, wrapper);
-//	wrapper.removeComponentFn(vm, entity);
-//}
-//
-//static void RegisterGameObject(WrenVM* vm)
-//{
-//	WrenHandle* classHandle = wrenGetSlotHandle(vm, 1);
-//	ObjClass* classObj = wrenGetClass(vm, classHandle->value);
-//
-//	String className = classObj->name->value;
-//	className = className.substr(0, className.find(" "));
-//
-//	GameObjectMetaData metaData
-//	{
-//		[vm, classHandle]()
-//		{
-//			wrenSetSlotHandle(vm, 0, classHandle);
-//		},
-//		[vm](const GameObjectData& data)
-//		{
-//			ScriptArg<const GameObjectData&>::Set(vm, 1, data);
-//			auto result = wrenCall(vm, m_goNewMethod);
-//			return result == WREN_RESULT_SUCCESS;
-//		}
-//	};
-//
-//	GameObject::Register(className, metaData);
-//}
-//
-//static void GetTypeGameObjectData(WrenVM* vm)
-//{
-//	wrenEnsureSlots(vm, 0);
-//	const auto& data = ScriptArg<const GameObjectData&>::Get(vm, 0);
-//	const auto& metaData = GameObject::GetClassMetaData(data.className);
-//	metaData.bindClassFn();
-//}
-//
-//static void CreateGameObjectData(WrenVM* vm)
-//{
-//	wrenEnsureSlots(vm, 1);
-//	WrenHandle* objHandle = wrenGetSlotHandle(vm, 1);
-//	ObjClass* classObj = wrenGetClass(vm, objHandle->value);
-//	String className = classObj->name->value;
-//	className = className.substr(0, className.find(" "));
-//
-//	GameObjectData data{ className, className, Entity::Invalid() };
-//	ScriptArg<GameObjectData>::Set(vm, 0, data);
-//}
-//
-//static void ConstructGameObjectBase(WrenVM* vm)
-//{
-//	wrenEnsureSlots(vm, 2);
-//
-//	const auto& data = ScriptArg<const GameObjectData&>::Get(vm, 1);
-//
-//	WrenHandle* objHandle = wrenGetSlotHandle(vm, 2);
-//	ObjClass* classObj = wrenGetClass(vm, objHandle->value);
-//	String className = classObj->name->value;
-//	className = className.substr(0, className.find(" "));
-//
-//	void* memory = ScriptArg<void*>::Set(vm, 0, 0, sizeof(ScriptObjVal<GameObjectBase>));
-//	ScriptObjVal<GameObjectBase>* obj = new (memory) ScriptObjVal<GameObjectBase>{};
-//
-//	new (obj->Ptr()) GameObjectBase(
-//		Scene::GetCurrent(), data,
-//		[vm, objHandle]()
-//		{
-//			wrenSetSlotHandle(vm, 0, objHandle);
-//		},
-//		[vm, objHandle]()
-//		{
-//			//auto fiber = wrenNewFiber(vm, NULL);
-//			//wrenSetSlotHandle(vm, 0, objHandle);
-//			//wrenCallFunction(vm, fiber, AS_CLOSURE(m_goStartMethod->value), 0);
-//
-//			wrenSetSlotHandle(vm, 0, objHandle);
-//			wrenCall(vm, m_goStartMethod);
-//		},
-//		[vm, objHandle]()
-//		{
-//			wrenSetSlotHandle(vm, 0, objHandle);
-//			wrenCall(vm, m_goUpdateMethod);
-//		});
-//}
-//
-//static void FinalizeGameObjectBase(void* data)
-//{
-//	ScriptObj* obj = static_cast<ScriptObj*>(data);
-//	obj->~ScriptObj();
-//}
-
-void ScriptWren::EnsureSlots(ScriptHandle vm, i32 numSlots)
-{
-	wrenEnsureSlots((WrenVM*)vm, numSlots);
 }
 
 bool ScriptWren::GetSlotBool(ScriptHandle vm, i32 slot)
@@ -617,6 +508,16 @@ ScriptHandle ScriptWren::GetSlotHandle(ScriptHandle vm, i32 slot)
 	return wrenGetSlotHandle((WrenVM*)vm, slot);
 }
 
+i32 ScriptWren::GetListCount(ScriptHandle vm, i32 slot)
+{
+	return wrenGetListCount((WrenVM*)vm, slot);
+}
+
+void ScriptWren::GetListElement(ScriptHandle vm, i32 listSlot, i32 index, i32 elementSlot)
+{
+	return wrenGetListElement((WrenVM*)vm, listSlot, index, elementSlot);
+}
+
 void ScriptWren::SetSlotBool(ScriptHandle vm, i32 slot, bool value)
 {
 	wrenSetSlotBool((WrenVM*)vm, slot, value);
@@ -628,6 +529,7 @@ void ScriptWren::SetSlot##Name(ScriptHandle vm, i32 slot, Num value)	\
 	wrenSetSlotDouble((WrenVM*)vm, slot, static_cast<Num>(value));		\
 }
 
+// TODO: Wren only supports doubles, int 64s don't pack very well but we have no alternative for now...
 DECLARE_SET_SLOT_NUM(u8, U8)
 DECLARE_SET_SLOT_NUM(u16, U16)
 DECLARE_SET_SLOT_NUM(u32, U32)
@@ -654,48 +556,17 @@ void ScriptWren::SetSlotHandle(ScriptHandle vm, i32 slot, ScriptHandle handle)
 	wrenSetSlotHandle((WrenVM*)vm, slot, (WrenHandle*)handle);
 }
 
-void ScriptWren::RegisterClass(TypeId typeId)
+void ScriptWren::SetSlotNewList(ScriptHandle vm, i32 slot)
 {
-	if (m_foreignClassRegistry.find(typeId) == m_foreignClassRegistry.end())
-	{
-		ScriptClassInfo info;
-		info.moduleName = m_moduleName;
-		info.className = m_className;
-		info.typeId = typeId;
-	
-		m_foreignClassRegistry.insert(std::make_pair(typeId, info));
-	}
+	wrenSetSlotNewList((WrenVM*)vm, slot);
 }
 
-const ScriptClassInfo& ScriptWren::GetClassInfo(TypeId typeId)
+void ScriptWren::SetListElement(ScriptHandle vm, i32 listSlot, i32 index, i32 elementSlot)
 {
-	auto it = m_foreignClassRegistry.find(typeId);
-	BX_ASSERT(it != m_foreignClassRegistry.end(), "Class is not registered!");
-	return it->second;
+	wrenSetListElement((WrenVM*)vm, listSlot, index, elementSlot);
 }
 
-void ScriptWren::SetClass(ScriptHandle vm, i32 slot, TypeId typeId)
+void ScriptWren::InsertInList(ScriptHandle vm, i32 listSlot, i32 index, i32 elementSlot)
 {
-	const auto& info = ScriptWren::GetClassInfo(typeId);
-
-	EnsureSlots(vm, slot + 1);
-	//wrenGetVariable(vm, info.moduleName.data(), info.className.data(), slot);
-
-	// TODO: Test this
-	//auto it = m_foreignClassRegistry.find(typeId);
-	//BX_ASSERT(it != m_foreignClassRegistry.end(), "Class is not registered!");
-	//const auto& info = it->second;
-	//wrenSetSlotHandle(vm, slot, info.handle);
-}
-
-void ScriptWren::RegisterConstructor(SizeType arity, StringView signature, ScriptMethodFn func)
-{
-	const SizeType hash = GetClassHash(m_moduleName, m_className);
-	m_foreignConstructors.insert(std::make_pair(hash, (WrenForeignMethodFn)func));
-}
-
-void ScriptWren::RegisterDestructor(ScriptFinalizerFn func)
-{
-	const SizeType hash = GetClassHash(m_moduleName, m_className);
-	m_foreignDestructors.insert(std::make_pair(hash, (WrenFinalizerFn)func));
+	wrenInsertInList((WrenVM*)vm, listSlot, index, elementSlot);
 }

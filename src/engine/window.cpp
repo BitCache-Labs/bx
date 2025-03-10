@@ -110,7 +110,7 @@ BX_SCRIPT_API_REGISTRATION(Window)
 {
 	Script::Get().BeginModule("window");
 	{
-		Script::Get().BeginEnumClass<GamepadButton>("GamepadButton");
+		Script::Get().BeginEnum<GamepadButton>("GamepadButton");
 		{
 			Script::Get().BindEnumVal<GamepadButton, GamepadButton::BUTTON_SOUTH>("south");
 			Script::Get().BindEnumVal<GamepadButton, GamepadButton::BUTTON_EAST>("east");
@@ -129,7 +129,7 @@ BX_SCRIPT_API_REGISTRATION(Window)
 		}
 		Script::Get().EndClass();
 
-		Script::Get().BeginEnumClass<GamepadAxis>("GamepadAxis");
+		Script::Get().BeginEnum<GamepadAxis>("GamepadAxis");
 		{
 			Script::Get().BindEnumVal<GamepadAxis, GamepadAxis::STICK_LEFT_X>("leftStickX");
 			Script::Get().BindEnumVal<GamepadAxis, GamepadAxis::STICK_LEFT_Y>("leftStickY");
@@ -140,7 +140,7 @@ BX_SCRIPT_API_REGISTRATION(Window)
 		}
 		Script::Get().EndClass();
 
-		Script::Get().BeginEnumClass<MouseButton>("MouseButton");
+		Script::Get().BeginEnum<MouseButton>("MouseButton");
 		{
 			Script::Get().BindEnumVal<MouseButton, MouseButton::MOUSE_BUTTON_LEFT>("left");
 			Script::Get().BindEnumVal<MouseButton, MouseButton::MOUSE_BUTTON_RIGHT>("right");
@@ -148,7 +148,7 @@ BX_SCRIPT_API_REGISTRATION(Window)
 		}
 		Script::Get().EndClass();
 
-		Script::Get().BeginEnumClass<Key>("Key");
+		Script::Get().BeginEnum<Key>("Key");
 		{
 			Script::Get().BindEnumVal<Key, Key::RIGHT>("right");
 			Script::Get().BindEnumVal<Key, Key::LEFT>("left");
@@ -187,7 +187,7 @@ BX_SCRIPT_API_REGISTRATION(Window)
 		}
 		Script::Get().EndClass();
 
-		Script::Get().BeginClass("Window");
+		Script::Get().BeginClass<Window>("Window");
 		{
 			Script::Get().BindFunction<decltype(&Window::GetAxis), &Window::GetAxis>(true, "getAxis(_)");
 			Script::Get().BindFunction<decltype(&Window::GetButton), &Window::GetButton>(true, "getButton(_)");

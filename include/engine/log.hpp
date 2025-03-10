@@ -85,6 +85,6 @@ private:
 	Mutex m_mutex{};
 	Thread::id m_mainThreadId{ std::this_thread::get_id() };
 
-	HashMap<u32, Channel> m_channels{};
+	HashMap<SizeType, Channel> m_channels{};
 	List<Entry> m_entries{};
 };

@@ -6,10 +6,14 @@
 #include <engine/string.hpp>
 #include <engine/script.hpp>
 
-struct GameObjectType
+class Scene;
+class SceneManager;
+
+struct BX_API GameObjectClass
 {
 	CString<64> classModule{};
 	CString<64> className{};
+	ScriptHandle classHandle{ SCRIPT_INVALID_HANDLE };
 };
 
 class BX_API GameObject
@@ -17,27 +21,51 @@ class BX_API GameObject
 	BX_TYPE(GameObject)
 
 public:
-	GameObject();
+	GameObject(Scene& scene, ScriptHandle classHandle);
 	~GameObject();
 
-	inline const String& GetClassName() const { return m_className; }
+	inline Scene& GetScene() { return m_scene; }
+	inline ScriptHandle GetClassHandle() const { return m_classHandle; }
+
+	inline void SetInstance(ScriptHandle instance) { m_instance = instance; }
+	inline ScriptHandle GetInstance() const { return m_instance; }
+
+	inline StringView GetName() const { return m_name; }
+	inline void SetName(StringView name) { m_name = name; }
+
 	inline Entity GetEntity() const { return m_entity; }
 
-	inline void Bind() const
-	{
-	}
+	void Start();
+	void Update();
 
-	inline void Start()
-	{
-	}
-
-	inline void Update() const
-	{
-	}
-
-	static List<GameObjectType> GetTypes(ScriptHandle vm);
+	void Destroy();
 
 private:
-	String m_className{};
+	Scene& m_scene;
+	ScriptHandle m_classHandle{ SCRIPT_INVALID_HANDLE };
+
+	ScriptHandle m_instance{ SCRIPT_INVALID_HANDLE };
+
 	Entity m_entity{};
+	CString<64> m_name{};
+};
+
+class BX_API GameObjectManager
+{
+public:
+	GameObjectManager();
+	~GameObjectManager();
+
+	void RegisterGameObject(const GameObjectClass& gameObjClass);
+	GameObject& CreateGameObject(Scene* scene, ScriptHandle classHandle);
+	GameObject& CreateGameObject(Scene* scene, const GameObjectClass classObjClass);
+	GameObject& LoadGameObject(Scene* scene, const StringView filepath);
+
+	void InstantiateGameObject(GameObject& gameObj);
+
+	inline const List<GameObjectClass>& GetClasses() const { return m_classes; }
+	const GameObjectClass& GetClass(ScriptHandle handle) const;
+
+private:
+	List<GameObjectClass> m_classes{};
 };

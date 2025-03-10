@@ -14,14 +14,9 @@ public:
 
 	void OnInitialize();
 	void OnShutdown();
-
-	void OnUpdate();
-	void OnRender();
-
+	
 private:
 	friend class WorldEditor;
-
-	SceneHandle m_scene{ SCENE_INVALID_HANDLE };
 
 	// TODO: Move these to WorldEditor
 	bool m_playing{ false };

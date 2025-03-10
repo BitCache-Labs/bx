@@ -13,8 +13,6 @@
 #include <engine/application.hpp>
 #include <engine/hash_map.hpp>
 
-#include <engine/wren/script_wren.hpp>
-
 World::World()
 {
 }
@@ -25,18 +23,10 @@ World::~World()
 
 void World::OnInitialize()
 {
-	m_scene = CreateScene();
+	AddScene("test", "Test", "[assets]/test.wren");
 }
 
 void World::OnShutdown()
 {
-	DestroyScene(m_scene);
-}
-
-void World::OnUpdate()
-{
-}
-
-void World::OnRender()
-{
+	//DestroyScene(m_scene);
 }

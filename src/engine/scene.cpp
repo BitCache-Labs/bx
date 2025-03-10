@@ -1,108 +1,146 @@
 #include <engine/scene.hpp>
-
 #include <engine/file.hpp>
 
-// TODO: Remove this
-#include <engine/wren/script_wren.hpp>
-
-SceneManager::SceneManager()
+Scene::Scene(SceneManager& sceneMgr)
+	: m_sceneMgr(sceneMgr)
 {
-	ScriptVmInfo info{};
-	m_vm = Script::Get().CreateVm(info);
 }
 
-SceneManager::~SceneManager()
+Scene::~Scene()
 {
-	Script::Get().DestroyVm(m_vm);
+	m_gameObjects.clear();
+
+	BX_ENSURE(m_instance != SCRIPT_INVALID_HANDLE);
+	Script::Get().ReleaseHandle(m_sceneMgr.GetVm(), m_instance);
 }
 
-SceneHandle SceneManager::CreateScene()
+void Scene::Update()
 {
-	static SceneHandle g_counter = 0;
-	SceneHandle handle = g_counter++;
-	
-	Scene scene{};
-	scene.m_pManager = this;
-	scene.OnCreate();
+	auto& script = Script::Get();
+	const auto vm = m_sceneMgr.GetVm();
+	const auto& handles = m_sceneMgr.GetCallHandles();
 
-	m_scenes.insert(std::make_pair(handle, std::move(scene)));
-
-	return handle;
-}
-
-void SceneManager::DestroyScene(SceneHandle scene)
-{
-	auto it = m_scenes.find(scene);
-	BX_ENSURE(it != m_scenes.end());
-
-	it->second.OnDestroy();
-	
-	m_scenes.erase(it);
-}
-
-Scene& SceneManager::GetScene(SceneHandle scene)
-{
-	BX_ENSURE(scene != SCENE_INVALID_HANDLE);
-	auto it = m_scenes.find(scene);
-	BX_ENSURE(it != m_scenes.end());
-	return it->second;
-}
-
-void SceneManager::ClearScenes()
-{
-	m_scenes.clear();
-}
-
-void Scene::OnCreate()
-{
-	m_newFn = Script::Get().CreateFunction(m_pManager->m_vm, "new()");
-	m_updateFn = Script::Get().CreateFunction(m_pManager->m_vm, "update()");
-
-	Script::Get().CompileFile(m_pManager->m_vm, "test", File::Get().GetPath("[assets]/test.wren"));
-
-	Script::Get().EnsureSlots(m_pManager->m_vm, 1);
-
-	// TODO: Remove this, make into API
-	wrenGetVariable((WrenVM*)m_pManager->m_vm, "test", "Test", 0);
-	auto testClass = Script::Get().GetSlotHandle(m_pManager->m_vm, 0);
-	Script::Get().SetSlotHandle(m_pManager->m_vm, 0, testClass);
-
-	Script::Get().CallFunction(m_pManager->m_vm, m_newFn);
-	m_instance = Script::Get().GetSlotHandle(m_pManager->m_vm, 0);
-
-	auto types = GameObject::GetTypes(m_pManager->m_vm);
-}
-
-void Scene::OnDestroy()
-{
-	Script::Get().DestroyFunction(m_pManager->m_vm, m_newFn);
-	Script::Get().DestroyFunction(m_pManager->m_vm, m_updateFn);
-}
-
-void Scene::OnUpdate()
-{
-	Script::Get().SetSlotHandle(m_pManager->m_vm, 0, m_instance);
-	Script::Get().CallFunction(m_pManager->m_vm, m_updateFn);
+	script.SetSlotHandle(vm, 0, m_instance);
+	script.CallFunction(vm, handles.sceneUpdateFn);
 
 	// Ensure all gameobjects are started before update
 	List<SharedPtr<GameObject>> added = m_pendingAdded;
 	while (!added.empty())
 	{
 		m_pendingAdded.clear();
-
+	
 		// Start game objects
 		for (auto& go : added)
 			go->Start();
-
+	
 		added = m_pendingAdded;
 	}
 
 	// Update game objects
-	for (const auto& go : m_gameObjects)
+	for (auto& go : m_gameObjects)
 		go->Update();
 
 	// Remove pending objects
-	for (const auto& go : m_pendingRemoved)
+	for (auto& go : m_pendingRemoved)
 		go->GetEntity().Destroy();
+	
 	m_pendingRemoved.clear();
+}
+
+GameObject& Scene::AddGameObject(ScriptHandle classHandle)
+{
+	SharedPtr<GameObject> gameObj(new GameObject(*this, classHandle));
+	m_pendingAdded.emplace_back(gameObj);
+	m_gameObjects.emplace_back(gameObj);
+	return *gameObj;
+}
+
+void Scene::RemoveGameObject(const SizeType index)
+{
+	BX_FAIL("TODO");
+}
+
+SceneManager::SceneManager()
+{
+	auto& script = Script::Get();
+
+	ScriptVmInfo info{};
+	m_vm = script.CreateVm(info);
+	script.SetUserData(m_vm, this);
+
+	m_callHandles.sceneNewFn = script.MakeCallHandle(m_vm, "new()");
+	m_callHandles.sceneUpdateFn = script.MakeCallHandle(m_vm, "update()");
+
+	m_callHandles.gameObjNewFn = script.MakeCallHandle(m_vm, "new()");
+	m_callHandles.gameObjStartFn = script.MakeCallHandle(m_vm, "start()");
+	m_callHandles.gameObjUpdateFn = script.MakeCallHandle(m_vm, "update()");
+}
+
+SceneManager::~SceneManager()
+{
+	for (auto scene : m_scenes)
+		delete scene;
+
+	auto& script = Script::Get();
+
+	script.ReleaseHandle(m_vm, m_callHandles.sceneNewFn);
+	script.ReleaseHandle(m_vm, m_callHandles.sceneUpdateFn);
+
+	script.ReleaseHandle(m_vm, m_callHandles.gameObjNewFn);
+	script.ReleaseHandle(m_vm, m_callHandles.gameObjStartFn);
+	script.ReleaseHandle(m_vm, m_callHandles.gameObjUpdateFn);
+
+	for (const auto& gameObjClass : m_gameObjMgr.GetClasses())
+	{
+		script.ReleaseHandle(m_vm, gameObjClass.classHandle);
+	}
+
+	script.DestroyVm(m_vm);
+}
+
+Scene& SceneManager::AddScene(StringView moduleName, StringView className, StringView filepath)
+{
+	auto scene = new Scene(*this);
+	m_currentScene = scene;
+
+	auto& script = Script::Get();
+	script.CompileFile(m_vm, moduleName, File::Get().GetPath(filepath));
+	
+	script.EnsureSlots(m_vm, 1);
+	
+	auto sceneClass = script.MakeClassHandle(m_vm, moduleName, className);
+	script.SetSlotHandle(m_vm, 0, sceneClass);
+
+	script.CallFunction(m_vm, m_callHandles.sceneNewFn);
+	auto instance = script.GetSlotHandle(m_vm, 0);
+
+	script.ReleaseHandle(m_vm, sceneClass);
+
+	scene->SetInstance(instance);
+	m_scenes.emplace_back(scene);
+
+	m_currentScene = nullptr;
+	return *scene;
+}
+
+Scene& SceneManager::AddScene()
+{
+	auto scene = new Scene(*this);
+	m_scenes.emplace_back(scene);
+	return *scene;
+}
+
+void SceneManager::RemoveScene(const SizeType index)
+{
+	BX_FAIL("TODO");
+}
+
+void SceneManager::Update()
+{
+	for (auto scene : m_scenes)
+	{
+		m_currentScene = scene;
+		scene->Update();
+	}
+	m_currentScene = nullptr;
 }

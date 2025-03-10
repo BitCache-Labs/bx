@@ -93,7 +93,7 @@ namespace Enum
         return mask ^ flag;
     }
 
-    // Returns the “reset” mask (i.e. with no flags set).
+    // Returns the â€œresetâ€ mask (i.e. with no flags set).
     template <typename EnumT>
     constexpr EnumT reset_flags() noexcept
     {
@@ -173,7 +173,7 @@ namespace Enum
 {
     // Bitwise Operators
     template <typename, typename T, typename = void> struct has_bitwise_and : meta::false_type {};
-    template <typename T> struct has_bitwise_and<decltype(void(std::declval<T>() & std::declval<T>())), T, void> : meta::true_type {};
+    template <typename T> struct has_bitwise_and<decltype(void(std::declval<T>()& std::declval<T>())), T, void> : meta::true_type {};
 
     template <typename, typename T, typename = void> struct has_bitwise_or : meta::false_type {};
     template <typename T> struct has_bitwise_or<decltype(void(std::declval<T>() | std::declval<T>())), T, void> : meta::true_type {};
@@ -775,7 +775,7 @@ namespace Enum
 {
     // Bitwise Operators
     template <typename, typename T, typename = void> struct has_bitwise_and_underlying_enum : meta::false_type {};
-    template <typename T> struct has_bitwise_and_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() & std::declval<T>())), T, void> : meta::true_type {};
+    template <typename T> struct has_bitwise_and_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>()& std::declval<T>())), T, void> : meta::true_type {};
 
     template <typename, typename T, typename = void> struct has_bitwise_or_underlying_enum : meta::false_type {};
     template <typename T> struct has_bitwise_or_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() | std::declval<T>())), T, void> : meta::true_type {};
@@ -786,10 +786,10 @@ namespace Enum
     // Compound Bitwise Assignment Operators
     template <typename, typename T, typename = void> struct has_compound_and_underlying_enum : meta::false_type {};
     template <typename T> struct has_compound_and_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() &= std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_compound_or_underlying_enum : meta::false_type {};
     template <typename T> struct has_compound_or_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() |= std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_compound_xor_underlying_enum : meta::false_type {};
     template <typename T> struct has_compound_xor_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() ^= std::declval<T>())), T, void> : meta::true_type {};
 
@@ -809,32 +809,32 @@ namespace Enum
     // Arithmetic Operators
     template <typename, typename T, typename = void> struct has_plus_underlying_enum : meta::false_type {};
     template <typename T> struct has_plus_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() + std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_minus_underlying_enum : meta::false_type {};
     template <typename T> struct has_minus_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() - std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_multiply_underlying_enum : meta::false_type {};
     template <typename T> struct has_multiply_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>()* std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_divide_underlying_enum : meta::false_type {};
     template <typename T> struct has_divide_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() / std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_modulo_underlying_enum : meta::false_type {};
     template <typename T> struct has_modulo_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() % std::declval<T>())), T, void> : meta::true_type {};
 
     // Compound Arithmetic Assignment Operators
     template <typename, typename T, typename = void> struct has_compound_plus_underlying_enum : meta::false_type {};
     template <typename T> struct has_compound_plus_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() += std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_compound_minus_underlying_enum : meta::false_type {};
     template <typename T> struct has_compound_minus_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() -= std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_compound_multiply_underlying_enum : meta::false_type {};
     template <typename T> struct has_compound_multiply_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() *= std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_compound_divide_underlying_enum : meta::false_type {};
     template <typename T> struct has_compound_divide_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() /= std::declval<T>())), T, void> : meta::true_type {};
-    
+
     template <typename, typename T, typename = void> struct has_compound_modulo_underlying_enum : meta::false_type {};
     template <typename T> struct has_compound_modulo_underlying_enum<decltype(void(std::declval<meta::underlying_type_t<T>>() %= std::declval<T>())), T, void> : meta::true_type {};
 }

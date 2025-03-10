@@ -10,15 +10,16 @@ class Audio {
 
 BX_SCRIPT_API_REGISTRATION(Audio)
 {
-	Script::Get().BeginModule("audio");
+	auto& script = Script::Get();
+	script.BeginModule("audio");
 	{
-		Script::Get().BeginClass("Audio");
+		script.BeginClass<Audio>("Audio");
 		{
-			//Script::Get().BindFunction(true, "test()", [](ScriptHandle vm) { Audio::Get().Test(); });
+			//script.BindFunction(true, "test()", [](ScriptHandle vm) { Audio::Get().Test(); });
 		}
-		Script::Get().EndClass();
+		script.EndClass();
 	}
-	Script::Get().EndModule();
+	script.EndModule();
 
 	ScriptModuleSource src{};
 	src.moduleName = "audio";

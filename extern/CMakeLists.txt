@@ -117,6 +117,10 @@ if (BX_SCRIPT_BACKEND STREQUAL "Wren")
 		"wren/src/vm/wren_vm.c"
 	)
 	target_include_directories (wren PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/include ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/optional ${CMAKE_CURRENT_SOURCE_DIR}/wren/src/vm)
+	
+	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+		target_compile_definitions (wren PRIVATE DEBUG)
+	endif()
 endif()
 
 if (BX_ONLINE_BACKEND STREQUAL "Steam")

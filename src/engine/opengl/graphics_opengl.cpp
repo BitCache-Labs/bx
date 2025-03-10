@@ -828,7 +828,7 @@ void GraphicsOpenGL::Draw(const DrawAttribs& attribs)
 void GraphicsOpenGL::DrawIndexed(const DrawIndexedAttribs& attribs)
 {
     auto& pipeline_impl = GetImpl(m_ctx.currentPipeline, m_pipelines);
-    glDrawElements(GetTopologyMode(pipeline_impl.topology), attribs.numIndices, GetValueType(attribs.indexType), (void*)attribs.offset);
+    glDrawElements(GetTopologyMode(pipeline_impl.topology), attribs.numIndices, GetValueType(attribs.indexType), reinterpret_cast<void*>(static_cast<size_t>(attribs.offset)));
     //glDrawElements(GL_LINE_STRIP, attribs.numIndices, GetValueType(attribs.indexType), 0);
 }
 

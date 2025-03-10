@@ -32,8 +32,6 @@ public:
     void Render(World& world, const ImVec2& size);
 
 private:
-    void Initialize(EditorApplication& app);
-
     void OnMenuBarGui(World& world);
     void OnToolbarGui(World& world);
     void OnInfoGui(World& world);
@@ -43,7 +41,6 @@ private:
 
     World m_world{};
 
-    bool m_initialized{ false };
     f32 m_timer{ 1.f };
     i32 m_frames{ 0 };
     i32 m_fps{ 0 };

@@ -9,10 +9,46 @@
 #include <engine/script.hpp>
 #include <engine/gameobject.hpp>
 
-using SceneHandle = u64;
-constexpr SceneHandle SCENE_INVALID_HANDLE = -1;
+class SceneManager;
 
-class Scene;
+struct BX_API SceneCallHandles
+{
+    ScriptHandle sceneNewFn{ SCRIPT_INVALID_HANDLE };
+    ScriptHandle sceneUpdateFn{ SCRIPT_INVALID_HANDLE };
+
+    ScriptHandle gameObjNewFn{ SCRIPT_INVALID_HANDLE };
+    ScriptHandle gameObjStartFn{ SCRIPT_INVALID_HANDLE };
+    ScriptHandle gameObjUpdateFn{ SCRIPT_INVALID_HANDLE };
+};
+
+class BX_API Scene
+{
+    BX_TYPE(Scene)
+
+public:
+    Scene(SceneManager& sceneMgr);
+    ~Scene();
+
+    inline SceneManager& GetSceneManager() { return m_sceneMgr; }
+
+    inline void SetInstance(ScriptHandle instance) { m_instance = instance; }
+    inline ScriptHandle GetInstance() const { return m_instance; }
+
+    inline const List<SharedPtr<GameObject>>& GetGameObjects() const { return m_gameObjects; }
+
+    void Update();
+
+    GameObject& AddGameObject(ScriptHandle classHandle);
+    void RemoveGameObject(const SizeType index);
+
+private:
+    SceneManager& m_sceneMgr;
+    ScriptHandle m_instance{ SCRIPT_INVALID_HANDLE };
+
+    List<SharedPtr<GameObject>> m_pendingAdded{};
+    List<SharedPtr<GameObject>> m_pendingRemoved{};
+    List<SharedPtr<GameObject>> m_gameObjects{};
+};
 
 class BX_API SceneManager
 {
@@ -23,70 +59,33 @@ public:
     virtual ~SceneManager();
 
 public:
-    SceneHandle CreateScene();
-    void DestroyScene(SceneHandle scene);
+    inline EntityManager& GetEntityManager() { return m_entityMgr; }
+    inline SystemManager& GetSystemManager() { return m_systemMgr; }
+    inline GameObjectManager& GetGameObjectManager() { return m_gameObjMgr; }
+    
+    inline ScriptHandle GetVm() const { return m_vm; }
+    inline const SceneCallHandles& GetCallHandles() const { return m_callHandles; }
 
-    Scene& GetScene(SceneHandle scene);
-    inline const HashMap<SceneHandle, Scene>& GetScenes() const { return m_scenes; }
+    Scene& AddScene(StringView moduleName, StringView className, StringView filepath);
+    Scene& AddScene();
+    void RemoveScene(const SizeType index);
 
-    void ClearScenes();
+    inline const List<Scene*>& GetScenes() const { return m_scenes; }
+    inline Scene* GetCurrentScene() { return m_currentScene; }
+
+    void Update();
 
 private:
-    friend class Scene;
-
-    HashMap<SceneHandle, Scene> m_scenes{};
-
     EntityManager m_entityMgr{};
     SystemManager m_systemMgr{};
+    GameObjectManager m_gameObjMgr{};
 
     ScriptHandle m_vm{ SCRIPT_INVALID_HANDLE };
-};
+    SceneCallHandles m_callHandles{};
 
-class BX_API Scene
-{
-    BX_TYPE(Scene)
+    //List<SharedPtr<Scene>> m_pendingAdded{};
+    //List<SharedPtr<Scene>> m_pendingRemoved{};
+    List<Scene*> m_scenes{};
 
-public:
-    Scene() = default;
-    ~Scene() = default;
-
-    inline SceneManager& GetManager() { return *m_pManager; }
-    
-    inline const List<SharedPtr<GameObject>>& GetGameObjects() const { return m_gameObjects; }
-
-    void OnCreate();
-    void OnDestroy();
-
-    void OnUpdate();
-
-private:
-    friend class SceneManager;
-
-    inline void Add(const SharedPtr<GameObject>& gameObj)
-    {
-        m_pendingAdded.emplace_back(gameObj);
-        m_gameObjects.emplace_back(gameObj);
-    }
-
-    inline void Remove(const SharedPtr<GameObject>& gameObj)
-    {
-        m_pendingRemoved.emplace_back(gameObj);
-        auto it = std::find_if(m_gameObjects.begin(), m_gameObjects.end(),
-            [gameObj](const SharedPtr<GameObject>& i)
-            {
-                return i->GetEntity() == gameObj->GetEntity();
-            });
-        m_gameObjects.erase(it);
-    }
-
-private:
-    SceneManager* m_pManager{ nullptr };
-
-    ScriptHandle m_newFn{ SCRIPT_INVALID_HANDLE };
-    ScriptHandle m_updateFn{ SCRIPT_INVALID_HANDLE };
-    ScriptHandle m_instance{ SCRIPT_INVALID_HANDLE };
-
-    List<SharedPtr<GameObject>> m_pendingAdded{};
-    List<SharedPtr<GameObject>> m_pendingRemoved{};
-    List<SharedPtr<GameObject>> m_gameObjects{};
+    Scene* m_currentScene{ nullptr };
 };
