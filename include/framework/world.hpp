@@ -17,8 +17,4 @@ public:
 	
 private:
 	friend class WorldEditor;
-
-	// TODO: Move these to WorldEditor
-	bool m_playing{ false };
-	bool m_paused{ false };
 };

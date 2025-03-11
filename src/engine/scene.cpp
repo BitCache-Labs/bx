@@ -24,7 +24,7 @@ void Scene::Update()
 	script.CallFunction(vm, handles.sceneUpdateFn);
 
 	// Ensure all gameobjects are started before update
-	List<SharedPtr<GameObject>> added = m_pendingAdded;
+	auto added = m_pendingAdded;
 	while (!added.empty())
 	{
 		m_pendingAdded.clear();
@@ -49,7 +49,7 @@ void Scene::Update()
 
 GameObject& Scene::AddGameObject(ScriptHandle classHandle)
 {
-	SharedPtr<GameObject> gameObj(new GameObject(*this, classHandle));
+	auto gameObj = Object<GameObject>::New(*this, classHandle);
 	m_pendingAdded.emplace_back(gameObj);
 	m_gameObjects.emplace_back(gameObj);
 	return *gameObj;

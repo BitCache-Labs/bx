@@ -1,6 +1,7 @@
 #pragma once
 
 #include <engine/api.hpp>
+#include <engine/type.hpp>
 #include <engine/byte_types.hpp>
 
 #include <fmt/core.h>

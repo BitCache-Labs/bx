@@ -131,6 +131,7 @@ WorldEditor::WorldEditor()
         Graphics::Get().BindResource(m_resources, "ModelBuffer", m_modelBuffer);
     }
 
+    m_world.AddScene("test", "Test", "[assets]/test.wren");
     m_world.OnInitialize();
 }
 
@@ -238,8 +239,8 @@ void WorldEditor::OnToolbarGui(World& world)
 
     //if (Script::HasError() || show_data || show_profiler || show_scene || show_entity || show_assets
     //	|| (ImGui::IsMousePosValid() && ImGui::GetMousePos().y < 100.0f))
-    if ((!world.m_playing || world.m_paused) ||
-        (world.m_playing && ImGui::IsMousePosValid() &&
+    if ((!m_playing || m_paused) ||
+        (m_playing && ImGui::IsMousePosValid() &&
             (ImGui::GetMousePos().y - ImGui::GetWindowPos().y) < 100.0f))
     {
         // Determine the available content region size:
@@ -261,14 +262,14 @@ void WorldEditor::OnToolbarGui(World& world)
 
             // Save current style colors if needed.
             ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_WindowBg]);
-            ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[world.m_playing ? ImGuiCol_ButtonHovered : ImGuiCol_Button]);
+            ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[m_playing ? ImGuiCol_ButtonHovered : ImGuiCol_Button]);
 
             if (ImGui::Button(ICON_FA_PLAY))
             {
-                world.m_playing = !world.m_playing;
-                if (!world.m_playing)
+                m_playing = !m_playing;
+                if (!m_playing)
                 {
-                    world.m_paused = false;
+                    m_paused = false;
                     //const String& scene = Data::GetString("Current Scene", "", DataTarget::EDITOR);
                     //Runtime::Reload();
                     //Scene::Load(scene);
@@ -285,10 +286,10 @@ void WorldEditor::OnToolbarGui(World& world)
             //Tooltip("Play");
 
             ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[world.m_paused ? ImGuiCol_ButtonHovered : ImGuiCol_Button]);
+            ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[m_paused ? ImGuiCol_ButtonHovered : ImGuiCol_Button]);
             if (ImGui::Button(ICON_FA_PAUSE))
             {
-                world.m_paused = !world.m_paused;
+                m_paused = !m_paused;
             }
             ImGui::PopStyleColor();
             //Tooltip("Pause");

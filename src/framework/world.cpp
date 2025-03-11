@@ -23,10 +23,9 @@ World::~World()
 
 void World::OnInitialize()
 {
-	AddScene("test", "Test", "[assets]/test.wren");
+	// TODO: Add ecs systems here
 }
 
 void World::OnShutdown()
 {
-	//DestroyScene(m_scene);
 }

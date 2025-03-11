@@ -565,13 +565,13 @@ List<char> CommonFile::ReadBinary(StringView filename)
     return List<char>();
 }
 
-OutputFileStream CommonFile::OutputStream(const StringView& filename)
+OutputFileStream CommonFile::OutputStream(StringView filename)
 {
     OutputFileStream stream(GetPath(filename));
     return stream;
 }
 
-InputFileStream CommonFile::InputStream(const StringView& filename)
+InputFileStream CommonFile::InputStream(StringView filename)
 {
     InputFileStream stream(GetPath(filename));
     return stream;

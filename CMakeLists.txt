@@ -57,6 +57,7 @@ add_subdirectory (extern)
 
 set (BX_ENGINE_SRCS
 	# Core
+	"src/engine/asset.cpp"
 	"src/engine/debug.cpp"
 	"src/engine/ecs.cpp"
 	"src/engine/engine.cpp"
@@ -64,7 +65,6 @@ set (BX_ENGINE_SRCS
 	"src/engine/log.cpp"
 	"src/engine/math.cpp"
 	"src/engine/profiler.cpp"
-	"src/engine/resource.cpp"
 	"src/engine/scene.cpp"
 	"src/engine/uuid.cpp"
 

@@ -3,11 +3,11 @@
 #include <engine/api.hpp>
 #include <engine/type.hpp>
 #include <engine/hash_map.hpp>
-#include <engine/memory.hpp>
 #include <engine/guard.hpp>
 #include <engine/ecs.hpp>
 #include <engine/script.hpp>
 #include <engine/gameobject.hpp>
+#include <engine/object.hpp>
 
 class SceneManager;
 
@@ -34,7 +34,7 @@ public:
     inline void SetInstance(ScriptHandle instance) { m_instance = instance; }
     inline ScriptHandle GetInstance() const { return m_instance; }
 
-    inline const List<SharedPtr<GameObject>>& GetGameObjects() const { return m_gameObjects; }
+    inline const List<Object<GameObject>>& GetGameObjects() const { return m_gameObjects; }
 
     void Update();
 
@@ -45,9 +45,9 @@ private:
     SceneManager& m_sceneMgr;
     ScriptHandle m_instance{ SCRIPT_INVALID_HANDLE };
 
-    List<SharedPtr<GameObject>> m_pendingAdded{};
-    List<SharedPtr<GameObject>> m_pendingRemoved{};
-    List<SharedPtr<GameObject>> m_gameObjects{};
+    List<Object<GameObject>> m_pendingAdded{};
+    List<Object<GameObject>> m_pendingRemoved{};
+    List<Object<GameObject>> m_gameObjects{};
 };
 
 class BX_API SceneManager

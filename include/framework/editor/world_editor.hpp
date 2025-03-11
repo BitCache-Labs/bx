@@ -40,6 +40,8 @@ private:
     BX_TYPE_REGISTRATION_FRIEND
 
     World m_world{};
+    bool m_playing{ false };
+    bool m_paused{ false };
 
     f32 m_timer{ 1.f };
     i32 m_frames{ 0 };

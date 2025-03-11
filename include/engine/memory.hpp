@@ -28,4 +28,10 @@ namespace meta
 	{
 		return UniquePtr<T>(new T(std::forward<Args>(args)...));
 	}
+
+	template <typename T, typename... Args>
+	SharedPtr<T> make_shared(Args&&... args)
+	{
+		return std::make_shared<T>(std::forward<Args>(args)...);
+	}
 }

@@ -222,8 +222,8 @@ GameObject& GameObjectManager::CreateGameObject(Scene* scene, ScriptHandle class
     BX_ENSURE(scene != nullptr);
 
     const auto& t = GetClass(classHandle);
-
-    return scene->AddGameObject(classHandle);
+    auto& gameObj = scene->AddGameObject(classHandle);
+    return gameObj;
 }
 
 GameObject& GameObjectManager::CreateGameObject(Scene* scene, const GameObjectClass& gameObjClass)
