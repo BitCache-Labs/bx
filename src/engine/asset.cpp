@@ -2,8 +2,6 @@
 
 BX_TYPE_REGISTRATION
 {
-
-    rttr::type::get<CString<16>>();
     rttr::registration::enumeration<AssetStorage>("AssetStorage")
         (
             rttr::value("none", AssetStorage::NONE),
@@ -16,9 +14,9 @@ BX_TYPE_REGISTRATION
     .property("uuid", &AssetMetadata::uuid)
     .property("version", &AssetMetadata::version)
     //.property("storage", &AssetMetadata::storage)
-    //.property("arr", &AssetMetadata::arr)
-    //.property("assetPath", &AssetMetadata::assetPath)
-    //.property("importedPath", &AssetMetadata::importedPath)
-    //.property("creationDate", &AssetMetadata::creationDate)
+    .property("assetPath", &AssetMetadata::assetPath)
+    .property("importedPath", &AssetMetadata::importedPath)
+    .property("type", &AssetMetadata::type)
+    //.property("test", &AssetMetadata::test)
     ;
 }

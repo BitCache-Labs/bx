@@ -43,4 +43,5 @@ template <typename T>
 struct BX_API Type
 {
     static TypeId Id() { return rttr::type::get<T>().get_id(); }
+    static const char* Name() { return rttr::type::get<T>().get_name().data(); }
 };

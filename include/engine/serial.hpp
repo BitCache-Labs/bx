@@ -264,6 +264,7 @@ namespace rttr
 template<class Archive, typename T>
 void save(Archive& archive, const T& data)
 {
+    // TODO: Fix copying of data around (causes copies and destructors overhead)
     rttr::serial::save_variant(archive, data);
 }
 

@@ -18,11 +18,14 @@ struct BX_API AssetMetadata
     UUID uuid{ 0 };
     u32 version{ 1 };
     AssetStorage storage{ AssetStorage::NONE };
-    FilePath assetPath{};
-    FilePath importedPath{};
-    CString<16> creationDate{};
 
-    Array<int, 16> arr;
+    // TODO: Find a way to register CString<N> type in RTTR
+    //FilePath assetPath{};
+    //FilePath importedPath{};
+    String assetPath{};
+    String importedPath{};
+    String type{};
+    //char test[16]{ "Hello" };
 
     BX_TYPE(AssetMetadata)
 };
@@ -47,10 +50,13 @@ public:
     inline bool operator==(const Asset& other) const { return m_uuid == other.m_uuid; }
     inline bool operator<(const Asset& other) const { return m_uuid < other.m_uuid; }
 
+    inline const AssetMetadata& GetMetadata() const { return GetData().metadata; }
+    inline ObjectHandle GetObject() const { return GetData().object; }
+
     template <typename T>
     void Load()
     {
-        const auto& data = GetData();
+        auto& data = GetData();
 
         // Check if already loaded
         if (data.object.IsValid())
@@ -58,75 +64,113 @@ public:
 
         auto stream = File::Get().InputStream(data.metadata.assetPath);
         if (!stream.is_open())
-        {
-            //BX_LOGE("Failed to open asset file: {}", data.metadata.assetPath);
             return;
-        }
+
+        auto obj = Object<T>::New();
 
         cereal::JSONInputArchive archive(stream);
-        archive(cereal::make_nvp("data", *data.object.As<T>()));
+        archive(cereal::make_nvp("data", *obj));
 
-        //BX_LOGD("Loaded asset {} from {}", m_handle, metadata.assetPath);
+        data.object = obj;
     }
 
     template <typename T>
-    void Save()
+    void Save(StringView filename)
     {
-        const auto& data = GetData();
-
+        auto& data = GetData();
         BX_ENSURE(data.object.IsValid());
-        auto obj = data.object.As<T>();
+
+        AssetMetadata metadata = data.metadata;
+        Object<T> object = data.object.As<T>();
+
+        // Create a new asset copy
+        if (data.metadata.storage == AssetStorage::DISK &&
+            data.metadata.assetPath.compare(filename.to_string()) != 0)
+        {
+            object = Object<T>::New(*object);
+
+            Asset asset = FromFile(filename);
+            if (!asset.IsValid())
+                m_uuid = GenUUID::MakeUUID();
+            else
+                m_uuid = asset.m_uuid;
+
+            metadata.uuid = m_uuid;
+            metadata.assetPath = filename.to_string();
+            metadata.importedPath = "";
+
+            auto& assetToData = GetAssetToDataMap();
+            auto& objectToAsset = GetObjectToAssetMap();
+            assetToData[metadata.uuid] = AssetData{ metadata, object };
+            objectToAsset[object] = metadata.uuid;
+        }
+
+        // Update asset metadata storage to disk
+        if (data.metadata.storage == AssetStorage::MEMORY)
+        {
+            metadata.storage = AssetStorage::DISK;
+            metadata.assetPath = filename.to_string();
+
+            data.metadata = metadata;
+        }
 
         {
-            auto stream = File::Get().OutputStream(data.metadata.assetPath);
+            auto stream = File::Get().OutputStream(metadata.assetPath);
             if (!stream.is_open())
             {
-                //BX_LOGE("Failed to save asset file: {}", data.metadata.assetPath);
                 return;
             }
 
             cereal::JSONOutputArchive archive(stream);
-            archive(cereal::make_nvp("metadata", data.metadata));
-            archive(cereal::make_nvp("data", *obj));
+            archive(cereal::make_nvp("metadata", metadata));
+            archive(cereal::make_nvp("data", *object));
         }
-
-        //BX_LOGD("Saved asset {} to {}", m_uuid, data.metadata.assetPath);
-    }
-
-    inline const AssetData& GetData() const
-    {
-        const auto& assetToData = GetAssetToDataMap();
-        auto it = assetToData.find(m_uuid);
-        BX_ENSURE(it != assetToData.end());
-        return it->second;
     }
 
 public:
+    static Asset FromFile(StringView filename)
+    {
+        AssetData data{};
+
+        auto stream = File::Get().InputStream(filename);
+        if (!stream.is_open())
+            return Asset{};
+
+        cereal::JSONInputArchive archive(stream);
+        archive(cereal::make_nvp("metadata", data.metadata));
+        data.metadata.storage = AssetStorage::DISK; // Hack for now until storage serialization works
+
+        auto& assetToData = GetAssetToDataMap();
+        if (assetToData.find(data.metadata.uuid) == assetToData.end())
+            assetToData.insert(std::make_pair(data.metadata.uuid, data));
+        
+        return Asset(data.metadata.uuid);
+    }
+
     template <typename T>
-    static Asset CreateAsset(Object<T> object, StringView filename)
+    static Asset FromMemory(Object<T> object)
     {
         AssetData data{};
         data.metadata.uuid = GenUUID::MakeUUID();
-        data.metadata.assetPath = filename;
-        // TODO: Rest of metadata
+        data.metadata.storage = AssetStorage::MEMORY;
+        data.metadata.type = Type<T>().Name();
         data.object = object;
 
         auto& assetToData = GetAssetToDataMap();
         auto& objectToAsset = GetObjectToAssetMap();
-
         assetToData[data.metadata.uuid] = data;
         objectToAsset[data.object] = data.metadata.uuid;
 
         return Asset(data.metadata.uuid);
     }
 
-    static bool IsAsset(const ObjectHandle& obj)
+    static bool IsObjectAsset(const ObjectHandle& obj)
     {
         const auto& objectToAsset = GetObjectToAssetMap();
         return objectToAsset.find(obj) != objectToAsset.end();
     }
 
-    static Asset GetAsset(const ObjectHandle& obj)
+    static Asset GetObjectAsset(const ObjectHandle& obj)
     {
         const auto& objectToAsset = GetObjectToAssetMap();
         auto it = objectToAsset.find(obj);
@@ -134,6 +178,14 @@ public:
     }
 
 private:
+    inline AssetData& GetData() const
+    {
+        auto& assetToData = GetAssetToDataMap();
+        auto it = assetToData.find(m_uuid);
+        BX_ENSURE(it != assetToData.end());
+        return it->second;
+    }
+
     static HashMap<UUID, AssetData>& GetAssetToDataMap()
     {
         static HashMap<UUID, AssetData> g_assetToData{};

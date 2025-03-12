@@ -14,41 +14,6 @@ class BX_API ObjectHandle
 public:
     ObjectHandle() = default; // Default invalid handle
 
-    ObjectHandle(const ObjectHandle& other)
-        : m_typeId(other.m_typeId)
-        , m_ptr(other.m_ptr)
-    {}
-
-    ObjectHandle& operator=(const ObjectHandle& other)
-    {
-        if (this != &other)
-        {
-            m_typeId = other.m_typeId;
-            m_ptr = other.m_ptr;
-        }
-        return *this;
-    }
-
-    ObjectHandle(ObjectHandle&& other) noexcept
-        : m_typeId(other.m_typeId)
-        , m_ptr(other.m_ptr)
-    {
-        other.m_ptr = nullptr;
-        other.m_typeId = TypeId();
-    }
-
-    ObjectHandle& operator=(ObjectHandle&& other) noexcept
-    {
-        if (this != &other)
-        {
-            m_typeId = other.m_typeId;
-            m_ptr = other.m_ptr;
-            other.m_ptr = nullptr;
-            other.m_typeId = TypeId();
-        }
-        return *this;
-    }
-
     inline bool IsValid() const { return m_ptr != nullptr; }
     inline operator bool() const { return IsValid(); }
 
@@ -59,24 +24,24 @@ public:
     Object<T> As() const
     {
         BX_ENSURE(Is<T>()); // Ensure type matches before casting
-        return Object<T>(SharedPtr<T>(static_cast<T*>(m_ptr)));
+        return Object<T>(std::static_pointer_cast<T>(m_ptr));
     }
 
     // Equality & less-than operator for hash map lookups
     inline bool operator==(const ObjectHandle& other) const { return m_ptr == other.m_ptr; }
     inline bool operator<(const ObjectHandle& other) const { return m_ptr < other.m_ptr; }
 
-    inline const void* GetRawPtr() const { return m_ptr; }
+    inline const void* GetRawPtr() const { return m_ptr.get(); }
 
 protected:
     // ObjectHandle should only be created via Object<T>
-    explicit ObjectHandle(void* ptr, TypeId typeId)
+    explicit ObjectHandle(TypeId typeId, SharedPtr<void> ptr)
         : m_typeId(typeId)
-        , m_ptr(ptr)
+        , m_ptr(std::move(ptr))
     {}
 
     TypeId m_typeId{};
-    void* m_ptr{ nullptr };
+    SharedPtr<void> m_ptr{ nullptr };
 };
 
 template <typename T>
@@ -84,10 +49,6 @@ class BX_API Object : public ObjectHandle
 {
 public:
     Object() = default;
-    Object(const Object<T>&) = default;
-    Object<T>& operator=(const Object<T>&) = default;
-    Object(Object<T>&&) noexcept = default;
-    Object<T>& operator=(Object<T>&&) noexcept = default;
 
     template <typename... Args>
     static Object<T> New(Args&&... args)
@@ -96,16 +57,15 @@ public:
         return Object<T>(ptr);
     }
 
-    inline T* get() const { return m_obj.get(); }
-    inline T* operator->() const { return m_obj.get(); }
-    inline T& operator*() const { return *m_obj.get(); }
+    inline T* get() const { return std::static_pointer_cast<T>(m_ptr).get(); }
+    inline T* operator->() const { return get(); }
+    inline T& operator*() const { return *get(); }
 
 private:
     friend class ObjectHandle;
 
     explicit Object(SharedPtr<T> ptr)
-        : ObjectHandle(ptr.get(), Type<T>::Id())
-        , m_obj(std::move(ptr))
+        : ObjectHandle(Type<T>::Id(), ptr)
     {}
 
     template <typename... Args>
@@ -116,9 +76,6 @@ private:
         // For now we simply allocate on the default heap.
         return meta::make_shared<T>(std::forward<Args>(args)...);
     }
-
-private:
-    SharedPtr<T> m_obj{};
 };
 
 template <>
