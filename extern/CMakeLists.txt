@@ -1,3 +1,6 @@
+# FMT
+add_subdirectory(fmt)
+
 # GLFW
 add_subdirectory(glfw)
 

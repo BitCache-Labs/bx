@@ -10,7 +10,8 @@ if(BX_USE_VULKAN AND BX_VULKAN_SUPPORTED)
     )
 else ()
     set(bxl_srcs ${bxl_srcs}
-            bxl_gfx_gl.cpp
+            #bxl_gfx_gl.cpp
+            bxl_gfx_null.cpp
     )
 endif()
 
@@ -20,9 +21,9 @@ add_library(bxl ${bxl_srcs})
 target_include_directories(bxl PUBLIC include)
 
 # Link libraries
-target_link_libraries(bxl PUBLIC bx glfw glad imgui)
+target_link_libraries(bxl PUBLIC bx fmt glfw glad imgui)
 
 if(BX_VULKAN_SUPPORTED)
     target_link_libraries(bxl PUBLIC vulkan)
-    target_compile_definitions(bxl PRIVATE BX_VULKAN_SUPPORTED)
+    target_compile_definitions(bxl PRIVATE BX_GFX_VULKAN)
 endif()

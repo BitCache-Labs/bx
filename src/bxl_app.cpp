@@ -1,7 +1,14 @@
 #include "bxl.hpp"
 
 #include <iostream>
+#include <atomic>
 #include <unordered_map>
+
+u32 bx::register_type_id()
+{
+	static std::atomic<u32> g_id{ 0 };
+	return g_id++;
+}
 
 bx_register_type(u8)
 bx_register_type(u16)
@@ -22,7 +29,7 @@ namespace bx
 	struct config_data
 	{
 		void* data{nullptr};
-		free_fn free{nullptr};
+		free_fn_t free{nullptr};
 	};
 
 	static std::unordered_map<u64, config_data> g_config{};
@@ -43,7 +50,7 @@ static u64 bx_hash_cstring(cstring str)
 	return hash;
 }
 
-void bx::app_config_set(const u64 type, cstring name, void* data, const free_fn free) noexcept
+void bx::app_config_set(const u64 type, cstring name, void* data, const free_fn_t free) noexcept
 {
 	const u64 hash = bx_hash_cstring(name) ^ type;
 	config_data cfg{};
@@ -85,10 +92,31 @@ void bx::log_set_callback(const log_callback_t cb) noexcept
 	g_log_callback = cb;
 }
 
-void bx::log(cstring msg)
+void bx::log(log_t level, cstring msg)
 {
 	if (g_log_callback)
-		g_log_callback(msg);
-	else
+		g_log_callback(level, msg);
+	
+	switch (level)
+	{
+	case log_t::info:
+	case log_t::warn:
+	case log_t::verbose:
+	case log_t::debug:
 		std::cout << msg << std::endl;
+		break;
+
+	case log_t::error:
+		std::cerr << msg << std::endl;
+		break;
+
+	case log_t::fatal:
+		std::cerr << msg << std::endl;
+		//assert(false);
+		break;
+	}
+}
+
+void bx::log_v(log_t level, cstring func, cstring file, i32 line, cstring msg)
+{
 }

@@ -2,9 +2,18 @@
 #define BXL_HPP
 
 #include <bx.hpp>
+#include <fmt/format.h>
 
-#ifdef BX_VULKAN_SUPPORTED
+#ifdef BX_GFX_VULKAN
 #include <vulkan/vulkan.h>
+
+#else
+
+#ifdef __arm__
+#define BX_GFX_OPENGLES
+#else
+#define BX_GFX_OPENGL
+#endif
 #endif
 
 namespace bx
@@ -61,32 +70,32 @@ namespace bx
 }
 
 // Enum helpers
-constexpr bx::gfx_shader_stage operator|(bx::gfx_shader_stage a, bx::gfx_shader_stage b) noexcept
+constexpr bx::gfx_shader_stage_t operator|(bx::gfx_shader_stage_t a, bx::gfx_shader_stage_t b) noexcept
 {
-	return static_cast<bx::gfx_shader_stage>(static_cast<u32>(a) | static_cast<u32>(b));
+	return static_cast<bx::gfx_shader_stage_t>(static_cast<u32>(a) | static_cast<u32>(b));
 }
 
-constexpr bx::gfx_shader_stage operator&(bx::gfx_shader_stage a, bx::gfx_shader_stage b) noexcept
+constexpr bx::gfx_shader_stage_t operator&(bx::gfx_shader_stage_t a, bx::gfx_shader_stage_t b) noexcept
 {
-	return static_cast<bx::gfx_shader_stage>(static_cast<u32>(a) & static_cast<u32>(b));
+	return static_cast<bx::gfx_shader_stage_t>(static_cast<u32>(a) & static_cast<u32>(b));
 }
 
-constexpr bool bx_enum_any(bx::gfx_shader_stage a) noexcept
+constexpr bool bx_enum_any(bx::gfx_shader_stage_t a) noexcept
 {
 	return static_cast<u32>(a) != 0;
 }
 
-constexpr bx::gfx_buffer_usage operator|(bx::gfx_buffer_usage a, bx::gfx_buffer_usage b) noexcept
+constexpr bx::gfx_buffer_usage_t operator|(bx::gfx_buffer_usage_t a, bx::gfx_buffer_usage_t b) noexcept
 {
-	return static_cast<bx::gfx_buffer_usage>(static_cast<u32>(a) | static_cast<u32>(b));
+	return static_cast<bx::gfx_buffer_usage_t>(static_cast<u32>(a) | static_cast<u32>(b));
 }
 
-constexpr bx::gfx_buffer_usage operator&(bx::gfx_buffer_usage a, bx::gfx_buffer_usage b) noexcept
+constexpr bx::gfx_buffer_usage_t operator&(bx::gfx_buffer_usage_t a, bx::gfx_buffer_usage_t b) noexcept
 {
-	return static_cast<bx::gfx_buffer_usage>(static_cast<u32>(a) & static_cast<u32>(b));
+	return static_cast<bx::gfx_buffer_usage_t>(static_cast<u32>(a) & static_cast<u32>(b));
 }
 
-constexpr bool bx_enum_any(bx::gfx_buffer_usage a) noexcept
+constexpr bool bx_enum_any(bx::gfx_buffer_usage_t a) noexcept
 {
 	return static_cast<u32>(a) != 0;
 }

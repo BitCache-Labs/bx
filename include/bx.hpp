@@ -18,28 +18,20 @@ using i64 = int64_t;
 using f32 = float;
 using f64 = double;
 
-#define cstring const char*
+using cstring = const char*;
 
-// Type reflection
-inline u64 bx_register_type_id()
-{
-	static u64 g_id = 0;
-	return g_id++;
-}
+#define bx_register_type(T) template<> inline u32 bx::type_id<T>() { return bx::register_type_id(); }
 
-template<typename>
-u64 bx_type_id() { return 0; }
-
-#define bx_register_type(T) template<> u64 bx_type_id<T>() { return bx_register_type_id(); }
-
-// Utilities
-template<typename T, unsigned N>
-constexpr unsigned bx_array_size(const T (&)[N]) noexcept { return N; }
-
-constexpr u32 bx_bit(const u32 n) noexcept { return 1u << (n - 1); }
+#define bx_logi(msg) bx::log(bx::log_t::info, msg)
+#define bx_logw(msg) bx::log(bx::log_t::warn, msg)
+#define bx_loge(msg) bx::log(bx::log_t::error, msg)
+#define bx_logf(msg) bx::log(bx::log_t::fatal, msg)
+#define bx_logv(msg) bx::log(bx::log_t::verbose, msg)
+#define bx_logd(msg) bx::log(bx::log_t::debug, msg)
 
 namespace bx
 {
+	// Generic handle type for all memory access
 	using handle_id = u64;
 
 	// Generic result codes - functions that might fail can return this in future
@@ -53,9 +45,29 @@ namespace bx
 		NOT_READY        = -5
 	};
 
+	// Type reflection
+	u32 register_type_id();
+
+	template<typename>
+	u32 type_id() { return 0; }
+
+	// Utilities
+	template<typename T, unsigned N>
+	constexpr unsigned array_size(const T(&)[N]) noexcept { return N; }
+
+	constexpr u32 bit_mask(const u32 n) noexcept { return 1u << (n - 1); }
+
 	// ------------------------------------------
 	// -           Application API              -
 	// ------------------------------------------
+
+	struct app_config_t
+	{
+		int width{ 0 };
+		int height{ 0 };
+		cstring title{ nullptr };
+		bool vsync{ true };
+	};
 
 	/* Description:
 	 *   Initialize the application/windowing layer (GLFW in your current backend).
@@ -64,7 +76,7 @@ namespace bx
 	 *     setup ImGui if used, initialize timing.
 	 *   - Vulkan/D3D12/Metal: create instance/device/surface, create swap-chain, command queues.
 	 */
-	result_t app_init() noexcept;
+	result_t app_init(const app_config_t& config) noexcept;
 
 	/* Description:
 	 *   Clean up and shut down the windowing and graphics subsystems.
@@ -90,9 +102,11 @@ namespace bx
 	 */
 	void app_end_frame(bool present, bool should_close) noexcept;
 
-	using free_fn = void(*)(void*);
+	// Configuration API
 
-	void app_config_set(u64 type, cstring name, void* data, free_fn free) noexcept;
+	using free_fn_t = void(*)(void*);
+
+	void app_config_set(u64 type, cstring name, void* data, free_fn_t free) noexcept;
 
 	void* app_config_get(u64 type, cstring name) noexcept;
 
@@ -101,23 +115,23 @@ namespace bx
 	void app_config_clear() noexcept;
 
 	template<typename T>
-	void app_config_set(cstring name, T* data, free_fn free = nullptr) noexcept
+	void app_config_set(cstring name, T* data, free_fn_t free = nullptr) noexcept
 	{
-		const u64 type = bx_type_id<T>();
+		const u64 type = type_id<T>();
 		app_config_set(type, name, data, free ? free : [](void* ptr) { delete static_cast<T*>(ptr); });
 	}
 
 	template<typename T>
 	T* app_config_get(cstring name) noexcept
 	{
-		const u64 type = bx_type_id<T>();
+		const u64 type = type_id<T>();
 		return static_cast<T*>(app_config_get(type, name));
 	}
 
 	template<typename T>
 	bool app_config_has(cstring name) noexcept
 	{
-		return app_config_has(bx_type_id<T>(), name);
+		return app_config_has(type_id<T>(), name);
 	}
 
 	// App timing & input
@@ -137,7 +151,7 @@ namespace bx
 	 */
 	f64 app_frame_time() noexcept;
 
-	struct key_state
+	struct key_state_t
 	{
 		bool down{false};
 		bool pressed{false};
@@ -158,9 +172,9 @@ namespace bx
 	 *   - GL: maintain arrays for down/pressed/released toggled by GLFW key callback and reset pressed/released each frame.
 	 *   - Other backends: same concept using host input events.
 	 */
-	key_state app_key(i32 key) noexcept;
+	key_state_t app_key(i32 key) noexcept;
 
-	struct mouse_state
+	struct mouse_state_t
 	{
 		f32 x{0}, y{0};
 		bool buttons[8]{};
@@ -172,7 +186,7 @@ namespace bx
 	 *   - GL: use glfwSetCursorPos callback to update cached mouse coords and glfwSetMouseButton callback for buttons.
 	 *   - Other backends: update via the platform/windowing events.
 	 */
-	mouse_state app_mouse() noexcept;
+	mouse_state_t app_mouse() noexcept;
 
 	/* Description:
 	 *   Set whether the OS cursor is visible (and whether pointer is captured).
@@ -186,8 +200,13 @@ namespace bx
 	// -             Logging API                -
 	// ------------------------------------------
 
+	enum struct log_t : u8
+	{
+		info = 0, warn = 1, error = 2, fatal = 3, verbose = 4, debug = 5
+	};
+
 	// Optional logging callback
-	using log_callback_t = void(*)(cstring msg);
+	using log_callback_t = void(*)(log_t, cstring);
 
 	/* Description:
 	 *   Provide an optional callback for engine log messages.
@@ -197,7 +216,9 @@ namespace bx
 	 */
 	void log_set_callback(log_callback_t cb) noexcept;
 
-	void log(cstring msg);
+	void log(log_t level, cstring msg);
+
+	void log_v(log_t level, cstring func, cstring file, i32 line, cstring msg);
 
 	// ------------------------------------------
 	// -              FileIO API                -
@@ -209,14 +230,14 @@ namespace bx
 	// -             Graphics API               -
 	// ------------------------------------------
 
-	struct gfx_features
+	struct gfx_features_t
 	{
 		u32 max_texture_size{0};
 		bool supports_compute{false};
 		bool supports_geometry_shader{false};
 	};
 
-	const gfx_features& gfx_get_features() noexcept;
+	const gfx_features_t& gfx_get_features() noexcept;
 
 	// ---------- utilities ----------
 	/* Description:
@@ -266,21 +287,21 @@ namespace bx
 	void gfx_insert_debug_marker(cstring name) noexcept;
 
 	// ---------- shader / pipeline ----------
-	enum struct gfx_shader_lang : u8 { GLSL, HLSL, SPIR_V, CUSTOM };
+	enum struct gfx_shader_lang_t : u8 { GLSL, HLSL, SPIR_V, CUSTOM };
 
 	// flags for shader stages
-	enum struct gfx_shader_stage : u8
+	enum struct gfx_shader_stage_t : u8
 	{
 		NONE     = 0u,
-		VERTEX   = bx_bit(1), TESS_CONTROL = bx_bit(2), TESS_EVAL = bx_bit(3), GEOMETRY = bx_bit(4),
-		FRAGMENT = bx_bit(5), COMPUTE      = bx_bit(6),
+		VERTEX   = bit_mask(1), TESS_CONTROL = bit_mask(2), TESS_EVAL = bit_mask(3), GEOMETRY = bit_mask(4),
+		FRAGMENT = bit_mask(5), COMPUTE      = bit_mask(6),
 		ANY      = VERTEX | TESS_CONTROL | TESS_EVAL | GEOMETRY | FRAGMENT | COMPUTE,
 	};
 
-	struct gfx_shader_desc
+	struct gfx_shader_desc_t
 	{
-		gfx_shader_lang lang{};
-		gfx_shader_stage stage{gfx_shader_stage::NONE};
+		gfx_shader_lang_t lang{};
+		gfx_shader_stage_t stage{gfx_shader_stage_t::NONE};
 
 		cstring filepath{nullptr};
 		cstring source{nullptr};
@@ -296,7 +317,7 @@ namespace bx
 	 *   - Vulkan: create VkShaderModule from SPIR-V; HLSL must be cross-compiled to SPIR-V or DXIL depending on backend.
 	 *   - D3D12/Metal: accept precompiled bytecode or compile/translate HLSL/MSL offline.
 	 */
-	handle_id gfx_create_shader(const gfx_shader_desc& desc) noexcept;
+	handle_id gfx_create_shader(const gfx_shader_desc_t& desc) noexcept;
 
 	/* Description:
 	 *   Destroy a previously created shader handle and free resources.
@@ -308,70 +329,70 @@ namespace bx
 	void gfx_destroy_shader(handle_id handle) noexcept;
 
 	// Pipeline-level shader entry
-	struct gfx_pipeline_shader
+	struct gfx_pipeline_shader_t
 	{
 		handle_id handle{};
 		cstring entry_point{"main"};
 	};
 
 	// Small enum for primitive/topology
-	enum struct gfx_topology : u8 { TRIANGLES, TRIANGLE_STRIP, LINES, LINE_STRIP, POINTS };
+	enum struct gfx_topology_t : u8 { TRIANGLES, TRIANGLE_STRIP, LINES, LINE_STRIP, POINTS };
 
 	// Vertex attribute formats
-	enum struct gfx_attribute_format : u8 { FLOAT, FLOAT2, FLOAT3, FLOAT4, UINT8_4_NORM };
+	enum struct gfx_attribute_format_t : u8 { FLOAT, FLOAT2, FLOAT3, FLOAT4, UINT8_4_NORM };
 
-	struct gfx_vertex_attribute
+	struct gfx_vertex_attribute_t
 	{
 		u8 location{0};
-		gfx_attribute_format format{};
+		gfx_attribute_format_t format{};
 		u16 offset{0};
 		u32 binding{0};
 	};
 
-	struct gfx_vertex_binding
+	struct gfx_vertex_binding_t
 	{
 		u32 binding{0};
 		u32 stride{0};
 		u32 input_rate_per_vertex_or_instance{0};
 	};
 
-	struct gfx_vertex_input_desc
+	struct gfx_vertex_input_desc_t
 	{
-		const gfx_vertex_binding* bindings{nullptr};
+		const gfx_vertex_binding_t* bindings{nullptr};
 		u32 binding_count{0};
-		const gfx_vertex_attribute* attributes{nullptr};
+		const gfx_vertex_attribute_t* attributes{nullptr};
 		u32 attribute_count{0};
 	};
 
 	// Blend/depth/stencil/rasterizer can be extended; this is a minimal family
-	struct gfx_raster_state
+	struct gfx_raster_state_t
 	{
 		bool cull_enable = true;
 		bool depth_test  = true;
 		bool depth_write = true;
 	};
 
-	struct gfx_color_blend_attachment
+	struct gfx_color_blend_attachment_t
 	{
 		bool blend_enable = false;
 	};
 
 	// pipeline layout / resource bindings
-	enum struct gfx_resource_type : u8
+	enum struct gfx_resource_type_t : u8
 	{
 		COMBINED_IMAGE_SAMPLER, STORAGE_IMAGE, UNIFORM_BUFFER, STORAGE_BUFFER, SAMPLER, TEXTURE
 	};
 
-	struct gfx_resource_binding
+	struct gfx_resource_binding_t
 	{
 		u32 binding{0};
-		gfx_resource_type type{};
+		gfx_resource_type_t type{};
 		handle_id resource{0};
 	};
 
-	struct gfx_resource_set_layout_desc
+	struct gfx_resource_set_layout_desc_t
 	{
-		const gfx_resource_binding* bindings{nullptr};
+		const gfx_resource_binding_t* bindings{nullptr};
 		u32 binding_count{0};
 	};
 
@@ -381,7 +402,7 @@ namespace bx
 	 *   - Vulkan/D3D12: create a descriptor set layout / root signature entry.
 	 *   - GL: store CPU-side metadata used later to validate bindings; no native GL object necessary.
 	 */
-	handle_id gfx_create_resource_set_layout(const gfx_resource_set_layout_desc& desc) noexcept;
+	handle_id gfx_create_resource_set_layout(const gfx_resource_set_layout_desc_t& desc) noexcept;
 
 	/* Description:
 	 *   Destroy a previously created resource set layout handle.
@@ -391,7 +412,7 @@ namespace bx
 	 */
 	void gfx_destroy_resource_set_layout(handle_id handle) noexcept;
 
-	struct gfx_pipeline_layout_desc
+	struct gfx_pipeline_layout_desc_t
 	{
 		const handle_id* set_layouts{nullptr};
 		u32 set_layout_count{0};
@@ -404,7 +425,7 @@ namespace bx
 	 *   - GL: store CPU-side layout metadata (used when validating resource set bindings for program).
 		*   - This layout is referenced by pipelines to know expected binding sets.
 	 */
-	handle_id gfx_create_pipeline_layout(const gfx_pipeline_layout_desc& desc) noexcept;
+	handle_id gfx_create_pipeline_layout(const gfx_pipeline_layout_desc_t& desc) noexcept;
 
 	/* Description:
 	 *   Destroy a pipeline layout handle and free-associated metadata.
@@ -414,18 +435,18 @@ namespace bx
 	 */
 	void gfx_destroy_pipeline_layout(handle_id handle) noexcept;
 
-	struct gfx_pipeline_desc
+	struct gfx_pipeline_desc_t
 	{
-		const gfx_pipeline_shader* shaders{nullptr};
+		const gfx_pipeline_shader_t* shaders{nullptr};
 		u8 shader_count{0};
-		gfx_topology topology{gfx_topology::TRIANGLES};
+		gfx_topology_t topology{gfx_topology_t::TRIANGLES};
 
 		// NOTE: vertex_input is a part of the pipeline (modern approach).
 		// For GL backends implementers should create a VAO internally here and store it inside the pipeline object.
-		gfx_vertex_input_desc vertex_input{};
+		gfx_vertex_input_desc_t vertex_input{};
 
-		gfx_raster_state raster{};
-		const gfx_color_blend_attachment* color_attachments{nullptr};
+		gfx_raster_state_t raster{};
+		const gfx_color_blend_attachment_t* color_attachments{nullptr};
 		u32 color_attachment_count{0};
 		handle_id layout{}; // pipeline layout handle
 	};
@@ -439,7 +460,7 @@ namespace bx
 	 *     store the GL program id + VAO handle inside the returned pipeline handle. Vertex buffers are still bound at draw-time,
 	 *     but attribute format/locations and bindings are set up here.
 	 */
-	handle_id gfx_create_pipeline(const gfx_pipeline_desc& desc) noexcept;
+	handle_id gfx_create_pipeline(const gfx_pipeline_desc_t& desc) noexcept;
 
 	/* Description:
 	 *   Destroy a pipeline object and free native resources.
@@ -450,18 +471,18 @@ namespace bx
 	void gfx_destroy_pipeline(handle_id handle) noexcept;
 
 	// ---------- buffers ----------
-	enum struct gfx_buffer_usage : u8
+	enum struct gfx_buffer_usage_t : u8
 	{
-		VERTEX       = bx_bit(1), INDEX = bx_bit(2), UNIFORM = bx_bit(3), STORAGE = bx_bit(4), TRANSFER_SRC = bx_bit(5),
-		TRANSFER_DST = bx_bit(6)
+		VERTEX       = bit_mask(1), INDEX = bit_mask(2), UNIFORM = bit_mask(3), STORAGE = bit_mask(4), TRANSFER_SRC = bit_mask(5),
+		TRANSFER_DST = bit_mask(6)
 	};
 
-	enum struct gfx_memory_usage : u8 { GPU_ONLY, CPU_TO_GPU, GPU_TO_CPU };
+	enum struct gfx_memory_usage_t : u8 { GPU_ONLY, CPU_TO_GPU, GPU_TO_CPU };
 
-	struct gfx_buffer_desc
+	struct gfx_buffer_desc_t
 	{
-		gfx_buffer_usage usage{};
-		gfx_memory_usage memory_usage{};
+		gfx_buffer_usage_t usage{};
+		gfx_memory_usage_t memory_usage{};
 		u64 size{0};
 		const u8* data{nullptr};
 	};
@@ -472,7 +493,7 @@ namespace bx
 	 *   - Vulkan/D3D12/Metal: create GPU buffer with appropriate memory properties and possible staging strategies.
 	 *   - GL: create GL buffer (glGenBuffers/glBufferData) and allocate usage according to memory_usage (GL_STATIC_DRAW/GL_DYNAMIC_DRAW).
 	 */
-	handle_id gfx_create_buffer(const gfx_buffer_desc& desc) noexcept;
+	handle_id gfx_create_buffer(const gfx_buffer_desc_t& desc) noexcept;
 
 	/* Description:
 	 *   Destroy a buffer and free-associated memory.
@@ -509,27 +530,27 @@ namespace bx
 	void gfx_update_buffer(handle_id handle, u64 dst_offset, const void* src, u64 size) noexcept;
 
 	// ---------- textures ----------
-	enum struct gfx_texture_format : u8 { R8U_NORM, RG8U_NORM, RGBA8U_NORM, RGBA16F, DEPTH24_STENCIL8 };
+	enum struct gfx_texture_format_t : u8 { R8U_NORM, RG8U_NORM, RGBA8U_NORM, RGBA16F, DEPTH24_STENCIL8 };
 
-	enum struct gfx_texture_filter : u8 { NEAREST, LINEAR };
+	enum struct gfx_texture_filter_t : u8 { NEAREST, LINEAR };
 
-	enum struct gfx_texture_wrap : u8 { CLAMP_TO_EDGE, REPEAT };
+	enum struct gfx_texture_wrap_t : u8 { CLAMP_TO_EDGE, REPEAT };
 
-	enum struct gfx_texture_type : u8 { TEX2D, TEX3D, TEX_CUBE };
+	enum struct gfx_texture_type_t : u8 { TEX2D, TEX3D, TEX_CUBE };
 
-	struct gfx_texture_desc
+	struct gfx_texture_desc_t
 	{
-		gfx_texture_type type{gfx_texture_type::TEX2D};
-		gfx_texture_format format{};
+		gfx_texture_type_t type{gfx_texture_type_t::TEX2D};
+		gfx_texture_format_t format{};
 		u32 width{0};
 		u32 height{0};
 		u32 depth{1};
 		u8 mip_levels{1};
-		gfx_texture_filter min_filter{gfx_texture_filter::NEAREST};
-		gfx_texture_filter mag_filter{gfx_texture_filter::NEAREST};
-		gfx_texture_wrap wrap_u{gfx_texture_wrap::CLAMP_TO_EDGE};
-		gfx_texture_wrap wrap_v{gfx_texture_wrap::CLAMP_TO_EDGE};
-		gfx_texture_wrap wrap_w{gfx_texture_wrap::CLAMP_TO_EDGE};
+		gfx_texture_filter_t min_filter{gfx_texture_filter_t::NEAREST};
+		gfx_texture_filter_t mag_filter{gfx_texture_filter_t::NEAREST};
+		gfx_texture_wrap_t wrap_u{gfx_texture_wrap_t::CLAMP_TO_EDGE};
+		gfx_texture_wrap_t wrap_v{gfx_texture_wrap_t::CLAMP_TO_EDGE};
+		gfx_texture_wrap_t wrap_w{gfx_texture_wrap_t::CLAMP_TO_EDGE};
 	};
 
 	/* Description:
@@ -538,7 +559,7 @@ namespace bx
 	 *   - GL: glGenTextures/glTexStorage2D and set sampler/filter/wrap; allocate storage and optionally upload levels.
 	 *   - Vulkan/D3D12/Metal: create image resource, allocate memory, create image view and sampler object as needed.
 	 */
-	handle_id gfx_create_texture(const gfx_texture_desc& desc) noexcept;
+	handle_id gfx_create_texture(const gfx_texture_desc_t& desc) noexcept;
 
 	/* Description:
 	 *   Destroy texture and associated views/sampler if owned.
@@ -548,7 +569,7 @@ namespace bx
 	 */
 	void gfx_destroy_texture(handle_id texture) noexcept;
 
-	struct gfx_texture_region
+	struct gfx_texture_region_t
 	{
 		u8 mip_level{0};
 		i32 x{0};
@@ -565,12 +586,12 @@ namespace bx
 	 *   - Vulkan/D3D12/Metal: use staging buffer + copy command to image and transition image layouts appropriately.
 	 */
 	void gfx_upload_texture_data(
-		handle_id texture, const u8* data, u32 region_count, const gfx_texture_region* regions) noexcept;
+		handle_id texture, const u8* data, u32 region_count, const gfx_texture_region_t* regions) noexcept;
 
 	// ---------- descriptor sets (resource sets) ----------
-	struct gfx_resource_set_desc
+	struct gfx_resource_set_desc_t
 	{
-		const gfx_resource_binding* bindings{nullptr};
+		const gfx_resource_binding_t* bindings{nullptr};
 		u32 binding_count{0};
 	};
 
@@ -581,7 +602,7 @@ namespace bx
 	 *   - GL: create CPU-side container describing binding->resource mapping; during bind, GL calls will bind buffers/textures to expected slots.
 	 *   - D3D12/Metal: implement descriptor heap/argument buffer allocation as needed.
 	 */
-	handle_id gfx_create_resource_set(const gfx_resource_set_desc& desc) noexcept;
+	handle_id gfx_create_resource_set(const gfx_resource_set_desc_t& desc) noexcept;
 
 	/* Description:
 	 *   Update bindings within an existing resource set.
@@ -591,7 +612,7 @@ namespace bx
 	 *   - D3D12/Metal: update descriptor heap entries / argument buffer contents.
 	 */
 	void gfx_update_resource_set(
-		handle_id set_handle, u32 binding_count, const gfx_resource_binding* bindings) noexcept;
+		handle_id set_handle, u32 binding_count, const gfx_resource_binding_t* bindings) noexcept;
 
 	/* Description:
 	 *   Destroy a resource set and free any allocated descriptor objects.
@@ -604,20 +625,20 @@ namespace bx
 
 	// ---------- framebuffers / render passes ----------
 	// Abstract simple render pass with attachments
-	enum struct gfx_load_op : u8 { LOAD = 0, CLEAR = 1, DONT_CARE = 2 };
+	enum struct gfx_load_op_t : u8 { LOAD = 0, CLEAR = 1, DONT_CARE = 2 };
 
-	enum struct gfx_store_op : u8 { STORE = 0, DONT_CARE = 1 };
+	enum struct gfx_store_op_t : u8 { STORE = 0, DONT_CARE = 1 };
 
-	struct gfx_attachment_desc
+	struct gfx_attachment_desc_t
 	{
-		gfx_texture_format format{};
-		gfx_load_op load{gfx_load_op::CLEAR};
-		gfx_store_op store{gfx_store_op::STORE};
+		gfx_texture_format_t format{};
+		gfx_load_op_t load{gfx_load_op_t::CLEAR};
+		gfx_store_op_t store{gfx_store_op_t::STORE};
 	};
 
-	struct gfx_render_pass_desc
+	struct gfx_renderpass_desc_t
 	{
-		const gfx_attachment_desc* color_attachments{nullptr};
+		const gfx_attachment_desc_t* color_attachments{nullptr};
 		u32 color_attachment_count{0};
 		bool has_depth{false};
 	};
@@ -629,7 +650,7 @@ namespace bx
 	 *   - GL: store as metadata; when beginning a GL render-pass emulate load/clear/store behavior by binding FBOs and calling glClear as needed.
 	 *   - D3D12/Metal: translate to appropriate render pass/encoders or emulation.
 	 */
-	handle_id gfx_create_render_pass(const gfx_render_pass_desc& desc) noexcept;
+	handle_id gfx_create_renderpass(const gfx_renderpass_desc_t& desc) noexcept;
 
 	/* Description:
 	 *   Destroy the render-pass metadata or native render-pass object.
@@ -638,9 +659,9 @@ namespace bx
 	 *   - GL: free CPU-side structure.
 	 *   - D3D12/Metal: release native objects if any.
 	 */
-	void gfx_destroy_render_pass(handle_id rp) noexcept;
+	void gfx_destroy_renderpass(handle_id rp) noexcept;
 
-	struct gfx_framebuffer_desc
+	struct gfx_framebuffer_desc_t
 	{
 		handle_id* color_textures{nullptr};
 		u32 color_count{0};
@@ -657,7 +678,7 @@ namespace bx
 	 *   - Vulkan: use VkFramebuffer tied to VkRenderPass.
 	 *   - D3D12/Metal: create equivalent render target views / descriptor sets.
 	 */
-	handle_id gfx_create_framebuffer(const gfx_framebuffer_desc& desc) noexcept;
+	handle_id gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) noexcept;
 
 	/* Description:
 	 *   Destroy a framebuffer and free native attachments if owned.
@@ -667,11 +688,37 @@ namespace bx
 	 */
 	void gfx_destroy_framebuffer(handle_id fb) noexcept;
 
+	/* Description:
+	 *   Return a handle representing the default framebuffer or swap-chain backbuffer.
+	 *   This is typically used when beginning a render pass targeting the main display.
+	 *
+	 * Implementation notes:
+	 *   - Vulkan/D3D12/Metal: return a handle to the current swap-chain image/framebuffer.
+	 *   - GL: return a dummy handle (e.g. 0) representing the default framebuffer.
+	 *
+	 * OpenGL implementation:
+	 *   - Return {0}, since the default framebuffer is bound by default.
+	 */
+	handle_id gfx_default_framebuffer() noexcept;
+
+	/* Description:
+	 *   Return a handle representing the current "immediate" command buffer.
+	 *   This allows issuing commands without explicitly creating or managing a command buffer object.
+	 *
+	 * Implementation notes:
+	 *   - Vulkan/D3D12/Metal: return a handle to a transient or default command buffer that records immediately.
+	 *   - GL: return a dummy handle (e.g. 0) since GL operates in immediate mode.
+	 *
+	 * OpenGL implementation:
+	 *   - Simply return a static dummy handle (e.g. {0}) since no explicit command buffer exists.
+	 */
+	handle_id gfx_immediate_command_buffer() noexcept;
+
 	// Begin / end render pass (on current command buffer or immediate context)
-	struct gfx_clear_value
+	struct gfx_clear_value_t
 	{
-		float r{0}, g{0}, b{0}, a{0};
-		float depth{0};
+		f32 r{0}, g{0}, b{0}, a{0};
+		f32 depth{0};
 		u32 stencil{0};
 	};
 
@@ -682,8 +729,8 @@ namespace bx
 	 *   - GL: bind the FBO, set draw buffers, call glClear for attachments with load==CLEAR.
 	 *   - D3D12/Metal: set render targets and clear as appropriate.
 	 */
-	void gfx_cmd_begin_render_pass(
-		handle_id framebuffer, const gfx_clear_value* clear_values, u32 clear_count) noexcept;
+	void gfx_cmd_begin_renderpass(
+		handle_id framebuffer, const gfx_clear_value_t* clear_values, u32 clear_count) noexcept;
 
 	/* Description:
 	 *   End the current render pass / finish render-target work on the command buffer or immediate context.
@@ -821,20 +868,20 @@ namespace bx
 
 	// ---------- synchronization / barriers ----------
 
-	enum struct gfx_shader_access : u32
+	enum struct gfx_shader_access_t : u32
 	{
 		NONE     = 0u,
-		READ     = bx_bit(1),
-		WRITE    = bx_bit(2),
-		TRANSFER = bx_bit(3)
+		READ     = bit_mask(1),
+		WRITE    = bit_mask(2),
+		TRANSFER = bit_mask(3)
 	};
 
 	struct gfx_memory_barrier
 	{
-		gfx_shader_access src_access{};
-		gfx_shader_access dst_access{};
-		gfx_shader_stage src_stage{};
-		gfx_shader_stage dst_stage{};
+		gfx_shader_access_t src_access{};
+		gfx_shader_access_t dst_access{};
+		gfx_shader_stage_t src_stage{};
+		gfx_shader_stage_t dst_stage{};
 	};
 
 	/* Description:
@@ -857,35 +904,6 @@ namespace bx
 	 *       glMemoryBarrier(bits);
 	 */
 	void gfx_pipeline_barrier(handle_id cb, const gfx_memory_barrier& barrier) noexcept;
-
-
-	// ---------- convenience drawing path (immediate) ----------
-
-	/* Description:
-	 *   Return a handle representing the current "immediate" command buffer.
-	 *   This allows issuing commands without explicitly creating or managing a command buffer object.
-	 *
-	 * Implementation notes:
-	 *   - Vulkan/D3D12/Metal: return a handle to a transient or default command buffer that records immediately.
-	 *   - GL: return a dummy handle (e.g. 0) since GL operates in immediate mode.
-	 *
-	 * OpenGL implementation:
-	 *   - Simply return a static dummy handle (e.g. {0}) since no explicit command buffer exists.
-	 */
-	handle_id gfx_immediate_command_buffer() noexcept;
-
-	/* Description:
-	 *   Return a handle representing the default framebuffer or swap-chain backbuffer.
-	 *   This is typically used when beginning a render pass targeting the main display.
-	 *
-	 * Implementation notes:
-	 *   - Vulkan/D3D12/Metal: return a handle to the current swap-chain image/framebuffer.
-	 *   - GL: return a dummy handle (e.g. 0) representing the default framebuffer.
-	 *
-	 * OpenGL implementation:
-	 *   - Return {0}, since the default framebuffer is bound by default.
-	 */
-	handle_id gfx_default_framebuffer() noexcept;
 }
 
 #endif //BX_HPP
