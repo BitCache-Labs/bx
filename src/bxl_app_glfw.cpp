@@ -1,4 +1,4 @@
-#include "bxl.hpp"
+#include <bxl_internal.hpp>
 
 #include <iostream>
 #include <vector>
@@ -51,7 +51,7 @@ static void vk_end_frame();
 
 static void glfw_error_callback(const i32 error, cstring desc)
 {
-	bx_loge(fmt::format("GLFW Error {}: {}", error, desc).c_str());
+	bx_loge("GLFW Error {}: {}", error, desc);
 }
 
 static void glfw_key_callback(GLFWwindow*, const i32 key, i32 scancode, const i32 action, i32 mods)
@@ -303,6 +303,11 @@ void bx::app_set_cursor_visible(const bool visible) noexcept
 // Backends
 
 #ifdef BXL_GFX_OPENGL
+
+#ifdef __arm__
+#define BXL_GFX_OPENGLES
+#endif
+
 static bool gl_init(const bx::app_config_t& config)
 {
 	glfwMakeContextCurrent(bx::g_window);
@@ -319,6 +324,11 @@ static bool gl_init(const bx::app_config_t& config)
 		return false;
 	}
 
+	// Print GPU/GL info
+	bx_logv("GL version: {}", (cstring)glGetString(GL_VERSION));
+	bx_logv("GLSL version: {}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+#ifdef BXL_APP_IMGUI
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -351,10 +361,6 @@ static bool gl_init(const bx::app_config_t& config)
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
 
-	// Print GPU/GL info
-	bx_logv(fmt::format("GL version: {}", (cstring)glGetString(GL_VERSION)).c_str());
-	bx_logv(fmt::format("GLSL version: {}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION)).c_str());
-
 	// Setup Platform/Renderer backends
 	if (!ImGui_ImplGlfw_InitForOpenGL(bx::g_window, true))
 	{
@@ -371,6 +377,7 @@ static bool gl_init(const bx::app_config_t& config)
 		bx_loge("Failed to initialize ImGui OpenGL backend!");
 		return false;
 	}
+#endif // BXL_APP_IMGUI
 
 	return true;
 }
@@ -421,7 +428,7 @@ static void vk_check_result(const VkResult err)
 {
 	if (err != VK_SUCCESS)
 	{
-		bx_loge(fmt::format("[Vulkan] Error: VkResult = {}", err).c_str());
+		bx_loge("[Vulkan] Error: VkResult = {}", err);
 		if (err < 0)
 			abort();
 	}

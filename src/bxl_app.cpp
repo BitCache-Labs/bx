@@ -1,4 +1,4 @@
-#include "bxl.hpp"
+#include <bxl_internal.hpp>
 
 #include <iostream>
 #include <atomic>

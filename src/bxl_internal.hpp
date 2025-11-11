@@ -1,8 +1,7 @@
-#ifndef BXL_HPP
-#define BXL_HPP
+#ifndef BXL_INTERNAL_HPP
+#define BXL_INTERNAL_HPP
 
-#include <bx.hpp>
-#include <fmt/format.h>
+#include <bxl.hpp>
 
 #ifdef BXL_GFX_VULKAN
 #include <vulkan/vulkan.h>
@@ -96,4 +95,4 @@ constexpr bool bx_enum_any(bx::gfx_buffer_usage_t a) noexcept
 	return static_cast<u32>(a) != 0;
 }
 
-#endif //BXL_HPP
+#endif //BXL_INTERNAL_HPP

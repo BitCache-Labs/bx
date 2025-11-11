@@ -2,6 +2,7 @@
 #define BX_HPP
 
 #include <cstdint>
+#include <cstddef>
 
 using uchar = unsigned char;
 
@@ -18,16 +19,22 @@ using i64 = int64_t;
 using f32 = float;
 using f64 = double;
 
+using vptr = void*;
+using cvptr = const void*;
+using uptr = uintptr_t;
+using usize = size_t;
+using isize = ptrdiff_t;
+
 using cstring = const char*;
 
 #define bx_register_type(T) template<> inline u32 bx::type_id<T>() { return bx::register_type_id(); }
 
-#define bx_logi(msg) bx::log_v(bx::log_t::INFO, __func__, __FILE__, __LINE__, (msg))
-#define bx_logw(msg) bx::log_v(bx::log_t::WARN, __func__, __FILE__, __LINE__, (msg))
-#define bx_loge(msg) bx::log_v(bx::log_t::ERROR, __func__, __FILE__, __LINE__, (msg))
-#define bx_logf(msg) bx::log_v(bx::log_t::FATAL, __func__, __FILE__, __LINE__, (msg))
-#define bx_logv(msg) bx::log_v(bx::log_t::VERBOSE, __func__, __FILE__, __LINE__, (msg))
-#define bx_logd(msg) bx::log_v(bx::log_t::DEBUG, __func__, __FILE__, __LINE__, (msg))
+#define bx_logi(fstr, ...) bx::logf_v(bx::log_t::INFO, __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
+#define bx_logw(fstr, ...) bx::logf_v(bx::log_t::WARN, __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
+#define bx_loge(fstr, ...) bx::logf_v(bx::log_t::ERROR, __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
+#define bx_logf(fstr, ...) bx::logf_v(bx::log_t::FATAL, __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
+#define bx_logv(fstr, ...) bx::logf_v(bx::log_t::VERBOSE, __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
+#define bx_logd(fstr, ...) bx::logf_v(bx::log_t::DEBUG, __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
 
 namespace bx
 {
@@ -216,9 +223,15 @@ namespace bx
 	 */
 	void log_set_callback(log_callback_t cb) noexcept;
 
-	void log(log_t level, cstring msg);
+	void log(log_t level, cstring str);
 
-	void log_v(log_t level, cstring func, cstring file, i32 line, cstring msg);
+	void log_v(log_t level, cstring func, cstring file, i32 line, cstring str);
+
+	template<typename... Args>
+	inline void logf(log_t level, cstring fstr, Args&&... args);
+
+	template<typename... Args>
+	inline void logf_v(log_t level, cstring func, cstring file, i32 line, cstring fstr, Args&&... args);
 
 	// ------------------------------------------
 	// -              FileIO API                -
