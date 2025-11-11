@@ -10,7 +10,11 @@
 
 cstring bx::gfx_backend_name() noexcept
 {
+#ifdef BXL_GFX_OPENGLES
+	return "opengles";
+#else
 	return "opengl";
+#endif
 }
 
 void bx::gfx_set_debug_name(handle_id object, cstring name) noexcept

@@ -5,11 +5,11 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include <imgui_impl_glfw.h>
 
-// -----------------------------------------------------------------------------
-// App timing & input
-// -----------------------------------------------------------------------------
+#ifdef BXL_APP_IMGUI
+#include <imgui_impl_glfw.h>
+#endif
+
 namespace bx
 {
 	static GLFWwindow* g_window = nullptr;
@@ -25,9 +25,12 @@ namespace bx
 	static f64 g_mouse_x        = 0.0, g_mouse_y = 0.0;
 }
 
-#if defined(BX_GFX_OPENGL) || defined(BX_GFX_OPENGLES)
+#ifdef BXL_GFX_OPENGL
 #include <glad/glad.h>
+
+#ifdef BXL_APP_IMGUI
 #include <imgui_impl_opengl3.h>
+#endif
 
 static bool gl_init(const bx::app_config_t& config);
 static void gl_shutdown();
@@ -35,8 +38,10 @@ static void gl_begin_frame();
 static void gl_end_frame();
 #endif
 
-#ifdef BX_GFX_VULKAN
+#ifdef BXL_GFX_VULKAN
+#ifdef BXL_APP_IMGUI
 #include <imgui_impl_vulkan.h>
+#endif
 
 static bool vk_init(const bx::app_config_t& config);
 static void vk_shutdown();
@@ -96,11 +101,18 @@ bx::result_t bx::app_init(const app_config_t& config) noexcept
 		return result_t::FAIL;
 	}
 
-#ifdef BX_GFX_VULKAN
+#ifdef BXL_GFX_VULKAN
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-#endif
+#endif // BXL_GFX_VULKAN
 
-#ifdef BX_GFX_OPENGL
+#ifdef BXL_GFX_OPENGL
+#ifdef BXL_GFX_OPENGLES
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	//glfwWindowHint(GLFW_SAMPLES, 2);
+#else
 	// Request context with compute shader support
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -108,16 +120,9 @@ bx::result_t bx::app_init(const app_config_t& config) noexcept
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-#endif
-
-#ifdef BX_GFX_OPENGLES
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	//glfwWindowHint(GLFW_SAMPLES, 2);
-#endif
+#endif // __APPLE__
+#endif // BX_GFX_OPENGLES
+#endif // BXL_GFX_OPENGL
 
 	//pMonitor = glfwGetPrimaryMonitor();
 	//const GLFWvidmode* pMode = glfwGetVideoMode(pMonitor);
@@ -129,10 +134,15 @@ bx::result_t bx::app_init(const app_config_t& config) noexcept
 	//glfwWindowHint(GLFW_BLUE_BITS, pMode->blueBits);
 	//glfwWindowHint(GLFW_REFRESH_RATE, pMode->refreshRate);
 
+#ifdef BXL_APP_IMGUI
 	const f32 main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
 	const i32 scaled_width = static_cast<i32>(main_scale * static_cast<f32>(config.width));
 	const i32 scaled_height = static_cast<i32>(main_scale * static_cast<f32>(config.height));
 	g_window = glfwCreateWindow(scaled_width, scaled_height, config.title, nullptr, nullptr);
+#else
+	g_window = glfwCreateWindow(config.width, config.height, config.title, nullptr, nullptr);
+#endif
+
 	if (!g_window)
 	{
 		bx_loge("Failed to create GLFW window");
@@ -145,7 +155,7 @@ bx::result_t bx::app_init(const app_config_t& config) noexcept
 	glfwSetCursorPosCallback(g_window, glfw_cursor_pos_callback);
 	g_last_time = glfwGetTime();
 
-#if defined(BX_GFX_OPENGL) || defined(BX_GFX_OPENGLES)
+#ifdef BXL_GFX_OPENGL
 	if (!gl_init(config))
 	{
 		bx_loge("Failed to initialize GLFW graphics.");
@@ -153,7 +163,7 @@ bx::result_t bx::app_init(const app_config_t& config) noexcept
 	}
 #endif
 
-#ifdef BX_GFX_VULKAN
+#ifdef BXL_GFX_VULKAN
 	if (!vk_init(config))
 	{
 		bx_loge("Failed to initialize GLFW graphics.");
@@ -166,16 +176,18 @@ bx::result_t bx::app_init(const app_config_t& config) noexcept
 
 void bx::app_shutdown() noexcept
 {
-#ifdef BX_GFX_VULKAN
+#ifdef BXL_GFX_VULKAN
 	vk_shutdown();
 #endif
 
-#if defined(BX_GFX_OPENGL) || defined(BX_GFX_OPENGLES)
+#ifdef BXL_GFX_OPENGL
 	gl_shutdown();
 #endif
 
+#ifdef BXL_APP_IMGUI
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+#endif
 
 	glfwDestroyWindow(g_window);
 	glfwTerminate();
@@ -203,33 +215,39 @@ bool bx::app_begin_frame() noexcept
 		continue;
 	}*/
 
+#ifdef BXL_APP_IMGUI
 	ImGui_ImplGlfw_NewFrame();
+#endif
 
-#ifdef BX_GFX_VULKAN
+#ifdef BXL_GFX_VULKAN
 	vk_begin_frame();
 #endif
 
-#if defined(BX_GFX_OPENGL) || defined(BX_GFX_OPENGLES)
+#ifdef BXL_GFX_OPENGL
 	gl_begin_frame();
 #endif
 
+#ifdef BXL_APP_IMGUI
 	ImGui::NewFrame();
+#endif
+
 	return true;
 }
 
 void bx::app_end_frame(const bool present, const bool should_close) noexcept
 {
-	ImGui::ShowDemoWindow(0);
-
 	if (present)
 	{
+#ifdef BXL_APP_IMGUI
+		ImGui::ShowDemoWindow(0);
 		ImGui::Render();
+#endif
 
-#ifdef BX_GFX_VULKAN
+#ifdef BXL_GFX_VULKAN
 		vk_end_frame();
 #endif
 
-#if defined(BX_GFX_OPENGL) || defined(BX_GFX_OPENGLES)
+#ifdef BXL_GFX_OPENGL
 		gl_end_frame();
 #endif
 	}
@@ -284,17 +302,17 @@ void bx::app_set_cursor_visible(const bool visible) noexcept
 
 // Backends
 
-#if defined(BX_GFX_OPENGL) || defined(BX_GFX_OPENGLES)
+#ifdef BXL_GFX_OPENGL
 static bool gl_init(const bx::app_config_t& config)
 {
 	glfwMakeContextCurrent(bx::g_window);
 	glfwSwapInterval(config.vsync ? GLFW_TRUE : GLFW_FALSE);
 
 	// Load GL function pointers
-#ifdef BX_GFX_OPENGL
-	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
-#else
+#ifdef BXL_GFX_OPENGLES
 	if (!gladLoadGLES2Loader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
+#else
+	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
 #endif
 	{
 		bx_loge("Failed to load GLAD");
@@ -344,10 +362,10 @@ static bool gl_init(const bx::app_config_t& config)
 		return false;
 	}
 
-#ifdef BX_GFX_OPENGL
-	if (!ImGui_ImplOpenGL3_Init("#version 460 core\n"))
-#else
+#ifdef BXL_GFX_OPENGLES
 	if (!ImGui_ImplOpenGL3_Init("#version 300 es\n"))
+#else
+	if (!ImGui_ImplOpenGL3_Init("#version 460 core\n"))
 #endif
 	{
 		bx_loge("Failed to initialize ImGui OpenGL backend!");
@@ -374,7 +392,7 @@ static void gl_end_frame()
 }
 #endif
 
-#ifdef BX_GFX_VULKAN
+#ifdef BXL_GFX_VULKAN
 namespace bx
 {
 	static VkAllocationCallbacks* g_allocator = nullptr;

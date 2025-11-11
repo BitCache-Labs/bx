@@ -22,12 +22,12 @@ using cstring = const char*;
 
 #define bx_register_type(T) template<> inline u32 bx::type_id<T>() { return bx::register_type_id(); }
 
-#define bx_logi(msg) bx::log(bx::log_t::info, msg)
-#define bx_logw(msg) bx::log(bx::log_t::warn, msg)
-#define bx_loge(msg) bx::log(bx::log_t::error, msg)
-#define bx_logf(msg) bx::log(bx::log_t::fatal, msg)
-#define bx_logv(msg) bx::log(bx::log_t::verbose, msg)
-#define bx_logd(msg) bx::log(bx::log_t::debug, msg)
+#define bx_logi(msg) bx::log_v(bx::log_t::INFO, __func__, __FILE__, __LINE__, (msg))
+#define bx_logw(msg) bx::log_v(bx::log_t::WARN, __func__, __FILE__, __LINE__, (msg))
+#define bx_loge(msg) bx::log_v(bx::log_t::ERROR, __func__, __FILE__, __LINE__, (msg))
+#define bx_logf(msg) bx::log_v(bx::log_t::FATAL, __func__, __FILE__, __LINE__, (msg))
+#define bx_logv(msg) bx::log_v(bx::log_t::VERBOSE, __func__, __FILE__, __LINE__, (msg))
+#define bx_logd(msg) bx::log_v(bx::log_t::DEBUG, __func__, __FILE__, __LINE__, (msg))
 
 namespace bx
 {
@@ -202,7 +202,7 @@ namespace bx
 
 	enum struct log_t : u8
 	{
-		info = 0, warn = 1, error = 2, fatal = 3, verbose = 4, debug = 5
+		INFO = 0, WARN = 1, ERROR = 2, FATAL = 3, VERBOSE = 4, DEBUG = 5
 	};
 
 	// Optional logging callback

@@ -4,15 +4,11 @@
 #include <bx.hpp>
 #include <fmt/format.h>
 
-#ifdef BX_GFX_VULKAN
+#ifdef BXL_GFX_VULKAN
 #include <vulkan/vulkan.h>
-
 #else
-
 #ifdef __arm__
-#define BX_GFX_OPENGLES
-#else
-#define BX_GFX_OPENGL
+#define BXL_GFX_OPENGLES
 #endif
 #endif
 
@@ -49,7 +45,7 @@ namespace bx
 		};
 	};
 
-#ifdef BX_VULKAN_SUPPORTED
+#ifdef BXL_GFX_VULKAN
 	extern VkAllocationCallbacks* g_allocator;
 	extern VkInstance g_instance;
 	extern VkSurfaceKHR g_surface;

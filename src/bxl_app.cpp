@@ -99,18 +99,18 @@ void bx::log(log_t level, cstring msg)
 	
 	switch (level)
 	{
-	case log_t::info:
-	case log_t::warn:
-	case log_t::verbose:
-	case log_t::debug:
+	case log_t::INFO:
+	case log_t::WARN:
+	case log_t::VERBOSE:
+	case log_t::DEBUG:
 		std::cout << msg << std::endl;
 		break;
 
-	case log_t::error:
+	case log_t::ERROR:
 		std::cerr << msg << std::endl;
 		break;
 
-	case log_t::fatal:
+	case log_t::FATAL:
 		std::cerr << msg << std::endl;
 		//assert(false);
 		break;
@@ -119,4 +119,20 @@ void bx::log(log_t level, cstring msg)
 
 void bx::log_v(log_t level, cstring func, cstring file, i32 line, cstring msg)
 {
+	cstring level_str = nullptr;
+	switch (level) {
+	case log_t::INFO:  level_str = "INFO"; break;
+	case log_t::WARN:  level_str = "WARN"; break;
+	case log_t::ERROR: level_str = "ERROR"; break;
+	case log_t::FATAL : level_str = "FATAL"; break;
+	case log_t::VERBOSE: level_str = "VERBOSE"; break;
+	case log_t::DEBUG: level_str = "DEBUG"; break;
+	}
+
+	cstring last_slash = std::strrchr(file, '/');
+	if (!last_slash) last_slash = std::strrchr(file, '\\');
+	cstring file_name = last_slash ? last_slash + 1 : file;
+
+	std::string formatted = fmt::format("[{}] {} ({}:{}) - {}", level_str, func, file_name, line, msg);
+	log(level, formatted.c_str());
 }
