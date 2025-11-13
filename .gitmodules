@@ -8,3 +8,9 @@
 [submodule "extern/fmt"]
 	path = extern/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "extern/portaudio"]
+	path = extern/portaudio
+	url = https://github.com/PortAudio/portaudio.git
+[submodule "extern/enet"]
+	path = extern/enet
+	url = https://github.com/lsalzman/enet.git

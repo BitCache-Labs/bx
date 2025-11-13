@@ -26,16 +26,16 @@ namespace bx
 {
 	static log_callback_t g_log_callback = nullptr;
 
-	struct config_data
+	struct config_data_t
 	{
-		void* data{nullptr};
-		free_fn_t free{nullptr};
+		cvptr data{ nullptr };
+		config_freefn_t free{ nullptr };
 	};
 
-	static std::unordered_map<u64, config_data> g_config{};
+	static std::unordered_map<u64, config_data_t> g_config{};
 }
 
-static u64 bx_hash_cstring(cstring str)
+static u64 hash_cstring(cstring str)
 {
 	// FNV-1a 64-bit
 	if (!str)
@@ -50,31 +50,31 @@ static u64 bx_hash_cstring(cstring str)
 	return hash;
 }
 
-void bx::app_config_set(const u64 type, cstring name, void* data, const free_fn_t free) noexcept
+void bx::config_set(const u64 type, cstring name, cvptr data, const config_freefn_t free) noexcept
 {
-	const u64 hash = bx_hash_cstring(name) ^ type;
-	config_data cfg{};
+	const u64 hash = hash_cstring(name) ^ type;
+	config_data_t cfg{};
 	cfg.data       = data;
 	cfg.free       = free;
 	g_config[hash] = cfg;
 }
 
-void* bx::app_config_get(const u64 type, cstring name) noexcept
+cvptr bx::config_get(const u64 type, cstring name) noexcept
 {
-	const u64 hash = bx_hash_cstring(name) ^ type;
+	const u64 hash = hash_cstring(name) ^ type;
 	const auto it  = g_config.find(hash);
 	if (it == g_config.end())
 		return nullptr;
 	return it->second.data;
 }
 
-bool bx::app_config_has(const u64 type, cstring name) noexcept
+bool bx::config_has(const u64 type, cstring name) noexcept
 {
-	const u64 hash = bx_hash_cstring(name) ^ type;
+	const u64 hash = hash_cstring(name) ^ type;
 	return g_config.find(hash) != g_config.end();
 }
 
-void bx::app_config_clear() noexcept
+void bx::config_clear() noexcept
 {
 	for (const auto& cfg : g_config)
 	{
@@ -133,6 +133,6 @@ void bx::log_v(log_t level, cstring func, cstring file, i32 line, cstring msg)
 	if (!last_slash) last_slash = std::strrchr(file, '\\');
 	cstring file_name = last_slash ? last_slash + 1 : file;
 
-	std::string formatted = fmt::format("[{}] {} ({}:{}) - {}", level_str, func, file_name, line, msg);
+	std::string formatted = fmt::format("[{}] {} ({}:{}): {}", level_str, func, file_name, line, msg);
 	log(level, formatted.c_str());
 }

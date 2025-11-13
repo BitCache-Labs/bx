@@ -18,11 +18,13 @@ namespace bx
 		handle_t() = default;
 
 		explicit handle_t(const handle_id value)
-			: id(value) {}
+			: id(value)
+		{}
 
 		handle_t(const u32 data, const u32 meta)
 			: data(data)
-			, meta(meta) {}
+			, meta(meta)
+		{}
 
 		explicit operator handle_id() const { return id; }
 
