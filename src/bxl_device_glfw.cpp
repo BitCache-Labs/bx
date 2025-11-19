@@ -10,20 +10,17 @@
 #include <imgui_impl_glfw.h>
 #endif
 
-namespace bx
-{
-	static GLFWwindow* g_window = nullptr;
+static GLFWwindow* g_window = nullptr;
 
-	static f64 g_last_time  = 0.0;
-	static f64 g_delta_time = 0.0;
+static f64 g_last_time = 0.0;
+static f64 g_delta_time = 0.0;
 
-	static bool g_key_down[GLFW_KEY_LAST + 1]     = {};
-	static bool g_key_pressed[GLFW_KEY_LAST + 1]  = {};
-	static bool g_key_released[GLFW_KEY_LAST + 1] = {};
+static bool g_key_down[GLFW_KEY_LAST + 1] = {};
+static bool g_key_pressed[GLFW_KEY_LAST + 1] = {};
+static bool g_key_released[GLFW_KEY_LAST + 1] = {};
 
-	static bool g_mouse_down[8] = {};
-	static f64 g_mouse_x        = 0.0, g_mouse_y = 0.0;
-}
+static bool g_mouse_down[8] = {};
+static f64 g_mouse_x = 0.0, g_mouse_y = 0.0;
 
 #ifdef BXL_GFX_OPENGL
 #include <glad/glad.h>
@@ -51,7 +48,7 @@ static void vk_end_frame();
 
 static void glfw_error_callback(const i32 error, cstring desc)
 {
-	bx_loge("GLFW Error {}: {}", error, desc);
+	bx_loge(bxl, "GLFW Error {}: {}", error, desc);
 }
 
 static void glfw_key_callback(GLFWwindow*, const i32 key, i32 scancode, const i32 action, i32 mods)
@@ -61,13 +58,13 @@ static void glfw_key_callback(GLFWwindow*, const i32 key, i32 scancode, const i3
 
 	if (action == GLFW_PRESS)
 	{
-		bx::g_key_down[key]    = true;
-		bx::g_key_pressed[key] = true;
+		g_key_down[key]    = true;
+		g_key_pressed[key] = true;
 	}
 	else if (action == GLFW_RELEASE)
 	{
-		bx::g_key_down[key]     = false;
-		bx::g_key_released[key] = true;
+		g_key_down[key]     = false;
+		g_key_released[key] = true;
 	}
 }
 
@@ -75,30 +72,30 @@ static void glfw_mouse_button_callback(GLFWwindow*, const i32 button, const i32 
 {
 	if (button < 0 || button >= 8)
 		return;
-	bx::g_mouse_down[button] = (action == GLFW_PRESS);
+	g_mouse_down[button] = (action == GLFW_PRESS);
 }
 
 static void glfw_cursor_pos_callback(GLFWwindow*, const f64 xpos, const f64 ypos)
 {
-	bx::g_mouse_x = xpos;
-	bx::g_mouse_y = ypos;
+	g_mouse_x = xpos;
+	g_mouse_y = ypos;
 }
 
-bx::result_t bx::app_init(const app_config_t& config) noexcept
+bool bxl::device_init(const bx::app_config_t& config) bx_noexcept
 {
 #ifdef __arm__
 	if (putenv((char*)"DISPLAY=:0"))
 	{
 		bx_loge("Failed to set DISPLAY enviroment variable");
-		return result_t::FAIL;
+		return false;
 	}
 #endif
 
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
 	{
-		bx_loge("Failed to init GLFW");
-		return result_t::FAIL;
+		bx_loge(bxl, "Failed to init GLFW");
+		return false;
 	}
 
 #ifdef BXL_GFX_VULKAN
@@ -145,9 +142,9 @@ bx::result_t bx::app_init(const app_config_t& config) noexcept
 
 	if (!g_window)
 	{
-		bx_loge("Failed to create GLFW window");
+		bx_loge(bxl, "Failed to create GLFW window");
 		glfwTerminate();
-		return result_t::FAIL;
+		return false;
 	}
 
 	glfwSetKeyCallback(g_window, glfw_key_callback);
@@ -158,8 +155,8 @@ bx::result_t bx::app_init(const app_config_t& config) noexcept
 #ifdef BXL_GFX_OPENGL
 	if (!gl_init(config))
 	{
-		bx_loge("Failed to initialize GLFW graphics.");
-		return result_t::FAIL;
+		bx_loge(bxl, "Failed to initialize GLFW graphics.");
+		return false;
 	}
 #endif
 
@@ -171,10 +168,10 @@ bx::result_t bx::app_init(const app_config_t& config) noexcept
 	}
 #endif
 
-	return result_t::OK;
+	return true;
 }
 
-void bx::app_shutdown() noexcept
+void bxl::device_shutdown() bx_noexcept
 {
 #ifdef BXL_GFX_VULKAN
 	vk_shutdown();
@@ -193,7 +190,7 @@ void bx::app_shutdown() noexcept
 	glfwTerminate();
 }
 
-bool bx::app_begin_frame() noexcept
+bool bx::app_begin_frame() bx_noexcept
 {
 	if (glfwWindowShouldClose(g_window))
 		return false;
@@ -234,12 +231,11 @@ bool bx::app_begin_frame() noexcept
 	return true;
 }
 
-void bx::app_end_frame(const bool present, const bool should_close) noexcept
+void bx::app_end_frame(const bool present, const bool should_close) bx_noexcept
 {
 	if (present)
 	{
 #ifdef BXL_APP_IMGUI
-		ImGui::ShowDemoWindow(0);
 		ImGui::Render();
 #endif
 
@@ -256,26 +252,26 @@ void bx::app_end_frame(const bool present, const bool should_close) noexcept
 	glfwSetWindowShouldClose(g_window, close);
 }
 
-f64 bx::app_time_seconds() noexcept
+f64 bx::app_time_seconds() bx_noexcept
 {
 	return glfwGetTime();
 }
 
-f64 bx::app_frame_time() noexcept
+f64 bx::app_frame_time() bx_noexcept
 {
 	return g_delta_time;
 }
 
-bool bx::app_key_down(const i32 key) noexcept
+bool bx::device_key_down(const i32 key) bx_noexcept
 {
 	if (key < 0 || key > GLFW_KEY_LAST)
 		return false;
 	return g_key_down[key];
 }
 
-bx::key_state_t bx::app_key(const i32 key) noexcept
+bx::device_key_state_t bx::device_key(const i32 key) bx_noexcept
 {
-	key_state_t state{};
+	device_key_state_t state{};
 	if (key >= 0 && key <= GLFW_KEY_LAST)
 	{
 		state.down     = g_key_down[key];
@@ -285,9 +281,9 @@ bx::key_state_t bx::app_key(const i32 key) noexcept
 	return state;
 }
 
-bx::mouse_state_t bx::app_mouse() noexcept
+bx::device_mouse_state_t bx::device_mouse() bx_noexcept
 {
-	mouse_state_t s{};
+	device_mouse_state_t s{};
 	s.x = static_cast<f32>(g_mouse_x);
 	s.y = static_cast<f32>(g_mouse_y);
 	for (i32 i       = 0; i < 8; ++i)
@@ -295,7 +291,7 @@ bx::mouse_state_t bx::app_mouse() noexcept
 	return s;
 }
 
-void bx::app_set_cursor_visible(const bool visible) noexcept
+void bx::device_set_cursor_visible(const bool visible) bx_noexcept
 {
 	glfwSetInputMode(g_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 }
@@ -310,7 +306,7 @@ void bx::app_set_cursor_visible(const bool visible) noexcept
 
 static bool gl_init(const bx::app_config_t& config)
 {
-	glfwMakeContextCurrent(bx::g_window);
+	glfwMakeContextCurrent(g_window);
 	glfwSwapInterval(config.vsync ? GLFW_TRUE : GLFW_FALSE);
 
 	// Load GL function pointers
@@ -320,13 +316,13 @@ static bool gl_init(const bx::app_config_t& config)
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
 #endif
 	{
-		bx_loge("Failed to load GLAD");
+		bx_loge(bxl, "Failed to load GLAD");
 		return false;
 	}
 
 	// Print GPU/GL info
-	bx_logv("GL version: {}", (cstring)glGetString(GL_VERSION));
-	bx_logv("GLSL version: {}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION));
+	bx_logv(bxl, "GL version: {}", (cstring)glGetString(GL_VERSION));
+	bx_logv(bxl, "GLSL version: {}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 #ifdef BXL_APP_IMGUI
 	// Setup Dear ImGui context
@@ -362,9 +358,9 @@ static bool gl_init(const bx::app_config_t& config)
 	}
 
 	// Setup Platform/Renderer backends
-	if (!ImGui_ImplGlfw_InitForOpenGL(bx::g_window, true))
+	if (!ImGui_ImplGlfw_InitForOpenGL(g_window, true))
 	{
-		bx_loge("Failed to initialize ImGui GLFW backend!");
+		bx_loge(bxl, "Failed to initialize ImGui GLFW backend!");
 		return false;
 	}
 
@@ -374,7 +370,7 @@ static bool gl_init(const bx::app_config_t& config)
 	if (!ImGui_ImplOpenGL3_Init("#version 460 core\n"))
 #endif
 	{
-		bx_loge("Failed to initialize ImGui OpenGL backend!");
+		bx_loge(bxl, "Failed to initialize ImGui OpenGL backend!");
 		return false;
 	}
 #endif // BXL_APP_IMGUI
@@ -395,7 +391,7 @@ static void gl_begin_frame()
 static void gl_end_frame()
 {
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-	glfwSwapBuffers(bx::g_window);
+	glfwSwapBuffers(g_window);
 }
 #endif
 

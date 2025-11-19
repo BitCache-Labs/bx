@@ -2,6 +2,7 @@
 #define BXL_INTERNAL_HPP
 
 #include <bxl.hpp>
+#include <unordered_map>
 
 #ifdef BXL_GFX_VULKAN
 #include <vulkan/vulkan.h>
@@ -11,13 +12,15 @@
 #endif
 #endif
 
-namespace bx
+bx_register_category(bxl)
+
+namespace bxl
 {
 	struct handle_t
 	{
 		handle_t() = default;
 
-		explicit handle_t(const handle_id value)
+		explicit handle_t(const bx::handle_id value)
 			: id(value)
 		{}
 
@@ -26,7 +29,7 @@ namespace bx
 			, meta(meta)
 		{}
 
-		explicit operator handle_id() const { return id; }
+		explicit operator bx::handle_id() const { return id; }
 
 		template<typename T>
 		T get_data() const { return static_cast<T>(data); }
@@ -36,7 +39,7 @@ namespace bx
 
 		union
 		{
-			handle_id id{};
+			bx::handle_id id{};
 
 			struct
 			{
@@ -46,24 +49,44 @@ namespace bx
 		};
 	};
 
-#ifdef BXL_GFX_VULKAN
-	extern VkAllocationCallbacks* g_allocator;
-	extern VkInstance g_instance;
-	extern VkSurfaceKHR g_surface;
+	template <typename T>
+	struct bx_api handlemap
+	{
+		inline bx::handle_id insert(const T& obj) bx_noexcept
+		{
+			auto handle = counter++;
+			map.insert(std::make_pair(handle, obj));
+			return handle;
+		}
 
-	extern VkPhysicalDevice g_physical_device;
-	extern VkDevice g_device;
-	extern u32 g_queue_family;
-	extern VkQueue g_queue;
-	extern VkPipelineCache g_pipeline_cache;
-	extern VkDescriptorPool g_descriptor_pool;
+		inline void remove(bx::handle_id handle) bx_noexcept
+		{
+			const auto it = map.find(handle);
+			if (it == map.end())
+				return;
 
-	extern VkFormat g_swapchain_format;
+			T::on_remove(it->second);
+			map.erase(it);
+		}
 
-	extern VkCommandBuffer g_imgui_cmd_buffer;
-	extern VkPipeline g_imgui_pipeline;
-	extern VkRenderPass g_imgui_render_pass;
-#endif
+		inline T* get(bx::handle_id handle) bx_noexcept
+		{
+			auto it = map.find(handle);
+			if (it == map.end())
+				return nullptr;
+			return &it->second;
+		}
+
+	private:
+		bx::handle_id counter{ 1 };
+		std::unordered_map<bx::handle_id, T> map;
+	};
+
+	bx_api bool device_init(const bx::app_config_t& config) bx_noexcept;
+	bx_api void device_shutdown() bx_noexcept;
+
+	bx_api bool gfx_init(const bx::app_config_t& config) bx_noexcept;
+	bx_api void gfx_shutdown() bx_noexcept;
 }
 
 // Enum helpers

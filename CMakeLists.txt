@@ -37,7 +37,7 @@ if (BX_LITE_BUILD)
 
     if(BXL_USE_GLFW)
         set(bxl_srcs ${bxl_srcs}
-                "src/bxl_app_glfw.cpp"
+                "src/bxl_device_glfw.cpp"
         )
     endif()
 
@@ -47,8 +47,7 @@ if (BX_LITE_BUILD)
         )
     else ()
         set(bxl_srcs ${bxl_srcs}
-                #"src/bxl_gfx_gl.cpp"
-                "src/bxl_gfx_null.cpp"
+                "src/bxl_gfx_gl.cpp"
         )
     endif()
 
