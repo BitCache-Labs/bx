@@ -1,4 +1,4 @@
-#include <bxl_internal.hpp>
+#include <bxl_app.hpp>
 
 #include <iostream>
 #include <chrono>
@@ -336,6 +336,9 @@ u64 bx::file_get_timestamp(cstring filename) bx_noexcept
 
 	constexpr u64 EPOCH_DIFF_MS = 11644473600000ULL; // 1970 - 1601 in ms
 	return timestamp_100ns / 10000 - EPOCH_DIFF_MS;
+
+#elifdef __APPLE__
+	return 0;
 
 #else
 	struct stat st;

@@ -1,4 +1,4 @@
-#include <bxl_internal.hpp>
+#include <bxl_app.hpp>
 
 #include <glad/glad.h>
 
@@ -10,29 +10,40 @@
 
 #define MAX_BOUND_VERTEX_BUFFERS 16
 
+#ifdef BXL_GFX_OPENGLES
+static constexpr cstring GLSL_VERSION = "#version 310 es\n";
+#else
+#ifdef __APPLE__
+static constexpr cstring GLSL_VERSION = "#version 410 core\n";
+#define BXL_GFX_OPENGLES
+#else
+static constexpr cstring GLSL_VERSION = "#version 460 core\n";
+#endif
+#endif
+
 using namespace bxl;
 
 struct gl_shader_t
 {
+	cstring name{ nullptr };
 	GLuint shader{ 0 };
 	GLenum stage{ 0 };
-
-	static void on_remove(const gl_shader_t& v);
 };
 
 struct gl_buffer_t
 {
+	cstring name{ nullptr };
 	GLuint id{ 0 };
 	GLenum target{ GL_ARRAY_BUFFER };
 	bx::gfx_buffer_usage_t usage{};
 	bx::gfx_memory_usage_t mem_usage{};
 	u64 size{ 0 };
-
-	static void on_remove(const gl_buffer_t& v);
+	vptr persistentPtr{ nullptr };
 };
 
 struct gl_texture_t
 {
+	cstring name{ nullptr };
 	GLuint id{ 0 };
 	bx::gfx_texture_type_t type{};
 	bx::gfx_texture_format_t format{};
@@ -40,31 +51,27 @@ struct gl_texture_t
 	u32 height{ 0 };
 	u32 depth{ 1 };
 	u8 mip_levels{ 1 };
-
-	static void on_remove(const gl_texture_t& v);
 };
 
 struct gl_framebuffer_t
 {
+	cstring name{ nullptr };
 	GLuint id{ 0 };
 	std::vector<bx::handle_id> color_textures;
 	bx::handle_id depth_texture{ 0 };
 	u32 width{ 0 };
 	u32 height{ 0 };
 	bx::handle_id render_pass{ 0 };
-
-	static void on_remove(const gl_framebuffer_t& v);
 };
 
 struct gl_pipeline_t
 {
+	cstring name{ nullptr };
 	GLuint pipeline{ 0 };
 	GLuint vao{ 0 };
 	bx::gfx_topology_t topology{};
 	bx::gfx_raster_state_t raster{};
 	std::vector<bx::gfx_color_blend_attachment_t> blend_attachments{};
-
-	static void on_remove(const gl_pipeline_t& v);
 };
 
 static bxl::handlemap<gl_shader_t> g_shaders{};
@@ -129,6 +136,7 @@ static void GLAPIENTRY gl_debug_callback(
 bool bxl::gfx_init(const bx::app_config_t& config) bx_noexcept
 {
 	//if (glfwExtensionSupported("GL_KHR_debug"))
+	if (glDebugMessageCallback)
 	{
 		// Enable synchronous debug output (makes callbacks happen immediately)
 		glEnable(GL_DEBUG_OUTPUT);
@@ -221,12 +229,8 @@ static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 		return bx::invalid_handle;
 	}
 
-#ifdef BXL_GFX_OPENGLES
-	std::string source_code = "#version 310 es\n";
-#else
-	std::string source_code = "#version 460 core\n";
-#endif
-
+	std::string source_code = GLSL_VERSION;
+	
 	if (!desc.source && desc.filepath)
 	{
 		std::ifstream file(desc.filepath);
@@ -362,17 +366,17 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 #endif
 }
 
-void gl_shader_t::on_remove(const gl_shader_t& v)
-{
-#ifdef BXL_GFX_OPENGLES
-	glDeleteShader(v.shader);
-#else
-	glDeleteProgram(v.shader);
-#endif
-}
-
 void bx::gfx_destroy_shader(const handle_id handle) bx_noexcept
 {
+	auto glsh = g_shaders.get(handle);
+	if (!glsh) return;
+
+#ifdef BXL_GFX_OPENGLES
+	glDeleteShader(glsh->shader);
+#else
+	glDeleteProgram(glsh->shader);
+#endif
+
 	g_shaders.remove(handle);
 }
 
@@ -401,16 +405,79 @@ static GLenum gl_usage_hint_from_memory(const bx::gfx_memory_usage_t mem)
 	}
 }
 
-bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
+static GLbitfield gl_storage_flags_from_memory(const bx::gfx_memory_usage_t mem)
 {
+	switch (mem)
+	{
+	case bx::gfx_memory_usage_t::GPU_ONLY:
+		return 0; // No CPU access, immutable GPU-only buffer
+
+	case bx::gfx_memory_usage_t::CPU_TO_GPU:
+		return GL_MAP_WRITE_BIT |
+			GL_MAP_PERSISTENT_BIT |
+			GL_MAP_COHERENT_BIT |
+			GL_DYNAMIC_STORAGE_BIT;
+
+	case bx::gfx_memory_usage_t::GPU_TO_CPU:
+		return GL_MAP_READ_BIT |
+			GL_MAP_PERSISTENT_BIT |
+			GL_DYNAMIC_STORAGE_BIT;
+
+	default:
+		return 0;
+	}
+}
+
+static bx::handle_id gl33_create_buffer(const bx::gfx_buffer_desc_t& desc)
+{
+	const GLenum target = gl_buffer_target_from_usage(desc.usage);
+
 	GLuint id = 0;
 	glGenBuffers(1, &id);
-
-	const GLenum target = gl_buffer_target_from_usage(desc.usage);
-	const GLenum usage = gl_usage_hint_from_memory(desc.memory_usage);
-
 	glBindBuffer(target, id);
-	glBufferData(target, static_cast<GLsizeiptr>(desc.size), desc.data, usage);
+
+	vptr persistentPtr = nullptr;
+
+	if (glBufferStorage || glBufferStorageEXT)
+	{
+		GLbitfield flags = gl_storage_flags_from_memory(desc.memory_usage);
+		if (glBufferStorage)
+			glBufferStorage(target, (GLsizeiptr)desc.size, desc.data, flags);
+		else if (glBufferStorageEXT)
+			glBufferStorageEXT(target, (GLsizeiptr)desc.size, desc.data, flags);
+
+		if (flags & (GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_READ_BIT))
+		{
+			persistentPtr = glMapBufferRange(target, 0, static_cast<GLsizeiptr>(desc.size), flags);
+		}
+	}
+	else
+	{
+		GLenum hint = gl_usage_hint_from_memory(desc.memory_usage);
+		if (desc.memory_usage == bx::gfx_memory_usage_t::CPU_TO_GPU)
+		{
+			// Streaming optimization
+			glBufferData(target, (GLsizeiptr)desc.size, nullptr, hint);
+
+			if (desc.data)
+			{
+				// Perform unsynchronized map for initial data upload
+				persistentPtr = glMapBufferRange(
+					target, 0, (GLsizeiptr)desc.size,
+					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+				if (persistentPtr && desc.data)
+					memcpy(persistentPtr, desc.data, desc.size);
+
+				glUnmapBuffer(target);
+			}
+		}
+		else
+		{
+			glBufferData(target, (GLsizeiptr)desc.size, desc.data, hint);
+		}
+	}
+
 	glBindBuffer(target, 0);
 
 	gl_buffer_t glbuffer{};
@@ -419,56 +486,200 @@ bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
 	glbuffer.usage = desc.usage;
 	glbuffer.mem_usage = desc.memory_usage;
 	glbuffer.size = desc.size;
+	glbuffer.persistentPtr = persistentPtr;
 
 	gl_set_debug_name(target, id, -1, desc.name);
 
 	return g_buffers.insert(glbuffer);
 }
 
-void gl_buffer_t::on_remove(const gl_buffer_t& v)
+static bx::handle_id gl46_create_buffer(const bx::gfx_buffer_desc_t& desc)
 {
-	glDeleteBuffers(1, &v.id);
+	GLuint id = 0;
+	glCreateBuffers(1, &id);
+
+	const GLsizeiptr size = (GLsizeiptr)desc.size;
+	GLbitfield flags = gl_storage_flags_from_memory(desc.memory_usage);
+
+	glNamedBufferStorage(id, size, desc.data, flags);
+
+	void* persistentPtr = nullptr;
+	if (flags & (GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_READ_BIT))
+	{
+		persistentPtr = glMapNamedBufferRange(id, 0, size, flags);
+	}
+
+	gl_buffer_t glbuffer{};
+	glbuffer.id = id;
+	glbuffer.target = gl_buffer_target_from_usage(desc.usage);
+	glbuffer.usage = desc.usage;
+	glbuffer.mem_usage = desc.memory_usage;
+	glbuffer.size = desc.size;
+	glbuffer.persistentPtr = persistentPtr;
+
+	gl_set_debug_name(glbuffer.target, id, -1, desc.name);
+
+	return g_buffers.insert(glbuffer);
+}
+
+bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
+{
+#ifdef BXL_GFX_OPENGLES
+	return gl33_create_buffer(desc);
+#else
+	return gl46_create_buffer(desc);
+#endif
 }
 
 void bx::gfx_destroy_buffer(const handle_id handle) bx_noexcept
 {
+	auto glbuff = g_buffers.get(handle);
+	if (!glbuff) return;
+
+	glDeleteBuffers(1, &glbuff->id);
+
 	g_buffers.remove(handle);
 }
 
-u8* bx::gfx_map_buffer(const handle_id handle, const u64 offset, const u64 size) bx_noexcept
+static u8* gl33_map_buffer(const bx::handle_id handle, const u64 offset, const u64 size)
 {
 	auto glbuffer = g_buffers.get(handle);
 	if (!glbuffer) return nullptr;
 
+	// Persistent mapped buffer path
+	if (glbuffer->persistentPtr)
+		return static_cast<u8*>(glbuffer->persistentPtr) + offset;
+
 	glBindBuffer(glbuffer->target, glbuffer->id);
 
-	GLbitfield access = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT;
-	if (glbuffer->mem_usage == gfx_memory_usage_t::GPU_TO_CPU)
+	GLbitfield access = 0;
+	switch (glbuffer->mem_usage)
+	{
+	case bx::gfx_memory_usage_t::CPU_TO_GPU:
+		access = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT;
+		break;
+	case bx::gfx_memory_usage_t::GPU_TO_CPU:
 		access = GL_MAP_READ_BIT;
+		break;
+	case bx::gfx_memory_usage_t::GPU_ONLY:
+	default:
+		bx_loge(bxl, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
+			glbuffer->name ? glbuffer->name : "unnamed", glbuffer->id, glbuffer->target, glbuffer->size);
+		glBindBuffer(glbuffer->target, 0);
+		return nullptr;
+	}
 
-	vptr ptr = glMapBufferRange(glbuffer->target, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), access);
+	void* ptr = glMapBufferRange(
+		glbuffer->target, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), access);
 	glBindBuffer(glbuffer->target, 0);
+	return reinterpret_cast<u8*>(ptr);
+}
+
+static u8* gl46_map_buffer(const bx::handle_id handle, const u64 offset, const u64 size)
+{
+	auto glbuffer = g_buffers.get(handle);
+	if (!glbuffer) return nullptr;
+
+	GLbitfield access = 0;
+	switch (glbuffer->mem_usage)
+	{
+	case bx::gfx_memory_usage_t::CPU_TO_GPU:
+		access = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT;
+		break;
+
+	case bx::gfx_memory_usage_t::GPU_TO_CPU:
+		access = GL_MAP_READ_BIT;
+		break;
+
+	case bx::gfx_memory_usage_t::GPU_ONLY:
+	default:
+		bx_loge(bxl, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
+			glbuffer->name ? glbuffer->name : "unnamed", glbuffer->id, glbuffer->target, glbuffer->size);
+		return nullptr;
+	}
+
+	vptr ptr = glMapNamedBufferRange(
+		glbuffer->id, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), access);
 	return static_cast<u8*>(ptr);
 }
 
-void bx::gfx_unmap_buffer(const handle_id handle) bx_noexcept
+u8* bx::gfx_map_buffer(const handle_id handle, const u64 offset, const u64 size) bx_noexcept
+{
+#ifdef BXL_GFX_OPENGLES
+	return gl33_map_buffer(handle, offset, size);
+#else
+	return gl46_map_buffer(handle, offset, size);
+#endif
+}
+
+static void gl33_unmap_buffer(const bx::handle_id handle)
 {
 	auto glbuffer = g_buffers.get(handle);
-	if (!glbuffer) return;
+	if (!glbuffer || glbuffer->persistentPtr)
+		return;
 
 	glBindBuffer(glbuffer->target, glbuffer->id);
 	glUnmapBuffer(glbuffer->target);
 	glBindBuffer(glbuffer->target, 0);
 }
 
-void bx::gfx_update_buffer(const handle_id handle, const u64 dst_offset, cvptr src, const u64 size) bx_noexcept
+static void gl46_unmap_buffer(const bx::handle_id handle)
+{
+	auto glbuffer = g_buffers.get(handle);
+	if (!glbuffer || glbuffer->persistentPtr)
+		return;
+
+	glUnmapNamedBuffer(glbuffer->id);
+}
+
+void bx::gfx_unmap_buffer(const handle_id handle) bx_noexcept
+{
+#ifdef BXL_GFX_OPENGLES
+	return gl33_unmap_buffer(handle);
+#else
+	return gl46_unmap_buffer(handle);
+#endif
+}
+
+static void gl33_update_buffer(const bx::handle_id handle, const u64 dst_offset, cvptr src, const u64 size)
 {
 	auto glbuffer = g_buffers.get(handle);
 	if (!glbuffer) return;
 
+	if (glbuffer->persistentPtr)
+	{
+		std::memcpy(static_cast<u8*>(glbuffer->persistentPtr) + dst_offset, src, size);
+		return;
+	}
+
 	glBindBuffer(glbuffer->target, glbuffer->id);
-	glBufferSubData(glbuffer->target, static_cast<GLintptr>(dst_offset), static_cast<GLsizeiptr>(size), src);
+	glBufferSubData(
+		glbuffer->target, static_cast<GLintptr>(dst_offset), static_cast<GLsizeiptr>(size), src);
 	glBindBuffer(glbuffer->target, 0);
+}
+
+static void gl46_update_buffer(const bx::handle_id handle, const u64 dst_offset, cvptr src, const u64 size)
+{
+	auto glbuffer = g_buffers.get(handle);
+	if (!glbuffer) return;
+
+	if (glbuffer->persistentPtr)
+	{
+		std::memcpy(static_cast<u8*>(glbuffer->persistentPtr) + dst_offset, src, size);
+		return;
+	}
+
+	glNamedBufferSubData(
+		glbuffer->id, static_cast<GLintptr>(dst_offset), static_cast<GLsizeiptr>(size), src);
+}
+
+void bx::gfx_update_buffer(const handle_id handle, const u64 dst_offset, cvptr src, const u64 size) bx_noexcept
+{
+#ifdef BXL_GFX_OPENGLES
+	return gl33_update_buffer(handle, dst_offset, src, size);
+#else
+	return gl46_update_buffer(handle, dst_offset, src, size);
+#endif
 }
 
 static GLenum gl_target_from_type(bx::gfx_texture_type_t type)
@@ -590,13 +801,13 @@ bx::handle_id bx::gfx_create_texture(const gfx_texture_desc_t& desc) bx_noexcept
 	return g_textures.insert(gltexture);
 }
 
-void gl_texture_t::on_remove(const gl_texture_t& v)
-{
-	glDeleteTextures(1, &v.id);
-}
-
 void bx::gfx_destroy_texture(const handle_id handle) bx_noexcept
 {
+	auto gltex = g_textures.get(handle);
+	if (!gltex) return;
+
+	glDeleteTextures(1, &gltex->id);
+	
 	g_textures.remove(handle);
 }
 
@@ -714,13 +925,13 @@ bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_
 	return g_framebuffers.insert(glfb);
 }
 
-void gl_framebuffer_t::on_remove(const gl_framebuffer_t& v)
-{
-	glDeleteFramebuffers(1, &v.id);
-}
-
 void bx::gfx_destroy_framebuffer(handle_id fb) bx_noexcept
 {
+	auto glfb = g_framebuffers.get(fb);
+	if (!glfb) return;
+
+	glDeleteFramebuffers(1, &glfb->id);
+
 	g_framebuffers.remove(fb);
 }
 
@@ -947,21 +1158,20 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 #endif
 }
 
-void gl_pipeline_t::on_remove(const gl_pipeline_t& v)
-{
-#ifdef BXL_GFX_OPENGLES
-	glDeleteProgram(v.pipeline);
-	if (v.vao)
-		glDeleteVertexArrays(1, &v.vao);
-#else
-	glDeleteProgramPipelines(1, &v.pipeline);
-	if (v.vao)
-		glDeleteVertexArrays(1, &v.vao);
-#endif
-}
-
 void bx::gfx_destroy_pipeline(const handle_id handle) bx_noexcept
 {
+	auto glpipeline = g_pipelines.get(handle);
+	if (!glpipeline) return;
+
+#ifdef BXL_GFX_OPENGLES
+	glDeleteProgram(glpipeline->pipeline);
+#else
+	glDeleteProgramPipelines(1, &glpipeline->pipeline);
+#endif
+
+	if (glpipeline->vao)
+		glDeleteVertexArrays(1, &glpipeline->vao);
+
 	g_pipelines.remove(handle);
 }
 
@@ -1041,10 +1251,7 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 		const GLuint bindingindex = first_binding + i;
 		glBindVertexBuffer(bindingindex, glbuff->id, offset, 16);
 	}
-
 #else
-
-
 	static GLuint tmp_buffers[MAX_BOUND_VERTEX_BUFFERS]{};
 	static GLintptr tmp_offset[MAX_BOUND_VERTEX_BUFFERS]{};
 	static GLsizei tmp_strides[MAX_BOUND_VERTEX_BUFFERS]{};

@@ -1,4 +1,4 @@
-#include <bxl_internal.hpp>
+#include <bxl_app.hpp>
 
 #include <vulkan/vulkan.h>
 

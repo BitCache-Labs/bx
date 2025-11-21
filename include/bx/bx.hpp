@@ -344,11 +344,7 @@ namespace bx
 		COMBINED_IMAGE_SAMPLER, STORAGE_IMAGE, UNIFORM_BUFFER, STORAGE_BUFFER, SAMPLER, TEXTURE
 	};
 
-	enum struct gfx_buffer_usage_t : u8
-	{
-		VERTEX = bit_mask(0), INDEX = bit_mask(1), UNIFORM = bit_mask(2), STORAGE = bit_mask(3),
-		TRANSFER_SRC = bit_mask(4), TRANSFER_DST = bit_mask(5)
-	};
+	enum struct gfx_buffer_usage_t : u8 { VERTEX, INDEX, UNIFORM, STORAGE, INDIRECT };
 
 	enum struct gfx_memory_usage_t : u8 { GPU_ONLY, CPU_TO_GPU, GPU_TO_CPU };
 

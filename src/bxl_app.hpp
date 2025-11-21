@@ -65,7 +65,6 @@ namespace bxl
 			if (it == map.end())
 				return;
 
-			T::on_remove(it->second);
 			map.erase(it);
 		}
 

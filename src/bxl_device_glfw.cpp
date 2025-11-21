@@ -1,4 +1,4 @@
-#include <bxl_internal.hpp>
+#include <bxl_app.hpp>
 
 #include <iostream>
 #include <vector>
@@ -116,6 +116,8 @@ bool bxl::device_init(const bx::app_config_t& config) bx_noexcept
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif // __APPLE__
 #endif // BX_GFX_OPENGLES
@@ -367,7 +369,11 @@ static bool gl_init(const bx::app_config_t& config)
 #ifdef BXL_GFX_OPENGLES
 	if (!ImGui_ImplOpenGL3_Init("#version 300 es\n"))
 #else
+#ifdef __APPLE__
+	if (!ImGui_ImplOpenGL3_Init("#version 410 core\n"))
+#else
 	if (!ImGui_ImplOpenGL3_Init("#version 460 core\n"))
+#endif
 #endif
 	{
 		bx_loge(bxl, "Failed to initialize ImGui OpenGL backend!");
