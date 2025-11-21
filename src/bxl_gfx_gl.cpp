@@ -21,8 +21,6 @@ static constexpr cstring GLSL_VERSION = "#version 460 core\n";
 #endif
 #endif
 
-using namespace bxl;
-
 struct gl_shader_t
 {
 	cstring name{ nullptr };
@@ -74,11 +72,11 @@ struct gl_pipeline_t
 	std::vector<bx::gfx_color_blend_attachment_t> blend_attachments{};
 };
 
-static bxl::handlemap<gl_shader_t> g_shaders{};
-static bxl::handlemap<gl_buffer_t> g_buffers{};
-static bxl::handlemap<gl_texture_t> g_textures{};
-static bxl::handlemap<gl_framebuffer_t> g_framebuffers{};
-static bxl::handlemap<gl_pipeline_t> g_pipelines{};
+static bx::handlemap<gl_shader_t> g_shaders{};
+static bx::handlemap<gl_buffer_t> g_buffers{};
+static bx::handlemap<gl_texture_t> g_textures{};
+static bx::handlemap<gl_framebuffer_t> g_framebuffers{};
+static bx::handlemap<gl_pipeline_t> g_pipelines{};
 
 // Current bound immediate state
 static bx::handle_id g_current_framebuffer = 0;
@@ -92,6 +90,8 @@ static void GLAPIENTRY gl_debug_callback(
 	GLenum source, GLenum type, GLuint id, GLenum severity,
 	GLsizei length, const GLchar* message, const void* userParam)
 {
+	bx_profile(bx);
+
 	cstring src =
 		source == GL_DEBUG_SOURCE_API ? "API" :
 		source == GL_DEBUG_SOURCE_WINDOW_SYSTEM ? "WINDOW SYSTEM" :
@@ -121,11 +121,11 @@ static void GLAPIENTRY gl_debug_callback(
 	switch (severity)
 	{
 	case GL_DEBUG_SEVERITY_HIGH:
-		bx_loge(bxl, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
+		bx_logf(bx, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
 		break;
 	case GL_DEBUG_SEVERITY_MEDIUM:
 	case GL_DEBUG_SEVERITY_LOW:
-		bx_logd(bxl, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
+		bx_logd(bx, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
 		break;
 	case GL_DEBUG_SEVERITY_NOTIFICATION:
 		//bx_logv(bxl, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
@@ -133,8 +133,10 @@ static void GLAPIENTRY gl_debug_callback(
 	}
 }
 
-bool bxl::gfx_init(const bx::app_config_t& config) bx_noexcept
+bool bx::gfx_init(const bx::app_config_t& config) bx_noexcept
 {
+	bx_profile(bx);
+
 	//if (glfwExtensionSupported("GL_KHR_debug"))
 	if (glDebugMessageCallback)
 	{
@@ -155,12 +157,15 @@ bool bxl::gfx_init(const bx::app_config_t& config) bx_noexcept
 	return true;
 }
 
-void bxl::gfx_shutdown() bx_noexcept
+void bx::gfx_shutdown() bx_noexcept
 {
+	bx_profile(bx);
 }
 
 cstring bx::gfx_backend_name() bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef BXL_GFX_OPENGLES
 	return "opengles";
 #else
@@ -170,12 +175,16 @@ cstring bx::gfx_backend_name() bx_noexcept
 
 const bx::gfx_features_t& bx::gfx_get_features() bx_noexcept
 {
+	bx_profile(bx);
+
 	static bx::gfx_features_t features{};
 	return features;
 }
 
 static void gl_set_debug_name(GLenum identifier, GLuint name, GLsizei length, cstring label) bx_noexcept
 {
+	bx_profile(bx);
+
 	/*if (glObjectLabel)
 		glObjectLabel(identifier, name, length, label);
 	else
@@ -184,18 +193,24 @@ static void gl_set_debug_name(GLenum identifier, GLuint name, GLsizei length, cs
 
 void bx::gfx_push_debug_group(cstring name) bx_noexcept
 {
+	bx_profile(bx);
+
 	if (glPushDebugGroup)
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, name);
 }
 
 void bx::gfx_pop_debug_group() bx_noexcept
 {
+	bx_profile(bx);
+
 	if (glPopDebugGroup)
 		glPopDebugGroup();
 }
 
 void bx::gfx_insert_debug_marker(cstring name) bx_noexcept
 {
+	bx_profile(bx);
+
 	if (glDebugMessageInsert)
 		glDebugMessageInsert(
 			GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_MARKER, 0,
@@ -204,6 +219,8 @@ void bx::gfx_insert_debug_marker(cstring name) bx_noexcept
 
 static GLenum gl_get_stage(bx::gfx_shader_stage_t stage)
 {
+	bx_profile(bx);
+
 	switch (stage)
 	{
 	case bx::gfx_shader_stage_t::VERTEX:   return GL_VERTEX_SHADER;
@@ -211,13 +228,15 @@ static GLenum gl_get_stage(bx::gfx_shader_stage_t stage)
 	case bx::gfx_shader_stage_t::GEOMETRY: return GL_GEOMETRY_SHADER;
 	case bx::gfx_shader_stage_t::COMPUTE:  return GL_COMPUTE_SHADER;
 	default:
-		bx_logd(bxl, "gfx_create_shader: Unknown shader stage.");
+		bx_logd(bx, "gfx_create_shader: Unknown shader stage.");
 		return 0;
 	}
 }
 
 static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 {
+	bx_profile(bx);
+
 	const GLenum stage = gl_get_stage(desc.stage);
 	if (stage == 0)
 		return bx::invalid_handle;
@@ -225,7 +244,7 @@ static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 	const GLuint shader = glCreateShader(stage);
 	if (!shader)
 	{
-		bx_logd(bxl, "gfx_create_shader: Failed to create GL shader object.");
+		bx_logd(bx, "gfx_create_shader: Failed to create GL shader object.");
 		return bx::invalid_handle;
 	}
 
@@ -237,7 +256,7 @@ static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 		if (!file.is_open())
 		{
 			glDeleteShader(shader);
-			bx_loge(bxl, "gfx_create_shader: Failed to open file {}", desc.filepath);
+			bx_loge(bx, "gfx_create_shader: Failed to open file {}", desc.filepath);
 			return bx::invalid_handle;
 		}
 		source_code += std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -263,7 +282,7 @@ static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 		else
 #endif
 		{
-			bx_loge(bxl, "gfx_create_shader: Binary shaders require SPIR-V and GL_ARB_gl_spirv.");
+			bx_loge(bx, "gfx_create_shader: Binary shaders require SPIR-V and GL_ARB_gl_spirv.");
 			glDeleteShader(shader);
 			return bx::invalid_handle;
 		}
@@ -272,7 +291,7 @@ static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 	{
 		if (!src_ptr)
 		{
-			bx_loge(bxl, "gfx_create_shader: No source or binary provided.");
+			bx_loge(bx, "gfx_create_shader: No source or binary provided.");
 			glDeleteShader(shader);
 			return bx::invalid_handle;
 		}
@@ -289,7 +308,7 @@ static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
 		std::string log(len, '\0');
 		glGetShaderInfoLog(shader, len, &len, &log[0]);
-		bx_loge(bxl, "Shader compile error: {}", log);
+		bx_loge(bx, "Shader compile error: {}", log);
 		glDeleteShader(shader);
 		return bx::invalid_handle;
 	}
@@ -305,6 +324,8 @@ static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 
 static bx::handle_id gl46_create_shader(const bx::gfx_shader_desc_t& desc)
 {
+	bx_profile(bx);
+
 	const GLenum stage = gl_get_stage(desc.stage);
 	if (stage == 0)
 		return bx::invalid_handle;
@@ -315,7 +336,7 @@ static bx::handle_id gl46_create_shader(const bx::gfx_shader_desc_t& desc)
         std::ifstream file(desc.filepath);
         if (!file.is_open())
         {
-            bx_loge(bxl, "gfx_create_shader: Failed to open file");
+            bx_loge(bx, "gfx_create_shader: Failed to open file");
             return bx::invalid_handle;
         }
         source_code += std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -331,7 +352,7 @@ static bx::handle_id gl46_create_shader(const bx::gfx_shader_desc_t& desc)
 	//glProgramParameteri(program, GL_PROGRAM_SEPARABLE, GL_TRUE);
     if (!program)
     {
-        bx_loge(bxl, "gfx_create_shader: Failed to create shader program");
+        bx_loge(bx, "gfx_create_shader: Failed to create shader program");
         return bx::invalid_handle;
     }
 
@@ -343,7 +364,7 @@ static bx::handle_id gl46_create_shader(const bx::gfx_shader_desc_t& desc)
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
         std::string log(len, '\0');
         glGetProgramInfoLog(program, len, &len, &log[0]);
-        bx_loge(bxl, "Shader program link error: {}", log);
+        bx_loge(bx, "Shader program link error: {}", log);
         glDeleteProgram(program);
         return bx::invalid_handle;
     }
@@ -359,6 +380,8 @@ static bx::handle_id gl46_create_shader(const bx::gfx_shader_desc_t& desc)
 
 bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef BXL_GFX_OPENGLES
 	return gl33_create_shader(desc);
 #else
@@ -368,6 +391,8 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 
 void bx::gfx_destroy_shader(const handle_id handle) bx_noexcept
 {
+	bx_profile(bx);
+
 	auto glsh = g_shaders.get(handle);
 	if (!glsh) return;
 
@@ -382,6 +407,8 @@ void bx::gfx_destroy_shader(const handle_id handle) bx_noexcept
 
 static GLenum gl_buffer_target_from_usage(const bx::gfx_buffer_usage_t usage)
 {
+	bx_profile(bx);
+
 	switch (usage)
 	{
 	case bx::gfx_buffer_usage_t::VERTEX: return GL_ARRAY_BUFFER;
@@ -395,6 +422,8 @@ static GLenum gl_buffer_target_from_usage(const bx::gfx_buffer_usage_t usage)
 
 static GLenum gl_usage_hint_from_memory(const bx::gfx_memory_usage_t mem)
 {
+	bx_profile(bx);
+
 	switch (mem)
 	{
 	case bx::gfx_memory_usage_t::GPU_ONLY: return GL_STATIC_DRAW;
@@ -407,6 +436,8 @@ static GLenum gl_usage_hint_from_memory(const bx::gfx_memory_usage_t mem)
 
 static GLbitfield gl_storage_flags_from_memory(const bx::gfx_memory_usage_t mem)
 {
+	bx_profile(bx);
+
 	switch (mem)
 	{
 	case bx::gfx_memory_usage_t::GPU_ONLY:
@@ -430,6 +461,8 @@ static GLbitfield gl_storage_flags_from_memory(const bx::gfx_memory_usage_t mem)
 
 static bx::handle_id gl33_create_buffer(const bx::gfx_buffer_desc_t& desc)
 {
+	bx_profile(bx);
+
 	const GLenum target = gl_buffer_target_from_usage(desc.usage);
 
 	GLuint id = 0;
@@ -495,6 +528,8 @@ static bx::handle_id gl33_create_buffer(const bx::gfx_buffer_desc_t& desc)
 
 static bx::handle_id gl46_create_buffer(const bx::gfx_buffer_desc_t& desc)
 {
+	bx_profile(bx);
+
 	GLuint id = 0;
 	glCreateBuffers(1, &id);
 
@@ -524,6 +559,8 @@ static bx::handle_id gl46_create_buffer(const bx::gfx_buffer_desc_t& desc)
 
 bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef BXL_GFX_OPENGLES
 	return gl33_create_buffer(desc);
 #else
@@ -533,6 +570,8 @@ bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
 
 void bx::gfx_destroy_buffer(const handle_id handle) bx_noexcept
 {
+	bx_profile(bx);
+
 	auto glbuff = g_buffers.get(handle);
 	if (!glbuff) return;
 
@@ -543,6 +582,8 @@ void bx::gfx_destroy_buffer(const handle_id handle) bx_noexcept
 
 static u8* gl33_map_buffer(const bx::handle_id handle, const u64 offset, const u64 size)
 {
+	bx_profile(bx);
+
 	auto glbuffer = g_buffers.get(handle);
 	if (!glbuffer) return nullptr;
 
@@ -563,7 +604,7 @@ static u8* gl33_map_buffer(const bx::handle_id handle, const u64 offset, const u
 		break;
 	case bx::gfx_memory_usage_t::GPU_ONLY:
 	default:
-		bx_loge(bxl, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
+		bx_loge(bx, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
 			glbuffer->name ? glbuffer->name : "unnamed", glbuffer->id, glbuffer->target, glbuffer->size);
 		glBindBuffer(glbuffer->target, 0);
 		return nullptr;
@@ -577,6 +618,8 @@ static u8* gl33_map_buffer(const bx::handle_id handle, const u64 offset, const u
 
 static u8* gl46_map_buffer(const bx::handle_id handle, const u64 offset, const u64 size)
 {
+	bx_profile(bx);
+
 	auto glbuffer = g_buffers.get(handle);
 	if (!glbuffer) return nullptr;
 
@@ -593,7 +636,7 @@ static u8* gl46_map_buffer(const bx::handle_id handle, const u64 offset, const u
 
 	case bx::gfx_memory_usage_t::GPU_ONLY:
 	default:
-		bx_loge(bxl, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
+		bx_loge(bx, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
 			glbuffer->name ? glbuffer->name : "unnamed", glbuffer->id, glbuffer->target, glbuffer->size);
 		return nullptr;
 	}
@@ -605,6 +648,8 @@ static u8* gl46_map_buffer(const bx::handle_id handle, const u64 offset, const u
 
 u8* bx::gfx_map_buffer(const handle_id handle, const u64 offset, const u64 size) bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef BXL_GFX_OPENGLES
 	return gl33_map_buffer(handle, offset, size);
 #else
@@ -614,6 +659,8 @@ u8* bx::gfx_map_buffer(const handle_id handle, const u64 offset, const u64 size)
 
 static void gl33_unmap_buffer(const bx::handle_id handle)
 {
+	bx_profile(bx);
+
 	auto glbuffer = g_buffers.get(handle);
 	if (!glbuffer || glbuffer->persistentPtr)
 		return;
@@ -625,6 +672,8 @@ static void gl33_unmap_buffer(const bx::handle_id handle)
 
 static void gl46_unmap_buffer(const bx::handle_id handle)
 {
+	bx_profile(bx);
+
 	auto glbuffer = g_buffers.get(handle);
 	if (!glbuffer || glbuffer->persistentPtr)
 		return;
@@ -634,6 +683,8 @@ static void gl46_unmap_buffer(const bx::handle_id handle)
 
 void bx::gfx_unmap_buffer(const handle_id handle) bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef BXL_GFX_OPENGLES
 	return gl33_unmap_buffer(handle);
 #else
@@ -643,6 +694,8 @@ void bx::gfx_unmap_buffer(const handle_id handle) bx_noexcept
 
 static void gl33_update_buffer(const bx::handle_id handle, const u64 dst_offset, cvptr src, const u64 size)
 {
+	bx_profile(bx);
+
 	auto glbuffer = g_buffers.get(handle);
 	if (!glbuffer) return;
 
@@ -660,6 +713,8 @@ static void gl33_update_buffer(const bx::handle_id handle, const u64 dst_offset,
 
 static void gl46_update_buffer(const bx::handle_id handle, const u64 dst_offset, cvptr src, const u64 size)
 {
+	bx_profile(bx);
+
 	auto glbuffer = g_buffers.get(handle);
 	if (!glbuffer) return;
 
@@ -675,6 +730,8 @@ static void gl46_update_buffer(const bx::handle_id handle, const u64 dst_offset,
 
 void bx::gfx_update_buffer(const handle_id handle, const u64 dst_offset, cvptr src, const u64 size) bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef BXL_GFX_OPENGLES
 	return gl33_update_buffer(handle, dst_offset, src, size);
 #else
@@ -684,6 +741,8 @@ void bx::gfx_update_buffer(const handle_id handle, const u64 dst_offset, cvptr s
 
 static GLenum gl_target_from_type(bx::gfx_texture_type_t type)
 {
+	bx_profile(bx);
+
 	switch (type)
 	{
 	case bx::gfx_texture_type_t::TEX2D: return GL_TEXTURE_2D;
@@ -696,6 +755,8 @@ static GLenum gl_target_from_type(bx::gfx_texture_type_t type)
 
 static GLenum gl_format_from_texture_format(bx::gfx_texture_format_t fmt, GLenum& internal, GLenum& type)
 {
+	bx_profile(bx);
+
 	switch (fmt)
 	{
 	case bx::gfx_texture_format_t::R8U_NORM:
@@ -727,6 +788,8 @@ static GLenum gl_format_from_texture_format(bx::gfx_texture_format_t fmt, GLenum
 
 bx::handle_id bx::gfx_create_texture(const gfx_texture_desc_t& desc) bx_noexcept
 {
+	bx_profile(bx);
+
 	GLuint tex = 0;
 	glGenTextures(1, &tex);
 
@@ -803,6 +866,8 @@ bx::handle_id bx::gfx_create_texture(const gfx_texture_desc_t& desc) bx_noexcept
 
 void bx::gfx_destroy_texture(const handle_id handle) bx_noexcept
 {
+	bx_profile(bx);
+
 	auto gltex = g_textures.get(handle);
 	if (!gltex) return;
 
@@ -813,6 +878,8 @@ void bx::gfx_destroy_texture(const handle_id handle) bx_noexcept
 
 void bx::gfx_upload_texture_data(const handle_id texture, const u8* data, const u32 region_count, const gfx_texture_region_t* regions) bx_noexcept
 {
+	bx_profile(bx);
+
 	auto gltexture = g_textures.get(texture);
 	if (!gltexture || !data || !regions)
 		return;
@@ -876,6 +943,8 @@ void bx::gfx_upload_texture_data(const handle_id texture, const u8* data, const 
 
 bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_noexcept
 {
+	bx_profile(bx);
+
 	GLuint fbo = 0;
 	glGenFramebuffers(1, &fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -906,7 +975,7 @@ bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
-		bx_loge(bxl, "Framebuffer incomplete");
+		bx_loge(bx, "Framebuffer incomplete");
 		glDeleteFramebuffers(1, &fbo);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		return invalid_handle;
@@ -927,6 +996,8 @@ bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_
 
 void bx::gfx_destroy_framebuffer(handle_id fb) bx_noexcept
 {
+	bx_profile(bx);
+
 	auto glfb = g_framebuffers.get(fb);
 	if (!glfb) return;
 
@@ -937,11 +1008,15 @@ void bx::gfx_destroy_framebuffer(handle_id fb) bx_noexcept
 
 bx::handle_id bx::gfx_default_framebuffer() bx_noexcept
 {
+	bx_profile(bx);
+
 	return handle_id{ 0 };
 }
 
 static void gl_vattrib_info(bx::gfx_attribute_format_t fmt, GLenum& type, GLint& sizebytes)
 {
+	bx_profile(bx);
+
 	switch (fmt)
 	{
 	case bx::gfx_attribute_format_t::FLOAT32:
@@ -959,16 +1034,18 @@ static void gl_vattrib_info(bx::gfx_attribute_format_t fmt, GLenum& type, GLint&
 
 static bx::handle_id gl33_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
 {
+	bx_profile(bx);
+
 	if (!desc.shaders)
 	{
-		bx_loge(bxl, "gfx_create_pipeline: no shaders provided");
+		bx_loge(bx, "gfx_create_pipeline: no shaders provided");
 		return bx::invalid_handle;
 	}
 
 	const GLuint program = glCreateProgram();
 	for (const auto sh : desc.shaders)
 	{
-		const auto shader = handle_t{ sh }.get_data<GLuint>();
+		const auto shader = bx::handle_t{ sh }.get_data<GLuint>();
 		glAttachShader(program, shader);
 	}
 	glLinkProgram(program);
@@ -982,14 +1059,14 @@ static bx::handle_id gl33_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
 		std::string log(logLen, '\0');
 		glGetProgramInfoLog(program, logLen, &logLen, &log[0]);
 		log = "Pipeline link error: " + log;
-		bx_loge(bxl, log.c_str());
+		bx_loge(bx, log.c_str());
 		glDeleteProgram(program);
 		return bx::invalid_handle;
 	}
 
 	for (const auto sh : desc.shaders)
 	{
-		const auto shader = handle_t{ sh }.get_data<GLuint>();
+		const auto shader = bx::handle_t{ sh }.get_data<GLuint>();
 		glDetachShader(program, shader);
 	}
 
@@ -1058,9 +1135,11 @@ static bx::handle_id gl33_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
 
 static bx::handle_id gl46_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
 {
+	bx_profile(bx);
+
 	if (!desc.shaders)
 	{
-		bx_loge(bxl, "gfx_create_pipeline: no shaders provided");
+		bx_loge(bx, "gfx_create_pipeline: no shaders provided");
 		return 0;
 	}
 
@@ -1082,7 +1161,7 @@ static bx::handle_id gl46_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
 		case GL_TESS_EVALUATION_SHADER: stagebit = GL_TESS_EVALUATION_SHADER_BIT; break;
 		case GL_COMPUTE_SHADER:         stagebit = GL_COMPUTE_SHADER_BIT; break;
 		default:
-			bx_loge(bxl, "gfx_create_pipeline: unknown shader stage");
+			bx_loge(bx, "gfx_create_pipeline: unknown shader stage");
 			glDeleteProgramPipelines(1, &pipeline);
 			return 0;
 		}
@@ -1151,6 +1230,8 @@ static bx::handle_id gl46_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
 
 bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef BXL_GFX_OPENGLES
 	return gl33_create_pipeline(desc);
 #else
@@ -1160,6 +1241,8 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 
 void bx::gfx_destroy_pipeline(const handle_id handle) bx_noexcept
 {
+	bx_profile(bx);
+
 	auto glpipeline = g_pipelines.get(handle);
 	if (!glpipeline) return;
 
@@ -1177,26 +1260,37 @@ void bx::gfx_destroy_pipeline(const handle_id handle) bx_noexcept
 
 bx::handle_id bx::gfx_create_resource_set(const gfx_resource_set_desc_t& desc) bx_noexcept
 {
+	bx_profile(bx);
+
 	return handle_id{0};
 }
 
 //void bx::gfx_update_resource_set(handle_id set_handle, u32 binding_count, const gfx_resource_binding_t* bindings) bx_noexcept {}
 
-void bx::gfx_destroy_resource_set(handle_id set_handle) bx_noexcept {}
+void bx::gfx_destroy_resource_set(handle_id set_handle) bx_noexcept
+{
+	bx_profile(bx);
+}
 
 void bx::gfx_clear_rt(handle_id rt, f32 cv[4]) bx_noexcept
 {
+	bx_profile(bx);
+
 	glClearColor(cv[0], cv[1], cv[2], cv[3]);
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void bx::gfx_clear_ds(handle_id ds)
 {
+	bx_profile(bx);
+
 	glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
 void bx::gfx_bind_pipeline(handle_id cb, handle_id pipeline) bx_noexcept
 {
+	bx_profile(bx);
+
 	auto glpipeline = g_pipelines.get(pipeline);
 	if (!glpipeline) return;
 
@@ -1238,6 +1332,8 @@ void bx::gfx_bind_pipeline(handle_id cb, handle_id pipeline) bx_noexcept
 
 void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_count, const handle_id* vertex_buffers, const u64* offsets) bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef BXL_GFX_OPENGLES
 	for (u32 i = 0; i < binding_count; ++i)
 	{
@@ -1267,12 +1363,20 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 #endif
 }
 
-void bx::gfx_bind_index_buffer(handle_id cb, handle_id index_buffer, u32 index_type) bx_noexcept {}
+void bx::gfx_bind_index_buffer(handle_id cb, handle_id index_buffer, u32 index_type) bx_noexcept
+{
+	bx_profile(bx);
+}
 
-void bx::gfx_bind_resource_set(handle_id cb, handle_id pipeline_handle, handle_id set_handle, u32 set_index) bx_noexcept {}
+void bx::gfx_bind_resource_set(handle_id cb, handle_id pipeline_handle, handle_id set_handle, u32 set_index) bx_noexcept
+{
+	bx_profile(bx);
+}
 
 static GLenum gl_enum_from_topology(bx::gfx_topology_t t)
 {
+	bx_profile(bx);
+
 	switch (t)
 	{
 	case bx::gfx_topology_t::TRIANGLES:
@@ -1292,6 +1396,8 @@ static GLenum gl_enum_from_topology(bx::gfx_topology_t t)
 
 void bx::gfx_draw(handle_id cb, u32 vertex_count, u32 instance_count, u32 first_vertex, u32 first_instance) bx_noexcept
 {
+	bx_profile(bx);
+
 	// pick topology from current pipeline
 	GLenum mode = GL_TRIANGLES;
 	const auto glpipeline = g_pipelines.get(g_current_pipeline);
@@ -1312,14 +1418,32 @@ void bx::gfx_draw(handle_id cb, u32 vertex_count, u32 instance_count, u32 first_
 	}
 }
 
-void bx::gfx_draw_indexed(handle_id cb, u32 index_count, u32 instance_count, u32 first_index, i32 vertex_offset) bx_noexcept {}
+void bx::gfx_draw_indexed(handle_id cb, u32 index_count, u32 instance_count, u32 first_index, i32 vertex_offset) bx_noexcept
+{
+	bx_profile(bx);
+}
 
-void bx::gfx_copy_buffer(handle_id cb, handle_id src, handle_id dst, u64 src_offset, u64 dst_offset, u64 size) bx_noexcept {}
+void bx::gfx_copy_buffer(handle_id cb, handle_id src, handle_id dst, u64 src_offset, u64 dst_offset, u64 size) bx_noexcept
+{
+	bx_profile(bx);
+}
 
-void bx::gfx_dispatch(handle_id cb, u32 x, u32 y, u32 z) bx_noexcept {}
+void bx::gfx_dispatch(handle_id cb, u32 x, u32 y, u32 z) bx_noexcept
+{
+	bx_profile(bx);
+}
 
-void bx::gfx_submit(handle_id cb) bx_noexcept {}
+void bx::gfx_submit(handle_id cb) bx_noexcept
+{
+	bx_profile(bx);
+}
 
-void bx::gfx_wait_idle() bx_noexcept {}
+void bx::gfx_wait_idle() bx_noexcept
+{
+	bx_profile(bx);
+}
 
-void bx::gfx_pipeline_barrier(handle_id cb, const gfx_memory_barrier_t& barrier) bx_noexcept {}
+void bx::gfx_pipeline_barrier(handle_id cb, const gfx_memory_barrier_t& barrier) bx_noexcept
+{
+	bx_profile(bx);
+}

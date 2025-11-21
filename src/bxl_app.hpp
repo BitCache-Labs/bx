@@ -4,15 +4,13 @@
 #include <bxl.hpp>
 #include <unordered_map>
 
-bx_register_category(bxl)
-
-namespace bxl
+namespace bx
 {
-	struct handle_t
+	struct bx_api handle_t
 	{
 		handle_t() = default;
 
-		explicit handle_t(const bx::handle_id value)
+		explicit handle_t(const handle_id value)
 			: id(value)
 		{}
 
@@ -21,7 +19,7 @@ namespace bxl
 			, meta(meta)
 		{}
 
-		explicit operator bx::handle_id() const { return id; }
+		explicit operator handle_id() const { return id; }
 
 		template<typename T>
 		T get_data() const { return static_cast<T>(data); }
@@ -31,7 +29,7 @@ namespace bxl
 
 		union
 		{
-			bx::handle_id id{};
+			handle_id id{};
 
 			struct
 			{
@@ -44,14 +42,14 @@ namespace bxl
 	template <typename T>
 	struct bx_api handlemap
 	{
-		inline bx::handle_id insert(const T& obj) bx_noexcept
+		inline handle_id insert(const T& obj) bx_noexcept
 		{
 			auto handle = counter++;
 			map.insert(std::make_pair(handle, obj));
 			return handle;
 		}
 
-		inline void remove(bx::handle_id handle) bx_noexcept
+		inline void remove(handle_id handle) bx_noexcept
 		{
 			const auto it = map.find(handle);
 			if (it == map.end())
@@ -60,7 +58,7 @@ namespace bxl
 			map.erase(it);
 		}
 
-		inline T* get(bx::handle_id handle) bx_noexcept
+		inline T* get(handle_id handle) bx_noexcept
 		{
 			auto it = map.find(handle);
 			if (it == map.end())
@@ -69,14 +67,14 @@ namespace bxl
 		}
 
 	private:
-		bx::handle_id counter{ 1 };
-		std::unordered_map<bx::handle_id, T> map;
+		handle_id counter{ 1 };
+		std::unordered_map<handle_id, T> map;
 	};
 
-	bx_api bool dvc_init(const bx::app_config_t& config) bx_noexcept;
+	bx_api bool dvc_init(const app_config_t& config) bx_noexcept;
 	bx_api void dvc_shutdown() bx_noexcept;
 
-	bx_api bool gfx_init(const bx::app_config_t& config) bx_noexcept;
+	bx_api bool gfx_init(const app_config_t& config) bx_noexcept;
 	bx_api void gfx_shutdown() bx_noexcept;
 }
 

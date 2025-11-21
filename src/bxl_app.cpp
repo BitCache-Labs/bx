@@ -17,6 +17,7 @@ static std::unordered_map<bx::category_t, bx::log_t> g_log_masks{};
 
 static bool g_profiling = false;
 static u32 g_profile_depth = 0;
+static std::vector<cstring> g_profile_stack{};
 static std::vector<bx::profile_entry_t> g_profile_entries{};
 
 static std::unordered_map<u64, cstring> g_drives{};
@@ -93,10 +94,12 @@ varray<bx::category_t> bx::get_categories() bx_noexcept
 
 bx::result_t bx::app_init(const app_config_t& config) bx_noexcept
 {
-	if (!bxl::dvc_init(config))
+	bx_profile(bx);
+
+	if (!bx::dvc_init(config))
 		return result_t::FAIL;
 
-	if (!bxl::gfx_init(config))
+	if (!bx::gfx_init(config))
 		return result_t::FAIL;
 
 	return result_t::OK;
@@ -104,12 +107,16 @@ bx::result_t bx::app_init(const app_config_t& config) bx_noexcept
 
 void bx::app_shutdown() bx_noexcept
 {
-	bxl::dvc_shutdown();
-	bxl::gfx_shutdown();
+	bx_profile(bx);
+
+	bx::dvc_shutdown();
+	bx::gfx_shutdown();
 }
 
 u64 bx::app_timestamp_ms() bx_noexcept
 {
+	bx_profile(bx);
+
 	auto now = std::chrono::system_clock::now();
 	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
 	return static_cast<u64>(ms.count());
@@ -117,6 +124,8 @@ u64 bx::app_timestamp_ms() bx_noexcept
 
 u64 bx::app_timestamp_ns() bx_noexcept
 {
+	bx_profile(bx);
+
 	auto now = std::chrono::high_resolution_clock::now();
 	auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
 	return static_cast<u64>(ns.count());
@@ -124,6 +133,8 @@ u64 bx::app_timestamp_ns() bx_noexcept
 
 static u64 hash_cstring(cstring str)
 {
+	bx_profile(bx);
+
 	// FNV-1a 64-bit
 	if (!str)
 		return 0;
@@ -139,12 +150,56 @@ static u64 hash_cstring(cstring str)
 
 void bx::log_set_callback(const log_callback_t cb) bx_noexcept
 {
+	bx_profile(bx);
+
 	g_log_callback = cb;
 }
 
 void bx::log_set_category_types(category_t category, log_t types) bx_noexcept
 {
+	bx_profile(bx);
+
 	g_log_masks[category] = types;
+}
+
+static cstring get_func_name(cstring func)
+{
+	bx_profile(bx);
+
+	return func;
+}
+
+static cstring get_file_name(cstring file)
+{
+	bx_profile(bx);
+
+	cstring last_slash = std::strrchr(file, '/');
+	if (!last_slash) last_slash = std::strrchr(file, '\\');
+	return last_slash ? last_slash + 1 : file;
+}
+
+static void crash(cstring reason, cstring file, i32 line)
+{
+	std::cerr << "\n"
+		<< "====================[ FATAL ERROR ]====================\n"
+		<< "Reason: " << reason << "\n"
+		<< "Location: " << file << ":" << line << "\n"
+		<< "The application has encountered an unexpected state and must terminate.\n"
+		<< "Please report this issue with the following stack trace:\n\n";
+
+	if (!g_profile_stack.empty())
+	{
+		for (usize i = g_profile_stack.size(); i-- > 0; )
+		{
+			std::cerr << i << ": " << g_profile_stack[i] << "()\n";
+		}
+	}
+	else
+	{
+		std::cerr << "(stack trace unavailable)\n";
+	}
+
+	std::abort();
 }
 
 void bx::log(log_t level, category_t category, cstring func, cstring file, i32 line, cstring msg) bx_noexcept
@@ -163,15 +218,14 @@ void bx::log(log_t level, category_t category, cstring func, cstring file, i32 l
 	case log_t::DEBUG:		level_str = "DEBUG"; break;
 	}
 
-	cstring last_slash = std::strrchr(file, '/');
-	if (!last_slash) last_slash = std::strrchr(file, '\\');
-	cstring file_name = last_slash ? last_slash + 1 : file;
+	cstring func_name = get_func_name(func);
+	cstring file_name = get_file_name(file);
 
 	cstring category_str = category_name(category);
-	std::string formatted = fmt::format("[{}:{}] ({}:{}) {}: {}", level_str, category_str, file_name, line, func, msg);
+	std::string formatted = fmt::format("[{}:{}] ({}:{}) {}: {}", level_str, category_str, file_name, line, func_name, msg);
 	
 	if (g_log_callback)
-		g_log_callback(level, category, func, file, line, formatted.c_str());
+		g_log_callback(level, category, func_name, file_name, line, formatted.c_str());
 
 	switch (level)
 	{
@@ -188,38 +242,44 @@ void bx::log(log_t level, category_t category, cstring func, cstring file, i32 l
 
 	case log_t::FATAL:
 		std::cerr << formatted << std::endl;
-		//assert(false);
+		crash(msg, file_name, line);
 		break;
 	}
 }
 
 void bx::profile_start() bx_noexcept
 {
+	bx_profile(bx);
+
 	g_profile_entries.clear();
 	g_profiling = true;
 }
 
 void bx::profile_stop() bx_noexcept
 {
+	bx_profile(bx);
+
 	g_profiling = false;
 }
 
 varray<bx::profile_entry_t> bx::profile_get_entries() bx_noexcept
 {
-	varray<profile_entry_t> view{};
-	view.data = g_profile_entries.data();
-	view.size = g_profile_entries.size();
-	return view;
+	bx_profile(bx);
+
+	return { g_profile_entries.data(), g_profile_entries.size() };
 }
 
-void bx::profile_push(u64 category, cstring label, cstring file, i32 line) bx_noexcept
+void bx::profile_push(u64 category, cstring label, cstring func, cstring file, i32 line) bx_noexcept
 {
+	const auto depth = g_profile_depth++;
+	g_profile_stack.emplace_back(func);
+
 	if (!g_profiling)
 		return;
 
 	profile_entry_t entry{};
 	entry.category = category;
-	entry.depth = g_profile_depth++;
+	entry.depth = depth;
 	entry.start_ts = app_timestamp_ns();
 	entry.end_ts = 0;
 	entry.label = label;
@@ -231,15 +291,30 @@ void bx::profile_push(u64 category, cstring label, cstring file, i32 line) bx_no
 
 void bx::profile_pop() bx_noexcept
 {
-	if (!g_profile_entries.empty())
-		g_profile_entries.back().end_ts = app_timestamp_ns();
-	
 	if (g_profile_depth > 0)
 		g_profile_depth--;
+
+	if (!g_profile_stack.empty())
+		g_profile_stack.pop_back();
+
+	if (!g_profiling)
+		return;
+
+	if (!g_profile_entries.empty())
+		g_profile_entries.back().end_ts = app_timestamp_ns();
+}
+
+bx_api varray<cstring> bx::profile_get_stack() bx_noexcept
+{
+	bx_profile(bx);
+
+	return { g_profile_stack.data(), g_profile_stack.size() };
 }
 
 bool bx::file_add_drive(cstring drive, cstring root) bx_noexcept
 {
+	bx_profile(bx);
+
 	u64 hash = hash_cstring(drive);
 	if (g_drives.find(hash) != g_drives.end())
 		return false;
@@ -249,6 +324,8 @@ bool bx::file_add_drive(cstring drive, cstring root) bx_noexcept
 
 bool bx::file_get_path(cstring filename, filepath_t& filepath) bx_noexcept
 {
+	bx_profile(bx);
+
 	if (!filename || filename[0] != '[')
 		return false;
 
@@ -294,6 +371,8 @@ bool bx::file_get_path(cstring filename, filepath_t& filepath) bx_noexcept
 
 vstring bx::file_get_ext(cstring filename) bx_noexcept
 {
+	bx_profile(bx);
+
 	if (!filename)
 		return vstring{ nullptr, 0 };
 
@@ -320,6 +399,8 @@ vstring bx::file_get_ext(cstring filename) bx_noexcept
 
 u64 bx::file_get_timestamp(cstring filename) bx_noexcept
 {
+	bx_profile(bx);
+
 	bx::filepath_t fp{};
 	if (!bx::file_get_path(filename, fp))
 		return 0;
@@ -350,6 +431,8 @@ u64 bx::file_get_timestamp(cstring filename) bx_noexcept
 
 void bx::config_set(const u64 type, cstring name, cvptr data, const config_freefn_t free) bx_noexcept
 {
+	bx_profile(bx);
+
 	const u64 hash = hash_cstring(name) ^ type;
 	config_data_t cfg{};
 	cfg.data = data;
@@ -359,6 +442,8 @@ void bx::config_set(const u64 type, cstring name, cvptr data, const config_freef
 
 cvptr bx::config_get(const u64 type, cstring name) bx_noexcept
 {
+	bx_profile(bx);
+
 	const u64 hash = hash_cstring(name) ^ type;
 	const auto it = g_config.find(hash);
 	if (it == g_config.end())
@@ -368,12 +453,16 @@ cvptr bx::config_get(const u64 type, cstring name) bx_noexcept
 
 bool bx::config_has(const u64 type, cstring name) bx_noexcept
 {
+	bx_profile(bx);
+
 	const u64 hash = hash_cstring(name) ^ type;
 	return g_config.find(hash) != g_config.end();
 }
 
 void bx::config_clear() bx_noexcept
 {
+	bx_profile(bx);
+
 	for (const auto& cfg : g_config)
 	{
 		if (cfg.second.free)

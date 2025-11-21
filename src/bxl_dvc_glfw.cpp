@@ -48,11 +48,15 @@ static void vk_end_frame();
 
 static void glfw_error_callback(const i32 error, cstring desc)
 {
-	bx_loge(bxl, "GLFW Error {}: {}", error, desc);
+	bx_profile(bx);
+
+	bx_loge(bx, "GLFW Error {}: {}", error, desc);
 }
 
 static void glfw_key_callback(GLFWwindow*, const i32 key, i32 scancode, const i32 action, i32 mods)
 {
+	bx_profile(bx);
+
 	if (key < 0 || key > GLFW_KEY_LAST)
 		return;
 
@@ -70,6 +74,8 @@ static void glfw_key_callback(GLFWwindow*, const i32 key, i32 scancode, const i3
 
 static void glfw_mouse_button_callback(GLFWwindow*, const i32 button, const i32 action, i32 mods)
 {
+	bx_profile(bx);
+
 	if (button < 0 || button >= 8)
 		return;
 	g_mouse_down[button] = (action == GLFW_PRESS);
@@ -77,12 +83,16 @@ static void glfw_mouse_button_callback(GLFWwindow*, const i32 button, const i32 
 
 static void glfw_cursor_pos_callback(GLFWwindow*, const f64 xpos, const f64 ypos)
 {
+	bx_profile(bx);
+
 	g_mouse_x = xpos;
 	g_mouse_y = ypos;
 }
 
-bool bxl::dvc_init(const bx::app_config_t& config) bx_noexcept
+bool bx::dvc_init(const app_config_t& config) bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef __arm__
 	if (putenv((char*)"DISPLAY=:0"))
 	{
@@ -94,7 +104,7 @@ bool bxl::dvc_init(const bx::app_config_t& config) bx_noexcept
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
 	{
-		bx_loge(bxl, "Failed to init GLFW");
+		bx_loge(bx, "Failed to init GLFW");
 		return false;
 	}
 
@@ -144,7 +154,7 @@ bool bxl::dvc_init(const bx::app_config_t& config) bx_noexcept
 
 	if (!g_window)
 	{
-		bx_loge(bxl, "Failed to create GLFW window");
+		bx_loge(bx, "Failed to create GLFW window");
 		glfwTerminate();
 		return false;
 	}
@@ -157,7 +167,7 @@ bool bxl::dvc_init(const bx::app_config_t& config) bx_noexcept
 #ifdef BXL_GFX_OPENGL
 	if (!gl_init(config))
 	{
-		bx_loge(bxl, "Failed to initialize GLFW graphics.");
+		bx_loge(bx, "Failed to initialize GLFW graphics.");
 		return false;
 	}
 #endif
@@ -173,8 +183,10 @@ bool bxl::dvc_init(const bx::app_config_t& config) bx_noexcept
 	return true;
 }
 
-void bxl::dvc_shutdown() bx_noexcept
+void bx::dvc_shutdown() bx_noexcept
 {
+	bx_profile(bx);
+
 #ifdef BXL_GFX_VULKAN
 	vk_shutdown();
 #endif
@@ -194,6 +206,8 @@ void bxl::dvc_shutdown() bx_noexcept
 
 bool bx::app_begin_frame() bx_noexcept
 {
+	bx_profile(bx);
+
 	if (glfwWindowShouldClose(g_window))
 		return false;
 
@@ -235,6 +249,8 @@ bool bx::app_begin_frame() bx_noexcept
 
 void bx::app_end_frame(const bool present, const bool should_close) bx_noexcept
 {
+	bx_profile(bx);
+
 	if (present)
 	{
 #ifdef BXL_APP_IMGUI
@@ -256,16 +272,22 @@ void bx::app_end_frame(const bool present, const bool should_close) bx_noexcept
 
 f64 bx::app_time_seconds() bx_noexcept
 {
+	bx_profile(bx);
+
 	return glfwGetTime();
 }
 
 f64 bx::app_frame_time() bx_noexcept
 {
+	bx_profile(bx);
+
 	return g_delta_time;
 }
 
 bool bx::dvc_key_down(const i32 key) bx_noexcept
 {
+	bx_profile(bx);
+
 	if (key < 0 || key > GLFW_KEY_LAST)
 		return false;
 	return g_key_down[key];
@@ -273,6 +295,8 @@ bool bx::dvc_key_down(const i32 key) bx_noexcept
 
 bx::dvc_key_state_t bx::dvc_key(const i32 key) bx_noexcept
 {
+	bx_profile(bx);
+
 	dvc_key_state_t state{};
 	if (key >= 0 && key <= GLFW_KEY_LAST)
 	{
@@ -285,6 +309,8 @@ bx::dvc_key_state_t bx::dvc_key(const i32 key) bx_noexcept
 
 bx::dvc_mouse_state_t bx::dvc_mouse() bx_noexcept
 {
+	bx_profile(bx);
+
 	dvc_mouse_state_t s{};
 	s.x = static_cast<f32>(g_mouse_x);
 	s.y = static_cast<f32>(g_mouse_y);
@@ -295,6 +321,8 @@ bx::dvc_mouse_state_t bx::dvc_mouse() bx_noexcept
 
 void bx::dvc_set_cursor_visible(const bool visible) bx_noexcept
 {
+	bx_profile(bx);
+
 	glfwSetInputMode(g_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 }
 
@@ -308,6 +336,8 @@ void bx::dvc_set_cursor_visible(const bool visible) bx_noexcept
 
 static bool gl_init(const bx::app_config_t& config)
 {
+	bx_profile(bx);
+
 	glfwMakeContextCurrent(g_window);
 	glfwSwapInterval(config.vsync ? GLFW_TRUE : GLFW_FALSE);
 
@@ -318,13 +348,13 @@ static bool gl_init(const bx::app_config_t& config)
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
 #endif
 	{
-		bx_loge(bxl, "Failed to load GLAD");
+		bx_loge(bx, "Failed to load GLAD");
 		return false;
 	}
 
 	// Print GPU/GL info
-	bx_logv(bxl, "GL version: {}", (cstring)glGetString(GL_VERSION));
-	bx_logv(bxl, "GLSL version: {}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION));
+	bx_logv(bx, "GL version: {}", (cstring)glGetString(GL_VERSION));
+	bx_logv(bx, "GLSL version: {}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 #ifdef BXL_APP_IMGUI
 	// Setup Dear ImGui context
@@ -362,7 +392,7 @@ static bool gl_init(const bx::app_config_t& config)
 	// Setup Platform/Renderer backends
 	if (!ImGui_ImplGlfw_InitForOpenGL(g_window, true))
 	{
-		bx_loge(bxl, "Failed to initialize ImGui GLFW backend!");
+		bx_loge(bx, "Failed to initialize ImGui GLFW backend!");
 		return false;
 	}
 
@@ -376,7 +406,7 @@ static bool gl_init(const bx::app_config_t& config)
 #endif
 #endif
 	{
-		bx_loge(bxl, "Failed to initialize ImGui OpenGL backend!");
+		bx_loge(bx, "Failed to initialize ImGui OpenGL backend!");
 		return false;
 	}
 #endif // BXL_APP_IMGUI
@@ -386,16 +416,22 @@ static bool gl_init(const bx::app_config_t& config)
 
 static void gl_shutdown()
 {
+	bx_profile(bx);
+
 	ImGui_ImplOpenGL3_Shutdown();
 }
 
 static void gl_begin_frame()
 {
+	bx_profile(bx);
+
 	ImGui_ImplOpenGL3_NewFrame();
 }
 
 static void gl_end_frame()
 {
+	bx_profile(bx);
+
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	glfwSwapBuffers(g_window);
 }
@@ -428,6 +464,8 @@ namespace bx
 
 static void vk_check_result(const VkResult err)
 {
+	bx_profile(bx);
+
 	if (err != VK_SUCCESS)
 	{
 		bx_loge("[Vulkan] Error: VkResult = {}", err);
@@ -438,6 +476,8 @@ static void vk_check_result(const VkResult err)
 
 static bool vk_is_extension_available(const std::vector<VkExtensionProperties>& properties, const char* extension)
 {
+	bx_profile(bx);
+
 	for (const VkExtensionProperties& p : properties)
 		if (strcmp(p.extensionName, extension) == 0)
 			return true;
@@ -446,6 +486,8 @@ static bool vk_is_extension_available(const std::vector<VkExtensionProperties>& 
 
 static bool vk_init(const bx::app_config_t& config)
 {
+	bx_profile(bx);
+
 	if (!glfwVulkanSupported())
 	{
 		bx_loge("Failed to get Vulkan support");
@@ -692,6 +734,8 @@ static bool vk_init(const bx::app_config_t& config)
 
 static void vk_shutdown()
 {
+	bx_profile(bx);
+
 	VkResult err = vkDeviceWaitIdle(g_device);
 	vk_check_result(err);
 
@@ -712,6 +756,8 @@ static void vk_shutdown()
 
 static void vk_begin_frame()
 {
+	bx_profile(bx);
+
 	ImGui_ImplVulkan_NewFrame();
 
 	// Resize swap chain?
@@ -728,6 +774,8 @@ static void vk_begin_frame()
 
 static void vk_end_frame()
 {
+	bx_profile(bx);
+
 	ImDrawData* main_draw_data = ImGui::GetDrawData();
 	const bool main_is_minimized = (main_draw_data->DisplaySize.x <= 0.0f || main_draw_data->DisplaySize.y <= 0.0f);
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);

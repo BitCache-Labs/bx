@@ -42,16 +42,19 @@ using isize = ptrdiff_t;
 	template<> inline bx::category_t bx::category_mask<bx_category_##T##_t>() bx_noexcept { return bx::register_category(bx_category_##T##_t::name()); }
 
 #define bx_log_set_category_types(T, types) bx::log_set_category_types(bx::category_mask<bx_category_##T##_t>(), types)
-#define _bx_log(T) bx::category_mask<bx_category_##T##_t>(), __func__, __FILE__, __LINE__
-#define bx_logi(T, fstr, ...) bx::logf(bx::log_t::INFO, _bx_log(T), fstr, ##__VA_ARGS__)
-#define bx_logw(T, fstr, ...) bx::logf(bx::log_t::WARN, _bx_log(T), fstr, ##__VA_ARGS__)
-#define bx_loge(T, fstr, ...) bx::logf(bx::log_t::ERROR, _bx_log(T), fstr, ##__VA_ARGS__)
-#define bx_logf(T, fstr, ...) bx::logf(bx::log_t::FATAL, _bx_log(T), fstr, ##__VA_ARGS__)
-#define bx_logv(T, fstr, ...) bx::logf(bx::log_t::VERBOSE, _bx_log(T), fstr, ##__VA_ARGS__)
-#define bx_logd(T, fstr, ...) bx::logf(bx::log_t::DEBUG, _bx_log(T), fstr, ##__VA_ARGS__)
+#define _bx_log(T, lvl, fstr, ...) bx::logf(lvl, bx::category_mask<bx_category_##T##_t>(), __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
+#define bx_logi(T, fstr, ...) _bx_log(T, bx::log_t::INFO, fstr, ##__VA_ARGS__)
+#define bx_logw(T, fstr, ...) _bx_log(T, bx::log_t::WARN, fstr, ##__VA_ARGS__)
+#define bx_loge(T, fstr, ...) _bx_log(T, bx::log_t::ERROR, fstr, ##__VA_ARGS__)
+#define bx_logf(T, fstr, ...) _bx_log(T, bx::log_t::FATAL, fstr, ##__VA_ARGS__)
+#define bx_logv(T, fstr, ...) _bx_log(T, bx::log_t::VERBOSE, fstr, ##__VA_ARGS__)
+#define bx_logd(T, fstr, ...) _bx_log(T, bx::log_t::DEBUG, fstr, ##__VA_ARGS__)
 
-#define bx_profile(T) bx::profile_t _bx_profile_##__LINE__{ bx::category_mask<bx_category_##T##_t>(), __func__, __FILE__, __LINE__ }
-#define bx_profile_scope(T, label) bx::profile_t _bx_profile_##__LINE__{ bx::category_mask<bx_category_##T##_t>(), label, __FILE__, __LINE__ }
+#define bx_assert(expr, msg) do { if (!(expr)) { bx_logf(bx, "Assertion failed '{}'", msg); } } while (0)
+#define bx_ensure(expr) bx_assert(expr, #expr)
+
+#define bx_profile(T) bx::profile_t _bx_profile_##__LINE__{ bx::category_mask<bx_category_##T##_t>(), __func__, __func__, __FILE__, __LINE__ }
+#define bx_profile_scope(T, label) bx::profile_t _bx_profile_##__LINE__{ bx::category_mask<bx_category_##T##_t>(), label, __func__, __FILE__, __LINE__ }
 
 // ------------------------------------------
 // -              Containers                -
@@ -236,14 +239,16 @@ namespace bx
 	bx_api void profile_stop() bx_noexcept;
 	bx_api varray<profile_entry_t> profile_get_entries() bx_noexcept;
 
-	bx_api void profile_push(u64 category, cstring label, cstring file, i32 line) bx_noexcept;
+	bx_api void profile_push(u64 category, cstring label, cstring func, cstring file, i32 line) bx_noexcept;
 	bx_api void profile_pop() bx_noexcept;
+
+	bx_api varray<cstring> profile_get_stack() bx_noexcept;
 
 	struct bx_api profile_t
 	{
-		explicit profile_t(u64 category, cstring label, cstring file, i32 line) bx_noexcept
+		explicit profile_t(u64 category, cstring label, cstring func, cstring file, i32 line) bx_noexcept
 		{
-			profile_push(category, label, file, line);
+			profile_push(category, label, func, file, line);
 		}
 		~profile_t() bx_noexcept { profile_pop(); }
 		profile_t(const profile_t&) = delete;
@@ -589,5 +594,7 @@ namespace bx
 	
 	bx_api void gfx_pipeline_barrier(handle_id cb, const gfx_memory_barrier_t& barrier) bx_noexcept;
 }
+
+bx_register_category(bx)
 
 #endif //BX_HPP
