@@ -81,7 +81,7 @@ static void glfw_cursor_pos_callback(GLFWwindow*, const f64 xpos, const f64 ypos
 	g_mouse_y = ypos;
 }
 
-bool bxl::device_init(const bx::app_config_t& config) bx_noexcept
+bool bxl::dvc_init(const bx::app_config_t& config) bx_noexcept
 {
 #ifdef __arm__
 	if (putenv((char*)"DISPLAY=:0"))
@@ -173,7 +173,7 @@ bool bxl::device_init(const bx::app_config_t& config) bx_noexcept
 	return true;
 }
 
-void bxl::device_shutdown() bx_noexcept
+void bxl::dvc_shutdown() bx_noexcept
 {
 #ifdef BXL_GFX_VULKAN
 	vk_shutdown();
@@ -264,16 +264,16 @@ f64 bx::app_frame_time() bx_noexcept
 	return g_delta_time;
 }
 
-bool bx::device_key_down(const i32 key) bx_noexcept
+bool bx::dvc_key_down(const i32 key) bx_noexcept
 {
 	if (key < 0 || key > GLFW_KEY_LAST)
 		return false;
 	return g_key_down[key];
 }
 
-bx::device_key_state_t bx::device_key(const i32 key) bx_noexcept
+bx::dvc_key_state_t bx::dvc_key(const i32 key) bx_noexcept
 {
-	device_key_state_t state{};
+	dvc_key_state_t state{};
 	if (key >= 0 && key <= GLFW_KEY_LAST)
 	{
 		state.down     = g_key_down[key];
@@ -283,9 +283,9 @@ bx::device_key_state_t bx::device_key(const i32 key) bx_noexcept
 	return state;
 }
 
-bx::device_mouse_state_t bx::device_mouse() bx_noexcept
+bx::dvc_mouse_state_t bx::dvc_mouse() bx_noexcept
 {
-	device_mouse_state_t s{};
+	dvc_mouse_state_t s{};
 	s.x = static_cast<f32>(g_mouse_x);
 	s.y = static_cast<f32>(g_mouse_y);
 	for (i32 i       = 0; i < 8; ++i)
@@ -293,7 +293,7 @@ bx::device_mouse_state_t bx::device_mouse() bx_noexcept
 	return s;
 }
 
-void bx::device_set_cursor_visible(const bool visible) bx_noexcept
+void bx::dvc_set_cursor_visible(const bool visible) bx_noexcept
 {
 	glfwSetInputMode(g_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 }

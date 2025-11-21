@@ -302,26 +302,26 @@ namespace bx
 	// -              Device API                -
 	// ------------------------------------------
 
-	struct bx_api device_key_state_t
+	struct bx_api dvc_key_state_t
 	{
 		bool down{ false };
 		bool pressed{ false };
 		bool released{ false };
 	};
 
-	bx_api bool device_key_down(i32 key) bx_noexcept;
+	bx_api bool dvc_key_down(i32 key) bx_noexcept;
 
-	bx_api device_key_state_t device_key(i32 key) bx_noexcept;
+	bx_api dvc_key_state_t dvc_key(i32 key) bx_noexcept;
 
-	struct bx_api device_mouse_state_t
+	struct bx_api dvc_mouse_state_t
 	{
 		f32 x{ 0 }, y{ 0 };
 		bool buttons[8]{};
 	};
 
-	bx_api device_mouse_state_t device_mouse() bx_noexcept;
+	bx_api dvc_mouse_state_t dvc_mouse() bx_noexcept;
 
-	bx_api void device_set_cursor_visible(bool visible) bx_noexcept;
+	bx_api void dvc_set_cursor_visible(bool visible) bx_noexcept;
 
 	// ------------------------------------------
 	// -             Graphics API               -

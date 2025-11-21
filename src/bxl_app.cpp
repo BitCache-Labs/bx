@@ -93,7 +93,7 @@ varray<bx::category_t> bx::get_categories() bx_noexcept
 
 bx::result_t bx::app_init(const app_config_t& config) bx_noexcept
 {
-	if (!bxl::device_init(config))
+	if (!bxl::dvc_init(config))
 		return result_t::FAIL;
 
 	if (!bxl::gfx_init(config))
@@ -104,7 +104,7 @@ bx::result_t bx::app_init(const app_config_t& config) bx_noexcept
 
 void bx::app_shutdown() bx_noexcept
 {
-	bxl::device_shutdown();
+	bxl::dvc_shutdown();
 	bxl::gfx_shutdown();
 }
 
@@ -337,7 +337,7 @@ u64 bx::file_get_timestamp(cstring filename) bx_noexcept
 	constexpr u64 EPOCH_DIFF_MS = 11644473600000ULL; // 1970 - 1601 in ms
 	return timestamp_100ns / 10000 - EPOCH_DIFF_MS;
 
-#elifdef __APPLE__
+#elif defined(__APPLE__)
 	return 0;
 
 #else

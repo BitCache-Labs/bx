@@ -4,14 +4,6 @@
 #include <bxl.hpp>
 #include <unordered_map>
 
-#ifdef BXL_GFX_VULKAN
-#include <vulkan/vulkan.h>
-#else
-#ifdef __arm__
-#define BXL_GFX_OPENGLES
-#endif
-#endif
-
 bx_register_category(bxl)
 
 namespace bxl
@@ -81,8 +73,8 @@ namespace bxl
 		std::unordered_map<bx::handle_id, T> map;
 	};
 
-	bx_api bool device_init(const bx::app_config_t& config) bx_noexcept;
-	bx_api void device_shutdown() bx_noexcept;
+	bx_api bool dvc_init(const bx::app_config_t& config) bx_noexcept;
+	bx_api void dvc_shutdown() bx_noexcept;
 
 	bx_api bool gfx_init(const bx::app_config_t& config) bx_noexcept;
 	bx_api void gfx_shutdown() bx_noexcept;
