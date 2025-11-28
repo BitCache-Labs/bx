@@ -22,7 +22,7 @@ static bool g_key_released[GLFW_KEY_LAST + 1] = {};
 static bool g_mouse_down[8] = {};
 static f64 g_mouse_x = 0.0, g_mouse_y = 0.0;
 
-#ifdef BXL_GFX_OPENGL
+#if defined(BXL_GFX_OPENGL) || defined(BXL_GFX_OPENGLES)
 #include <glad/glad.h>
 
 #ifdef BXL_APP_IMGUI
@@ -93,10 +93,10 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 {
 	bx_profile(bx);
 
-#ifdef __arm__
+#if defined(__arm__) || defined(BXL_GFX_OPENGLES)
 	if (putenv((char*)"DISPLAY=:0"))
 	{
-		bx_loge("Failed to set DISPLAY enviroment variable");
+		bx_loge(bx, "Failed to set DISPLAY enviroment variable");
 		return false;
 	}
 #endif
@@ -112,7 +112,7 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 #endif // BXL_GFX_VULKAN
 
-#ifdef BXL_GFX_OPENGL
+#if defined(BXL_GFX_OPENGL) || defined(BXL_GFX_OPENGLES)
 #ifdef BXL_GFX_OPENGLES
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
@@ -129,9 +129,9 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif // __APPLE__
-#endif // BX_GFX_OPENGLES
-#endif // BXL_GFX_OPENGL
+#endif
+#endif
+#endif
 
 	//pMonitor = glfwGetPrimaryMonitor();
 	//const GLFWvidmode* pMode = glfwGetVideoMode(pMonitor);
@@ -164,7 +164,7 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 	glfwSetCursorPosCallback(g_window, glfw_cursor_pos_callback);
 	g_last_time = glfwGetTime();
 
-#ifdef BXL_GFX_OPENGL
+#if defined(BXL_GFX_OPENGL) || defined(BXL_GFX_OPENGLES)
 	if (!gl_init(config))
 	{
 		bx_loge(bx, "Failed to initialize GLFW graphics.");
@@ -191,7 +191,7 @@ void bx::dvc_shutdown() bx_noexcept
 	vk_shutdown();
 #endif
 
-#ifdef BXL_GFX_OPENGL
+#if defined(BXL_GFX_OPENGL) || defined(BXL_GFX_OPENGLES)
 	gl_shutdown();
 #endif
 
@@ -236,7 +236,7 @@ bool bx::app_begin_frame() bx_noexcept
 	vk_begin_frame();
 #endif
 
-#ifdef BXL_GFX_OPENGL
+#if defined(BXL_GFX_OPENGL) || defined(BXL_GFX_OPENGLES)
 	gl_begin_frame();
 #endif
 
@@ -261,7 +261,7 @@ void bx::app_end_frame(const bool present, const bool should_close) bx_noexcept
 		vk_end_frame();
 #endif
 
-#ifdef BXL_GFX_OPENGL
+#if defined(BXL_GFX_OPENGL) || defined(BXL_GFX_OPENGLES)
 		gl_end_frame();
 #endif
 	}
@@ -328,11 +328,7 @@ void bx::dvc_set_cursor_visible(const bool visible) bx_noexcept
 
 // Backends
 
-#ifdef BXL_GFX_OPENGL
-
-#ifdef __arm__
-#define BXL_GFX_OPENGLES
-#endif
+#if defined(BXL_GFX_OPENGL) || defined(BXL_GFX_OPENGLES)
 
 static bool gl_init(const bx::app_config_t& config)
 {
@@ -351,10 +347,6 @@ static bool gl_init(const bx::app_config_t& config)
 		bx_loge(bx, "Failed to load GLAD");
 		return false;
 	}
-
-	// Print GPU/GL info
-	bx_logv(bx, "GL version: {}", (cstring)glGetString(GL_VERSION));
-	bx_logv(bx, "GLSL version: {}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 #ifdef BXL_APP_IMGUI
 	// Setup Dear ImGui context
@@ -424,6 +416,10 @@ static void gl_shutdown()
 static void gl_begin_frame()
 {
 	bx_profile(bx);
+
+	int w, h;
+	glfwGetFramebufferSize(g_window, &w, &h);
+	glViewport(0, 0, w, h);
 
 	ImGui_ImplOpenGL3_NewFrame();
 }

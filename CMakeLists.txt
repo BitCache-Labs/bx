@@ -173,16 +173,16 @@ if (BX_LITE_BUILD)
         message(FATAL_ERROR "Unsupported bxl graphics backend '${BXL_GFX_BACKEND}'! Please choose a supported backend.")
     endif()
 
-    add_library(bxl_internal ${bxl_srcs})
+    add_library(bxl_internal INTERFACE)
 
-    target_include_directories(bxl_internal PUBLIC "include/bxl" "src")
-    target_link_libraries(bxl_internal PUBLIC ${bxl_libs})
-    target_compile_definitions(bxl_internal PUBLIC ${bxl_defines})
+    target_include_directories(bxl_internal INTERFACE "include/bxl" "src")
+    target_link_libraries(bxl_internal INTERFACE ${bxl_libs})
+    target_compile_definitions(bxl_internal INTERFACE ${bxl_defines})
 
-    message("Using bxl libs: ${bxl_libs}")
-    message("Using bxl defines: ${bxl_defines}")
+    #message("Using bxl libs: ${bxl_libs}")
+    #message("Using bxl defines: ${bxl_defines}")
 
-    add_library(bxl STATIC "src/bxl.cpp")
+    add_library(bxl ${bxl_srcs})
     target_include_directories(bxl PUBLIC "include/bxl")
     target_link_libraries(bxl PUBLIC bx fmt)
     if(BXL_ENABLE_IMGUI)

@@ -180,12 +180,14 @@ static cstring get_file_name(cstring file)
 
 static void crash(cstring reason, cstring file, i32 line)
 {
-	std::cerr << "\n"
-		<< "====================[ FATAL ERROR ]====================\n"
-		<< "Reason: " << reason << "\n"
-		<< "Location: " << file << ":" << line << "\n"
-		<< "The application has encountered an unexpected state and must terminate.\n"
-		<< "Please report this issue with the following stack trace:\n\n";
+	std::cerr << "\n";
+	std::cerr << "====================[ FATAL ERROR ]====================\n";
+	if (reason)
+		std::cerr << "Reason: " << reason << "\n";
+	if (file && line)
+		std::cerr << "Location: " << file << ":" << line << "\n";
+	std::cerr << "The application has encountered an unexpected state and must terminate.\n";
+	std::cerr << "Please report this issue with the following stack trace:\n\n";
 
 	if (!g_profile_stack.empty())
 	{
@@ -202,7 +204,29 @@ static void crash(cstring reason, cstring file, i32 line)
 	std::abort();
 }
 
-void bx::log(log_t level, category_t category, cstring func, cstring file, i32 line, cstring msg) bx_noexcept
+void bx::log(log_t level, cstring str) bx_noexcept
+{
+	switch (level)
+	{
+	case log_t::INFO:
+	case log_t::WARN:
+	case log_t::VERBOSE:
+	case log_t::DEBUG:
+		std::cout << str << std::endl;
+		break;
+
+	case log_t::ERROR:
+		std::cerr << str << std::endl;
+		break;
+
+	case log_t::FATAL:
+		std::cerr << str << std::endl;
+		crash(nullptr, nullptr, 0);
+		break;
+	}
+}
+
+void bx::log_v(log_t level, category_t category, cstring func, cstring file, i32 line, cstring msg) bx_noexcept
 {
 	auto it = g_log_masks.find(category);
 	if (it != g_log_masks.end() && ((u32)it->second & (u32)level) == 0)

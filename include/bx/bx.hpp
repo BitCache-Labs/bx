@@ -36,13 +36,18 @@ using isize = ptrdiff_t;
 #define bx_api
 #define bx_noexcept noexcept
 
+#define _bx_expand_impl(x) #x
+#define _bx_expand(x) _bx_expand_impl(x)
+#define _bx_concat_impl(x, y) x##y
+#define _bx_concat(x, y) _bx_concat_impl(x, y)
+
 #define bx_register_type(T) template<> inline bx::type_t bx::type_id<T>() bx_noexcept { return bx::register_type(#T); }
 #define bx_register_category(T) \
 	struct bx_category_##T##_t { static constexpr cstring name() bx_noexcept { return #T; } }; \
 	template<> inline bx::category_t bx::category_mask<bx_category_##T##_t>() bx_noexcept { return bx::register_category(bx_category_##T##_t::name()); }
 
 #define bx_log_set_category_types(T, types) bx::log_set_category_types(bx::category_mask<bx_category_##T##_t>(), types)
-#define _bx_log(T, lvl, fstr, ...) bx::logf(lvl, bx::category_mask<bx_category_##T##_t>(), __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
+#define _bx_log(T, lvl, fstr, ...) bx::logf_v(lvl, bx::category_mask<bx_category_##T##_t>(), __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
 #define bx_logi(T, fstr, ...) _bx_log(T, bx::log_t::INFO, fstr, ##__VA_ARGS__)
 #define bx_logw(T, fstr, ...) _bx_log(T, bx::log_t::WARN, fstr, ##__VA_ARGS__)
 #define bx_loge(T, fstr, ...) _bx_log(T, bx::log_t::ERROR, fstr, ##__VA_ARGS__)
@@ -53,8 +58,8 @@ using isize = ptrdiff_t;
 #define bx_assert(expr, msg) do { if (!(expr)) { bx_logf(bx, "Assertion failed '{}'", msg); } } while (0)
 #define bx_ensure(expr) bx_assert(expr, #expr)
 
-#define bx_profile(T) bx::profile_t _bx_profile_##__LINE__{ bx::category_mask<bx_category_##T##_t>(), __func__, __func__, __FILE__, __LINE__ }
-#define bx_profile_scope(T, label) bx::profile_t _bx_profile_##__LINE__{ bx::category_mask<bx_category_##T##_t>(), label, __func__, __FILE__, __LINE__ }
+#define bx_profile(T) bx::profile_t _bx_concat(_bx_profile_, __LINE__){ bx::category_mask<bx_category_##T##_t>(), __func__, __func__, __FILE__, __LINE__ }
+#define bx_profile_scope(T, label) bx::profile_t _bx_concat(_bx_profile_, __LINE__){ bx::category_mask<bx_category_##T##_t>(), label, __func__, __FILE__, __LINE__ }
 
 // ------------------------------------------
 // -              Containers                -
@@ -215,10 +220,15 @@ namespace bx
 
 	bx_api void log_set_category_types(category_t category, log_t types) bx_noexcept;
 
-	bx_api void log(log_t level, category_t category, cstring func, cstring file, i32 line, cstring str) bx_noexcept;
+	bx_api void log(log_t level, cstring str) bx_noexcept;
 
 	template<typename... Args>
-	inline void logf(log_t level, category_t category, cstring func, cstring file, i32 line, cstring fstr, Args&&... args) bx_noexcept;
+	inline void logf(log_t level, cstring fstr, Args&&... args) bx_noexcept;
+
+	bx_api void log_v(log_t level, category_t category, cstring func, cstring file, i32 line, cstring str) bx_noexcept;
+
+	template<typename... Args>
+	inline void logf_v(log_t level, category_t category, cstring func, cstring file, i32 line, cstring fstr, Args&&... args) bx_noexcept;
 
 	// ------------------------------------------
 	// -            Profiling API               -

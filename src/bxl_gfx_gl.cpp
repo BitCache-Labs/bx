@@ -69,6 +69,7 @@ struct gl_pipeline_t
 	GLuint vao{ 0 };
 	bx::gfx_topology_t topology{};
 	bx::gfx_raster_state_t raster{};
+	std::vector<bx::gfx_vertex_attribute_t> attributes{};
 	std::vector<bx::gfx_color_blend_attachment_t> blend_attachments{};
 };
 
@@ -86,6 +87,506 @@ static bx::handle_id g_current_index_buffer = 0;
 // convenience: index buffer index size in bytes (for immediate-binding path)
 static GLenum g_current_index_type = GL_UNSIGNED_INT;
 
+struct gl_features_t
+{
+	// --- Modern API architecture ---
+	bool sso{ false };                   // Separable Shader Objects
+	bool dsa{ false };                   // Direct State Access
+
+	// --- Buffers & GPU memory ---
+	bool buffer_storage{ false };        // ARB_buffer_storage (persistent/coherent mapping)
+	bool persistent_mapping{ false };    // MAP_PERSISTENT_BIT + MAP_COHERENT_BIT
+	bool ssbo{ false };                  // Shader Storage Buffer Objects (ARB_shader_storage_buffer_object)
+	bool atomic_counters{ false };       // ARB_shader_atomic_counters
+	bool shader_image_load_store{ false }; // ARB_shader_image_load_store
+
+	// --- Compute / GPU-driven ---
+	bool compute_shader{ false };        // ARB_compute_shader, GL 4.3+
+	bool multi_draw{ false };			 // ARB_multi_draw
+	bool draw_indirect{ false };         // ARB_draw_indirect
+	bool multi_draw_indirect{ false };   // ARB_multi_draw_indirect
+	bool indirect_count{ false };        // ARB_indirect_parameters (DrawIndirectCountARB)
+
+	// --- Textures ---
+	bool texture_storage{ false };       // ARB_texture_storage
+	bool texture_view{ false };          // ARB_texture_view
+	bool bindless_textures{ false };     // NV_bindless_texture
+	bool sparse_texture{ false };        // ARB_sparse_texture
+
+	// --- Vertex / pipeline state ---
+	bool vertex_attrib_binding{ false }; // ARB_vertex_attrib_binding (core 4.3)
+	bool vao{ false };                   // Vertex Array Objects available
+	bool multi_bind{ false };            // ARB_multi_bind (bind many images/buffers/etc at once)
+
+	// --- Shaders ---
+	bool tessellation_shader{ false };   // ARB_tessellation_shader
+	bool geometry_shader{ false };       // ARB_geometry_shader4
+	bool shader_texture_lod{ false };    // ARB_shader_texture_lod (important for PBR)
+
+	// --- Blending / framebuffer ---
+	bool advanced_blend{ false };        // KHR_blend_equation_advanced
+	bool framebuffer_no_attachments{ false }; // ARB_framebuffer_no_attachments
+
+	// --- Debug / profiling ---
+	bool debug_output{ false };          // KHR_debug / ARB_debug_output
+	bool timer_query{ false };           // ARB_timer_query, GPU timestamps
+
+	// --- Viewport / misc ---
+	bool clip_control{ false };          // ARB_clip_control (Vulkan-style depth)
+	bool viewport_array{ false };        // ARB_viewport_array
+
+	// --- Compression formats ---
+	bool tex_compression_bptc{ false };  // BC7 / BC6H
+	bool tex_compression_s3tc{ false };  // BC1–BC5 (DXT)
+	bool tex_compression_astc{ false };  // ASTC
+	bool tex_compression_etc2{ false };  // ETC2/EAC
+};
+
+static gl_features_t g_features;
+
+static void gl_print_info()
+{
+	bx::log(bx::log_t::DEBUG, "OpenGL information:");
+	bx::logf(bx::log_t::DEBUG, "\tgl version:		{}", (cstring)glGetString(GL_VERSION));
+	bx::logf(bx::log_t::DEBUG, "\tglsl version:		{}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION));
+	bx::logf(bx::log_t::DEBUG, "\tvendor:			{}", (cstring)glGetString(GL_VENDOR));
+	bx::logf(bx::log_t::DEBUG, "\trenderer:			{}", (cstring)glGetString(GL_RENDERER));
+
+	GLint value = 0;
+
+	bx::log(bx::log_t::DEBUG, "OpenGL limits:");
+
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Texture Size:					{}", value);
+
+	glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax 3D Texture Size:				{}", value);
+
+	glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Array Texture Layers:			{}", value);
+
+	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Vertex Attributes:			{}", value);
+
+	glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Vertex Uniform Components:	{}", value);
+
+	glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Vertex Uniform Blocks:		{}", value);
+
+	glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Fragment Uniform Components:	{}", value);
+
+	glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Fragment Uniform Blocks:		{}", value);
+
+	glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Combined Uniform Blocks:		{}", value);
+
+	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Texture Image Units:			{}", value);
+
+	glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Vertex Texture Image Units:	{}", value);
+
+	glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Color Attachments:			{}", value);
+
+	glGetIntegerv(GL_MAX_DRAW_BUFFERS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Draw Buffers:					{}", value);
+
+	glGetIntegerv(GL_MAX_FRAMEBUFFER_WIDTH, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Framebuffer Width:			{}", value);
+
+	glGetIntegerv(GL_MAX_FRAMEBUFFER_HEIGHT, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Framebuffer Height:			{}", value);
+
+	glGetIntegerv(GL_MAX_FRAMEBUFFER_SAMPLES, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Framebuffer Samples:			{}", value);
+
+	glGetIntegerv(GL_MAX_VERTEX_ATTRIB_BINDINGS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Vertex Buffer Bindings:		{}", value);
+
+	glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Uniform Buffer Bindings:		{}", value);
+
+	glGetIntegerv(GL_MAX_ELEMENT_INDEX, &value);
+	bx::logf(bx::log_t::DEBUG, "\tMax Element Index:				{}", value);
+
+	GLint count = 0;
+	glGetIntegerv(GL_NUM_EXTENSIONS, &count);
+	bx::logf(bx::log_t::DEBUG, "OpenGL extensions ({}):", count);
+
+	for (GLint i = 0; i < count; ++i)
+	{
+		bx::logf(bx::log_t::DEBUG, "\t{}", (cstring)glGetStringi(GL_EXTENSIONS, i));
+	}
+}
+
+static bool gl_has_ext(cstring ext)
+{
+	GLint count = 0;
+	glGetIntegerv(GL_NUM_EXTENSIONS, &count);
+	for (GLint i = 0; i < count; i++)
+	{
+		cstring e = (cstring)glGetStringi(GL_EXTENSIONS, i);
+		if (e && strcmp(e, ext) == 0)
+			return true;
+	}
+	return false;
+}
+
+static void gl_check_features()
+{
+	// -------------------------------------------------------------------------
+	// Version check helper
+	// -------------------------------------------------------------------------
+	int major = 0, minor = 0;
+	{
+		const char* ver = (const char*)glGetString(GL_VERSION);
+		if (ver)
+			sscanf(ver, "%d.%d", &major, &minor);
+	}
+
+	// -------------------------------------------------------------------------
+	// Separable Shader Objects (SSO)
+	// -------------------------------------------------------------------------
+#if GL_ARB_separate_shader_objects
+	g_features.sso =
+		(glCreateShaderProgramv &&
+			glProgramParameteri &&
+			(glCreateProgramPipelines || glGenProgramPipelines || glGenProgramPipelinesEXT) &&
+			(glDeleteProgramPipelines || glDeleteProgramPipelinesEXT) &&
+			(glBindProgramPipeline || glBindProgramPipelineEXT) &&
+			(glUseProgramStages || glUseProgramStagesEXT) &&
+			(glActiveShaderProgram || glActiveShaderProgramEXT) &&
+			(glGetProgramPipelineiv || glGetProgramPipelineivEXT) &&
+			(glValidateProgramPipeline || glValidateProgramPipelineEXT) &&
+			(glGetProgramPipelineInfoLog || glGetProgramPipelineInfoLogEXT)) &&
+		((major > 4 || (major == 4 && minor >= 1)) ||
+			gl_has_ext("GL_ARB_separate_shader_objects"));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Direct State Access (DSA)
+	// -------------------------------------------------------------------------
+#if GL_ARB_direct_state_access || GL_EXT_direct_state_access
+	g_features.dsa =
+		((glCreateBuffers && glNamedBufferStorage &&
+			glCreateTextures && glTextureStorage2D &&
+			glCreateVertexArrays && glVertexArrayVertexBuffer &&
+			glCreateFramebuffers && glNamedFramebufferTexture &&
+			glCreateSamplers && glSamplerParameterf &&
+			glProgramUniform1i) ||
+			glTextureStorage2DEXT) &&
+		((major > 4 || (major == 4 && minor >= 5)) ||
+			gl_has_ext("GL_ARB_direct_state_access") ||
+			gl_has_ext("GL_EXT_direct_state_access"));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Buffers and memory
+	// -------------------------------------------------------------------------
+#if GL_ARB_buffer_storage
+	g_features.buffer_storage =
+		glBufferStorage &&
+		(gl_has_ext("GL_ARB_buffer_storage") || gl_has_ext("GL_EXT_buffer_storage"));
+#endif
+
+	g_features.persistent_mapping =
+		g_features.buffer_storage &&
+		(GL_MAP_PERSISTENT_BIT && GL_MAP_COHERENT_BIT);
+
+#if GL_ARB_shader_storage_buffer_object
+	g_features.ssbo =
+		(glBindBufferBase || glBindBufferRange) &&
+		(gl_has_ext("GL_ARB_shader_storage_buffer_object") ||
+			(major > 4 || (major == 4 && minor >= 3)));
+#endif
+
+#if GL_ARB_shader_atomic_counters
+	g_features.atomic_counters =
+		glBindBufferBase &&
+		(gl_has_ext("GL_ARB_shader_atomic_counters") ||
+			(major > 4 || (major == 4 && minor >= 2)));
+#endif
+
+#if GL_ARB_shader_image_load_store
+	g_features.shader_image_load_store =
+		glBindImageTexture &&
+		(gl_has_ext("GL_ARB_shader_image_load_store") ||
+			gl_has_ext("GL_EXT_shader_image_load_store"));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Compute shader
+	// -------------------------------------------------------------------------
+#if GL_ARB_compute_shader
+	g_features.compute_shader =
+		glDispatchCompute &&
+		(gl_has_ext("GL_ARB_compute_shader") ||
+			(major > 4 || (major == 4 && minor >= 3)));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Multi draw
+	// -------------------------------------------------------------------------
+#if GL_ARB_multi_draw || GL_EXT_multi_draw_arrays || GL_NV_multi_draw
+	g_features.multi_draw =
+		(glMultiDrawArrays || glMultiDrawElements ||
+			glMultiDrawArraysEXT || glMultiDrawElementsEXT) &&
+		(gl_has_ext("GL_ARB_multi_draw") ||
+			gl_has_ext("GL_EXT_multi_draw_arrays") ||
+			gl_has_ext("GL_NV_multi_draw"));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Indirect draw
+	// -------------------------------------------------------------------------
+
+#if GL_ARB_draw_indirect || GL_EXT_draw_indirect
+	g_features.draw_indirect =
+		(glDrawArraysIndirect || glDrawElementsIndirect) &&
+		(gl_has_ext("GL_ARB_draw_indirect") ||
+			gl_has_ext("GL_EXT_draw_indirect") ||
+			(major > 4 || (major == 4 && minor >= 0)) ||
+			(major > 3 || (major == 3 && minor >= 1)));
+#endif
+
+#if GL_ARB_multi_draw_indirect || GL_EXT_multi_draw_indirect
+	g_features.multi_draw_indirect =
+		(glMultiDrawArraysIndirect || glMultiDrawElementsIndirect ||
+			glMultiDrawArraysIndirectEXT || glMultiDrawElementsIndirectEXT) &&
+		(gl_has_ext("GL_ARB_multi_draw_indirect") ||
+			gl_has_ext("GL_EXT_multi_draw_indirect"));
+#endif
+
+#if GL_ARB_indirect_parameters || GL_NV_command_list
+	g_features.indirect_count =
+		(glMultiDrawArraysIndirectCountARB || glMultiDrawElementsIndirectCountARB) &&
+		(gl_has_ext("GL_ARB_indirect_parameters") ||
+			gl_has_ext("GL_NV_command_list"));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Textures
+	// -------------------------------------------------------------------------
+#if GL_ARB_texture_storage
+	g_features.texture_storage =
+		(glTextureStorage1D || glTextureStorage2D || glTextureStorage3D) &&
+		(gl_has_ext("GL_ARB_texture_storage") ||
+			gl_has_ext("GL_EXT_texture_storage") ||
+			(major > 4 || (major == 4 && minor >= 2)));
+#endif
+
+#if GL_ARB_texture_view
+	g_features.texture_view =
+		glTextureView &&
+		(gl_has_ext("GL_ARB_texture_view") ||
+			gl_has_ext("GL_EXT_texture_view") ||
+			(major > 4 || (major == 4 && minor >= 3)));
+#endif
+
+#if GL_ARB_bindless_texture || GL_NV_bindless_texture
+	g_features.bindless_textures =
+		(glGetTextureHandleARB || glMakeTextureHandleResidentARB) &&
+		(gl_has_ext("GL_ARB_bindless_texture") ||
+			gl_has_ext("GL_NV_bindless_texture"));
+#endif
+
+#if GL_ARB_sparse_texture
+	g_features.sparse_texture =
+		glTexPageCommitmentARB &&
+		(gl_has_ext("GL_ARB_sparse_texture") ||
+			gl_has_ext("GL_EXT_sparse_texture"));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Vertex / pipeline
+	// -------------------------------------------------------------------------
+#if GL_ARB_vertex_attrib_binding
+	g_features.vertex_attrib_binding =
+		glVertexArrayVertexBuffer &&
+		(gl_has_ext("GL_ARB_vertex_attrib_binding") ||
+			gl_has_ext("GL_EXT_vertex_attrib_binding") ||
+			(major > 4 || (major == 4 && minor >= 3)));
+#endif
+
+#if GL_ARB_vertex_array_object
+	g_features.vao =
+		glBindVertexArray &&
+		(gl_has_ext("GL_ARB_vertex_array_object") ||
+			gl_has_ext("GL_APPLE_vertex_array_object") || // Apple uses a different name
+			(major >= 3));
+#endif
+
+#if GL_ARB_multi_bind
+	g_features.multi_bind =
+		(glBindTextures || glBindSamplers || glBindBuffersBase) &&
+		(gl_has_ext("GL_ARB_multi_bind") ||
+			gl_has_ext("GL_EXT_multi_bind"));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Shader stages
+	// -------------------------------------------------------------------------
+#if GL_ARB_tessellation_shader
+	g_features.tessellation_shader =
+		glPatchParameteri &&
+		(gl_has_ext("GL_ARB_tessellation_shader") ||
+			gl_has_ext("GL_EXT_tessellation_shader") ||
+			(major > 4 || (major == 4 && minor >= 0)));
+#endif
+
+#if GL_ARB_geometry_shader4
+	g_features.geometry_shader =
+		glProgramParameteri &&
+		(gl_has_ext("GL_ARB_geometry_shader4") ||
+			gl_has_ext("GL_EXT_geometry_shader4") ||
+			(major > 3 || (major == 3 && minor >= 2)));
+#endif
+
+#if GL_ARB_shader_texture_lod
+	g_features.shader_texture_lod =
+		gl_has_ext("GL_ARB_shader_texture_lod") ||
+		gl_has_ext("GL_EXT_shader_texture_lod");
+#endif
+
+	// -------------------------------------------------------------------------
+	// Blending / framebuffer
+	// -------------------------------------------------------------------------
+#if GL_KHR_blend_equation_advanced
+	g_features.advanced_blend =
+		glBlendBarrierKHR &&
+		(gl_has_ext("GL_KHR_blend_equation_advanced") ||
+			gl_has_ext("GL_NV_blend_equation_advanced"));
+#endif
+
+#if GL_ARB_framebuffer_no_attachments
+	g_features.framebuffer_no_attachments =
+		glFramebufferParameteri &&
+		(gl_has_ext("GL_ARB_framebuffer_no_attachments") ||
+			gl_has_ext("GL_EXT_framebuffer_no_attachments"));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Debug / profiling
+	// -------------------------------------------------------------------------
+#if GL_ARB_debug_output || GL_KHR_debug
+	g_features.debug_output =
+		(glDebugMessageCallback || glDebugMessageControl) &&
+		(gl_has_ext("GL_ARB_debug_output") || gl_has_ext("GL_KHR_debug"));
+#endif
+
+#if GL_ARB_timer_query || GL_EXT_timer_query
+	g_features.timer_query =
+		(glQueryCounter || glQueryCounterEXT) &&
+		(gl_has_ext("GL_ARB_timer_query") || gl_has_ext("GL_EXT_timer_query"));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Viewport / clip
+	// -------------------------------------------------------------------------
+#if GL_ARB_clip_control
+	g_features.clip_control =
+		(glClipControl || glClipControlEXT) &&
+		(gl_has_ext("GL_ARB_clip_control") ||
+			gl_has_ext("GL_EXT_clip_control") ||
+			(major > 4 || (major == 4 && minor >= 5)));
+#endif
+
+#if GL_ARB_viewport_array
+	g_features.viewport_array =
+		glViewportArrayv &&
+		(gl_has_ext("GL_ARB_viewport_array") ||
+			gl_has_ext("GL_EXT_viewport_array") ||
+			(major > 4 || (major == 4 && minor >= 1)));
+#endif
+
+	// -------------------------------------------------------------------------
+	// Texture compression (extension only, no API calls)
+	// -------------------------------------------------------------------------
+#if GL_ARB_texture_compression_bptc
+	g_features.tex_compression_bptc =
+		gl_has_ext("GL_ARB_texture_compression_bptc") ||
+		gl_has_ext("GL_EXT_texture_compression_bptc");
+#endif
+
+#if GL_EXT_texture_compression_s3tc
+	g_features.tex_compression_s3tc =
+		gl_has_ext("GL_EXT_texture_compression_s3tc") ||
+		gl_has_ext("GL_NV_texture_compression_s3tc");
+#endif
+
+#if GL_KHR_texture_compression_astc_ldr || GL_KHR_texture_compression_astc_hdr
+	g_features.tex_compression_astc =
+		gl_has_ext("GL_KHR_texture_compression_astc_ldr") ||
+		gl_has_ext("GL_KHR_texture_compression_astc_hdr");
+#endif
+
+#if GL_ARB_ES3_compatibility || GL_OES_compressed_ETC2_RGB8_texture
+	g_features.tex_compression_etc2 =
+		gl_has_ext("GL_ARB_ES3_compatibility") ||
+		gl_has_ext("GL_OES_compressed_ETC2_RGB8_texture");
+#endif
+
+	// -------------------------------------------------------------------------
+	// Vendor-specific fixes
+	// -------------------------------------------------------------------------
+	const char* vendor = (const char*)glGetString(GL_VENDOR);
+	const char* renderer = (const char*)glGetString(GL_RENDERER);
+
+	if (vendor && renderer)
+	{
+		bool is_broadcom_v3d =
+			strstr(vendor, "Broadcom") &&
+			strstr(renderer, "V3D");
+
+		if (is_broadcom_v3d)
+		{
+			// Broadcom has buggy SSO
+			g_features.sso = false;
+		}
+	}
+
+	// Print final feature list
+	bx::logf(bx::log_t::DEBUG, "OpenGL Feature Support:");
+
+	bx::logf(bx::log_t::DEBUG, "\tSSO (Separable Shader Objects) : {}", g_features.sso ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tDSA (Direct State Access)      : {}", g_features.dsa ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tBuffer Storage                 : {}", g_features.buffer_storage ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tPersistent Mapping             : {}", g_features.persistent_mapping ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tSSBO                           : {}", g_features.ssbo ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tAtomic Counters                : {}", g_features.atomic_counters ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tShader Image Load/Store        : {}", g_features.shader_image_load_store ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tCompute Shader                 : {}", g_features.compute_shader ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tMulti Draw					 : {}", g_features.multi_draw ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tDraw Indirect                  : {}", g_features.draw_indirect ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tMulti Draw Indirect            : {}", g_features.multi_draw_indirect ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tIndirect Count                 : {}", g_features.indirect_count ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tTexture Storage                : {}", g_features.texture_storage ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tTexture View                   : {}", g_features.texture_view ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tBindless Textures              : {}", g_features.bindless_textures ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tSparse Texture                 : {}", g_features.sparse_texture ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tVertex Attrib Binding          : {}", g_features.vertex_attrib_binding ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tVAO                            : {}", g_features.vao ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tMulti Bind                     : {}", g_features.multi_bind ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tTessellation Shader            : {}", g_features.tessellation_shader ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tGeometry Shader                : {}", g_features.geometry_shader ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tShader Texture LOD             : {}", g_features.shader_texture_lod ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tAdvanced Blend                 : {}", g_features.advanced_blend ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tFramebuffer No Attachments     : {}", g_features.framebuffer_no_attachments ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tDebug Output                   : {}", g_features.debug_output ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tTimer Query                    : {}", g_features.timer_query ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tClip Control                   : {}", g_features.clip_control ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tViewport Array                 : {}", g_features.viewport_array ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tTexture Compression BPTC       : {}", g_features.tex_compression_bptc ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tTexture Compression S3TC       : {}", g_features.tex_compression_s3tc ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tTexture Compression ASTC       : {}", g_features.tex_compression_astc ? "YES" : "NO");
+	bx::logf(bx::log_t::DEBUG, "\tTexture Compression ETC2       : {}", g_features.tex_compression_etc2 ? "YES" : "NO");
+}
+
+#if GL_ARB_debug_output || GL_KHR_debug
 static void GLAPIENTRY gl_debug_callback(
 	GLenum source, GLenum type, GLuint id, GLenum severity,
 	GLsizei length, const GLchar* message, const void* userParam)
@@ -132,13 +633,12 @@ static void GLAPIENTRY gl_debug_callback(
 		break;
 	}
 }
+#endif
 
-bool bx::gfx_init(const bx::app_config_t& config) bx_noexcept
+static void gl_setup_debug_callback()
 {
-	bx_profile(bx);
-
-	//if (glfwExtensionSupported("GL_KHR_debug"))
-	if (glDebugMessageCallback)
+#if GL_ARB_debug_output || GL_KHR_debug
+	if (g_features.debug_output)
 	{
 		// Enable synchronous debug output (makes callbacks happen immediately)
 		glEnable(GL_DEBUG_OUTPUT);
@@ -153,6 +653,16 @@ bool bx::gfx_init(const bx::app_config_t& config) bx_noexcept
 			0, nullptr, GL_TRUE
 		);
 	}
+#endif
+}
+
+bool bx::gfx_init(const bx::app_config_t& config) bx_noexcept
+{
+	bx_profile(bx);
+
+	gl_print_info();
+	gl_check_features();
+	gl_setup_debug_callback();
 
 	return true;
 }
@@ -233,7 +743,7 @@ static GLenum gl_get_stage(bx::gfx_shader_stage_t stage)
 	}
 }
 
-static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
+bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 {
 	bx_profile(bx);
 
@@ -241,22 +751,13 @@ static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 	if (stage == 0)
 		return bx::invalid_handle;
 
-	const GLuint shader = glCreateShader(stage);
-	if (!shader)
-	{
-		bx_logd(bx, "gfx_create_shader: Failed to create GL shader object.");
-		return bx::invalid_handle;
-	}
-
 	std::string source_code = GLSL_VERSION;
-	
 	if (!desc.source && desc.filepath)
 	{
 		std::ifstream file(desc.filepath);
 		if (!file.is_open())
 		{
-			glDeleteShader(shader);
-			bx_loge(bx, "gfx_create_shader: Failed to open file {}", desc.filepath);
+			bx_loge(bx, "Failed to open file {}", desc.filepath);
 			return bx::invalid_handle;
 		}
 		source_code += std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -266,127 +767,96 @@ static bx::handle_id gl33_create_shader(const bx::gfx_shader_desc_t& desc)
 		source_code += desc.source;
 	}
 
-	cstring src_ptr = source_code.c_str();
+	const char* src_ptr = source_code.c_str();
+	GLuint program = 0;
 
-	// --- handle binary shader case ---
-	if (desc.src_bin.data && desc.src_bin.size > 0)
+	if (g_features.sso)
 	{
-#ifdef GL_ARB_gl_spirv
-		if (desc.lang == bx::gfx_shader_lang_t::SPIR_V)
+		program = glCreateShaderProgramv(stage, 1, &src_ptr);
+		if (!program)
 		{
-			glShaderBinary(
-				1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB,
-				desc.src_bin.data, static_cast<GLsizei>(desc.src_bin.size));
-			glSpecializeShaderARB(shader, desc.entrypoint, 0, nullptr, nullptr);
-		}
-		else
-#endif
-		{
-			bx_loge(bx, "gfx_create_shader: Binary shaders require SPIR-V and GL_ARB_gl_spirv.");
-			glDeleteShader(shader);
+			bx_loge(bx, "gfx_create_shader: Failed to create shader program");
 			return bx::invalid_handle;
 		}
+		glProgramParameteri(program, GL_PROGRAM_SEPARABLE, GL_TRUE);
+
+		GLint linked = GL_FALSE;
+		glGetProgramiv(program, GL_LINK_STATUS, &linked);
+		if (!linked)
+		{
+			GLint len = 0;
+			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
+			std::string log(len, '\0');
+			glGetProgramInfoLog(program, len, &len, &log[0]);
+			bx_loge(bx, "Shader program link error: {}", log);
+			glDeleteProgram(program);
+			return bx::invalid_handle;
+		}
+
+		gl_set_debug_name(stage, program, -1, desc.name);
 	}
 	else
 	{
-		if (!src_ptr)
+		const GLuint shader = glCreateShader(stage);
+		if (!shader)
 		{
-			bx_loge(bx, "gfx_create_shader: No source or binary provided.");
+			bx_logd(bx, "gfx_create_shader: Failed to create GL shader object.");
+			return bx::invalid_handle;
+		}
+
+		if (desc.src_bin.data && desc.src_bin.size > 0)
+		{
+#ifdef GL_ARB_gl_spirv
+			if (desc.lang == bx::gfx_shader_lang_t::SPIR_V)
+			{
+				glShaderBinary(
+					1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB,
+					desc.src_bin.data, static_cast<GLsizei>(desc.src_bin.size));
+				glSpecializeShaderARB(shader, desc.entrypoint, 0, nullptr, nullptr);
+			}
+			else
+#endif
+			{
+				bx_loge(bx, "gfx_create_shader: Binary shaders require SPIR-V and GL_ARB_gl_spirv.");
+				glDeleteShader(shader);
+				return bx::invalid_handle;
+			}
+		}
+		else
+		{
+			if (!src_ptr)
+			{
+				bx_loge(bx, "gfx_create_shader: No source or binary provided.");
+				glDeleteShader(shader);
+				return bx::invalid_handle;
+			}
+
+			glShaderSource(shader, 1, &src_ptr, nullptr);
+			glCompileShader(shader);
+		}
+
+		GLint ok = GL_FALSE;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+		if (!ok)
+		{
+			GLint len = 0;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+			std::string log(len, '\0');
+			glGetShaderInfoLog(shader, len, &len, &log[0]);
+			bx_loge(bx, "Shader compile error: {}", log);
 			glDeleteShader(shader);
 			return bx::invalid_handle;
 		}
 
-		glShaderSource(shader, 1, &src_ptr, nullptr);
-		glCompileShader(shader);
+		gl_set_debug_name(stage, shader, -1, desc.name);
+		program = shader;
 	}
-
-	GLint ok = GL_FALSE;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
-	if (!ok)
-	{
-		GLint len = 0;
-		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
-		std::string log(len, '\0');
-		glGetShaderInfoLog(shader, len, &len, &log[0]);
-		bx_loge(bx, "Shader compile error: {}", log);
-		glDeleteShader(shader);
-		return bx::invalid_handle;
-	}
-
-	gl_set_debug_name(stage, shader, -1, desc.name);
-
-	gl_shader_t glshader{};
-	glshader.shader = shader;
-	glshader.stage = stage;
-
-	return g_shaders.insert(glshader);
-}
-
-static bx::handle_id gl46_create_shader(const bx::gfx_shader_desc_t& desc)
-{
-	bx_profile(bx);
-
-	const GLenum stage = gl_get_stage(desc.stage);
-	if (stage == 0)
-		return bx::invalid_handle;
-
-    std::string source_code = "#version 460 core\n";
-    if (!desc.source && desc.filepath)
-    {
-        std::ifstream file(desc.filepath);
-        if (!file.is_open())
-        {
-            bx_loge(bx, "gfx_create_shader: Failed to open file");
-            return bx::invalid_handle;
-        }
-        source_code += std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    }
-    else
-    {
-        source_code += desc.source;
-    }
-
-    const char* src_ptr = source_code.c_str();
-
-    GLuint program = glCreateShaderProgramv(stage, 1, &src_ptr);
-	//glProgramParameteri(program, GL_PROGRAM_SEPARABLE, GL_TRUE);
-    if (!program)
-    {
-        bx_loge(bx, "gfx_create_shader: Failed to create shader program");
-        return bx::invalid_handle;
-    }
-
-    GLint linked = GL_FALSE;
-    glGetProgramiv(program, GL_LINK_STATUS, &linked);
-    if (!linked)
-    {
-        GLint len = 0;
-        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
-        std::string log(len, '\0');
-        glGetProgramInfoLog(program, len, &len, &log[0]);
-        bx_loge(bx, "Shader program link error: {}", log);
-        glDeleteProgram(program);
-        return bx::invalid_handle;
-    }
-
-    gl_set_debug_name(stage, program, -1, desc.name);
 
 	gl_shader_t glshader{};
 	glshader.shader = program;
 	glshader.stage = stage;
 
 	return g_shaders.insert(glshader);
-}
-
-bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
-{
-	bx_profile(bx);
-
-#ifdef BXL_GFX_OPENGLES
-	return gl33_create_shader(desc);
-#else
-	return gl46_create_shader(desc);
-#endif
 }
 
 void bx::gfx_destroy_shader(const handle_id handle) bx_noexcept
@@ -396,12 +866,11 @@ void bx::gfx_destroy_shader(const handle_id handle) bx_noexcept
 	auto glsh = g_shaders.get(handle);
 	if (!glsh) return;
 
-#ifdef BXL_GFX_OPENGLES
-	glDeleteShader(glsh->shader);
-#else
-	glDeleteProgram(glsh->shader);
-#endif
-
+	if (g_features.sso)
+		glDeleteProgram(glsh->shader);
+	else
+		glDeleteShader(glsh->shader);
+	
 	g_shaders.remove(handle);
 }
 
@@ -1032,7 +1501,7 @@ static void gl_vattrib_info(bx::gfx_attribute_format_t fmt, GLenum& type, GLint&
 	}
 }
 
-static bx::handle_id gl33_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
+bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexcept
 {
 	bx_profile(bx);
 
@@ -1040,175 +1509,154 @@ static bx::handle_id gl33_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
 	{
 		bx_loge(bx, "gfx_create_pipeline: no shaders provided");
 		return bx::invalid_handle;
-	}
-
-	const GLuint program = glCreateProgram();
-	for (const auto sh : desc.shaders)
-	{
-		const auto shader = bx::handle_t{ sh }.get_data<GLuint>();
-		glAttachShader(program, shader);
-	}
-	glLinkProgram(program);
-
-	GLint linked = GL_FALSE;
-	glGetProgramiv(program, GL_LINK_STATUS, &linked);
-	if (!linked)
-	{
-		GLint logLen = 0;
-		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLen);
-		std::string log(logLen, '\0');
-		glGetProgramInfoLog(program, logLen, &logLen, &log[0]);
-		log = "Pipeline link error: " + log;
-		bx_loge(bx, log.c_str());
-		glDeleteProgram(program);
-		return bx::invalid_handle;
-	}
-
-	for (const auto sh : desc.shaders)
-	{
-		const auto shader = bx::handle_t{ sh }.get_data<GLuint>();
-		glDetachShader(program, shader);
-	}
-
-	GLuint vao = 0;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	GLsizei stride = 0;
-	for (u32 i = 0; i < desc.input_layout.attributes.size; ++i)
-	{
-		const auto& attr = desc.input_layout.attributes[i];
-		GLenum type = GL_FLOAT;
-		GLint sizebytes = 0;
-		GLint count = attr.count;
-		gl_vattrib_info(attr.format, type, sizebytes);
-		stride += sizebytes * count;
-}
-
-	GLuint relative_offset = 0;
-	for (u32 i = 0; i < desc.input_layout.attributes.size; ++i)
-	{
-		const auto& attr = desc.input_layout.attributes[i];
-
-		GLuint attrib_index = attr.location;
-		GLuint binding_index = attr.binding;
-		GLint count = attr.count;
-		GLenum type = GL_FLOAT;
-		GLint sizebytes = 0;
-		gl_vattrib_info(attr.format, type, sizebytes);
-
-		GLboolean normalized = attr.normalized;
-		if (attr.offset != 0)
-			relative_offset = attr.offset;
-
-		// Bind a dummy buffer to the binding point for now
-		// Actual buffer will be bound at draw time
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glEnableVertexAttribArray(attrib_index);
-		glVertexAttribFormat(attrib_index, count, type, normalized, relative_offset);
-		glVertexAttribBinding(attrib_index, binding_index);
-		//glVertexAttribDivisor(attrib_index, attr.input_rate_per_vertex_or_instance);
-
-		relative_offset += sizebytes * count;
-	}
-
-	glBindVertexArray(0);
-
-	gl_set_debug_name(GL_PROGRAM, program, -1, desc.name);
-	gl_set_debug_name(GL_VERTEX_ARRAY, vao, -1, desc.name);
-
-	gl_pipeline_t glpipeline{};
-	glpipeline.pipeline = program;
-	glpipeline.vao = vao;
-	glpipeline.topology = desc.topology;
-	glpipeline.raster = desc.raster;
-
-	if (desc.color_attachments)
-	{
-		glpipeline.blend_attachments.assign(
-			desc.color_attachments.data,
-			desc.color_attachments.data + desc.color_attachments.size);
-	}
-
-	return g_pipelines.insert(glpipeline);
-}
-
-static bx::handle_id gl46_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
-{
-	bx_profile(bx);
-
-	if (!desc.shaders)
-	{
-		bx_loge(bx, "gfx_create_pipeline: no shaders provided");
-		return 0;
 	}
 
 	GLuint pipeline = 0;
-	glCreateProgramPipelines(1, &pipeline);
 
-	for (const auto sh : desc.shaders)
+	if (g_features.sso)
 	{
-		const auto glsh = g_shaders.get(sh);
-		if (!glsh) continue;
+		if (glCreateProgramPipelines)
+			glCreateProgramPipelines(1, &pipeline);
+		else
+			glGenProgramPipelines(1, &pipeline);
 
-		GLbitfield stagebit = 0;
-		switch (glsh->stage)
+		for (const auto sh : desc.shaders)
 		{
-		case GL_VERTEX_SHADER:          stagebit = GL_VERTEX_SHADER_BIT; break;
-		case GL_FRAGMENT_SHADER:        stagebit = GL_FRAGMENT_SHADER_BIT; break;
-		case GL_GEOMETRY_SHADER:        stagebit = GL_GEOMETRY_SHADER_BIT; break;
-		case GL_TESS_CONTROL_SHADER:    stagebit = GL_TESS_CONTROL_SHADER_BIT; break;
-		case GL_TESS_EVALUATION_SHADER: stagebit = GL_TESS_EVALUATION_SHADER_BIT; break;
-		case GL_COMPUTE_SHADER:         stagebit = GL_COMPUTE_SHADER_BIT; break;
-		default:
-			bx_loge(bx, "gfx_create_pipeline: unknown shader stage");
-			glDeleteProgramPipelines(1, &pipeline);
-			return 0;
+			const auto glsh = g_shaders.get(sh);
+			if (!glsh) continue;
+			bx_ensure(glsh->shader != 0);
+
+			GLbitfield stagebit = 0;
+			switch (glsh->stage)
+			{
+			case GL_VERTEX_SHADER:          stagebit = GL_VERTEX_SHADER_BIT; break;
+			case GL_FRAGMENT_SHADER:        stagebit = GL_FRAGMENT_SHADER_BIT; break;
+			case GL_GEOMETRY_SHADER:        stagebit = GL_GEOMETRY_SHADER_BIT; break;
+			case GL_TESS_CONTROL_SHADER:    stagebit = GL_TESS_CONTROL_SHADER_BIT; break;
+			case GL_TESS_EVALUATION_SHADER: stagebit = GL_TESS_EVALUATION_SHADER_BIT; break;
+			case GL_COMPUTE_SHADER:         stagebit = GL_COMPUTE_SHADER_BIT; break;
+			default:
+				bx_loge(bx, "gfx_create_pipeline: unknown shader stage");
+				if (glDeleteProgramPipelines)
+					glDeleteProgramPipelines(1, &pipeline);
+				else if (glDeleteProgramPipelinesEXT)
+					glDeleteProgramPipelinesEXT(1, &pipeline);
+				return invalid_handle;
+			}
+
+			glUseProgramStages(pipeline, stagebit, glsh->shader);
 		}
 
-		glUseProgramStages(pipeline, stagebit, glsh->shader);
+		GLint status = 0;
+		glValidateProgramPipeline(pipeline);
+		glGetProgramPipelineiv(pipeline, GL_VALIDATE_STATUS, &status);
+		if (!status)
+		{
+			GLint logLen = 0;
+			glGetProgramPipelineiv(pipeline, GL_INFO_LOG_LENGTH, &logLen);
+			std::string log(logLen, '\0');
+			glGetProgramPipelineInfoLog(pipeline, logLen, &logLen, &log[0]);
+			bx_loge(bx, "Pipeline validation failed: {}", log);
+		}
+
+		//gl_set_debug_name(GL_PROGRAM, pipeline, -1, desc.name);
+	}
+	else
+	{
+		const GLuint program = glCreateProgram();
+		for (const auto sh : desc.shaders)
+		{
+			const auto shader = bx::handle_t{ sh }.get_data<GLuint>();
+			glAttachShader(program, shader);
+		}
+		glLinkProgram(program);
+
+		GLint linked = GL_FALSE;
+		glGetProgramiv(program, GL_LINK_STATUS, &linked);
+		if (!linked)
+		{
+			GLint logLen = 0;
+			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLen);
+			std::string log(logLen, '\0');
+			glGetProgramInfoLog(program, logLen, &logLen, &log[0]);
+			log = "Pipeline link error: " + log;
+			bx_loge(bx, log.c_str());
+			glDeleteProgram(program);
+			return bx::invalid_handle;
+		}
+
+		for (const auto sh : desc.shaders)
+		{
+			const auto shader = bx::handle_t{ sh }.get_data<GLuint>();
+			glDetachShader(program, shader);
+		}
+
+		gl_set_debug_name(GL_PROGRAM, program, -1, desc.name);
+		pipeline = program;
 	}
 
 	GLuint vao = 0;
-	glCreateVertexArrays(1, &vao);
 
-	GLsizei stride = 0;
-	for (u32 i = 0; i < desc.input_layout.attributes.size; ++i)
+	if (g_features.dsa)
 	{
-		const auto& attr = desc.input_layout.attributes[i];
-		GLenum type = GL_FLOAT;
-		GLint sizebytes = 0;
-		gl_vattrib_info(attr.format, type, sizebytes);
-		stride += sizebytes * attr.count;
+		glCreateVertexArrays(1, &vao);
+	}
+	else
+	{
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
 	}
 
-	GLuint relative_offset = 0;
-	for (u32 i = 0; i < desc.input_layout.attributes.size; ++i)
+	if (glVertexArrayAttribFormat || glVertexAttribFormat)
 	{
-		const auto& attr = desc.input_layout.attributes[i];
+		GLsizei stride = 0;
+		for (u32 i = 0; i < desc.input_layout.attributes.size; ++i)
+		{
+			const auto& attr = desc.input_layout.attributes[i];
+			GLenum type = GL_FLOAT;
+			GLint sizebytes = 0;
+			gl_vattrib_info(attr.format, type, sizebytes);
+			stride += sizebytes * attr.count;
+		}
 
-		GLuint attrib_index = attr.location;
-		GLuint binding_index = attr.binding;
-		GLint count = attr.count;
-		GLenum type = GL_FLOAT;
-		GLint sizebytes = 0;
-		gl_vattrib_info(attr.format, type, sizebytes);
+		GLuint relative_offset = 0;
+		for (u32 i = 0; i < desc.input_layout.attributes.size; ++i)
+		{
+			const auto& attr = desc.input_layout.attributes[i];
 
-		GLboolean normalized = attr.normalized;
-		if (attr.offset != 0)
-			relative_offset = attr.offset;
+			const GLuint attrib_index = attr.location;
+			const GLuint binding_index = attr.binding;
+			const GLint count = attr.count;
+			GLenum type = GL_FLOAT;
+			GLint sizebytes = 0;
+			gl_vattrib_info(attr.format, type, sizebytes);
 
-		// Bind a dummy buffer to the binding point for now
-		// Actual buffer will be bound at draw time
-		glVertexArrayVertexBuffer(vao, binding_index, 0, 0, stride);
+			const GLboolean normalized = attr.normalized;
+			const GLuint offset = attr.offset != 0 ? attr.offset : relative_offset;
+		
+			if (glCreateVertexArrays)
+			{
+				glEnableVertexArrayAttrib(vao, attrib_index);
+				glVertexArrayAttribFormat(vao, attrib_index, count, type, normalized, offset);
+				glVertexArrayAttribBinding(vao, attrib_index, binding_index);
+				if (attr.input_rate_per_vertex_or_instance != 0)
+					glVertexArrayBindingDivisor(vao, binding_index, attr.input_rate_per_vertex_or_instance);
+			}
+			else
+			{
+				glEnableVertexAttribArray(attrib_index);
+				glVertexAttribFormat(attrib_index, count, type, normalized, offset);
+				glVertexAttribBinding(attrib_index, binding_index);
+				if (attr.input_rate_per_vertex_or_instance != 0)
+					glVertexAttribDivisor(attrib_index, attr.input_rate_per_vertex_or_instance);
+			}	
 
-		glEnableVertexArrayAttrib(vao, attrib_index);
-		glVertexArrayAttribFormat(vao, attrib_index, count, type, normalized, relative_offset);
-		glVertexArrayAttribBinding(vao, attrib_index, binding_index);
-		glVertexArrayBindingDivisor(vao, binding_index, attr.input_rate_per_vertex_or_instance);
-
-		relative_offset += sizebytes * count;
+			relative_offset += sizebytes * count;
+		}
 	}
+
+	if (!glCreateVertexArrays)
+		glBindVertexArray(0);
 
 	gl_set_debug_name(GL_VERTEX_ARRAY, vao, -1, desc.name);
 
@@ -1218,6 +1666,13 @@ static bx::handle_id gl46_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
 	glpipeline.topology = desc.topology;
 	glpipeline.raster = desc.raster;
 
+	if (desc.input_layout.attributes)
+	{
+		glpipeline.attributes.assign(
+			desc.input_layout.attributes.data,
+			desc.input_layout.attributes.data + desc.input_layout.attributes.size);
+	}
+
 	if (desc.color_attachments)
 	{
 		glpipeline.blend_attachments.assign(
@@ -1228,17 +1683,6 @@ static bx::handle_id gl46_create_pipeline(const bx::gfx_pipeline_desc_t& desc)
 	return g_pipelines.insert(glpipeline);
 }
 
-bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexcept
-{
-	bx_profile(bx);
-
-#ifdef BXL_GFX_OPENGLES
-	return gl33_create_pipeline(desc);
-#else
-	return gl46_create_pipeline(desc);
-#endif
-}
-
 void bx::gfx_destroy_pipeline(const handle_id handle) bx_noexcept
 {
 	bx_profile(bx);
@@ -1246,11 +1690,17 @@ void bx::gfx_destroy_pipeline(const handle_id handle) bx_noexcept
 	auto glpipeline = g_pipelines.get(handle);
 	if (!glpipeline) return;
 
-#ifdef BXL_GFX_OPENGLES
-	glDeleteProgram(glpipeline->pipeline);
-#else
-	glDeleteProgramPipelines(1, &glpipeline->pipeline);
-#endif
+	if (g_features.sso)
+	{
+		if (glDeleteProgramPipelines)
+			glDeleteProgramPipelines(1, &glpipeline->pipeline);
+		else if (glDeleteProgramPipelinesEXT)
+			glDeleteProgramPipelinesEXT(1, &glpipeline->pipeline);
+	}
+	else
+	{
+		glDeleteProgram(glpipeline->pipeline);
+	}
 
 	if (glpipeline->vao)
 		glDeleteVertexArrays(1, &glpipeline->vao);
@@ -1292,15 +1742,18 @@ void bx::gfx_bind_pipeline(handle_id cb, handle_id pipeline) bx_noexcept
 	bx_profile(bx);
 
 	auto glpipeline = g_pipelines.get(pipeline);
-	if (!glpipeline) return;
+	if (!glpipeline)
+	{
+		bx_logw(bx, "Attempted to bind pipeline with non-existent handle.");
+		return;
+	}
 
 	g_current_pipeline = pipeline;
 
-#ifdef BXL_GFX_OPENGLES
-	glUseProgram(glpipeline->pipeline);
-#else
-	glBindProgramPipeline(glpipeline->pipeline);
-#endif
+	if (g_features.sso)
+		glBindProgramPipeline(glpipeline->pipeline);
+	else
+		glUseProgram(glpipeline->pipeline);
 
 	if (glpipeline->vao)
 		glBindVertexArray(glpipeline->vao);
@@ -1334,33 +1787,111 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 {
 	bx_profile(bx);
 
-#ifdef BXL_GFX_OPENGLES
-	for (u32 i = 0; i < binding_count; ++i)
+	auto glpipeline = g_pipelines.get(g_current_pipeline);
+	if (!glpipeline)
 	{
-		const auto glbuff = g_buffers.get(vertex_buffers[i]);
-		if (!glbuff) continue;
+		bx_loge(bx, "Attemping to bind vertex buffers without a bound pipeline!");
+		return;
+	}
 
-		const GLintptr offset = static_cast<GLintptr>(offsets ? offsets[i] : 0);
-		// Stride is baked into the vertex input description at pipeline creation time.
-		//const GLsizei stride = get_bound_vbo_stride(first_binding + i);
-		//glBindVertexBuffer(first_binding + i, vbo, offset, stride);
-		const GLuint bindingindex = first_binding + i;
-		glBindVertexBuffer(bindingindex, glbuff->id, offset, 16);
-	}
-#else
-	static GLuint tmp_buffers[MAX_BOUND_VERTEX_BUFFERS]{};
-	static GLintptr tmp_offset[MAX_BOUND_VERTEX_BUFFERS]{};
-	static GLsizei tmp_strides[MAX_BOUND_VERTEX_BUFFERS]{};
-	for (i32 i = 0; i < binding_count; i++)
+	if (glBindVertexBuffers || glBindVertexBuffer)
 	{
-		const auto glbuff = g_buffers.get(vertex_buffers[i]);
-		if (!glbuff) continue;
-		tmp_buffers[i] = glbuff->id;
-		tmp_offset[i] = 0;
-		tmp_strides[i] = 16;
+		if (glBindVertexBuffers)
+		{
+			static GLuint tmp_buffers[MAX_BOUND_VERTEX_BUFFERS]{};
+			static GLintptr tmp_offset[MAX_BOUND_VERTEX_BUFFERS]{};
+			static GLsizei tmp_strides[MAX_BOUND_VERTEX_BUFFERS]{};
+			for (i32 i = 0; i < binding_count; i++)
+			{
+				const auto glbuff = g_buffers.get(vertex_buffers[i]);
+				if (!glbuff) continue;
+
+				GLsizei stride = 0;
+				for (const auto& attr : glpipeline->attributes)
+				{
+					if (attr.binding != i) continue;
+
+					GLenum type = GL_FLOAT;
+					GLint sizebytes = 0;
+					gl_vattrib_info(attr.format, type, sizebytes);
+					stride += sizebytes * attr.count;
+				}
+
+				tmp_buffers[i] = glbuff->id;
+				tmp_offset[i] = 0;
+				tmp_strides[i] = stride;
+			}
+			glBindVertexBuffers(first_binding, binding_count, tmp_buffers, tmp_offset, tmp_strides);
+		}
+		else
+		{
+			for (u32 i = 0; i < binding_count; ++i)
+			{
+				const auto glbuff = g_buffers.get(vertex_buffers[i]);
+				if (!glbuff) continue;
+
+				GLsizei stride = 0;
+				for (const auto& attr : glpipeline->attributes)
+				{
+					if (attr.binding != i) continue;
+
+					GLenum type = GL_FLOAT;
+					GLint sizebytes = 0;
+					gl_vattrib_info(attr.format, type, sizebytes);
+					stride += sizebytes * attr.count;
+				}
+
+				const GLuint binding_index = first_binding + i;
+				const GLintptr offset = static_cast<GLintptr>(offsets ? offsets[i] : 0);
+				glBindVertexBuffer(binding_index, glbuff->id, offset, stride);
+			}
+		}
 	}
-	glBindVertexBuffers(first_binding, binding_count, tmp_buffers, tmp_offset, tmp_strides);
-#endif
+	else
+	{
+		for (u32 i = 0; i < binding_count; ++i)
+		{
+			const auto glbuff = g_buffers.get(vertex_buffers[i]);
+			if (!glbuff) continue;
+
+			glBindBuffer(glbuff->target, glbuff->id);
+
+			GLsizei stride = 0;
+			for (const auto& attr : glpipeline->attributes)
+			{
+				if (attr.binding != i) continue;
+
+				GLenum type = GL_FLOAT;
+				GLint sizebytes = 0;
+				gl_vattrib_info(attr.format, type, sizebytes);
+				stride += sizebytes * attr.count;
+			}
+
+			GLuint relative_offset = 0;
+			for (const auto& attr : glpipeline->attributes)
+			{
+				if (attr.binding != i) continue;
+
+				const GLuint attrib_index = attr.location;
+				const GLint count = attr.count;
+				GLenum type = GL_FLOAT;
+				GLint sizebytes = 0;
+				gl_vattrib_info(attr.format, type, sizebytes);
+
+				const GLboolean normalized = attr.normalized;
+				const GLuint offset = attr.offset != 0 ? attr.offset : relative_offset;
+				cvptr offset_ptr = reinterpret_cast<vptr>(offset);
+
+				glEnableVertexAttribArray(attrib_index);
+				glVertexAttribPointer(attrib_index, count, type, normalized, stride, offset_ptr);
+
+				if (attr.input_rate_per_vertex_or_instance != 0)
+					glVertexAttribDivisor(attrib_index, attr.input_rate_per_vertex_or_instance);
+
+				relative_offset += sizebytes * count;
+			}
+		}
+	}
 }
 
 void bx::gfx_bind_index_buffer(handle_id cb, handle_id index_buffer, u32 index_type) bx_noexcept
