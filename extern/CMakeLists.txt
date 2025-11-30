@@ -9,14 +9,24 @@ endif()
 # Graphics
 if(BXL_GFX_BACKEND STREQUAL "OpenGL" OR BXL_GFX_BACKEND STREQUAL "OpenGLES")
     # Glad
-    add_library(glad glad/src/glad.c)
-    target_include_directories(glad PUBLIC glad/include)
-    target_link_libraries(glad ${OPENGL_LIBRARIES})
+    set(GLAD_PROFILE "core" CACHE STRING "OpenGL profile")
+    set(GLAD_API "gl=4.6,gles2=3.2" CACHE STRING "API type/version pairs")
+    set(GLAD_GENERATOR "c" CACHE STRING "Language to generate the binding for")
+    set(GLAD_SPEC "gl" CACHE STRING "Name of the spec")
+    set(GLAD_REPRODUCIBLE ON CACHE BOOL "Reproducible build")
+    option(GLAD_ALL_EXTENSIONS "Include all extensions" ON) 
+    option(GLAD_NO_LOADER "Generate loader" OFF) 
+
+    add_subdirectory(glad)
+
+    #add_library(glad glad/src/glad.c)
+    #target_include_directories(glad PUBLIC glad/include)
+    #target_link_libraries(glad ${OPENGL_LIBRARIES})
 
     # Link dl only on Linux/Unix
-    if(UNIX AND NOT APPLE)
-        target_link_libraries(glad PUBLIC dl)
-    endif()
+    #if(UNIX AND NOT APPLE)
+    #    target_link_libraries(glad PUBLIC dl)
+    #endif()
 endif()
 
 if(BXL_GFX_BACKEND STREQUAL "Vulkan")

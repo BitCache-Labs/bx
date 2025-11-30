@@ -14,3 +14,6 @@
 [submodule "extern/enet"]
 	path = extern/enet
 	url = https://github.com/lsalzman/enet.git
+[submodule "extern/glad"]
+	path = extern/glad
+	url = https://github.com/Dav1dde/glad.git
