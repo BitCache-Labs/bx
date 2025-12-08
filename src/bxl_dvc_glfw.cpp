@@ -49,8 +49,8 @@ static void vk_end_frame();
 static void glfw_error_callback(const i32 error, cstring desc)
 {
 	bx_profile(bx);
-
-	bx_loge_v(bx, "GLFW Error {}: {}", error, desc);
+	
+	bx_error(bx, "GLFW Error {}: {}", error, desc);
 }
 
 static void glfw_key_callback(GLFWwindow*, const i32 key, i32 scancode, const i32 action, i32 mods)
@@ -96,7 +96,7 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 #if defined(__arm__) || defined(BXL_GFX_OPENGLES)
 	if (putenv((char*)"DISPLAY=:0"))
 	{
-		bx_loge_v(bx, "Failed to set DISPLAY enviroment variable");
+		bx_error(bx, "Failed to set DISPLAY enviroment variable");
 		return false;
 	}
 #endif
@@ -104,7 +104,7 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
 	{
-		bx_loge_v(bx, "Failed to init GLFW");
+		bx_error(bx, "Failed to init GLFW");
 		return false;
 	}
 
@@ -154,7 +154,7 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 
 	if (!g_window)
 	{
-		bx_loge_v(bx, "Failed to create GLFW window");
+		bx_error(bx, "Failed to create GLFW window");
 		glfwTerminate();
 		return false;
 	}
@@ -167,7 +167,7 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 #if defined(BXL_GFX_OPENGL) || defined(BXL_GFX_OPENGLES)
 	if (!gl_init(config))
 	{
-		bx_loge_v(bx, "Failed to initialize GLFW graphics.");
+		bx_error(bx, "Failed to initialize GLFW graphics.");
 		return false;
 	}
 #endif
@@ -175,7 +175,7 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 #ifdef BXL_GFX_VULKAN
 	if (!vk_init(config))
 	{
-		bx_loge_v("Failed to initialize GLFW graphics.");
+		bx_error("Failed to initialize GLFW graphics.");
 		return result_t::FAIL;
 	}
 #endif
@@ -344,7 +344,7 @@ static bool gl_init(const bx::app_config_t& config)
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
 #endif
 	{
-		bx_loge_v(bx, "Failed to load GLAD");
+		bx_error(bx, "Failed to load GLAD");
 		return false;
 	}
 
@@ -384,13 +384,13 @@ static bool gl_init(const bx::app_config_t& config)
 	// Setup Platform/Renderer backends
 	if (!ImGui_ImplGlfw_InitForOpenGL(g_window, true))
 	{
-		bx_loge_v(bx, "Failed to initialize ImGui GLFW backend!");
+		bx_error(bx, "Failed to initialize ImGui GLFW backend!");
 		return false;
 	}
 
 	if (!ImGui_ImplOpenGL3_Init())
 	{
-		bx_loge_v(bx, "Failed to initialize ImGui OpenGL backend!");
+		bx_error(bx, "Failed to initialize ImGui OpenGL backend!");
 		return false;
 	}
 #endif // BXL_APP_IMGUI
@@ -456,7 +456,7 @@ static void vk_check_result(const VkResult err)
 
 	if (err != VK_SUCCESS)
 	{
-		bx_loge_v("[Vulkan] Error: VkResult = {}", err);
+		bx_error("[Vulkan] Error: VkResult = {}", err);
 		if (err < 0)
 			abort();
 	}
@@ -478,7 +478,7 @@ static bool vk_init(const bx::app_config_t& config)
 
 	if (!glfwVulkanSupported())
 	{
-		bx_loge_v("Failed to get Vulkan support");
+		bx_error("Failed to get Vulkan support");
 		glfwTerminate();
 		return result_t::FAIL;
 	}

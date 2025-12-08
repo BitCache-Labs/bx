@@ -134,7 +134,7 @@ static GLenum g_current_index_type = GL_UNSIGNED_INT;
 static std::string g_glsl_version;
 static std::string g_glsl_header;
 
-// Extension independent opengl
+// Extension independent OpenGL
 
 static void glGenVertexArraysX(GLsizei n, GLuint* arrays)
 {
@@ -152,6 +152,14 @@ static void glBindVertexArrayX(GLuint array)
 	bx_assert(false, "glBindVertexArray unsupported!");
 }
 
+static void glDeleteVertexArraysX(GLsizei n, const GLuint* arrays)
+{
+	if (glDeleteVertexArrays) return glDeleteVertexArrays(n, arrays);
+	if (glDeleteVertexArraysOES) return glDeleteVertexArraysOES(n, arrays);
+	if (glDeleteVertexArraysAPPLE) return glDeleteVertexArraysAPPLE(n, arrays);
+	bx_assert(false, "glDeleteVertexArrays unsupported!");
+}
+
 static void glBufferStorageX(GLenum target, GLsizeiptr size, cvptr data, GLbitfield flags)
 {
 	if (glBufferStorage) return glBufferStorage(target, size, data, flags);
@@ -159,161 +167,184 @@ static void glBufferStorageX(GLenum target, GLsizeiptr size, cvptr data, GLbitfi
 	bx_assert(false, "glBufferStorage unsupported!");
 }
 
+static void glNamedBufferStorageX(GLuint buffer, GLsizeiptr size, cvptr data, GLbitfield flags)
+{
+	if (glNamedBufferStorage) return glNamedBufferStorage(buffer, size, data, flags);
+	if (glNamedBufferStorageEXT) return glNamedBufferStorageEXT(buffer, size, data, flags);
+	bx_assert(false, "glNamedBufferStorage unsupported!");
+}
+
+static vptr glMapBufferRangeX(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access)
+{
+	if (glMapBufferRange) return glMapBufferRange(target, offset, length, access);
+	if (glMapBufferRangeEXT) return glMapBufferRangeEXT(target, offset, length, access);
+	bx_assert(false, "glMapBufferRange unsupported!");
+}
+
+static vptr glMapNamedBufferRangeX(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access)
+{
+	if (glMapNamedBufferRange) return glMapNamedBufferRange(buffer, offset, length, access);
+	if (glMapNamedBufferRangeEXT) return glMapNamedBufferRangeEXT(buffer, offset, length, access);
+	bx_assert(false, "glMapNamedBufferRange unsupported!");
+}
+
 static void gl_print_info()
 {
-	bx_logv(bx, "\n------------------------------------------------------");
-	bx_logv(bx, "OpenGL information:");
-	bx_logv(bx, "    gl version:       {}", (cstring)glGetString(GL_VERSION));
-	bx_logv(bx, "    glsl version:     {}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION));
-	bx_logv(bx, "    vendor:           {}", (cstring)glGetString(GL_VENDOR));
-	bx_logv(bx, "    renderer:         {}", (cstring)glGetString(GL_RENDERER));
+	bx_profile(bx);
+
+	bx_verbose(bx, "\n------------------------------------------------------");
+	bx_verbose(bx, "OpenGL information:");
+	bx_verbose(bx, "    gl version:       {}", (cstring)glGetString(GL_VERSION));
+	bx_verbose(bx, "    glsl version:     {}", (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION));
+	bx_verbose(bx, "    vendor:           {}", (cstring)glGetString(GL_VENDOR));
+	bx_verbose(bx, "    renderer:         {}", (cstring)glGetString(GL_RENDERER));
 
 	GLint value = 0;
 
-	bx_logv(bx, "OpenGL limits:");
+	bx_verbose(bx, "OpenGL limits:");
 
 	// Max texture size
 	if (GLAD_GL_VERSION_1_0 || GLAD_GL_ES_VERSION_2_0)
 		glGetIntegerv(GL_MAX_TEXTURE_SIZE, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Texture Size:                 {}", value);
+	bx_verbose(bx, "    Max Texture Size:                 {}", value);
 
 	// Max 3D texture size
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max 3D Texture Size:              {}", value);
+	bx_verbose(bx, "    Max 3D Texture Size:              {}", value);
 
 	// Max array texture layers
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Array Texture Layers:         {}", value);
+	bx_verbose(bx, "    Max Array Texture Layers:         {}", value);
 
 	// Max vertex attributes
 	if (GLAD_GL_VERSION_2_0 || GLAD_GL_ES_VERSION_2_0)
 		glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Vertex Attributes:            {}", value);
+	bx_verbose(bx, "    Max Vertex Attributes:            {}", value);
 
 	// Max vertex uniform components
 	if (GLAD_GL_VERSION_2_0 || GLAD_GL_ES_VERSION_2_0)
 		glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Vertex Uniform Components:    {}", value);
+	bx_verbose(bx, "    Max Vertex Uniform Components:    {}", value);
 
 	// Max vertex uniform blocks
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Vertex Uniform Blocks:        {}", value);
+	bx_verbose(bx, "    Max Vertex Uniform Blocks:        {}", value);
 
 	// Max fragment uniform components
 	if (GLAD_GL_VERSION_2_0 || GLAD_GL_ES_VERSION_2_0)
 		glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Fragment Uniform Components:  {}", value);
+	bx_verbose(bx, "    Max Fragment Uniform Components:  {}", value);
 
 	// Max fragment uniform blocks
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Fragment Uniform Blocks:      {}", value);
+	bx_verbose(bx, "    Max Fragment Uniform Blocks:      {}", value);
 
 	// Max combined uniform blocks
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Combined Uniform Blocks:      {}", value);
+	bx_verbose(bx, "    Max Combined Uniform Blocks:      {}", value);
 
 	// Max texture image units (fragment)
 	if (GLAD_GL_VERSION_2_0 || GLAD_GL_ES_VERSION_2_0)
 		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Texture Image Units:          {}", value);
+	bx_verbose(bx, "    Max Texture Image Units:          {}", value);
 
 	// Max vertex texture image units (vertex)
 	if (GLAD_GL_VERSION_2_0 || GLAD_GL_ES_VERSION_2_0)
 		glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Vertex Texture Image Units:   {}", value);
+	bx_verbose(bx, "    Max Vertex Texture Image Units:   {}", value);
 
 	// Max color attachments
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Color Attachments:            {}", value);
+	bx_verbose(bx, "    Max Color Attachments:            {}", value);
 
 	// Max draw buffers
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_DRAW_BUFFERS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Draw Buffers:                 {}", value);
+	bx_verbose(bx, "    Max Draw Buffers:                 {}", value);
 
 	// Max framebuffer width
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_FRAMEBUFFER_WIDTH, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Framebuffer Width:            {}", value);
+	bx_verbose(bx, "    Max Framebuffer Width:            {}", value);
 
 	// Max framebuffer height
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_FRAMEBUFFER_HEIGHT, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Framebuffer Height:           {}", value);
+	bx_verbose(bx, "    Max Framebuffer Height:           {}", value);
 
 	// Max framebuffer samples
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_FRAMEBUFFER_SAMPLES, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Framebuffer Samples:          {}", value);
+	bx_verbose(bx, "    Max Framebuffer Samples:          {}", value);
 
 	// Max vertex attrib bindings
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_VERTEX_ATTRIB_BINDINGS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Vertex Buffer Bindings:       {}", value);
+	bx_verbose(bx, "    Max Vertex Buffer Bindings:       {}", value);
 
 	// Max uniform buffer bindings
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Uniform Buffer Bindings:      {}", value);
+	bx_verbose(bx, "    Max Uniform Buffer Bindings:      {}", value);
 
 	// Max element index
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 		glGetIntegerv(GL_MAX_ELEMENT_INDEX, &value);
 	else
 		value = -1;
-	bx_logv(bx, "    Max Element Index:                {}", value);
+	bx_verbose(bx, "    Max Element Index:                {}", value);
 	
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
 	{
 		GLint count = 0;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &count);
-		bx_logv(bx, "OpenGL extensions ({}):", count);
+		bx_verbose(bx, "OpenGL extensions ({}):", count);
 
 		for (GLint i = 0; i < count; ++i)
 		{
-			bx_logv(bx, "    {}", (const char*)glGetStringi(GL_EXTENSIONS, i));
+			bx_verbose(bx, "    {}", (const char*)glGetStringi(GL_EXTENSIONS, i));
 		}
 	}
 	else if (GLAD_GL_ES_VERSION_2_0 || GLAD_GL_VERSION_2_0)
@@ -335,7 +366,7 @@ static void gl_print_info()
 				end++;
 			}
 
-			bx_logv(bx, "OpenGL extensions ({}):", count);
+			bx_verbose(bx, "OpenGL extensions ({}):", count);
 
 			start = extensions;
 			end = extensions;
@@ -346,7 +377,7 @@ static void gl_print_info()
 				if (*end == ' ' || *end == '\0')
 				{
 					buf.assign(start, end - start);
-					bx_logv(bx, "    {}", buf);
+					bx_verbose(bx, "    {}", buf);
 
 					if (*end == '\0') break;
 					start = end + 1;
@@ -356,11 +387,13 @@ static void gl_print_info()
 		}
 	}
 
-	bx_logv(bx, "------------------------------------------------------\n");
+	bx_verbose(bx, "------------------------------------------------------\n");
 }
 
 static void gl_check_features()
 {
+	bx_profile(bx);
+
 	// Separable Shader Objects (SSO)
 	g_features.separate_shader_objects = GLAD_GL_VERSION_4_5
 		|| GLAD_GL_ARB_separate_shader_objects
@@ -524,40 +557,40 @@ static void gl_check_features()
 	}
 
 	// Print final feature list
-	bx_logd(bx, "OpenGL Feature Support:");
+	bx_verbose(bx, "OpenGL Feature Support:");
 
-	bx_logd(bx, "    Separable Shader Objects       : {}", g_features.separate_shader_objects ? "YES" : "NO");
-	bx_logd(bx, "    Direct State Access            : {}", g_features.direct_state_access ? "YES" : "NO");
-	bx_logd(bx, "    Buffer Storage                 : {}", g_features.buffer_storage ? "YES" : "NO");
-	bx_logd(bx, "    Persistent Mapping             : {}", g_features.persistent_mapping ? "YES" : "NO");
-	bx_logd(bx, "    Shader Storage Buffer Object   : {}", g_features.shader_storage_buffer_object ? "YES" : "NO");
-	bx_logd(bx, "    Atomic Counters                : {}", g_features.atomic_counters ? "YES" : "NO");
-	bx_logd(bx, "    Shader Image Load/Store        : {}", g_features.shader_image_load_store ? "YES" : "NO");
-	bx_logd(bx, "    Compute Shader                 : {}", g_features.compute_shader ? "YES" : "NO");
-	bx_logd(bx, "    Multi Draw                     : {}", g_features.multi_draw ? "YES" : "NO");
-	bx_logd(bx, "    Draw Indirect                  : {}", g_features.draw_indirect ? "YES" : "NO");
-	bx_logd(bx, "    Multi Draw Indirect            : {}", g_features.multi_draw_indirect ? "YES" : "NO");
-	bx_logd(bx, "    Indirect Count                 : {}", g_features.indirect_count ? "YES" : "NO");
-	bx_logd(bx, "    Texture Storage                : {}", g_features.texture_storage ? "YES" : "NO");
-	bx_logd(bx, "    Texture View                   : {}", g_features.texture_view ? "YES" : "NO");
-	bx_logd(bx, "    Bindless Textures              : {}", g_features.bindless_textures ? "YES" : "NO");
-	bx_logd(bx, "    Sparse Texture                 : {}", g_features.sparse_texture ? "YES" : "NO");
-	bx_logd(bx, "    Vertex Attrib Binding          : {}", g_features.vertex_attrib_binding ? "YES" : "NO");
-	bx_logd(bx, "    Vertex Array Object            : {}", g_features.vertex_array_object ? "YES" : "NO");
-	bx_logd(bx, "    Multi Bind                     : {}", g_features.multi_bind ? "YES" : "NO");
-	bx_logd(bx, "    Tessellation Shader            : {}", g_features.tessellation_shader ? "YES" : "NO");
-	bx_logd(bx, "    Geometry Shader                : {}", g_features.geometry_shader ? "YES" : "NO");
-	bx_logd(bx, "    Shader Texture LOD             : {}", g_features.shader_texture_lod ? "YES" : "NO");
-	bx_logd(bx, "    Advanced Blend                 : {}", g_features.advanced_blend ? "YES" : "NO");
-	bx_logd(bx, "    Framebuffer No Attachments     : {}", g_features.framebuffer_no_attachments ? "YES" : "NO");
-	bx_logd(bx, "    Debug Output                   : {}", g_features.debug_output ? "YES" : "NO");
-	bx_logd(bx, "    Timer Query                    : {}", g_features.timer_query ? "YES" : "NO");
-	bx_logd(bx, "    Clip Control                   : {}", g_features.clip_control ? "YES" : "NO");
-	bx_logd(bx, "    Viewport Array                 : {}", g_features.viewport_array ? "YES" : "NO");
-	bx_logd(bx, "    Texture Compression BPTC       : {}", g_features.tex_compression_bptc ? "YES" : "NO");
-	bx_logd(bx, "    Texture Compression S3TC       : {}", g_features.tex_compression_s3tc ? "YES" : "NO");
-	bx_logd(bx, "    Texture Compression ASTC       : {}", g_features.tex_compression_astc ? "YES" : "NO");
-	bx_logd(bx, "    Texture Compression ETC2       : {}", g_features.tex_compression_etc2 ? "YES" : "NO");
+	bx_verbose(bx, "    Separable Shader Objects       : {}", g_features.separate_shader_objects ? "YES" : "NO");
+	bx_verbose(bx, "    Direct State Access            : {}", g_features.direct_state_access ? "YES" : "NO");
+	bx_verbose(bx, "    Buffer Storage                 : {}", g_features.buffer_storage ? "YES" : "NO");
+	bx_verbose(bx, "    Persistent Mapping             : {}", g_features.persistent_mapping ? "YES" : "NO");
+	bx_verbose(bx, "    Shader Storage Buffer Object   : {}", g_features.shader_storage_buffer_object ? "YES" : "NO");
+	bx_verbose(bx, "    Atomic Counters                : {}", g_features.atomic_counters ? "YES" : "NO");
+	bx_verbose(bx, "    Shader Image Load/Store        : {}", g_features.shader_image_load_store ? "YES" : "NO");
+	bx_verbose(bx, "    Compute Shader                 : {}", g_features.compute_shader ? "YES" : "NO");
+	bx_verbose(bx, "    Multi Draw                     : {}", g_features.multi_draw ? "YES" : "NO");
+	bx_verbose(bx, "    Draw Indirect                  : {}", g_features.draw_indirect ? "YES" : "NO");
+	bx_verbose(bx, "    Multi Draw Indirect            : {}", g_features.multi_draw_indirect ? "YES" : "NO");
+	bx_verbose(bx, "    Indirect Count                 : {}", g_features.indirect_count ? "YES" : "NO");
+	bx_verbose(bx, "    Texture Storage                : {}", g_features.texture_storage ? "YES" : "NO");
+	bx_verbose(bx, "    Texture View                   : {}", g_features.texture_view ? "YES" : "NO");
+	bx_verbose(bx, "    Bindless Textures              : {}", g_features.bindless_textures ? "YES" : "NO");
+	bx_verbose(bx, "    Sparse Texture                 : {}", g_features.sparse_texture ? "YES" : "NO");
+	bx_verbose(bx, "    Vertex Attrib Binding          : {}", g_features.vertex_attrib_binding ? "YES" : "NO");
+	bx_verbose(bx, "    Vertex Array Object            : {}", g_features.vertex_array_object ? "YES" : "NO");
+	bx_verbose(bx, "    Multi Bind                     : {}", g_features.multi_bind ? "YES" : "NO");
+	bx_verbose(bx, "    Tessellation Shader            : {}", g_features.tessellation_shader ? "YES" : "NO");
+	bx_verbose(bx, "    Geometry Shader                : {}", g_features.geometry_shader ? "YES" : "NO");
+	bx_verbose(bx, "    Shader Texture LOD             : {}", g_features.shader_texture_lod ? "YES" : "NO");
+	bx_verbose(bx, "    Advanced Blend                 : {}", g_features.advanced_blend ? "YES" : "NO");
+	bx_verbose(bx, "    Framebuffer No Attachments     : {}", g_features.framebuffer_no_attachments ? "YES" : "NO");
+	bx_verbose(bx, "    Debug Output                   : {}", g_features.debug_output ? "YES" : "NO");
+	bx_verbose(bx, "    Timer Query                    : {}", g_features.timer_query ? "YES" : "NO");
+	bx_verbose(bx, "    Clip Control                   : {}", g_features.clip_control ? "YES" : "NO");
+	bx_verbose(bx, "    Viewport Array                 : {}", g_features.viewport_array ? "YES" : "NO");
+	bx_verbose(bx, "    Texture Compression BPTC       : {}", g_features.tex_compression_bptc ? "YES" : "NO");
+	bx_verbose(bx, "    Texture Compression S3TC       : {}", g_features.tex_compression_s3tc ? "YES" : "NO");
+	bx_verbose(bx, "    Texture Compression ASTC       : {}", g_features.tex_compression_astc ? "YES" : "NO");
+	bx_verbose(bx, "    Texture Compression ETC2       : {}", g_features.tex_compression_etc2 ? "YES" : "NO");
 }
 
 #if GL_ARB_debug_output || GL_KHR_debug
@@ -596,14 +629,14 @@ static void GLAPIENTRY gl_debug_callback(
 	switch (severity)
 	{
 	case GL_DEBUG_SEVERITY_HIGH:
-		bx_logf_v(bx, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
+		bx_fatal(bx, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
 		break;
 	case GL_DEBUG_SEVERITY_MEDIUM:
 	case GL_DEBUG_SEVERITY_LOW:
-		bx_logd_v(bx, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
+		bx_debug(bx, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
 		break;
 	case GL_DEBUG_SEVERITY_NOTIFICATION:
-		bx_logv_v(bx, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
+		//bx_logv_v(bx, "[OpenGL Debug] {} {} ({}) ID={}: {}", src, tp, sev, id, message);
 		break;
 	}
 }
@@ -611,6 +644,8 @@ static void GLAPIENTRY gl_debug_callback(
 
 static void gl_setup_debug_callback()
 {
+	bx_profile(bx);
+
 #if GL_ARB_debug_output || GL_KHR_debug
 	if (g_features.debug_output)
 	{
@@ -632,6 +667,8 @@ static void gl_setup_debug_callback()
 
 static std::string gl_get_version_str()
 {
+	bx_profile(bx);
+
 	cstring glsl_version = (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION);
 	if (glsl_version)
 	{
@@ -733,7 +770,7 @@ static void gl_set_debug_name(GLenum identifier, GLuint name, GLsizei length, cs
 	/*if (glObjectLabel)
 		glObjectLabel(identifier, name, length, label);
 	else
-		bx_logd_v(bxl, "Context does not support glObjectLabel");*/
+		bx_debug(bxl, "Context does not support glObjectLabel");*/
 }
 
 void bx::gfx_push_debug_group(cstring name) bx_noexcept
@@ -773,7 +810,7 @@ static GLenum gl_get_stage(bx::gfx_shader_stage_t stage)
 	case bx::gfx_shader_stage_t::GEOMETRY: return GL_GEOMETRY_SHADER;
 	case bx::gfx_shader_stage_t::COMPUTE:  return GL_COMPUTE_SHADER;
 	default:
-		bx_logd_v(bx, "gfx_create_shader: Unknown shader stage.");
+		bx_debug(bx, "gfx_create_shader: Unknown shader stage.");
 		return 0;
 	}
 }
@@ -789,7 +826,7 @@ static cstring gl_get_stage_macro(bx::gfx_shader_stage_t stage)
 	case bx::gfx_shader_stage_t::GEOMETRY: return "#define GSH";
 	case bx::gfx_shader_stage_t::COMPUTE:  return "#define CSH";
 	default:
-		bx_logd_v(bx, "Unknown shader stage.");
+		bx_debug(bx, "Unknown shader stage.");
 		return "";
 	}
 }
@@ -808,7 +845,7 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 		std::ifstream file(desc.filepath);
 		if (!file.is_open())
 		{
-			bx_loge_v(bx, "Failed to open file {}", desc.filepath);
+			bx_error(bx, "Failed to open file {}", desc.filepath);
 			return bx::invalid_handle;
 		}
 		source_code += std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -827,7 +864,7 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 		program = glCreateShaderProgramv(stage, 1, &src_ptr);
 		if (!program)
 		{
-			bx_loge_v(bx, "gfx_create_shader: Failed to create shader program");
+			bx_error(bx, "gfx_create_shader: Failed to create shader program");
 			return bx::invalid_handle;
 		}
 		glProgramParameteri(program, GL_PROGRAM_SEPARABLE, GL_TRUE);
@@ -840,7 +877,7 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
 			std::string log(len, '\0');
 			glGetProgramInfoLog(program, len, &len, &log[0]);
-			bx_loge_v(bx, "Shader program link error: {}", log);
+			bx_error(bx, "Shader program link error: {}", log);
 			glDeleteProgram(program);
 			return bx::invalid_handle;
 		}
@@ -852,7 +889,7 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 		const GLuint shader = glCreateShader(stage);
 		if (!shader)
 		{
-			bx_logd_v(bx, "gfx_create_shader: Failed to create GL shader object.");
+			bx_debug(bx, "gfx_create_shader: Failed to create GL shader object.");
 			return bx::invalid_handle;
 		}
 
@@ -869,7 +906,7 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 			else
 #endif
 			{
-				bx_loge_v(bx, "gfx_create_shader: Binary shaders require SPIR-V and GL_ARB_gl_spirv.");
+				bx_error(bx, "gfx_create_shader: Binary shaders require SPIR-V and GL_ARB_gl_spirv.");
 				glDeleteShader(shader);
 				return bx::invalid_handle;
 			}
@@ -878,7 +915,7 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 		{
 			if (!src_ptr)
 			{
-				bx_loge_v(bx, "gfx_create_shader: No source or binary provided.");
+				bx_error(bx, "gfx_create_shader: No source or binary provided.");
 				glDeleteShader(shader);
 				return bx::invalid_handle;
 			}
@@ -895,7 +932,7 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
 			std::string log(len, '\0');
 			glGetShaderInfoLog(shader, len, &len, &log[0]);
-			bx_loge_v(bx, "Shader compile error: {}", log);
+			bx_error(bx, "Shader compile error: {}", log);
 			glDeleteShader(shader);
 			return bx::invalid_handle;
 		}
@@ -985,6 +1022,8 @@ static GLbitfield gl_storage_flags_from_memory(const bx::gfx_memory_usage_t mem)
 
 static GLbitfield gl_access_flags_from_memory(const bx::gfx_memory_usage_t mem)
 {
+	bx_profile(bx);
+
 	switch (mem)
 	{
 	case bx::gfx_memory_usage_t::CPU_TO_GPU:
@@ -1007,6 +1046,18 @@ bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
 	const GLbitfield flags = gl_storage_flags_from_memory(desc.memory_usage);
 	const GLenum usage = gl_usage_hint_from_memory(desc.memory_usage);
 	
+	const GLbitfield mapFlagsMask =
+#if defined(GL_MAP_PERSISTENT_BIT)
+		GL_MAP_PERSISTENT_BIT |
+#endif
+		GL_MAP_WRITE_BIT | GL_MAP_READ_BIT;
+
+	const GLbitfield mapFlags = flags & (
+#if defined(GL_MAP_PERSISTENT_BIT) && defined(GL_MAP_COHERENT_BIT)
+		GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT |
+#endif
+		GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+	
 	GLuint bo = 0;
 	vptr persistentPtr = nullptr;
 	if (g_features.direct_state_access)
@@ -1015,14 +1066,16 @@ bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
 
 		if (g_features.buffer_storage)
 		{
-			
-			glNamedBufferStorage(bo, size, data, flags);
+			glNamedBufferStorageX(bo, size, data, flags);
 
+			// see: https://ferransole.wordpress.com/2014/06/08/persistent-mapped-buffers/
 			if (g_features.persistent_mapping)
 			{
-				if (flags & (GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_READ_BIT))
+				if (flags & mapFlagsMask)
 				{
-					persistentPtr = glMapNamedBufferRange(bo, 0, size, flags);
+					persistentPtr = glMapNamedBufferRangeX(bo, 0, size, mapFlags);
+					if (persistentPtr == nullptr)
+						bx_warn(bx, "Persistent buffer mapping failed for buffer ID {}", bo);
 				}
 			}
 		}
@@ -1042,9 +1095,11 @@ bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
 
 			if (g_features.persistent_mapping)
 			{
-				if (flags & (GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_READ_BIT))
+				if (flags & mapFlagsMask)
 				{
-					persistentPtr = glMapBufferRange(target, 0, size, flags);
+					persistentPtr = glMapBufferRangeX(target, 0, size, mapFlags);
+					if (persistentPtr == nullptr)
+						bx_warn(bx, "Persistent buffer mapping failed for buffer ID {}", bo);
 				}
 			}
 		}
@@ -1058,12 +1113,12 @@ bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
 				if (data)
 				{
 					// Perform unsynchronized map for initial data upload
-					persistentPtr = glMapBufferRange(
+					vptr ptr = glMapBufferRangeX(
 						target, 0, size,
 						GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
-					if (persistentPtr && data)
-						memcpy(persistentPtr, data, size);
+					if (ptr && data)
+						memcpy(ptr, data, size);
 
 					glUnmapBuffer(target);
 				}
@@ -1112,26 +1167,25 @@ u8* bx::gfx_map_buffer(const handle_id handle, const u64 offset, const u64 size)
 	{
 		if (glbuffer->access == 0)
 		{
-			bx_loge_v(bx, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
+			bx_error(bx, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
 				glbuffer->name ? glbuffer->name : "unnamed", glbuffer->bo, glbuffer->target, glbuffer->size);
 			
 			return nullptr;
 		}
 
-		vptr ptr = glMapNamedBufferRange(
+		vptr ptr = glMapNamedBufferRangeX(
 			glbuffer->bo, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), glbuffer->access);
 		
 		return static_cast<u8*>(ptr);
 	}
 	else
 	{
-		// Persistent mapped buffer path
 		if (glbuffer->persistentPtr)
 			return static_cast<u8*>(glbuffer->persistentPtr) + offset;
 
 		if (glbuffer->access == 0)
 		{
-			bx_loge_v(bx, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
+			bx_error(bx, "Attempted to map GPU-only buffer '{}' (ID: {}, Target: 0x{:X}, Size: {} bytes). Mapping is not allowed.",
 				glbuffer->name ? glbuffer->name : "unnamed", glbuffer->bo, glbuffer->target, glbuffer->size);
 			
 			return nullptr;
@@ -1139,7 +1193,7 @@ u8* bx::gfx_map_buffer(const handle_id handle, const u64 offset, const u64 size)
 
 		glBindBuffer(glbuffer->target, glbuffer->bo);
 
-		vptr ptr = glMapBufferRange(
+		vptr ptr = glMapBufferRangeX(
 			glbuffer->target, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), glbuffer->access);
 
 		glBindBuffer(glbuffer->target, 0);
@@ -1465,7 +1519,7 @@ bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
-		bx_loge_v(bx, "Framebuffer incomplete");
+		bx_error(bx, "Framebuffer incomplete");
 		glDeleteFramebuffers(1, &fbo);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		return invalid_handle;
@@ -1527,7 +1581,7 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 
 	if (!desc.shaders)
 	{
-		bx_loge_v(bx, "gfx_create_pipeline: no shaders provided");
+		bx_error(bx, "gfx_create_pipeline: no shaders provided");
 		return bx::invalid_handle;
 	}
 
@@ -1556,7 +1610,7 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 			case GL_TESS_EVALUATION_SHADER: stagebit = GL_TESS_EVALUATION_SHADER_BIT; break;
 			case GL_COMPUTE_SHADER:         stagebit = GL_COMPUTE_SHADER_BIT; break;
 			default:
-				bx_loge_v(bx, "gfx_create_pipeline: unknown shader stage");
+				bx_error(bx, "gfx_create_pipeline: unknown shader stage");
 				if (glDeleteProgramPipelines)
 					glDeleteProgramPipelines(1, &pipeline);
 				return invalid_handle;
@@ -1586,7 +1640,7 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 			std::string log(logLen, '\0');
 			glGetProgramInfoLog(program, logLen, &logLen, &log[0]);
 			log = "Pipeline link error: " + log;
-			bx_loge_v(bx, log.c_str());
+			bx_error(bx, log.c_str());
 			glDeleteProgram(program);
 			return bx::invalid_handle;
 		}
@@ -1607,7 +1661,7 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 		glCreateVertexArrays(1, &vao);
 	else if (g_features.vertex_array_object)
 		glGenVertexArraysX(1, &vao);
-
+	
 	// Validate pipeline if using SSO
 	if (g_features.separate_shader_objects)
 	{
@@ -1623,7 +1677,7 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 			glGetProgramPipelineiv(pipeline, GL_INFO_LOG_LENGTH, &logLen);
 			std::string log(logLen, '\0');
 			glGetProgramPipelineInfoLog(pipeline, logLen, &logLen, &log[0]);
-			bx_loge_v(bx, "Pipeline validation failed: {}", log);
+			bx_error(bx, "Pipeline validation failed: {}", log);
 		}
 
 		if (!g_features.direct_state_access && g_features.vertex_array_object)
@@ -1727,7 +1781,7 @@ void bx::gfx_destroy_pipeline(const handle_id handle) bx_noexcept
 	}
 
 	if (glpipeline->vao)
-		glDeleteVertexArrays(1, &glpipeline->vao);
+		glDeleteVertexArraysX(1, &glpipeline->vao);
 
 	g_pipelines.remove(handle);
 }
@@ -1768,7 +1822,7 @@ void bx::gfx_bind_pipeline(handle_id cb, handle_id pipeline) bx_noexcept
 	auto glpipeline = g_pipelines.get(pipeline);
 	if (!glpipeline)
 	{
-		bx_logw_v(bx, "Attempted to bind pipeline with non-existent handle.");
+		bx_warn(bx, "Attempted to bind pipeline with non-existent handle.");
 		return;
 	}
 
@@ -1814,7 +1868,7 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 	auto glpipeline = g_pipelines.get(g_current_pipeline);
 	if (!glpipeline)
 	{
-		bx_loge_v(bx, "Attemping to bind vertex buffers without a bound pipeline!");
+		bx_error(bx, "Attemping to bind vertex buffers without a bound pipeline!");
 		return;
 	}
 

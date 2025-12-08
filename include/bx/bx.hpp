@@ -48,21 +48,15 @@ using isize = ptrdiff_t;
 
 #define bx_log_set_category_types(T, types) bx::log_set_category_types(bx::category_mask<bx_category_##T##_t>(), types)
 #define _bx_log(T, lvl, fstr, ...) bx::logf(lvl, fstr, ##__VA_ARGS__)
-#define bx_logi(T, fstr, ...) _bx_log(T, bx::log_t::INFO, fstr, ##__VA_ARGS__)
-#define bx_logw(T, fstr, ...) _bx_log(T, bx::log_t::WARN, fstr, ##__VA_ARGS__)
-#define bx_loge(T, fstr, ...) _bx_log(T, bx::log_t::ERROR, fstr, ##__VA_ARGS__)
-#define bx_logf(T, fstr, ...) _bx_log(T, bx::log_t::FATAL, fstr, ##__VA_ARGS__)
-#define bx_logv(T, fstr, ...) _bx_log(T, bx::log_t::VERBOSE, fstr, ##__VA_ARGS__)
-#define bx_logd(T, fstr, ...) _bx_log(T, bx::log_t::DEBUG, fstr, ##__VA_ARGS__)
 #define _bx_log_v(T, lvl, fstr, ...) bx::logf_v(lvl, bx::category_mask<bx_category_##T##_t>(), __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
-#define bx_logi_v(T, fstr, ...) _bx_log_v(T, bx::log_t::INFO, fstr, ##__VA_ARGS__)
-#define bx_logw_v(T, fstr, ...) _bx_log_v(T, bx::log_t::WARN, fstr, ##__VA_ARGS__)
-#define bx_loge_v(T, fstr, ...) _bx_log_v(T, bx::log_t::ERROR, fstr, ##__VA_ARGS__)
-#define bx_logf_v(T, fstr, ...) _bx_log_v(T, bx::log_t::FATAL, fstr, ##__VA_ARGS__)
-#define bx_logv_v(T, fstr, ...) _bx_log_v(T, bx::log_t::VERBOSE, fstr, ##__VA_ARGS__)
-#define bx_logd_v(T, fstr, ...) _bx_log_v(T, bx::log_t::DEBUG, fstr, ##__VA_ARGS__)
+#define bx_info(T, fstr, ...) _bx_log_v(T, bx::log_t::INFO, fstr, ##__VA_ARGS__)
+#define bx_warn(T, fstr, ...) _bx_log_v(T, bx::log_t::WARN, fstr, ##__VA_ARGS__)
+#define bx_error(T, fstr, ...) _bx_log_v(T, bx::log_t::ERROR, fstr, ##__VA_ARGS__)
+#define bx_fatal(T, fstr, ...) _bx_log_v(T, bx::log_t::FATAL, fstr, ##__VA_ARGS__)
+#define bx_debug(T, fstr, ...) _bx_log_v(T, bx::log_t::DEBUG, fstr, ##__VA_ARGS__)
+#define bx_verbose(T, fstr, ...) _bx_log(T, bx::log_t::VERBOSE, fstr, ##__VA_ARGS__)
 
-#define bx_assert(expr, msg) do { if (!(expr)) { bx_logf(bx, "Assertion failed '{}'", msg); } } while (0)
+#define bx_assert(expr, msg) do { if (!(expr)) { bx_fatal(bx, "Assertion failed '{}'", msg); } } while (0)
 #define bx_ensure(expr) bx_assert(expr, #expr)
 
 #define bx_profile(T) bx::profile_t _bx_concat(_bx_profile_, __LINE__){ bx::category_mask<bx_category_##T##_t>(), __func__, __func__, __FILE__, __LINE__ }
@@ -155,6 +149,7 @@ namespace bx
 
 	bx_api varray<type_t> get_types() bx_noexcept;
 
+	// TODO: Lets rethink how categories are done, atm not very clean design
 	bx_api category_t register_category(cstring name) bx_noexcept;
 
 	template<typename>
