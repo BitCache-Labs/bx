@@ -1,4 +1,4 @@
-#include <bxl_app.hpp>
+#include <bx_app_impl.hpp>
 
 #include <glad/glad.h>
 
@@ -18,6 +18,7 @@ struct gl_shader_t
 struct gl_buffer_t
 {
 	cstring name{ nullptr };
+	GLuint vao{ 0 };
 	GLuint bo{ 0 };
 	GLenum target{ GL_ARRAY_BUFFER };
 	GLenum usage{ 0 };
@@ -680,7 +681,7 @@ static std::string gl_get_version_str()
 			i32 major = 0, minor = 0;
 			sscanf(p, "%d.%d", &major, &minor);
 
-#ifdef BXL_GFX_OPENGL
+#ifdef BX_APP_GFX_OPENGL
 			return fmt::format("#version {:d}{:02d} core", major, minor);
 #else
 			if (GLAD_GL_ES_VERSION_3_0) // || GLAD_GL_VERSION_3_0
@@ -748,7 +749,7 @@ cstring bx::gfx_backend_name() bx_noexcept
 {
 	bx_profile(bx);
 
-#ifdef BXL_GFX_OPENGLES
+#ifdef BX_APP_GFX_OPENGLES
 	return "opengles";
 #else
 	return "opengl";
@@ -1229,7 +1230,7 @@ void bx::gfx_unmap_buffer(const handle_id handle) bx_noexcept
 {
 	bx_profile(bx);
 
-#ifdef BXL_GFX_OPENGLES
+#ifdef BX_APP_GFX_OPENGLES
 	return gl33_unmap_buffer(handle);
 #else
 	return gl46_unmap_buffer(handle);
@@ -1276,7 +1277,7 @@ void bx::gfx_update_buffer(const handle_id handle, const u64 dst_offset, cvptr s
 {
 	bx_profile(bx);
 
-#ifdef BXL_GFX_OPENGLES
+#ifdef BX_APP_GFX_OPENGLES
 	return gl33_update_buffer(handle, dst_offset, src, size);
 #else
 	return gl46_update_buffer(handle, dst_offset, src, size);
@@ -1884,6 +1885,7 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 				const auto glbuff = g_buffers.get(vertex_buffers[i]);
 				if (!glbuff) continue;
 
+				// Compute stride
 				GLsizei stride = 0;
 				for (const auto& attr : glpipeline->attributes)
 				{
@@ -1896,9 +1898,11 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 				}
 
 				tmp_buffers[i] = glbuff->bo;
-				tmp_offset[i] = 0;
+				tmp_offset[i] = static_cast<GLintptr>(offsets ? offsets[i] : 0);
 				tmp_strides[i] = stride;
 			}
+
+			// Bind buffers
 			glBindVertexBuffers(first_binding, binding_count, tmp_buffers, tmp_offset, tmp_strides);
 		}
 		else
@@ -1908,6 +1912,7 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 				const auto glbuff = g_buffers.get(vertex_buffers[i]);
 				if (!glbuff) continue;
 
+				// Compute stride
 				GLsizei stride = 0;
 				for (const auto& attr : glpipeline->attributes)
 				{
@@ -1919,6 +1924,7 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 					stride += sizebytes * attr.count;
 				}
 
+				// Bind buffer
 				const GLuint binding_index = first_binding + i;
 				const GLintptr offset = static_cast<GLintptr>(offsets ? offsets[i] : 0);
 				glBindVertexBuffer(binding_index, glbuff->bo, offset, stride);
@@ -1932,8 +1938,14 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 			const auto glbuff = g_buffers.get(vertex_buffers[i]);
 			if (!glbuff) continue;
 
+			// Skip if last vao we were bound to is the same
+			if (glbuff->vao == glpipeline->vao)
+				continue;
+			glbuff->vao = glpipeline->vao;
+
 			glBindBuffer(glbuff->target, glbuff->bo);
 
+			// Compute stride
 			GLsizei stride = 0;
 			for (const auto& attr : glpipeline->attributes)
 			{
@@ -1945,6 +1957,7 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 				stride += sizebytes * attr.count;
 			}
 
+			// Setup attributes
 			GLuint relative_offset = 0;
 			for (const auto& attr : glpipeline->attributes)
 			{

@@ -1,7 +1,7 @@
-#ifndef BXL_INTERNAL_HPP
-#define BXL_INTERNAL_HPP
+#ifndef BX_APP_IMPL
+#define BX_APP_IMPL
 
-#include <bxl.hpp>
+#include <bx_app.hpp>
 #include <unordered_map>
 
 namespace bx
@@ -109,4 +109,4 @@ constexpr bool bx_enum_any(bx::gfx_buffer_usage_t a) noexcept
 	return static_cast<u32>(a) != 0;
 }
 
-#endif //BXL_INTERNAL_HPP
+#endif // BX_APP_IMPL

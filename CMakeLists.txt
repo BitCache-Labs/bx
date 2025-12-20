@@ -4,190 +4,197 @@ project(bx)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(BX_LITE_BUILD "Build bx lite implementation" ON)
+option(BX_CORE "Build bx core lib" ON)
+option(BX_APP "Build bx app lib" ON)
+option(BX_STL "Build bx stl lib" ON)
+option(BX_MATH "Build bx math lib" ON)
+option(BX_ECS "Build bx ecs lib" OFF)
+option(BX_ENGINE "Build bx engine lib" OFF)
 
-add_library(bx INTERFACE)
-target_include_directories(bx INTERFACE "include/bx")
+if (BX_CORE)
+    add_library(bx_core "src/bx_core/bx_core.cpp")
+    target_include_directories(bx_core PUBLIC "include/bx_core")
+endif()
 
-# Optional bx lite simple but complete implementation
-if (BX_LITE_BUILD)
-    option(BXL_ENABLE_IMGUI "Build with ImGui support" ON)
+if (BX_APP)
+    option(BX_APP_ENABLE_IMGUI "Build with ImGui support" ON)
     
-    set(BXL_DVC_BACKENDS "Null" "GLFW" "Custom")
-    set(BXL_AUD_BACKENDS "Null" "PortAudio" "Custom")
-    set(BXL_NET_BACKENDS "Null" "ENet" "Custom")
-    set(BXL_GFX_BACKENDS "Null" "OpenGL" "OpenGLES" "Vulkan" "Direct11" "Direct12" "Metal" "WebGPU" "Custom")
+    set(BX_APP_DVC_BACKENDS "Null" "GLFW" "Custom")
+    set(BX_APP_AUD_BACKENDS "Null" "PortAudio" "Custom")
+    set(BX_APP_NET_BACKENDS "Null" "ENet" "Custom")
+    set(BX_APP_GFX_BACKENDS "Null" "OpenGL" "OpenGLES" "Vulkan" "Direct11" "Direct12" "Metal" "WebGPU" "Custom")
 
-    set(BXL_DVC_BACKEND "GLFW" CACHE STRING "bxl device backend")
-    set_property(CACHE BXL_DVC_BACKEND PROPERTY STRINGS ${BXL_DVC_BACKENDS})
+    set(BX_APP_DVC_BACKEND "GLFW" CACHE STRING "bx app device backend")
+    set_property(CACHE BX_APP_DVC_BACKEND PROPERTY STRINGS ${BX_APP_DVC_BACKENDS})
 
-    set(BXL_AUD_BACKEND "PortAudio" CACHE STRING "bxl audio backend")
-    set_property(CACHE BXL_AUD_BACKEND PROPERTY STRINGS ${BXL_AUD_BACKENDS})
+    set(BX_APP_AUD_BACKEND "PortAudio" CACHE STRING "bx app audio backend")
+    set_property(CACHE BX_APP_AUD_BACKEND PROPERTY STRINGS ${BX_APP_AUD_BACKENDS})
 
-    set(BXL_NET_BACKEND "ENet" CACHE STRING "bxl net backend")
-    set_property(CACHE BXL_NET_BACKEND PROPERTY STRINGS ${BXL_NET_BACKENDS})
+    set(BX_APP_NET_BACKEND "ENet" CACHE STRING "bx app net backend")
+    set_property(CACHE BX_APP_NET_BACKEND PROPERTY STRINGS ${BX_APP_NET_BACKENDS})
 
-    set(BXL_GFX_BACKEND "OpenGL" CACHE STRING "bxl graphics backend")
-    set_property(CACHE BXL_GFX_BACKEND PROPERTY STRINGS ${BXL_GFX_BACKENDS})
+    set(BX_APP_GFX_BACKEND "OpenGL" CACHE STRING "bx app graphics backend")
+    set_property(CACHE BX_APP_GFX_BACKEND PROPERTY STRINGS ${BX_APP_GFX_BACKENDS})
     
     add_subdirectory(extern)
     
-    set(bxl_srcs
-            "src/bxl_app.cpp"
+    set(bx_app_srcs
+            "src/bx_app/bx_app.cpp"
     )
 
-    set(bxl_libs bx fmt)
+    set(bx_app_libs bx_core fmt)
 
-    set(bxl_defines)
+    set(bx_app_defines)
 
-    if(BXL_ENABLE_IMGUI)
-        set(bxl_libs ${bxl_libs} imgui)
-        set(bxl_defines ${bxl_defines} BXL_APP_IMGUI)
-        message("Enabled bxl imgui support")
+    if(BX_APP_ENABLE_IMGUI)
+        set(bx_app_libs ${bx_app_libs} imgui)
+        set(bx_app_defines ${bx_app_defines} BX_APP_APP_IMGUI)
+        message("Enabled bx app imgui support")
     endif()
 
-    message("Using bxl device backend: ${BXL_DVC_BACKEND}")
-    message("Using bxl audio backend: ${BXL_AUD_BACKEND}")
-    message("Using bxl net backend: ${BXL_NET_BACKEND}")
-    message("Using bxl graphics backend: ${BXL_GFX_BACKEND}")
+    message("Using bx app device backend: ${BX_APP_DVC_BACKEND}")
+    message("Using bx app audio backend: ${BX_APP_AUD_BACKEND}")
+    message("Using bx app net backend: ${BX_APP_NET_BACKEND}")
+    message("Using bx app graphics backend: ${BX_APP_GFX_BACKEND}")
 
     # Device backend
-    if(BXL_DVC_BACKEND STREQUAL "Null")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_dvc_null.cpp"
+    if(BX_APP_DVC_BACKEND STREQUAL "Null")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_dvc_null.cpp"
         )
-        set(bxl_defines ${bxl_defines} BXL_DVC_NULL)
+        set(bx_app_defines ${bx_app_defines} BX_APP_DVC_NULL)
 
-    elseif(BXL_DVC_BACKEND STREQUAL "GLFW")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_dvc_glfw.cpp"
+    elseif(BX_APP_DVC_BACKEND STREQUAL "GLFW")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_dvc_glfw.cpp"
         )
-        set(bxl_libs ${bxl_libs} glfw)
-        set(bxl_defines ${bxl_defines} BXL_DVC_GLFW)
+        set(bx_app_libs ${bx_app_libs} glfw)
+        set(bx_app_defines ${bx_app_defines} BX_APP_DVC_GLFW)
 
-    elseif(BXL_DVC_BACKEND STREQUAL "Custom")
-        message(WARNING "Using a custom bxl device backend. You must provide your own implementation!")
+    elseif(BX_APP_DVC_BACKEND STREQUAL "Custom")
+        message(WARNING "Using a custom bx app device backend. You must provide your own implementation!")
     else()
-        message(FATAL_ERROR "Unsupported bxl device backend '${BXL_DVC_BACKEND}'! Please choose a supported backend.")
+        message(FATAL_ERROR "Unsupported bx app device backend '${BX_APP_DVC_BACKEND}'! Please choose a supported backend.")
     endif()
 
     # Audio backend
-    if(BXL_AUD_BACKEND STREQUAL "Null")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_aud_null.cpp"
+    if(BX_APP_AUD_BACKEND STREQUAL "Null")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_aud_null.cpp"
         )
-        set(bxl_defines ${bxl_defines} BXL_AUD_NULL)
+        set(bx_app_defines ${bx_app_defines} BX_APP_AUD_NULL)
 
-    elseif(BXL_AUD_BACKEND STREQUAL "PortAudio")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_aud_pa.cpp"
+    elseif(BX_APP_AUD_BACKEND STREQUAL "PortAudio")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_aud_pa.cpp"
         )
-        set(bxl_libs ${bxl_libs})
-        set(bxl_defines ${bxl_defines} BXL_AUD_PORTAUDIO)
+        set(bx_app_libs ${bx_app_libs})
+        set(bx_app_defines ${bx_app_defines} BX_APP_AUD_PORTAUDIO)
 
-    elseif(BXL_AUD_BACKEND STREQUAL "Custom")
-        message(WARNING "Using a custom bxl audio backend. You must provide your own implementation!")
+    elseif(BX_APP_AUD_BACKEND STREQUAL "Custom")
+        message(WARNING "Using a custom bx app audio backend. You must provide your own implementation!")
     else()
-        message(FATAL_ERROR "Unsupported bxl audio backend '${BXL_AUD_BACKEND}'! Please choose a supported backend.")
+        message(FATAL_ERROR "Unsupported bx app audio backend '${BX_APP_AUD_BACKEND}'! Please choose a supported backend.")
     endif()
 
     # Net backend
-    if(BXL_NET_BACKEND STREQUAL "Null")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_net_null.cpp"
+    if(BX_APP_NET_BACKEND STREQUAL "Null")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_net_null.cpp"
         )
-        set(bxl_defines ${bxl_defines} BXL_NET_NULL)
+        set(bx_app_defines ${bx_app_defines} BX_APP_NET_NULL)
 
-    elseif(BXL_NET_BACKEND STREQUAL "ENet")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_net_enet.cpp"
+    elseif(BX_APP_NET_BACKEND STREQUAL "ENet")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_net_enet.cpp"
         )
-        set(bxl_libs ${bxl_libs})
-        set(bxl_defines ${bxl_defines} BXL_NET_ENET)
+        set(bx_app_libs ${bx_app_libs})
+        set(bx_app_defines ${bx_app_defines} BX_APP_NET_ENET)
 
-    elseif(BXL_NET_BACKEND STREQUAL "Custom")
-        message(WARNING "Using a custom bxl net backend. You must provide your own implementation!")
+    elseif(BX_APP_NET_BACKEND STREQUAL "Custom")
+        message(WARNING "Using a custom bx app net backend. You must provide your own implementation!")
     else()
-        message(FATAL_ERROR "Unsupported bxl net backend '${BXL_NET_BACKEND}'! Please choose a supported backend.")
+        message(FATAL_ERROR "Unsupported bx app net backend '${BX_APP_NET_BACKEND}'! Please choose a supported backend.")
     endif()
 
     # Graphics backend
-    if(BXL_GFX_BACKEND STREQUAL "Null")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_gfx_null.cpp"
+    if(BX_APP_GFX_BACKEND STREQUAL "Null")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_gfx_null.cpp"
         )
-        set(bxl_defines ${bxl_defines} BXL_GFX_NULL)
+        set(bx_app_defines ${bx_app_defines} BX_APP_GFX_NULL)
 
-    elseif(BXL_GFX_BACKEND STREQUAL "OpenGL")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_gfx_gl.cpp"
+    elseif(BX_APP_GFX_BACKEND STREQUAL "OpenGL")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_gfx_gl.cpp"
         )
-        set(bxl_libs ${bxl_libs} glad)
-        set(bxl_defines ${bxl_defines} BXL_GFX_OPENGL)
+        set(bx_app_libs ${bx_app_libs} glad)
+        set(bx_app_defines ${bx_app_defines} BX_APP_GFX_OPENGL)
 
-    elseif(BXL_GFX_BACKEND STREQUAL "OpenGLES")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_gfx_gl.cpp"
+    elseif(BX_APP_GFX_BACKEND STREQUAL "OpenGLES")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_gfx_gl.cpp"
         )
-        set(bxl_libs ${bxl_libs} glad)
-        set(bxl_defines ${bxl_defines} BXL_GFX_OPENGLES)
+        set(bx_app_libs ${bx_app_libs} glad)
+        set(bx_app_defines ${bx_app_defines} BX_APP_GFX_OPENGLES)
 
-    elseif(BXL_GFX_BACKEND STREQUAL "Vulkan")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_gfx_vk.cpp"
+    elseif(BX_APP_GFX_BACKEND STREQUAL "Vulkan")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_gfx_vk.cpp"
         )
-        set(bxl_libs ${bxl_libs} vulkan)
-        set(bxl_defines ${bxl_defines} BXL_GFX_VULKAN)
+        set(bx_app_libs ${bx_app_libs} vulkan)
+        set(bx_app_defines ${bx_app_defines} BX_APP_GFX_VULKAN)
 
-    elseif(BXL_GFX_BACKEND STREQUAL "Direct11")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_gfx_dx11.cpp"
+    elseif(BX_APP_GFX_BACKEND STREQUAL "Direct11")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_gfx_dx11.cpp"
         )
-        set(bxl_libs ${bxl_libs})
-        set(bxl_defines ${bxl_defines} BXL_GFX_DIRECT11)
+        set(bx_app_libs ${bx_app_libs})
+        set(bx_app_defines ${bx_app_defines} BX_APP_GFX_DIRECT11)
 
-    elseif(BXL_GFX_BACKEND STREQUAL "Direct12")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_gfx_dx12.cpp"
+    elseif(BX_APP_GFX_BACKEND STREQUAL "Direct12")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_gfx_dx12.cpp"
         )
-        set(bxl_libs ${bxl_libs})
-        set(bxl_defines ${bxl_defines} BXL_GFX_DIRECT12)
+        set(bx_app_libs ${bx_app_libs})
+        set(bx_app_defines ${bx_app_defines} BX_APP_GFX_DIRECT12)
 
-    elseif(BXL_GFX_BACKEND STREQUAL "Metal")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_gfx_mtl.cpp"
+    elseif(BX_APP_GFX_BACKEND STREQUAL "Metal")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_gfx_mtl.cpp"
         )
-        set(bxl_libs ${bxl_libs})
-        set(bxl_defines ${bxl_defines} BXL_GFX_METAL)
+        set(bx_app_libs ${bx_app_libs})
+        set(bx_app_defines ${bx_app_defines} BX_APP_GFX_METAL)
 
-    elseif(BXL_GFX_BACKEND STREQUAL "WebGPU")
-        set(bxl_srcs ${bxl_srcs}
-                "src/bxl_gfx_wgpu.cpp"
+    elseif(BX_APP_GFX_BACKEND STREQUAL "WebGPU")
+        set(bx_app_srcs ${bx_app_srcs}
+                "src/bx_app/bx_gfx_wgpu.cpp"
         )
-        set(bxl_libs ${bxl_libs})
-        set(bxl_defines ${bxl_defines} BXL_GFX_WEBGPU)
+        set(bx_app_libs ${bx_app_libs})
+        set(bx_app_defines ${bx_app_defines} BX_APP_GFX_WEBGPU)
 
-    elseif(BXL_GFX_BACKEND STREQUAL "Custom")
-        message(WARNING "Using a custom bxl graphics backend. You must provide your own implementation!")
+    elseif(BX_APP_GFX_BACKEND STREQUAL "Custom")
+        message(WARNING "Using a custom bx app graphics backend. You must provide your own implementation!")
     else()
-        message(FATAL_ERROR "Unsupported bxl graphics backend '${BXL_GFX_BACKEND}'! Please choose a supported backend.")
+        message(FATAL_ERROR "Unsupported bx app graphics backend '${BX_APP_GFX_BACKEND}'! Please choose a supported backend.")
     endif()
 
-    add_library(bxl_internal INTERFACE)
+    add_library(bx_app_internal INTERFACE)
 
-    target_include_directories(bxl_internal INTERFACE "include/bxl" "src")
-    target_link_libraries(bxl_internal INTERFACE ${bxl_libs})
-    target_compile_definitions(bxl_internal INTERFACE ${bxl_defines})
+    target_include_directories(bx_app_internal INTERFACE "include/bx_app" "src/bx_app")
+    target_link_libraries(bx_app_internal INTERFACE ${bx_app_libs})
+    target_compile_definitions(bx_app_internal INTERFACE ${bx_app_defines})
 
-    #message("Using bxl libs: ${bxl_libs}")
-    #message("Using bxl defines: ${bxl_defines}")
+    #message("Using bx app srcs: ${bx_app_srcs}")
+    #message("Using bx app libs: ${bx_app_libs}")
+    #message("Using bx app defines: ${bx_app_defines}")
 
-    add_library(bxl ${bxl_srcs})
-    target_include_directories(bxl PUBLIC "include/bxl")
-    target_link_libraries(bxl PUBLIC bx fmt)
-    if(BXL_ENABLE_IMGUI)
-        target_link_libraries(bxl PUBLIC imgui)
-        target_compile_definitions(bxl PUBLIC BXL_APP_IMGUI)
+    add_library(bx_app ${bx_app_srcs})
+    target_include_directories(bx_app PUBLIC "include/bx_app")
+    target_link_libraries(bx_app PUBLIC bx_core fmt)
+    if(BX_APP_ENABLE_IMGUI)
+        target_link_libraries(bx_app PUBLIC imgui)
+        target_compile_definitions(bx_app PUBLIC BX_APP_IMGUI)
     endif()
-    target_link_libraries(bxl PRIVATE bxl_internal)
+    target_link_libraries(bx_app PRIVATE bx_app_internal)
 endif()
