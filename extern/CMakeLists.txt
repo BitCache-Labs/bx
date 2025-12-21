@@ -1,13 +1,21 @@
+if (BX_MATH)
+    # GLM
+    add_subdirectory(glm)
+
+    # Klein
+    add_subdirectory(klein)
+endif()
+
 # FMT
 add_subdirectory(fmt)
 
 # GLFW
-if(BXL_DVC_BACKEND STREQUAL "GLFW")
+if(BX_APP_DVC_BACKEND STREQUAL "GLFW")
     add_subdirectory(glfw)
 endif()
 
 # Graphics
-if(BXL_GFX_BACKEND STREQUAL "OpenGL" OR BXL_GFX_BACKEND STREQUAL "OpenGLES")
+if(BX_APP_GFX_BACKEND STREQUAL "OpenGL" OR BX_APP_GFX_BACKEND STREQUAL "OpenGLES")
     # Glad
     set(GLAD_PROFILE "core" CACHE STRING "OpenGL profile")
     set(GLAD_API "gl=4.6,gles2=3.2" CACHE STRING "API type/version pairs")
@@ -29,12 +37,12 @@ if(BXL_GFX_BACKEND STREQUAL "OpenGL" OR BXL_GFX_BACKEND STREQUAL "OpenGLES")
     #endif()
 endif()
 
-if(BXL_GFX_BACKEND STREQUAL "Vulkan")
+if(BX_APP_GFX_BACKEND STREQUAL "Vulkan")
     # TODO: Vulkan
 endif()
 
 # ImGui
-if(BXL_ENABLE_IMGUI)
+if(BX_APP_ENABLE_IMGUI)
     set(imgui_srcs
             imgui/imgui.cpp
             imgui/imgui_demo.cpp
@@ -45,7 +53,7 @@ if(BXL_ENABLE_IMGUI)
 
     set(imgui_libs)
     
-    if(BXL_DVC_BACKEND STREQUAL "GLFW")
+    if(BX_APP_DVC_BACKEND STREQUAL "GLFW")
         set(imgui_srcs ${imgui_srcs}
                 imgui/backends/imgui_impl_glfw.cpp
         )
@@ -56,13 +64,13 @@ if(BXL_ENABLE_IMGUI)
         endif()
     endif()
 
-    if(BXL_GFX_BACKEND STREQUAL "OpenGL" OR BXL_GFX_BACKEND STREQUAL "OpenGLES")
+    if(BX_APP_GFX_BACKEND STREQUAL "OpenGL" OR BX_APP_GFX_BACKEND STREQUAL "OpenGLES")
         set(imgui_srcs ${imgui_srcs}
                 imgui/backends/imgui_impl_opengl3.cpp
         )
     endif()
 
-    if(BXL_GFX_BACKEND STREQUAL "Vulkan")
+    if(BX_APP_GFX_BACKEND STREQUAL "Vulkan")
         set(imgui_srcs ${imgui_srcs}
                 imgui/backends/imgui_impl_vulkan.cpp
         )
