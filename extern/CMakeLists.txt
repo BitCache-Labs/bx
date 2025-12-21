@@ -80,3 +80,8 @@ if(BX_APP_ENABLE_IMGUI)
     target_include_directories(imgui PUBLIC imgui imgui/backends)
     target_link_libraries(imgui PRIVATE ${imgui_libs})
 endif()
+
+if (BX_TESTS)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    add_subdirectory(googletest)
+endif()

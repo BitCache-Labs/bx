@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_map>
 
-static std::vector<bx::type_t> g_types{};
+static bx::array<bx::type_t> g_types{};
 static std::unordered_map<bx::type_t, cstring> g_types_map{};
 
 bx_register_type(u8)
@@ -40,8 +40,5 @@ cstring bx::type_name(type_t id) bx_noexcept
 
 bx::array_view<bx::type_t> bx::get_types() bx_noexcept
 {
-	bx::array_view<type_t> view{};
-	view.data = g_types.data();
-	view.size = g_types.size();
-	return view;
+	return g_types;
 }

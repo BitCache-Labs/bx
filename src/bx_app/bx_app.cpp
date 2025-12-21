@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_map>
 
-static std::vector<bx::category_t> g_categories{};
+static bx::array<bx::category_t> g_categories{};
 static std::unordered_map<bx::category_t, cstring> g_categories_map{};
 
 static bx::log_callback_t g_log_callback = nullptr;
@@ -46,10 +46,7 @@ cstring bx::category_name(category_t id) bx_noexcept
 
 bx::array_view<bx::category_t> bx::get_categories() bx_noexcept
 {
-	bx::array_view<category_t> view{};
-	view.data = g_categories.data();
-	view.size = g_categories.size();
-	return view;
+	return { g_categories };
 }
 
 bx::result_t bx::app_init(const app_config_t& config) bx_noexcept

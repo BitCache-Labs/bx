@@ -23,3 +23,6 @@
 [submodule "extern/klein"]
 	path = extern/klein
 	url = https://github.com/jeremyong/klein.git
+[submodule "extern/googletest"]
+	path = extern/googletest
+	url = https://github.com/google/googletest.git

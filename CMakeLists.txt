@@ -12,6 +12,9 @@ option(BX_ECS "Build bx ecs lib" OFF)
 option(BX_APP "Build bx app lib" ON)
 option(BX_ENGINE "Build bx engine lib" OFF)
 
+option(BX_TESTS "Build bx tests" ON)
+option(BX_EXAMPLES "Build bx examples" ON)
+
 if (BX_CORE)
     add_library(bx_core STATIC "src/bx_core/bx_core.cpp")
     target_include_directories(bx_core PUBLIC "include/bx_core")
@@ -216,4 +219,13 @@ if (BX_APP)
         target_compile_definitions(bx_app PUBLIC BX_APP_IMGUI)
     endif()
     target_link_libraries(bx_app PRIVATE bx_app_internal)
+endif()
+
+if (BX_TESTS)
+    include(CTest)
+    add_subdirectory(tests)
+endif()
+
+if (BX_EXAMPLES)
+    add_subdirectory(examples)
 endif()

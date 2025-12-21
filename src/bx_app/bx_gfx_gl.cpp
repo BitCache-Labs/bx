@@ -894,14 +894,14 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 			return bx::invalid_handle;
 		}
 
-		if (desc.src_bin.data && desc.src_bin.size > 0)
+		if (desc.src_bin)
 		{
 #ifdef GL_ARB_gl_spirv
 			if (desc.lang == bx::gfx_shader_lang_t::SPIR_V)
 			{
 				glShaderBinary(
 					1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB,
-					desc.src_bin.data, static_cast<GLsizei>(desc.src_bin.size));
+					desc.src_bin.data(), static_cast<GLsizei>(desc.src_bin.size()));
 				glSpecializeShaderARB(shader, desc.entrypoint, 0, nullptr, nullptr);
 			}
 			else
@@ -1494,7 +1494,7 @@ bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_
 	glGenFramebuffers(1, &fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-	for (u32 i = 0; i < desc.color_textures.size; ++i)
+	for (u32 i = 0; i < desc.color_textures.size(); ++i)
 	{
 		auto gltex = g_textures.get(desc.color_textures[i]);
 		if (!gltex)
@@ -1532,7 +1532,7 @@ bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_
 	glfb.id = fbo;
 	glfb.width = desc.width;
 	glfb.height = desc.height;
-	glfb.color_textures.assign(desc.color_textures.data, desc.color_textures.data + desc.color_textures.size);
+	glfb.color_textures.assign(desc.color_textures.data(), desc.color_textures.data() + desc.color_textures.size());
 	glfb.depth_texture = desc.depth_texture;
 
 	return g_framebuffers.insert(glfb);
@@ -1691,7 +1691,7 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 			glBindVertexArrayX(vao);
 
 		GLsizei stride = 0;
-		for (u32 i = 0; i < desc.input_layout.attributes.size; ++i)
+		for (u32 i = 0; i < desc.input_layout.attributes.size(); ++i)
 		{
 			const auto& attr = desc.input_layout.attributes[i];
 			GLenum type = GL_FLOAT;
@@ -1701,7 +1701,7 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 		}
 
 		GLuint relative_offset = 0;
-		for (u32 i = 0; i < desc.input_layout.attributes.size; ++i)
+		for (u32 i = 0; i < desc.input_layout.attributes.size(); ++i)
 		{
 			const auto& attr = desc.input_layout.attributes[i];
 
@@ -1750,15 +1750,15 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 	if (desc.input_layout.attributes)
 	{
 		glpipeline.attributes.assign(
-			desc.input_layout.attributes.data,
-			desc.input_layout.attributes.data + desc.input_layout.attributes.size);
+			desc.input_layout.attributes.data(),
+			desc.input_layout.attributes.data() + desc.input_layout.attributes.size());
 	}
 
 	if (desc.color_attachments)
 	{
 		glpipeline.blend_attachments.assign(
-			desc.color_attachments.data,
-			desc.color_attachments.data + desc.color_attachments.size);
+			desc.color_attachments.data(),
+			desc.color_attachments.data() + desc.color_attachments.size());
 	}
 
 	return g_pipelines.insert(glpipeline);
