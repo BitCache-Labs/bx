@@ -1,7 +1,7 @@
 #ifndef BX_HANDLE_MAP
 #define BX_HANDLE_MAP
 
-#include <bx_core.hpp>
+#include <bx/core.hpp>
 
 namespace bx
 {

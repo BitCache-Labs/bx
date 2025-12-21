@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BX_CORE "Build bx core lib" ON)
 option(BX_STL "Build bx stl lib" ON)
+option(BX_TYPE "Build bx type lib" ON)
 option(BX_MATH "Build bx math lib" ON)
 option(BX_ECS "Build bx ecs lib" OFF)
 option(BX_APP "Build bx app lib" ON)
@@ -20,6 +21,12 @@ if (BX_STL)
     add_library(bx_stl INTERFACE)
     target_include_directories(bx_stl INTERFACE "include/bx_stl")
     target_link_libraries(bx_stl INTERFACE bx_core)
+endif()
+
+if (BX_TYPE)
+    add_library(bx_type STATIC "src/bx_type/bx_type.cpp")
+    target_include_directories(bx_type PUBLIC "include/bx_type")
+    target_link_libraries(bx_type PUBLIC bx_core bx_stl)
 endif()
 
 if (BX_MATH)
@@ -54,7 +61,7 @@ if (BX_APP)
             "src/bx_app/bx_app.cpp"
     )
 
-    set(bx_app_libs bx_core fmt)
+    set(bx_app_libs)
 
     set(bx_app_defines)
 
@@ -203,7 +210,7 @@ if (BX_APP)
 
     add_library(bx_app STATIC ${bx_app_srcs})
     target_include_directories(bx_app PUBLIC "include/bx_app")
-    target_link_libraries(bx_app PUBLIC bx_core fmt)
+    target_link_libraries(bx_app PUBLIC bx_core bx_stl bx_type fmt)
     if(BX_APP_ENABLE_IMGUI)
         target_link_libraries(bx_app PUBLIC imgui)
         target_compile_definitions(bx_app PUBLIC BX_APP_IMGUI)

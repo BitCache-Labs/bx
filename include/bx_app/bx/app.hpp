@@ -1,8 +1,15 @@
 #ifndef BX_APP
 #define BX_APP
 
-#include <bx_core.hpp>
+#include <bx/core.hpp>
+#include <bx/array.hpp>
+#include <bx/string.hpp>
+
 #include <fmt/format.h>
+
+#define bx_register_category(T) \
+	struct bx_api bx_category_##T##_t {}; \
+	template<> inline bx::category_t bx::category_mask<bx_category_##T##_t>() bx_noexcept { static const auto c = bx::register_category(#T); return c; }
 
 #define bx_log_set_category_types(T, types) bx::log_set_category_types(bx::category_mask<bx_category_##T##_t>(), types)
 #define _bx_log(T, lvl, fstr, ...) bx::logf(lvl, fstr, ##__VA_ARGS__)
@@ -22,6 +29,19 @@
 
 namespace bx
 {
+	// TODO: Lets rethink how categories are done, atm not very clean design
+	bx_api category_t register_category(cstring name) bx_noexcept;
+
+	template<typename>
+	category_t category_mask() bx_noexcept { return 0; }
+
+	bx_api cstring category_name(category_t id) bx_noexcept;
+
+	template<typename T>
+	cstring category_name() bx_noexcept { return category_name(category_mask<T>()); }
+
+	bx_api array_view<category_t> get_categories() bx_noexcept;
+
 	// ------------------------------------------
 	// -           Application API              -
 	// ------------------------------------------
@@ -105,12 +125,12 @@ namespace bx
 
 	bx_api void profile_start() bx_noexcept;
 	bx_api void profile_stop() bx_noexcept;
-	bx_api varray<profile_entry_t> profile_get_entries() bx_noexcept;
+	bx_api array_view<profile_entry_t> profile_get_entries() bx_noexcept;
 
 	bx_api void profile_push(u64 category, cstring label, cstring func, cstring file, i32 line) bx_noexcept;
 	bx_api void profile_pop() bx_noexcept;
 
-	bx_api varray<cstring> profile_get_stack() bx_noexcept;
+	bx_api array_view<cstring> profile_get_stack() bx_noexcept;
 
 	struct bx_api profile_t
 	{
@@ -127,13 +147,11 @@ namespace bx
 	// -             FileIO API                 -
 	// ------------------------------------------
 
-	using filepath_t = fstring<512>;
-
 	bx_api bool file_add_drive(cstring drive, cstring root) bx_noexcept;
 
-	bx_api bool file_get_path(cstring filename, filepath_t& filepath) bx_noexcept;
+	bx_api string file_get_path(cstring filename) bx_noexcept;
 
-	bx_api vstring file_get_ext(cstring filename) bx_noexcept;
+	bx_api string_view file_get_ext(cstring filename) bx_noexcept;
 
 	bx_api u64 file_get_timestamp(cstring filename) bx_noexcept;
 
@@ -252,10 +270,10 @@ namespace bx
 		gfx_shader_stage_t stage{ gfx_shader_stage_t::NONE };
 		cstring entrypoint{ nullptr };
 		gfx_shader_lang_t lang{};
-		varray<gfx_shader_macro_t> macros{};
+		array_view<gfx_shader_macro_t> macros{};
 		cstring filepath{ nullptr };
 		cstring source{ nullptr };
-		varray<u8> src_bin{};
+		array_view<u8> src_bin{};
 	};
 
 	struct bx_api gfx_buffer_desc_t
@@ -306,7 +324,7 @@ namespace bx
 
 	struct bx_api gfx_vertex_input_layout_t
 	{
-		varray<gfx_vertex_attribute_t> attributes{};
+		array_view<gfx_vertex_attribute_t> attributes{};
 	};
 
 	struct bx_api gfx_raster_state_t
@@ -328,18 +346,18 @@ namespace bx
 	struct bx_api gfx_pipeline_desc_t
 	{
 		cstring name{ nullptr };
-		varray<handle_id> shaders{};
+		array_view<handle_id> shaders{};
 		gfx_topology_t topology{ gfx_topology_t::TRIANGLES };
 		gfx_vertex_input_layout_t input_layout{};
 		gfx_resource_layout_t resource_layout{};
 		gfx_raster_state_t raster{};
-		varray<gfx_color_blend_attachment_t> color_attachments{};
+		array_view<gfx_color_blend_attachment_t> color_attachments{};
 	};
 
 	struct bx_api gfx_resource_set_desc_t
 	{
 		cstring name{ nullptr };
-		//varray<gfx_resource_binding_t> bindings{};
+		//array_view<gfx_resource_binding_t> bindings{};
 	};
 
 	struct bx_api gfx_attachment_desc_t
@@ -353,14 +371,14 @@ namespace bx
 	struct bx_api gfx_renderpass_desc_t
 	{
 		cstring name{ nullptr };
-		varray<gfx_attachment_desc_t> color_attachments{};
+		array_view<gfx_attachment_desc_t> color_attachments{};
 		bool has_depth{ false };
 	};
 
 	struct bx_api gfx_framebuffer_desc_t
 	{
 		cstring name{ nullptr };
-		varray<handle_id> color_textures{};
+		array_view<handle_id> color_textures{};
 		handle_id depth_texture{};
 		u32 width{ 0 };
 		u32 height{ 0 };
@@ -462,5 +480,7 @@ namespace bx
 	
 	bx_api void gfx_pipeline_barrier(handle_id cb, const gfx_memory_barrier_t& barrier) bx_noexcept;
 }
+
+bx_register_category(bx)
 
 #endif // BX_APP

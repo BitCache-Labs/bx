@@ -6,6 +6,9 @@
 #include <vector>
 #include <unordered_map>
 
+static std::vector<bx::category_t> g_categories{};
+static std::unordered_map<bx::category_t, cstring> g_categories_map{};
+
 static bx::log_callback_t g_log_callback = nullptr;
 static std::unordered_map<bx::category_t, bx::log_t> g_log_masks{};
 
@@ -23,6 +26,31 @@ struct config_data_t
 };
 
 static std::unordered_map<u64, config_data_t> g_config{};
+
+bx::category_t bx::register_category(cstring name) bx_noexcept
+{
+	static category_t g_id{ 0 };
+	category_t next = bit_mask(g_id++);
+	g_categories.emplace_back(next);
+	g_categories_map.insert(std::make_pair(next, name));
+	return next;
+}
+
+cstring bx::category_name(category_t id) bx_noexcept
+{
+	auto it = g_categories_map.find(id);
+	if (it == g_categories_map.end())
+		return "unknown";
+	return it->second;
+}
+
+bx::array_view<bx::category_t> bx::get_categories() bx_noexcept
+{
+	bx::array_view<category_t> view{};
+	view.data = g_categories.data();
+	view.size = g_categories.size();
+	return view;
+}
 
 bx::result_t bx::app_init(const app_config_t& config) bx_noexcept
 {
@@ -218,7 +246,7 @@ void bx::profile_stop() bx_noexcept
 	g_profiling = false;
 }
 
-varray<bx::profile_entry_t> bx::profile_get_entries() bx_noexcept
+bx::array_view<bx::profile_entry_t> bx::profile_get_entries() bx_noexcept
 {
 	bx_profile(bx);
 
@@ -260,7 +288,7 @@ void bx::profile_pop() bx_noexcept
 		g_profile_entries.back().end_ts = app_timestamp_ns();
 }
 
-bx_api varray<cstring> bx::profile_get_stack() bx_noexcept
+bx_api bx::array_view<cstring> bx::profile_get_stack() bx_noexcept
 {
 	bx_profile(bx);
 
@@ -278,7 +306,7 @@ bool bx::file_add_drive(cstring drive, cstring root) bx_noexcept
 	return true;
 }
 
-bool bx::file_get_path(cstring filename, filepath_t& filepath) bx_noexcept
+bx::string bx::file_get_path(cstring filename) bx_noexcept
 {
 	bx_profile(bx);
 
@@ -290,7 +318,7 @@ bool bx::file_get_path(cstring filename, filepath_t& filepath) bx_noexcept
 		return false;
 
 	usize drive_len = 1 + end - filename;
-	filepath_t drive_name{};
+	nstring<512> drive_name{};
 	std::memcpy(drive_name, filename, drive_len);
 	drive_name[drive_len] = '\0';
 
@@ -299,6 +327,7 @@ bool bx::file_get_path(cstring filename, filepath_t& filepath) bx_noexcept
 	if (it == g_drives.end())
 		return false;
 
+	nstring<512> filepath{};
 	filepath[0] = '\0';
 	std::strncpy(filepath, it->second, 511);
 	filepath[511] = '\0';
@@ -322,15 +351,15 @@ bool bx::file_get_path(cstring filename, filepath_t& filepath) bx_noexcept
 	std::strncat(filepath, relative, remaining_space);
 	filepath[511] = '\0';
 
-	return true;
+	return filepath;
 }
 
-vstring bx::file_get_ext(cstring filename) bx_noexcept
+bx::string_view bx::file_get_ext(cstring filename) bx_noexcept
 {
 	bx_profile(bx);
 
 	if (!filename)
-		return vstring{ nullptr, 0 };
+		return bx::string_view{ nullptr, 0 };
 
 	cstring dot = nullptr;
 	for (cstring p = filename; *p; ++p)
@@ -342,9 +371,9 @@ vstring bx::file_get_ext(cstring filename) bx_noexcept
 	}
 
 	if (!dot || *(dot + 1) == '\0')
-		return vstring{ nullptr, 0 };
+		return bx::string_view{ nullptr, 0 };
 
-	return vstring{ dot + 1, std::strlen(dot + 1) };
+	return bx::string_view{ dot + 1, std::strlen(dot + 1) };
 }
 
 #ifdef _WIN32
@@ -357,13 +386,13 @@ u64 bx::file_get_timestamp(cstring filename) bx_noexcept
 {
 	bx_profile(bx);
 
-	bx::filepath_t fp{};
-	if (!bx::file_get_path(filename, fp))
+	string fp = bx::file_get_path(filename);
+	if (fp.empty())
 		return 0;
 
 #ifdef _WIN32
 	WIN32_FILE_ATTRIBUTE_DATA info;
-	if (!GetFileAttributesExA(fp, GetFileExInfoStandard, &info))
+	if (!GetFileAttributesExA(fp.c_str(), GetFileExInfoStandard, &info))
 		return 0;
 
 	// Convert FILETIME (100ns intervals since Jan 1, 1601) to milliseconds since Unix epoch
@@ -379,7 +408,7 @@ u64 bx::file_get_timestamp(cstring filename) bx_noexcept
 
 #else
 	struct stat st;
-	if (stat(fp, &st) != 0)
+	if (stat(fp.c_str(), &st) != 0)
 		return 0;
 	return static_cast<u64>(st.st_mtim.tv_sec) * 1000 + st.st_mtim.tv_nsec / 1000000;
 #endif

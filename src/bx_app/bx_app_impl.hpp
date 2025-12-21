@@ -1,7 +1,7 @@
 #ifndef BX_APP_IMPL
 #define BX_APP_IMPL
 
-#include <bx_app.hpp>
+#include <bx/app.hpp>
 #include <unordered_map>
 
 namespace bx

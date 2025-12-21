@@ -1,7 +1,7 @@
 #ifndef BX_HASH_MAP
 #define BX_HASH_MAP
 
-#include <bx_core.hpp>
+#include <bx/core.hpp>
 #include <unordered_map>
 
 namespace bx
