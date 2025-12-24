@@ -110,7 +110,7 @@ struct gl_features_t
 
 	// Compression formats
 	bool tex_compression_bptc{ false };				// BC7 / BC6H
-	bool tex_compression_s3tc{ false };				// BC1–BC5 (DXT)
+	bool tex_compression_s3tc{ false };				// BC1ï¿½BC5 (DXT)
 	bool tex_compression_astc{ false };				// ASTC
 	bool tex_compression_etc2{ false };				// ETC2/EAC
 };
@@ -557,6 +557,13 @@ static void gl_check_features()
 		if (is_broadcom_v3d)
 		{
 			// Broadcom has buggy SSO
+			g_features.separate_shader_objects = false;
+		}
+
+		const bool is_virgl = strstr(renderer, "virgl") != nullptr;
+		if (is_virgl)
+		{
+			// Virgl has buggy SSO
 			g_features.separate_shader_objects = false;
 		}
 	}
