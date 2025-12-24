@@ -2,6 +2,7 @@
 #define BX_APP
 
 #include <bx/core.hpp>
+#include <bx/type.hpp>
 #include <bx/array.hpp>
 #include <bx/string.hpp>
 
@@ -9,11 +10,11 @@
 
 #define bx_register_category(T) \
 	struct bx_api bx_category_##T##_t {}; \
-	template<> inline bx::category_t bx::category_mask<bx_category_##T##_t>() bx_noexcept { static const auto c = bx::register_category(#T); return c; }
+	template<> inline bx::category_t bx::category_mask<bx_category_##T##_t>() noexcept { static const auto c = bx::register_category(#T); return c; }
 
 #define bx_log_set_category_types(T, types) bx::log_set_category_types(bx::category_mask<bx_category_##T##_t>(), types)
 #define _bx_log(T, lvl, fstr, ...) bx::logf(lvl, fstr, ##__VA_ARGS__)
-#define _bx_log_v(T, lvl, fstr, ...) bx::logf_v(lvl, bx::category_mask<bx_category_##T##_t>(), __func__, __FILE__, __LINE__, fstr, ##__VA_ARGS__)
+#define _bx_log_v(T, lvl, fstr, ...) bx::logf_v(lvl, bx::category_mask<bx_category_##T##_t>(), bx_func, bx_file, bx_line, fstr, ##__VA_ARGS__)
 #define bx_info(T, fstr, ...) _bx_log_v(T, bx::log_t::INFO, fstr, ##__VA_ARGS__)
 #define bx_warn(T, fstr, ...) _bx_log_v(T, bx::log_t::WARN, fstr, ##__VA_ARGS__)
 #define bx_error(T, fstr, ...) _bx_log_v(T, bx::log_t::ERROR, fstr, ##__VA_ARGS__)
@@ -24,23 +25,23 @@
 #define bx_assert(expr, msg) do { if (!(expr)) { bx_fatal(bx, "Assertion failed '{}'", msg); } } while (0)
 #define bx_ensure(expr) bx_assert(expr, #expr)
 
-#define bx_profile(T) bx::profile_t _bx_concat(_bx_profile_, __LINE__){ bx::category_mask<bx_category_##T##_t>(), __func__, __func__, __FILE__, __LINE__ }
-#define bx_profile_scope(T, label) bx::profile_t _bx_concat(_bx_profile_, __LINE__){ bx::category_mask<bx_category_##T##_t>(), label, __func__, __FILE__, __LINE__ }
+#define bx_profile(T) bx::profile_t _bx_concat(_bx_profile_, bx_line){ bx::category_mask<bx_category_##T##_t>(), bx_func, bx_func, bx_file, bx_line }
+#define bx_profile_scope(T, label) bx::profile_t _bx_concat(_bx_profile_, bx_line){ bx::category_mask<bx_category_##T##_t>(), label, bx_func, bx_file, bx_line }
 
 namespace bx
 {
 	// TODO: Lets rethink how categories are done, atm not very clean design
-	bx_api category_t register_category(cstring name) bx_noexcept;
+	bx_api category_t register_category(cstring name) noexcept;
 
 	template<typename>
-	category_t category_mask() bx_noexcept { return 0; }
+	category_t category_mask() noexcept { return 0; }
 
-	bx_api cstring category_name(category_t id) bx_noexcept;
+	bx_api cstring category_name(category_t id) noexcept;
 
 	template<typename T>
-	cstring category_name() bx_noexcept { return category_name(category_mask<T>()); }
+	cstring category_name() noexcept { return category_name(category_mask<T>()); }
 
-	bx_api array_view<category_t> get_categories() bx_noexcept;
+	bx_api array_view<category_t> get_categories() noexcept;
 
 	// ------------------------------------------
 	// -           Application API              -
@@ -54,21 +55,21 @@ namespace bx
 		bool vsync{ true };
 	};
 
-	bx_api result_t app_init(const app_config_t& config) bx_noexcept;
+	bx_api result_t app_init(const app_config_t& config) noexcept;
 
-	bx_api void app_shutdown() bx_noexcept;
+	bx_api void app_shutdown() noexcept;
 
-	bx_api bool app_begin_frame() bx_noexcept;
+	bx_api bool app_begin_frame() noexcept;
 
-	bx_api void app_end_frame(bool present, bool should_close) bx_noexcept;
+	bx_api void app_end_frame(bool present, bool should_close) noexcept;
 
-	bx_api f64 app_time_seconds() bx_noexcept;
+	bx_api f64 app_time_seconds() noexcept;
 
-	bx_api f64 app_frame_time() bx_noexcept;
+	bx_api f64 app_frame_time() noexcept;
 
-	bx_api u64 app_timestamp_ms() bx_noexcept;
+	bx_api u64 app_timestamp_ms() noexcept;
 
-	bx_api u64 app_timestamp_ns() bx_noexcept;
+	bx_api u64 app_timestamp_ns() noexcept;
 
 	// ------------------------------------------
 	// -             Logging API                -
@@ -86,23 +87,23 @@ namespace bx
 
 	using log_callback_t = void(*)(log_t, category_t, cstring, cstring, i32, cstring);
 
-	bx_api void log_set_callback(log_callback_t cb) bx_noexcept;
+	bx_api void log_set_callback(log_callback_t cb) noexcept;
 
-	bx_api void log_set_category_types(category_t category, log_t types) bx_noexcept;
+	bx_api void log_set_category_types(category_t category, log_t types) noexcept;
 
-	bx_api void log(log_t level, cstring str) bx_noexcept;
+	bx_api void log(log_t level, cstring str) noexcept;
 
 	template<typename... Args>
-	inline void logf(log_t level, cstring fstr, Args&&... args) bx_noexcept
+	inline void logf(log_t level, cstring fstr, Args&&... args) noexcept
 	{
 		auto str = fmt::format(fstr, std::forward<Args>(args)...);
 		log(level, str.c_str());
 	}
 
-	bx_api void log_v(log_t level, category_t category, cstring func, cstring file, i32 line, cstring str) bx_noexcept;
+	bx_api void log_v(log_t level, category_t category, cstring func, cstring file, i32 line, cstring str) noexcept;
 
 	template<typename... Args>
-	inline void logf_v(log_t level, category_t category, cstring func, cstring file, i32 line, cstring fstr, Args&&... args) bx_noexcept
+	inline void logf_v(log_t level, category_t category, cstring func, cstring file, i32 line, cstring fstr, Args&&... args) noexcept
 	{
 		auto str = fmt::format(fstr, std::forward<Args>(args)...);
 		log_v(level, category, func, file, line, str.c_str());
@@ -123,22 +124,22 @@ namespace bx
 		i32 line{ 0 };
 	};
 
-	bx_api void profile_start() bx_noexcept;
-	bx_api void profile_stop() bx_noexcept;
-	bx_api array_view<profile_entry_t> profile_get_entries() bx_noexcept;
+	bx_api void profile_start() noexcept;
+	bx_api void profile_stop() noexcept;
+	bx_api array_view<profile_entry_t> profile_get_entries() noexcept;
 
-	bx_api void profile_push(u64 category, cstring label, cstring func, cstring file, i32 line) bx_noexcept;
-	bx_api void profile_pop() bx_noexcept;
+	bx_api void profile_push(u64 category, cstring label, cstring func, cstring file, i32 line) noexcept;
+	bx_api void profile_pop() noexcept;
 
-	bx_api array_view<cstring> profile_get_stack() bx_noexcept;
+	bx_api array_view<cstring> profile_get_stack() noexcept;
 
 	struct bx_api profile_t
 	{
-		explicit profile_t(u64 category, cstring label, cstring func, cstring file, i32 line) bx_noexcept
+		explicit profile_t(u64 category, cstring label, cstring func, cstring file, i32 line) noexcept
 		{
 			profile_push(category, label, func, file, line);
 		}
-		~profile_t() bx_noexcept { profile_pop(); }
+		~profile_t() noexcept { profile_pop(); }
 		profile_t(const profile_t&) = delete;
 		profile_t& operator=(const profile_t&) = delete;
 	};
@@ -147,13 +148,13 @@ namespace bx
 	// -             FileIO API                 -
 	// ------------------------------------------
 
-	bx_api bool file_add_drive(cstring drive, cstring root) bx_noexcept;
+	bx_api bool file_add_drive(cstring drive, cstring root) noexcept;
 
-	bx_api string file_get_path(cstring filename) bx_noexcept;
+	bx_api string file_get_path(cstring filename) noexcept;
 
-	bx_api string_view file_get_ext(cstring filename) bx_noexcept;
+	bx_api string_view file_get_ext(cstring filename) noexcept;
 
-	bx_api u64 file_get_timestamp(cstring filename) bx_noexcept;
+	bx_api u64 file_get_timestamp(cstring filename) noexcept;
 
 	// ------------------------------------------
 	// -          Configuration API             -
@@ -161,30 +162,30 @@ namespace bx
 
 	using config_freefn_t = void(*)(cvptr);
 
-	bx_api void config_set(u64 type, cstring name, cvptr data, config_freefn_t free) bx_noexcept;
+	bx_api void config_set(u64 type, cstring name, cvptr data, config_freefn_t free) noexcept;
 
-	bx_api cvptr config_get(u64 type, cstring name) bx_noexcept;
+	bx_api cvptr config_get(u64 type, cstring name) noexcept;
 
-	bx_api bool config_has(u64 type, cstring name) bx_noexcept;
+	bx_api bool config_has(u64 type, cstring name) noexcept;
 
-	bx_api void config_clear() bx_noexcept;
+	bx_api void config_clear() noexcept;
 
 	template<typename T>
-	void config_set(cstring name, T* data, config_freefn_t free = nullptr) bx_noexcept
+	void config_set(cstring name, T* data, config_freefn_t free = nullptr) noexcept
 	{
 		const u64 type = type_id<T>();
 		config_set(type, name, data, free ? free : [](cvptr ptr) { delete static_cast<T*>(ptr); });
 	}
 
 	template<typename T>
-	T* config_get(cstring name) bx_noexcept
+	T* config_get(cstring name) noexcept
 	{
 		const u64 type = type_id<T>();
 		return static_cast<T*>(config_get(type, name));
 	}
 
 	template<typename T>
-	bool config_has(cstring name) bx_noexcept
+	bool config_has(cstring name) noexcept
 	{
 		return config_has(type_id<T>(), name);
 	}
@@ -193,6 +194,8 @@ namespace bx
 	// -              Device API                -
 	// ------------------------------------------
 
+	bx_api void dvc_screen_size(i32* w, i32* h) noexcept;
+
 	struct bx_api dvc_key_state_t
 	{
 		bool down{ false };
@@ -200,9 +203,9 @@ namespace bx
 		bool released{ false };
 	};
 
-	bx_api bool dvc_key_down(i32 key) bx_noexcept;
+	bx_api bool dvc_key_down(i32 key) noexcept;
 
-	bx_api dvc_key_state_t dvc_key(i32 key) bx_noexcept;
+	bx_api dvc_key_state_t dvc_key(i32 key) noexcept;
 
 	struct bx_api dvc_mouse_state_t
 	{
@@ -210,9 +213,9 @@ namespace bx
 		bool buttons[8]{};
 	};
 
-	bx_api dvc_mouse_state_t dvc_mouse() bx_noexcept;
+	bx_api dvc_mouse_state_t dvc_mouse() noexcept;
 
-	bx_api void dvc_set_cursor_visible(bool visible) bx_noexcept;
+	bx_api void dvc_set_cursor_visible(bool visible) noexcept;
 
 	// ------------------------------------------
 	// -             Graphics API               -
@@ -408,77 +411,77 @@ namespace bx
 		gfx_shader_stage_t dst_stage{};
 	};
 
-	bx_api cstring gfx_backend_name() bx_noexcept;
+	bx_api cstring gfx_backend_name() noexcept;
 
-	bx_api const gfx_features_t& gfx_get_features() bx_noexcept;
+	bx_api const gfx_features_t& gfx_get_features() noexcept;
 
-	bx_api void gfx_push_debug_group(cstring name) bx_noexcept;
+	bx_api void gfx_push_debug_group(cstring name) noexcept;
 
-	bx_api void gfx_pop_debug_group() bx_noexcept;
+	bx_api void gfx_pop_debug_group() noexcept;
 
-	bx_api void gfx_insert_debug_marker(cstring name) bx_noexcept;
+	bx_api void gfx_insert_debug_marker(cstring name) noexcept;
 
-	bx_api handle_id gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept;
+	bx_api handle_id gfx_create_shader(const gfx_shader_desc_t& desc) noexcept;
 
-	bx_api void gfx_destroy_shader(handle_id handle) bx_noexcept;
+	bx_api void gfx_destroy_shader(handle_id handle) noexcept;
 
-	bx_api handle_id gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept;
+	bx_api handle_id gfx_create_buffer(const gfx_buffer_desc_t& desc) noexcept;
 
-	bx_api void gfx_destroy_buffer(handle_id handle) bx_noexcept;
+	bx_api void gfx_destroy_buffer(handle_id handle) noexcept;
 
-	bx_api u8* gfx_map_buffer(handle_id handle, u64 offset, u64 size) bx_noexcept;
+	bx_api u8* gfx_map_buffer(handle_id handle, u64 offset, u64 size) noexcept;
 
-	bx_api void gfx_unmap_buffer(handle_id handle) bx_noexcept;
+	bx_api void gfx_unmap_buffer(handle_id handle) noexcept;
 
-	bx_api void gfx_update_buffer(handle_id handle, u64 dst_offset, cvptr src, u64 size) bx_noexcept;
+	bx_api void gfx_update_buffer(handle_id handle, u64 dst_offset, cvptr src, u64 size) noexcept;
 
-	bx_api handle_id gfx_create_texture(const gfx_texture_desc_t& desc) bx_noexcept;
+	bx_api handle_id gfx_create_texture(const gfx_texture_desc_t& desc) noexcept;
 
-	bx_api void gfx_destroy_texture(handle_id texture) bx_noexcept;
+	bx_api void gfx_destroy_texture(handle_id texture) noexcept;
 
-	bx_api void gfx_upload_texture_data(handle_id texture, const u8* data, u32 region_count, const gfx_texture_region_t* regions) bx_noexcept;
+	bx_api void gfx_upload_texture_data(handle_id texture, const u8* data, u32 region_count, const gfx_texture_region_t* regions) noexcept;
 
-	bx_api handle_id gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_noexcept;
+	bx_api handle_id gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) noexcept;
 
-	bx_api void gfx_destroy_framebuffer(handle_id fb) bx_noexcept;
+	bx_api void gfx_destroy_framebuffer(handle_id fb) noexcept;
 
-	bx_api handle_id gfx_default_framebuffer() bx_noexcept;
+	bx_api handle_id gfx_default_framebuffer() noexcept;
 
-	bx_api handle_id gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexcept;
+	bx_api handle_id gfx_create_pipeline(const gfx_pipeline_desc_t& desc) noexcept;
 
-	bx_api void gfx_destroy_pipeline(handle_id handle) bx_noexcept;
+	bx_api void gfx_destroy_pipeline(handle_id handle) noexcept;
 
-	bx_api handle_id gfx_create_resource_set(const gfx_resource_set_desc_t& desc) bx_noexcept;
+	bx_api handle_id gfx_create_resource_set(const gfx_resource_set_desc_t& desc) noexcept;
 
-	//bx_api void gfx_update_resource_set(handle_id set_handle, u32 binding_count, const gfx_resource_binding_t* bindings) bx_noexcept;
+	//bx_api void gfx_update_resource_set(handle_id set_handle, u32 binding_count, const gfx_resource_binding_t* bindings) noexcept;
 
-	bx_api void gfx_destroy_resource_set(handle_id set_handle) bx_noexcept;
+	bx_api void gfx_destroy_resource_set(handle_id set_handle) noexcept;
 
-	bx_api void gfx_clear_rt(handle_id rt, f32 cv[4]) bx_noexcept;
+	bx_api void gfx_clear_rt(handle_id rt, f32 cv[4]) noexcept;
 
 	bx_api void gfx_clear_ds(handle_id ds);
 
-	bx_api void gfx_bind_pipeline(handle_id cb, handle_id pipeline) bx_noexcept;
+	bx_api void gfx_bind_pipeline(handle_id cb, handle_id pipeline) noexcept;
 
-	bx_api void gfx_bind_vertex_buffers(handle_id cb, u32 first_binding, u32 binding_count, const handle_id* vertex_buffers, const u64* offsets) bx_noexcept;
+	bx_api void gfx_bind_vertex_buffers(handle_id cb, u32 first_binding, u32 binding_count, const handle_id* vertex_buffers, const u64* offsets) noexcept;
 
-	bx_api void gfx_bind_index_buffer(handle_id cb, handle_id index_buffer, u32 index_type) bx_noexcept;
+	bx_api void gfx_bind_index_buffer(handle_id cb, handle_id index_buffer, u32 index_type) noexcept;
 
-	bx_api void gfx_bind_resource_set(handle_id cb, handle_id pipeline, handle_id set, u32 set_index) bx_noexcept;
+	bx_api void gfx_bind_resource_set(handle_id cb, handle_id pipeline, handle_id set, u32 set_index) noexcept;
 
-	bx_api void gfx_draw(handle_id cb, u32 vertex_count, u32 instance_count = 1, u32 first_vertex = 0, u32 first_instance = 0) bx_noexcept;
+	bx_api void gfx_draw(handle_id cb, u32 vertex_count, u32 instance_count = 1, u32 first_vertex = 0, u32 first_instance = 0) noexcept;
 
-	bx_api void gfx_draw_indexed(handle_id cb, u32 index_count, u32 instance_count = 1, u32 first_index = 0, i32 vertex_offset = 0) bx_noexcept;
+	bx_api void gfx_draw_indexed(handle_id cb, u32 index_count, u32 instance_count = 1, u32 first_index = 0, i32 vertex_offset = 0) noexcept;
 
-	bx_api void gfx_copy_buffer(handle_id cb, handle_id src, handle_id dst, u64 src_offset, u64 dst_offset, u64 size) bx_noexcept;
+	bx_api void gfx_copy_buffer(handle_id cb, handle_id src, handle_id dst, u64 src_offset, u64 dst_offset, u64 size) noexcept;
 	
-	bx_api void gfx_dispatch(handle_id cb, u32 x, u32 y, u32 z) bx_noexcept;
+	bx_api void gfx_dispatch(handle_id cb, u32 x, u32 y, u32 z) noexcept;
 	
-	bx_api void gfx_submit(handle_id cb) bx_noexcept; // submit and execute or immediate execute
+	bx_api void gfx_submit(handle_id cb) noexcept; // submit and execute or immediate execute
 	
-	bx_api void gfx_wait_idle() bx_noexcept;
+	bx_api void gfx_wait_idle() noexcept;
 	
-	bx_api void gfx_pipeline_barrier(handle_id cb, const gfx_memory_barrier_t& barrier) bx_noexcept;
+	bx_api void gfx_pipeline_barrier(handle_id cb, const gfx_memory_barrier_t& barrier) noexcept;
 }
 
 bx_register_category(bx)

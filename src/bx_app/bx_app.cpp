@@ -27,7 +27,7 @@ struct config_data_t
 
 static std::unordered_map<u64, config_data_t> g_config{};
 
-bx::category_t bx::register_category(cstring name) bx_noexcept
+bx::category_t bx::register_category(cstring name) noexcept
 {
 	static category_t g_id{ 0 };
 	category_t next = bit_mask(g_id++);
@@ -36,7 +36,7 @@ bx::category_t bx::register_category(cstring name) bx_noexcept
 	return next;
 }
 
-cstring bx::category_name(category_t id) bx_noexcept
+cstring bx::category_name(category_t id) noexcept
 {
 	auto it = g_categories_map.find(id);
 	if (it == g_categories_map.end())
@@ -44,12 +44,12 @@ cstring bx::category_name(category_t id) bx_noexcept
 	return it->second;
 }
 
-bx::array_view<bx::category_t> bx::get_categories() bx_noexcept
+bx::array_view<bx::category_t> bx::get_categories() noexcept
 {
 	return { g_categories };
 }
 
-bx::result_t bx::app_init(const app_config_t& config) bx_noexcept
+bx::result_t bx::app_init(const app_config_t& config) noexcept
 {
 	bx_profile(bx);
 
@@ -62,7 +62,7 @@ bx::result_t bx::app_init(const app_config_t& config) bx_noexcept
 	return result_t::OK;
 }
 
-void bx::app_shutdown() bx_noexcept
+void bx::app_shutdown() noexcept
 {
 	bx_profile(bx);
 
@@ -70,7 +70,7 @@ void bx::app_shutdown() bx_noexcept
 	bx::gfx_shutdown();
 }
 
-u64 bx::app_timestamp_ms() bx_noexcept
+u64 bx::app_timestamp_ms() noexcept
 {
 	bx_profile(bx);
 
@@ -79,7 +79,7 @@ u64 bx::app_timestamp_ms() bx_noexcept
 	return static_cast<u64>(ms.count());
 }
 
-u64 bx::app_timestamp_ns() bx_noexcept
+u64 bx::app_timestamp_ns() noexcept
 {
 	bx_profile(bx);
 
@@ -105,14 +105,14 @@ static u64 hash_cstring(cstring str)
 	return hash;
 }
 
-void bx::log_set_callback(const log_callback_t cb) bx_noexcept
+void bx::log_set_callback(const log_callback_t cb) noexcept
 {
 	bx_profile(bx);
 
 	g_log_callback = cb;
 }
 
-void bx::log_set_category_types(category_t category, log_t types) bx_noexcept
+void bx::log_set_category_types(category_t category, log_t types) noexcept
 {
 	bx_profile(bx);
 
@@ -161,7 +161,7 @@ static void crash(cstring reason, cstring file, i32 line)
 	std::abort();
 }
 
-void bx::log(log_t level, cstring str) bx_noexcept
+void bx::log(log_t level, cstring str) noexcept
 {
 	switch (level)
 	{
@@ -183,7 +183,7 @@ void bx::log(log_t level, cstring str) bx_noexcept
 	}
 }
 
-void bx::log_v(log_t level, category_t category, cstring func, cstring file, i32 line, cstring msg) bx_noexcept
+void bx::log_v(log_t level, category_t category, cstring func, cstring file, i32 line, cstring msg) noexcept
 {
 	auto it = g_log_masks.find(category);
 	if (it != g_log_masks.end() && ((u32)it->second & (u32)level) == 0)
@@ -228,7 +228,7 @@ void bx::log_v(log_t level, category_t category, cstring func, cstring file, i32
 	}
 }
 
-void bx::profile_start() bx_noexcept
+void bx::profile_start() noexcept
 {
 	bx_profile(bx);
 
@@ -236,21 +236,21 @@ void bx::profile_start() bx_noexcept
 	g_profiling = true;
 }
 
-void bx::profile_stop() bx_noexcept
+void bx::profile_stop() noexcept
 {
 	bx_profile(bx);
 
 	g_profiling = false;
 }
 
-bx::array_view<bx::profile_entry_t> bx::profile_get_entries() bx_noexcept
+bx::array_view<bx::profile_entry_t> bx::profile_get_entries() noexcept
 {
 	bx_profile(bx);
 
 	return { g_profile_entries.data(), g_profile_entries.size() };
 }
 
-void bx::profile_push(u64 category, cstring label, cstring func, cstring file, i32 line) bx_noexcept
+void bx::profile_push(u64 category, cstring label, cstring func, cstring file, i32 line) noexcept
 {
 	const auto depth = g_profile_depth++;
 	g_profile_stack.emplace_back(func);
@@ -270,7 +270,7 @@ void bx::profile_push(u64 category, cstring label, cstring func, cstring file, i
 	g_profile_entries.emplace_back(entry);
 }
 
-void bx::profile_pop() bx_noexcept
+void bx::profile_pop() noexcept
 {
 	if (g_profile_depth > 0)
 		g_profile_depth--;
@@ -285,14 +285,14 @@ void bx::profile_pop() bx_noexcept
 		g_profile_entries.back().end_ts = app_timestamp_ns();
 }
 
-bx_api bx::array_view<cstring> bx::profile_get_stack() bx_noexcept
+bx_api bx::array_view<cstring> bx::profile_get_stack() noexcept
 {
 	bx_profile(bx);
 
 	return { g_profile_stack.data(), g_profile_stack.size() };
 }
 
-bool bx::file_add_drive(cstring drive, cstring root) bx_noexcept
+bool bx::file_add_drive(cstring drive, cstring root) noexcept
 {
 	bx_profile(bx);
 
@@ -303,16 +303,16 @@ bool bx::file_add_drive(cstring drive, cstring root) bx_noexcept
 	return true;
 }
 
-bx::string bx::file_get_path(cstring filename) bx_noexcept
+bx::string bx::file_get_path(cstring filename) noexcept
 {
 	bx_profile(bx);
 
 	if (!filename || filename[0] != '[')
-		return false;
+		return "";
 
 	cstring end = std::strchr(filename, ']');
 	if (!end)
-		return false;
+		return "";
 
 	usize drive_len = 1 + end - filename;
 	nstring<512> drive_name{};
@@ -322,7 +322,7 @@ bx::string bx::file_get_path(cstring filename) bx_noexcept
 	u64 hash = hash_cstring(drive_name);
 	auto it = g_drives.find(hash);
 	if (it == g_drives.end())
-		return false;
+		return "";
 
 	nstring<512> filepath{};
 	filepath[0] = '\0';
@@ -351,7 +351,7 @@ bx::string bx::file_get_path(cstring filename) bx_noexcept
 	return filepath;
 }
 
-bx::string_view bx::file_get_ext(cstring filename) bx_noexcept
+bx::string_view bx::file_get_ext(cstring filename) noexcept
 {
 	bx_profile(bx);
 
@@ -379,7 +379,7 @@ bx::string_view bx::file_get_ext(cstring filename) bx_noexcept
 #include <sys/stat.h>
 #endif
 
-u64 bx::file_get_timestamp(cstring filename) bx_noexcept
+u64 bx::file_get_timestamp(cstring filename) noexcept
 {
 	bx_profile(bx);
 
@@ -411,7 +411,7 @@ u64 bx::file_get_timestamp(cstring filename) bx_noexcept
 #endif
 }
 
-void bx::config_set(const u64 type, cstring name, cvptr data, const config_freefn_t free) bx_noexcept
+void bx::config_set(const u64 type, cstring name, cvptr data, const config_freefn_t free) noexcept
 {
 	bx_profile(bx);
 
@@ -422,7 +422,7 @@ void bx::config_set(const u64 type, cstring name, cvptr data, const config_freef
 	g_config[hash] = cfg;
 }
 
-cvptr bx::config_get(const u64 type, cstring name) bx_noexcept
+cvptr bx::config_get(const u64 type, cstring name) noexcept
 {
 	bx_profile(bx);
 
@@ -433,7 +433,7 @@ cvptr bx::config_get(const u64 type, cstring name) bx_noexcept
 	return it->second.data;
 }
 
-bool bx::config_has(const u64 type, cstring name) bx_noexcept
+bool bx::config_has(const u64 type, cstring name) noexcept
 {
 	bx_profile(bx);
 
@@ -441,7 +441,7 @@ bool bx::config_has(const u64 type, cstring name) bx_noexcept
 	return g_config.find(hash) != g_config.end();
 }
 
-void bx::config_clear() bx_noexcept
+void bx::config_clear() noexcept
 {
 	bx_profile(bx);
 

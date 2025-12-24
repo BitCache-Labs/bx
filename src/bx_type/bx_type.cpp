@@ -21,7 +21,7 @@ bx_register_type(f32)
 bx_register_type(f64)
 bx_register_type(cstring)
 
-bx::type_t bx::register_type(cstring name) bx_noexcept
+bx::type_t bx::register_type(cstring name) noexcept
 {
 	static type_t g_id{ 0 };
 	type_t next = g_id++;
@@ -30,7 +30,7 @@ bx::type_t bx::register_type(cstring name) bx_noexcept
 	return next;
 }
 
-cstring bx::type_name(type_t id) bx_noexcept
+cstring bx::type_name(type_t id) noexcept
 {
 	auto it = g_types_map.find(id);
 	if (it == g_types_map.end())
@@ -38,7 +38,7 @@ cstring bx::type_name(type_t id) bx_noexcept
 	return it->second;
 }
 
-bx::array_view<bx::type_t> bx::get_types() bx_noexcept
+bx::array_view<bx::type_t> bx::get_types() noexcept
 {
 	return g_types;
 }

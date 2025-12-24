@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <Type Name="bx::vec2">
+    <DisplayString>[{data[0],g} {data[1],g}]</DisplayString>
+    <Expand HideRawView="1">
+      <Item Name="x">data[0],g</Item>
+      <Item Name="y">data[1],g</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="bx::vec3">
+    <DisplayString>[{data[0],g} {data[1],g} {data[2],g}]</DisplayString>
+    <Expand HideRawView="1">
+      <Item Name="x">data[0],g</Item>
+      <Item Name="y">data[1],g</Item>
+      <Item Name="z">data[2],g</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="bx::vec4">
+    <DisplayString>[{data[0],g} {data[1],g} {data[2],g {data[3],g}]</DisplayString>
+    <Expand HideRawView="1">
+      <Item Name="x">data[0],g</Item>
+      <Item Name="y">data[1],g</Item>
+      <Item Name="z">data[2],g</Item>
+      <Item Name="w">data[3],g</Item>
+    </Expand>
+  </Type>
+
+</AutoVisualizer>

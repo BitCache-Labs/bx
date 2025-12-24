@@ -45,21 +45,38 @@ using nstring = char[N];
 // ------------------------------------------
 
 #define bx_api
-#define bx_noexcept noexcept
+
+#if defined(_MSC_VER)
+#define bx_force_inline __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+#define bx_force_inline inline __attribute__((always_inline))
+#else
+#define bx_force_inline inline
+#endif
+
 #define bx_nodiscard
 //#define bx_nodiscard [[nodiscard]]
 #define bx_maybe_unused
 //#define bx_maybe_unused [[maybe_unused]]
+#define bx_deprecated
+//#define bx_deprecated [[deprecated]]
+
+#define bx_file __FILE__
+#define bx_line __LINE__
+#define bx_func __func__
+
+#if defined(__GNUC__) || defined(__clang__)
+#define bx_pretty_func __PRETTY_FUNCTION__
+#elif defined(_MSC_VER)
+#define bx_pretty_func __FUNCSIG__
+#else
+#define bx_pretty_func bx_func
+#endif
 
 #define _bx_expand_impl(x) #x
 #define _bx_expand(x) _bx_expand_impl(x)
 #define _bx_concat_impl(x, y) x##y
 #define _bx_concat(x, y) _bx_concat_impl(x, y)
-
-#define bx_register_type(T) template<> inline bx::type_t bx::type_id<T>() bx_noexcept { static const auto t = bx::register_type(#T); return t; }
-#define bx_register_category(T) \
-	struct bx_api bx_category_##T##_t {}; \
-	template<> inline bx::category_t bx::category_mask<bx_category_##T##_t>() bx_noexcept { static const auto c = bx::register_category(#T); return c; }
 
 namespace bx
 {
@@ -91,10 +108,10 @@ namespace bx
 	// -              Utilities                 -
 	// ------------------------------------------
 
-	constexpr u32 bit_mask(const u32 n) bx_noexcept { return 1u << n; }
+	constexpr u32 bit_mask(const u32 n) noexcept { return 1u << n; }
 
 	template<typename T, usize N>
-	constexpr usize array_size(const narray<T, N>&) bx_noexcept { return N; }
+	constexpr usize array_size(const narray<T, N>&) noexcept { return N; }
 }
 
 #endif //BX_CORE_HPP

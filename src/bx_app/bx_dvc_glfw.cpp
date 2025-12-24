@@ -89,7 +89,7 @@ static void glfw_cursor_pos_callback(GLFWwindow*, const f64 xpos, const f64 ypos
 	g_mouse_y = ypos;
 }
 
-bool bx::dvc_init(const app_config_t& config) bx_noexcept
+bool bx::dvc_init(const app_config_t& config) noexcept
 {
 	bx_profile(bx);
 
@@ -186,7 +186,7 @@ bool bx::dvc_init(const app_config_t& config) bx_noexcept
 	return true;
 }
 
-void bx::dvc_shutdown() bx_noexcept
+void bx::dvc_shutdown() noexcept
 {
 	bx_profile(bx);
 
@@ -207,7 +207,7 @@ void bx::dvc_shutdown() bx_noexcept
 	glfwTerminate();
 }
 
-bool bx::app_begin_frame() bx_noexcept
+bool bx::app_begin_frame() noexcept
 {
 	bx_profile(bx);
 
@@ -217,7 +217,7 @@ bool bx::app_begin_frame() bx_noexcept
 	glfwPollEvents();
 
 	// Called once per frame, typically at the start of app_begin_frame()
-	const f64 current_time = glfwGetTime();
+	const f64 current_time = app_time_seconds();
 	g_delta_time = current_time - g_last_time;
 	g_last_time = current_time;
 
@@ -250,7 +250,7 @@ bool bx::app_begin_frame() bx_noexcept
 	return true;
 }
 
-void bx::app_end_frame(const bool present, const bool should_close) bx_noexcept
+void bx::app_end_frame(const bool present, const bool should_close) noexcept
 {
 	bx_profile(bx);
 
@@ -273,21 +273,26 @@ void bx::app_end_frame(const bool present, const bool should_close) bx_noexcept
 	glfwSetWindowShouldClose(g_window, close);
 }
 
-f64 bx::app_time_seconds() bx_noexcept
+f64 bx::app_time_seconds() noexcept
 {
 	bx_profile(bx);
 
 	return glfwGetTime();
 }
 
-f64 bx::app_frame_time() bx_noexcept
+f64 bx::app_frame_time() noexcept
 {
 	bx_profile(bx);
 
 	return g_delta_time;
 }
 
-bool bx::dvc_key_down(const i32 key) bx_noexcept
+void bx::dvc_screen_size(i32* w, i32* h) noexcept
+{
+	glfwGetFramebufferSize(g_window, w, h);
+}
+
+bool bx::dvc_key_down(const i32 key) noexcept
 {
 	bx_profile(bx);
 
@@ -296,7 +301,7 @@ bool bx::dvc_key_down(const i32 key) bx_noexcept
 	return g_key_down[key];
 }
 
-bx::dvc_key_state_t bx::dvc_key(const i32 key) bx_noexcept
+bx::dvc_key_state_t bx::dvc_key(const i32 key) noexcept
 {
 	bx_profile(bx);
 
@@ -310,7 +315,7 @@ bx::dvc_key_state_t bx::dvc_key(const i32 key) bx_noexcept
 	return state;
 }
 
-bx::dvc_mouse_state_t bx::dvc_mouse() bx_noexcept
+bx::dvc_mouse_state_t bx::dvc_mouse() noexcept
 {
 	bx_profile(bx);
 
@@ -322,7 +327,7 @@ bx::dvc_mouse_state_t bx::dvc_mouse() bx_noexcept
 	return s;
 }
 
-void bx::dvc_set_cursor_visible(const bool visible) bx_noexcept
+void bx::dvc_set_cursor_visible(const bool visible) noexcept
 {
 	bx_profile(bx);
 

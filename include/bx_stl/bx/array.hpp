@@ -2,7 +2,11 @@
 #define BX_ARRAY
 
 #include <bx/core.hpp>
+#include <bx/type_traits.hpp>
+
+#include <new>
 #include <initializer_list>
+#include <utility>
 
 namespace bx
 {
@@ -13,16 +17,16 @@ namespace bx
         using iterator = T*;
         using const_iterator = const T*;
 
-        array() bx_noexcept = default;
+        array() noexcept = default;
 
-        explicit array(usize count) bx_noexcept
+        explicit array(usize count) noexcept
         {
-            static_assert(std::is_default_constructible_v<T>,
+            static_assert(std::is_default_constructible<T>::value,
                 "T must be default constructible to use resize or count constructor");
             resize(count);
         }
 
-        constexpr array(std::initializer_list<T> init) bx_noexcept
+        array(std::initializer_list<T> init) noexcept
             : array(init.size())
         {
             usize i = 0;
@@ -30,7 +34,7 @@ namespace bx
                 m_data[i] = *it;
         }
 
-        ~array() bx_noexcept
+        ~array() noexcept
         {
             clear();
             ::operator delete[](m_data, std::nothrow);
@@ -39,7 +43,7 @@ namespace bx
         array(const array&) = delete;
         array& operator=(const array&) = delete;
 
-        array(array&& other) bx_noexcept
+        array(array&& other) noexcept
             : m_data(other.m_data), m_size(other.m_size), m_capacity(other.m_capacity)
         {
             other.m_data = nullptr;
@@ -47,7 +51,7 @@ namespace bx
             other.m_capacity = 0;
         }
 
-        array& operator=(array&& other) bx_noexcept
+        array& operator=(array&& other) noexcept
         {
             if (this != &other)
             {
@@ -65,27 +69,27 @@ namespace bx
             return *this;
         }
 
-        T& operator[](usize i) bx_noexcept { return m_data[i]; }
-        const T& operator[](usize i) const bx_noexcept { return m_data[i]; }
+        inline T& operator[](usize i) noexcept { return m_data[i]; }
+        inline const T& operator[](usize i) const noexcept { return m_data[i]; }
 
-        iterator begin() bx_noexcept { return m_data; }
-        iterator end() bx_noexcept { return m_data + m_size; }
+        inline iterator begin() noexcept { return m_data; }
+        inline iterator end() noexcept { return m_data + m_size; }
 
-        const_iterator begin() const bx_noexcept { return m_data; }
-        const_iterator end() const bx_noexcept { return m_data + m_size; }
+        inline const_iterator begin() const noexcept { return m_data; }
+        inline const_iterator end() const noexcept { return m_data + m_size; }
 
-        T& front() bx_noexcept { return m_data[0]; }
-        T& back() bx_noexcept { return m_data[m_size - 1]; }
-        const T& front() const bx_noexcept { return m_data[0]; }
-        const T& back() const bx_noexcept { return m_data[m_size - 1]; }
+        inline T& front() noexcept { return m_data[0]; }
+        inline T& back() noexcept { return m_data[m_size - 1]; }
+        inline const T& front() const noexcept { return m_data[0]; }
+        inline const T& back() const noexcept { return m_data[m_size - 1]; }
 
-        usize size() const bx_noexcept { return m_size; }
-        bool empty() const bx_noexcept { return m_size == 0; }
+        inline usize size() const noexcept { return m_size; }
+        inline bool empty() const noexcept { return m_size == 0; }
 
-        T* data() bx_noexcept { return m_data; }
-        const T* data() const bx_noexcept { return m_data; }
+        inline T* data() noexcept { return m_data; }
+        inline const T* data() const noexcept { return m_data; }
 
-        void push_back(const T& value) bx_noexcept
+        inline void push_back(const T& value) noexcept
         {
             if (m_size == m_capacity && !reserve(m_capacity == 0 ? 4 : m_capacity * 2))
                 return; // allocation failed, silently do nothing
@@ -94,7 +98,7 @@ namespace bx
             ++m_size;
         }
 
-        void push_back(T&& value) bx_noexcept
+        inline void push_back(T&& value) noexcept
         {
             if (m_size == m_capacity && !reserve(m_capacity == 0 ? 4 : m_capacity * 2))
                 return;
@@ -104,7 +108,7 @@ namespace bx
         }
 
         template<typename... Args>
-        void emplace_back(Args&&... args) bx_noexcept
+        void emplace_back(Args&&... args) noexcept
         {
             if (m_size == m_capacity && !reserve(m_capacity == 0 ? 4 : m_capacity * 2))
                 return;
@@ -113,7 +117,7 @@ namespace bx
             ++m_size;
         }
 
-        void pop_back() bx_noexcept
+        inline void pop_back() noexcept
         {
             if (m_size > 0)
             {
@@ -122,9 +126,9 @@ namespace bx
             }
         }
 
-        void resize(usize new_size) bx_noexcept
+        inline void resize(usize new_size) noexcept
         {
-            static_assert(std::is_default_constructible_v<T>,
+            static_assert(std::is_default_constructible<T>::value,
                 "T must be default constructible to resize");
 
             if (new_size > m_capacity && !reserve(new_size))
@@ -139,14 +143,14 @@ namespace bx
             m_size = new_size;
         }
 
-        void clear() bx_noexcept
+        inline void clear() noexcept
         {
             for (usize i = 0; i < m_size; ++i)
                 m_data[i].~T();
             m_size = 0;
         }
 
-        bool reserve(usize new_capacity) bx_noexcept
+        inline bool reserve(usize new_capacity) noexcept
         {
             if (new_capacity <= m_capacity)
                 return true;
@@ -180,27 +184,29 @@ namespace bx
 		using iterator = T*;
 		using const_iterator = const T*;
 
-        constexpr array_fixed(std::initializer_list<T> init) bx_noexcept
+        array_fixed() noexcept = default;
+
+        explicit array_fixed(std::initializer_list<T> init) noexcept
         {
             usize i = 0;
             for (auto it = init.begin(); it != init.end() && i < N; ++it, ++i)
                 m_data[i] = *it;
         }
 
-		constexpr T& operator[](usize i) bx_noexcept { return m_data[i]; }
-		constexpr const T& operator[](usize i) const bx_noexcept { return m_data[i]; }
+		inline T& operator[](usize i) noexcept { return m_data[i]; }
+		inline const T& operator[](usize i) const noexcept { return m_data[i]; }
 
-		constexpr iterator begin() bx_noexcept { return m_data; }
-		constexpr iterator end() bx_noexcept { return m_data + N; }
+		inline iterator begin() noexcept { return m_data; }
+		inline iterator end() noexcept { return m_data + N; }
 
-		constexpr const_iterator begin() const bx_noexcept { return m_data; }
-		constexpr const_iterator end() const bx_noexcept { return m_data + N; }
+		inline const_iterator begin() const noexcept { return m_data; }
+		inline const_iterator end() const noexcept { return m_data + N; }
 
-		constexpr usize size() const bx_noexcept { return N; }
-		constexpr bool empty() const bx_noexcept { return N == 0; }
+		inline usize size() const noexcept { return N; }
+		inline bool empty() const noexcept { return N == 0; }
 
-        constexpr T* data() bx_noexcept { return m_data; }
-        constexpr const T* data() const bx_noexcept { return m_data; }
+        inline T* data() noexcept { return m_data; }
+        inline const T* data() const noexcept { return m_data; }
 
     private:
         T m_data[N]{};
@@ -212,30 +218,36 @@ namespace bx
 		using iterator = T*;
 		using const_iterator = const T*;
 		
-		constexpr array_view() bx_noexcept = default;
-        constexpr array_view(const array<T>& arr) bx_noexcept : m_data(arr.data()), m_size(arr.size()) {}
-		constexpr array_view(carray<T> data, usize size) bx_noexcept : m_data(data), m_size(size) {}
+		array_view() noexcept = default;
+
+        array_view(array<T>& arr) noexcept
+            : m_data(arr.data()), m_size(arr.size())
+        {}
+
+		array_view(T* data, usize size) noexcept
+            : m_data(data), m_size(size)
+        {}
 
 		template<usize N>
-		constexpr array_view(const narray<T, N>& arr) bx_noexcept : m_data(arr), m_size(N) {}
+		inline array_view(narray<T, N>& arr) noexcept : m_data(arr), m_size(N) {}
 
         template<usize N>
-        constexpr array_view(const array_fixed<T, N>& arr) bx_noexcept : m_data(arr.data()), m_size(N) {}
+        inline array_view(array_fixed<T, N>& arr) noexcept : m_data(arr.data()), m_size(N) {}
 		
-		constexpr const T& operator[](usize i) const bx_noexcept { return m_data[i]; }
-		constexpr explicit operator bool() const bx_noexcept { return m_data != nullptr && m_size > 0; }
+		inline const T& operator[](usize i) const noexcept { return m_data[i]; }
+		inline explicit operator bool() const noexcept { return m_data != nullptr && m_size > 0; }
 		
-		constexpr const_iterator begin() const bx_noexcept { return m_data; }
-		constexpr const_iterator end() const bx_noexcept { return m_data + m_size; }
+		inline const_iterator begin() const noexcept { return m_data; }
+		inline const_iterator end() const noexcept { return m_data + m_size; }
 
-        usize size() const bx_noexcept { return m_size; }
-        bool empty() const bx_noexcept { return m_size == 0; }
+        inline usize size() const noexcept { return m_size; }
+        inline bool empty() const noexcept { return m_size == 0; }
 
-        constexpr T* data() bx_noexcept { return m_data; }
-        constexpr const T* data() const bx_noexcept { return m_data; }
+        inline T* data() noexcept { return m_data; }
+        inline const T* data() const noexcept { return m_data; }
 		
     private:
-		carray<T> m_data{ nullptr };
+		T* m_data{ nullptr };
 		usize m_size{ 0 };
 	};
 }

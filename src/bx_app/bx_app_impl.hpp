@@ -42,14 +42,14 @@ namespace bx
 	template <typename T>
 	struct bx_api handlemap
 	{
-		inline handle_id insert(const T& obj) bx_noexcept
+		inline handle_id insert(const T& obj) noexcept
 		{
 			auto handle = counter++;
 			map.insert(std::make_pair(handle, obj));
 			return handle;
 		}
 
-		inline void remove(handle_id handle) bx_noexcept
+		inline void remove(handle_id handle) noexcept
 		{
 			const auto it = map.find(handle);
 			if (it == map.end())
@@ -58,7 +58,7 @@ namespace bx
 			map.erase(it);
 		}
 
-		inline T* get(handle_id handle) bx_noexcept
+		inline T* get(handle_id handle) noexcept
 		{
 			auto it = map.find(handle);
 			if (it == map.end())
@@ -71,11 +71,11 @@ namespace bx
 		std::unordered_map<handle_id, T> map;
 	};
 
-	bx_api bool dvc_init(const app_config_t& config) bx_noexcept;
-	bx_api void dvc_shutdown() bx_noexcept;
+	bx_api bool dvc_init(const app_config_t& config) noexcept;
+	bx_api void dvc_shutdown() noexcept;
 
-	bx_api bool gfx_init(const app_config_t& config) bx_noexcept;
-	bx_api void gfx_shutdown() bx_noexcept;
+	bx_api bool gfx_init(const app_config_t& config) noexcept;
+	bx_api void gfx_shutdown() noexcept;
 }
 
 // Enum helpers

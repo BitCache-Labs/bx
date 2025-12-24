@@ -180,6 +180,7 @@ static vptr glMapBufferRangeX(GLenum target, GLintptr offset, GLsizeiptr length,
 	if (glMapBufferRange) return glMapBufferRange(target, offset, length, access);
 	if (glMapBufferRangeEXT) return glMapBufferRangeEXT(target, offset, length, access);
 	bx_assert(false, "glMapBufferRange unsupported!");
+	return nullptr;
 }
 
 static vptr glMapNamedBufferRangeX(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access)
@@ -187,6 +188,7 @@ static vptr glMapNamedBufferRangeX(GLuint buffer, GLintptr offset, GLsizeiptr le
 	if (glMapNamedBufferRange) return glMapNamedBufferRange(buffer, offset, length, access);
 	if (glMapNamedBufferRangeEXT) return glMapNamedBufferRangeEXT(buffer, offset, length, access);
 	bx_assert(false, "glMapNamedBufferRange unsupported!");
+	return nullptr;
 }
 
 static void gl_print_info()
@@ -233,11 +235,13 @@ static void gl_print_info()
 	bx_verbose(bx, "    Max Vertex Attributes:            {}", value);
 
 	// Max vertex uniform components
-	if (GLAD_GL_VERSION_2_0 || GLAD_GL_ES_VERSION_2_0)
+	if (GLAD_GL_VERSION_2_0)
 		glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &value);
+	else if (GLAD_GL_ES_VERSION_2_0)
+		glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &value);
 	else
 		value = -1;
-	bx_verbose(bx, "    Max Vertex Uniform Components:    {}", value);
+	bx_verbose(bx, "    Max Vertex Uniform Components:    {}", GLAD_GL_ES_VERSION_2_0 ? value * 4 : value);
 
 	// Max vertex uniform blocks
 	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ES_VERSION_3_0)
@@ -695,7 +699,7 @@ static std::string gl_get_version_str()
 	return "#version 330 core";
 }
 
-bool bx::gfx_init(const bx::app_config_t& config) bx_noexcept
+bool bx::gfx_init(const bx::app_config_t& config) noexcept
 {
 	bx_profile(bx);
 
@@ -740,12 +744,12 @@ bool bx::gfx_init(const bx::app_config_t& config) bx_noexcept
 	return true;
 }
 
-void bx::gfx_shutdown() bx_noexcept
+void bx::gfx_shutdown() noexcept
 {
 	bx_profile(bx);
 }
 
-cstring bx::gfx_backend_name() bx_noexcept
+cstring bx::gfx_backend_name() noexcept
 {
 	bx_profile(bx);
 
@@ -756,7 +760,7 @@ cstring bx::gfx_backend_name() bx_noexcept
 #endif
 }
 
-const bx::gfx_features_t& bx::gfx_get_features() bx_noexcept
+const bx::gfx_features_t& bx::gfx_get_features() noexcept
 {
 	bx_profile(bx);
 
@@ -764,7 +768,7 @@ const bx::gfx_features_t& bx::gfx_get_features() bx_noexcept
 	return features;
 }
 
-static void gl_set_debug_name(GLenum identifier, GLuint name, GLsizei length, cstring label) bx_noexcept
+static void gl_set_debug_name(GLenum identifier, GLuint name, GLsizei length, cstring label) noexcept
 {
 	bx_profile(bx);
 
@@ -774,7 +778,7 @@ static void gl_set_debug_name(GLenum identifier, GLuint name, GLsizei length, cs
 		bx_debug(bxl, "Context does not support glObjectLabel");*/
 }
 
-void bx::gfx_push_debug_group(cstring name) bx_noexcept
+void bx::gfx_push_debug_group(cstring name) noexcept
 {
 	bx_profile(bx);
 
@@ -782,7 +786,7 @@ void bx::gfx_push_debug_group(cstring name) bx_noexcept
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, name);
 }
 
-void bx::gfx_pop_debug_group() bx_noexcept
+void bx::gfx_pop_debug_group() noexcept
 {
 	bx_profile(bx);
 
@@ -790,7 +794,7 @@ void bx::gfx_pop_debug_group() bx_noexcept
 		glPopDebugGroup();
 }
 
-void bx::gfx_insert_debug_marker(cstring name) bx_noexcept
+void bx::gfx_insert_debug_marker(cstring name) noexcept
 {
 	bx_profile(bx);
 
@@ -832,7 +836,7 @@ static cstring gl_get_stage_macro(bx::gfx_shader_stage_t stage)
 	}
 }
 
-bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
+bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) noexcept
 {
 	bx_profile(bx);
 
@@ -949,7 +953,7 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) bx_noexcept
 	return g_shaders.insert(glshader);
 }
 
-void bx::gfx_destroy_shader(const handle_id handle) bx_noexcept
+void bx::gfx_destroy_shader(const handle_id handle) noexcept
 {
 	bx_profile(bx);
 
@@ -1037,7 +1041,7 @@ static GLbitfield gl_access_flags_from_memory(const bx::gfx_memory_usage_t mem)
 	}
 }
 
-bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
+bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) noexcept
 {
 	bx_profile(bx);
 
@@ -1146,7 +1150,7 @@ bx::handle_id bx::gfx_create_buffer(const gfx_buffer_desc_t& desc) bx_noexcept
 	return g_buffers.insert(glbuffer);
 }
 
-void bx::gfx_destroy_buffer(const handle_id handle) bx_noexcept
+void bx::gfx_destroy_buffer(const handle_id handle) noexcept
 {
 	bx_profile(bx);
 
@@ -1157,7 +1161,7 @@ void bx::gfx_destroy_buffer(const handle_id handle) bx_noexcept
 	g_buffers.remove(handle);
 }
 
-u8* bx::gfx_map_buffer(const handle_id handle, const u64 offset, const u64 size) bx_noexcept
+u8* bx::gfx_map_buffer(const handle_id handle, const u64 offset, const u64 size) noexcept
 {
 	bx_profile(bx);
 
@@ -1226,7 +1230,7 @@ static void gl46_unmap_buffer(const bx::handle_id handle)
 	glUnmapNamedBuffer(glbuffer->bo);
 }
 
-void bx::gfx_unmap_buffer(const handle_id handle) bx_noexcept
+void bx::gfx_unmap_buffer(const handle_id handle) noexcept
 {
 	bx_profile(bx);
 
@@ -1273,7 +1277,7 @@ static void gl46_update_buffer(const bx::handle_id handle, const u64 dst_offset,
 		glbuffer->bo, static_cast<GLintptr>(dst_offset), static_cast<GLsizeiptr>(size), src);
 }
 
-void bx::gfx_update_buffer(const handle_id handle, const u64 dst_offset, cvptr src, const u64 size) bx_noexcept
+void bx::gfx_update_buffer(const handle_id handle, const u64 dst_offset, cvptr src, const u64 size) noexcept
 {
 	bx_profile(bx);
 
@@ -1331,7 +1335,7 @@ static GLenum gl_format_from_texture_format(bx::gfx_texture_format_t fmt, GLenum
 	}
 }
 
-bx::handle_id bx::gfx_create_texture(const gfx_texture_desc_t& desc) bx_noexcept
+bx::handle_id bx::gfx_create_texture(const gfx_texture_desc_t& desc) noexcept
 {
 	bx_profile(bx);
 
@@ -1409,7 +1413,7 @@ bx::handle_id bx::gfx_create_texture(const gfx_texture_desc_t& desc) bx_noexcept
 	return g_textures.insert(gltexture);
 }
 
-void bx::gfx_destroy_texture(const handle_id handle) bx_noexcept
+void bx::gfx_destroy_texture(const handle_id handle) noexcept
 {
 	bx_profile(bx);
 
@@ -1421,7 +1425,7 @@ void bx::gfx_destroy_texture(const handle_id handle) bx_noexcept
 	g_textures.remove(handle);
 }
 
-void bx::gfx_upload_texture_data(const handle_id texture, const u8* data, const u32 region_count, const gfx_texture_region_t* regions) bx_noexcept
+void bx::gfx_upload_texture_data(const handle_id texture, const u8* data, const u32 region_count, const gfx_texture_region_t* regions) noexcept
 {
 	bx_profile(bx);
 
@@ -1486,7 +1490,7 @@ void bx::gfx_upload_texture_data(const handle_id texture, const u8* data, const 
 	glBindTexture(target, 0);
 }
 
-bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_noexcept
+bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) noexcept
 {
 	bx_profile(bx);
 
@@ -1538,7 +1542,7 @@ bx::handle_id bx::gfx_create_framebuffer(const gfx_framebuffer_desc_t& desc) bx_
 	return g_framebuffers.insert(glfb);
 }
 
-void bx::gfx_destroy_framebuffer(handle_id fb) bx_noexcept
+void bx::gfx_destroy_framebuffer(handle_id fb) noexcept
 {
 	bx_profile(bx);
 
@@ -1550,7 +1554,7 @@ void bx::gfx_destroy_framebuffer(handle_id fb) bx_noexcept
 	g_framebuffers.remove(fb);
 }
 
-bx::handle_id bx::gfx_default_framebuffer() bx_noexcept
+bx::handle_id bx::gfx_default_framebuffer() noexcept
 {
 	bx_profile(bx);
 
@@ -1576,7 +1580,7 @@ static void gl_vattrib_info(bx::gfx_attribute_format_t fmt, GLenum& type, GLint&
 	}
 }
 
-bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexcept
+bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) noexcept
 {
 	bx_profile(bx);
 
@@ -1655,6 +1659,8 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 		gl_set_debug_name(GL_PROGRAM, program, -1, desc.name);
 		pipeline = program;
 	}
+
+	// TODO: For older GL, after shader program creation we should explicity set: glBindAttribLocation(program, loc, attrib_name);
 
 	GLuint vao = 0;
 
@@ -1764,7 +1770,7 @@ bx::handle_id bx::gfx_create_pipeline(const gfx_pipeline_desc_t& desc) bx_noexce
 	return g_pipelines.insert(glpipeline);
 }
 
-void bx::gfx_destroy_pipeline(const handle_id handle) bx_noexcept
+void bx::gfx_destroy_pipeline(const handle_id handle) noexcept
 {
 	bx_profile(bx);
 
@@ -1787,21 +1793,21 @@ void bx::gfx_destroy_pipeline(const handle_id handle) bx_noexcept
 	g_pipelines.remove(handle);
 }
 
-bx::handle_id bx::gfx_create_resource_set(const gfx_resource_set_desc_t& desc) bx_noexcept
+bx::handle_id bx::gfx_create_resource_set(const gfx_resource_set_desc_t& desc) noexcept
 {
 	bx_profile(bx);
 
 	return handle_id{0};
 }
 
-//void bx::gfx_update_resource_set(handle_id set_handle, u32 binding_count, const gfx_resource_binding_t* bindings) bx_noexcept {}
+//void bx::gfx_update_resource_set(handle_id set_handle, u32 binding_count, const gfx_resource_binding_t* bindings) noexcept {}
 
-void bx::gfx_destroy_resource_set(handle_id set_handle) bx_noexcept
+void bx::gfx_destroy_resource_set(handle_id set_handle) noexcept
 {
 	bx_profile(bx);
 }
 
-void bx::gfx_clear_rt(handle_id rt, f32 cv[4]) bx_noexcept
+void bx::gfx_clear_rt(handle_id rt, f32 cv[4]) noexcept
 {
 	bx_profile(bx);
 
@@ -1816,7 +1822,7 @@ void bx::gfx_clear_ds(handle_id ds)
 	glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-void bx::gfx_bind_pipeline(handle_id cb, handle_id pipeline) bx_noexcept
+void bx::gfx_bind_pipeline(handle_id cb, handle_id pipeline) noexcept
 {
 	bx_profile(bx);
 
@@ -1862,7 +1868,7 @@ void bx::gfx_bind_pipeline(handle_id cb, handle_id pipeline) bx_noexcept
 	}
 }
 
-void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_count, const handle_id* vertex_buffers, const u64* offsets) bx_noexcept
+void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_count, const handle_id* vertex_buffers, const u64* offsets) noexcept
 {
 	bx_profile(bx);
 
@@ -1985,12 +1991,12 @@ void bx::gfx_bind_vertex_buffers(handle_id cmd, u32 first_binding, u32 binding_c
 	}
 }
 
-void bx::gfx_bind_index_buffer(handle_id cb, handle_id index_buffer, u32 index_type) bx_noexcept
+void bx::gfx_bind_index_buffer(handle_id cb, handle_id index_buffer, u32 index_type) noexcept
 {
 	bx_profile(bx);
 }
 
-void bx::gfx_bind_resource_set(handle_id cb, handle_id pipeline_handle, handle_id set_handle, u32 set_index) bx_noexcept
+void bx::gfx_bind_resource_set(handle_id cb, handle_id pipeline_handle, handle_id set_handle, u32 set_index) noexcept
 {
 	bx_profile(bx);
 }
@@ -2016,7 +2022,7 @@ static GLenum gl_enum_from_topology(bx::gfx_topology_t t)
 	}
 }
 
-void bx::gfx_draw(handle_id cb, u32 vertex_count, u32 instance_count, u32 first_vertex, u32 first_instance) bx_noexcept
+void bx::gfx_draw(handle_id cb, u32 vertex_count, u32 instance_count, u32 first_vertex, u32 first_instance) noexcept
 {
 	bx_profile(bx);
 
@@ -2040,32 +2046,32 @@ void bx::gfx_draw(handle_id cb, u32 vertex_count, u32 instance_count, u32 first_
 	}
 }
 
-void bx::gfx_draw_indexed(handle_id cb, u32 index_count, u32 instance_count, u32 first_index, i32 vertex_offset) bx_noexcept
+void bx::gfx_draw_indexed(handle_id cb, u32 index_count, u32 instance_count, u32 first_index, i32 vertex_offset) noexcept
 {
 	bx_profile(bx);
 }
 
-void bx::gfx_copy_buffer(handle_id cb, handle_id src, handle_id dst, u64 src_offset, u64 dst_offset, u64 size) bx_noexcept
+void bx::gfx_copy_buffer(handle_id cb, handle_id src, handle_id dst, u64 src_offset, u64 dst_offset, u64 size) noexcept
 {
 	bx_profile(bx);
 }
 
-void bx::gfx_dispatch(handle_id cb, u32 x, u32 y, u32 z) bx_noexcept
+void bx::gfx_dispatch(handle_id cb, u32 x, u32 y, u32 z) noexcept
 {
 	bx_profile(bx);
 }
 
-void bx::gfx_submit(handle_id cb) bx_noexcept
+void bx::gfx_submit(handle_id cb) noexcept
 {
 	bx_profile(bx);
 }
 
-void bx::gfx_wait_idle() bx_noexcept
+void bx::gfx_wait_idle() noexcept
 {
 	bx_profile(bx);
 }
 
-void bx::gfx_pipeline_barrier(handle_id cb, const gfx_memory_barrier_t& barrier) bx_noexcept
+void bx::gfx_pipeline_barrier(handle_id cb, const gfx_memory_barrier_t& barrier) noexcept
 {
 	bx_profile(bx);
 }

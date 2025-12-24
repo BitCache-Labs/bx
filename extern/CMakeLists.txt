@@ -3,7 +3,7 @@ if (BX_MATH)
     add_subdirectory(glm)
 
     # Klein
-    add_subdirectory(klein)
+    #add_subdirectory(klein)
 endif()
 
 # FMT
