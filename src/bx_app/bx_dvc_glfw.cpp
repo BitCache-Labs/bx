@@ -93,14 +93,14 @@ bool bx::dvc_init(const app_config_t& config) noexcept
 {
 	bx_profile(bx);
 
-#if defined(__arm__) || defined(BX_APP_GFX_OPENGLES)
+#if defined(__arm__) && defined(BX_APP_GFX_OPENGLES)
 	if (putenv((char*)"DISPLAY=:0"))
 	{
 		bx_error(bx, "Failed to set DISPLAY enviroment variable");
 		return false;
 	}
 #endif
-
+	
 	glfwSetErrorCallback(glfw_error_callback);
 	if (!glfwInit())
 	{
@@ -145,6 +145,8 @@ bool bx::dvc_init(const app_config_t& config) noexcept
 	//glfwWindowHint(GLFW_GREEN_BITS, pMode->greenBits);
 	//glfwWindowHint(GLFW_BLUE_BITS, pMode->blueBits);
 	//glfwWindowHint(GLFW_REFRESH_RATE, pMode->refreshRate);
+
+	glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
 
 #ifdef BX_APP_IMGUI
 	const f32 main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
@@ -396,7 +398,7 @@ static bool gl_init(const bx::app_config_t& config)
 		return false;
 	}
 
-	if (!ImGui_ImplOpenGL3_Init())
+	if (!ImGui_ImplOpenGL3_Init("#version 100\n"))
 	{
 		bx_error(bx, "Failed to initialize ImGui OpenGL backend!");
 		return false;

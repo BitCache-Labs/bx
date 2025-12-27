@@ -24,6 +24,7 @@ if (BX_STL)
     add_library(bx_stl INTERFACE)
     target_include_directories(bx_stl INTERFACE "include/bx_stl")
     target_link_libraries(bx_stl INTERFACE bx_core)
+    #target_sources(bx_stl INTERFACE "debug/bx_stl.natvis")
 endif()
 
 if (BX_TYPE)
@@ -61,7 +62,8 @@ if (BX_APP)
     add_subdirectory(extern)
     
     set(bx_app_srcs
-            "src/bx_app/bx_app.cpp"
+        "src/bx_app/bx_app.cpp"
+        "src/bx_app/bx_gfx_glsl.cpp"
     )
 
     set(bx_app_libs)
@@ -213,7 +215,7 @@ if (BX_APP)
 
     add_library(bx_app STATIC ${bx_app_srcs})
     target_include_directories(bx_app PUBLIC "include/bx_app")
-    target_link_libraries(bx_app PUBLIC bx_core bx_stl bx_type fmt)
+    target_link_libraries(bx_app PUBLIC bx_core bx_stl bx_type fmt glslang glslang-default-resource-limits)
     if(BX_APP_ENABLE_IMGUI)
         target_link_libraries(bx_app PUBLIC imgui)
         target_compile_definitions(bx_app PUBLIC BX_APP_IMGUI)

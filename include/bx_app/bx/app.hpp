@@ -254,13 +254,6 @@ namespace bx
 
 	enum struct gfx_store_op_t : u8 { STORE = 0, DONT_CARE = 1 };
 
-	struct bx_api gfx_features_t
-	{
-		u32 max_texture_size{ 0 };
-		bool supports_compute{ false };
-		bool supports_geometry_shader{ false };
-	};
-
 	struct bx_api gfx_shader_macro_t
 	{
 		cstring name{ nullptr };
@@ -411,9 +404,24 @@ namespace bx
 		gfx_shader_stage_t dst_stage{};
 	};
 
-	bx_api cstring gfx_backend_name() noexcept;
+	struct bx_api gfx_info_t
+	{
+		cstring backend{ nullptr };
+		cstring device{ nullptr };
+		cstring adapter{ nullptr };
+		cstring api_version{ nullptr };
+		cstring shader_version{ nullptr };
 
-	bx_api const gfx_features_t& gfx_get_features() noexcept;
+		struct features_t
+		{
+			u32 max_texture_size{ 0 };
+			bool supports_compute{ false };
+			bool supports_geometry_shader{ false };
+		};
+		features_t features{};
+	};
+
+	bx_api const gfx_info_t& gfx_get_info() noexcept;
 
 	bx_api void gfx_push_debug_group(cstring name) noexcept;
 

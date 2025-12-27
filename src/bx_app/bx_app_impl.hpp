@@ -76,6 +76,8 @@ namespace bx
 
 	bx_api bool gfx_init(const app_config_t& config) noexcept;
 	bx_api void gfx_shutdown() noexcept;
+
+	bx_api bx::string gfx_compile_glsl(cstring src) noexcept;
 }
 
 // Enum helpers

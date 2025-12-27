@@ -115,7 +115,7 @@ struct gl_features_t
 	bool tex_compression_etc2{ false };				// ETC2/EAC
 };
 
-static gl_features_t g_features;
+static gl_features_t g_features{};
 
 static bx::handlemap<gl_shader_t> g_shaders{};
 static bx::handlemap<gl_buffer_t> g_buffers{};
@@ -131,9 +131,8 @@ static bx::handle_id g_current_index_buffer = 0;
 // Current index buffer index type
 static GLenum g_current_index_type = GL_UNSIGNED_INT;
 
-// Shader preprocessors
-static std::string g_glsl_version;
-static std::string g_glsl_header;
+// Backend info
+static bx::gfx_info_t g_info{};
 
 // Extension independent OpenGL
 
@@ -677,76 +676,24 @@ static void gl_setup_debug_callback()
 #endif
 }
 
-static std::string gl_get_version_str()
-{
-	bx_profile(bx);
-
-	cstring glsl_version = (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION);
-	if (glsl_version)
-	{
-		// Skip non-digit characters
-		cstring p = glsl_version;
-		while (*p && (*p < '0' || *p > '9')) ++p;
-		if (*p)
-		{
-			i32 major = 0, minor = 0;
-			sscanf(p, "%d.%d", &major, &minor);
-
-#ifdef BX_APP_GFX_OPENGL
-			return fmt::format("#version {:d}{:02d} core", major, minor);
-#else
-			if (GLAD_GL_ES_VERSION_3_0) // || GLAD_GL_VERSION_3_0
-				return fmt::format("#version {:d}{:02d} es", major, minor);
-			else
-				return fmt::format("#version {:d}{:02d}", major, minor);
-#endif
-		}
-	}
-
-	return "#version 330 core";
-}
-
 bool bx::gfx_init(const bx::app_config_t& config) noexcept
 {
 	bx_profile(bx);
 
+#ifdef BX_APP_GFX_OPENGLES
+	g_info.backend = "opengles";
+#else
+	g_info.backend = "opengl";
+#endif
+
+	g_info.device = (cstring)glGetString(GL_RENDERER);
+	g_info.adapter = (cstring)glGetString(GL_VENDOR);
+	g_info.api_version = (cstring)glGetString(GL_VERSION);
+	g_info.shader_version = (cstring)glGetString(GL_SHADING_LANGUAGE_VERSION);
+
 	gl_print_info();
 	gl_check_features();
 	gl_setup_debug_callback();
-	g_glsl_version = gl_get_version_str();
-	
-	g_glsl_header = R"(
-		#if defined(GL_ES) && __VERSION__ < 300
-			#if defined(VSH)
-				#define layout_in(loc) attribute
-				#define v_out varying
-			
-			#elif defined(FSH)
-				#define v_in varying
-				#define layout_out(loc)
-				#define gl_FragOut(glVar, outVar) glVar = outVar
-			#endif
-		
-		#else
-			#if defined(VSH)
-				#define layout_in(loc) layout(location = loc) in
-				#define v_out out
-				
-				#ifdef GL_ES
-				#extension GL_OES_shader_io_blocks : enable
-				#endif
-				out gl_PerVertex {
-					vec4 gl_Position;
-				};
-			
-			#elif defined(FSH)
-				#define v_in in
-				#define layout_out(loc) layout(location = loc) out
-				#define gl_FragOut(glVar, outVar)
-			#endif
-			
-		#endif
-	    )";
 
 	return true;
 }
@@ -756,23 +703,10 @@ void bx::gfx_shutdown() noexcept
 	bx_profile(bx);
 }
 
-cstring bx::gfx_backend_name() noexcept
+const bx::gfx_info_t& bx::gfx_get_info() noexcept
 {
 	bx_profile(bx);
-
-#ifdef BX_APP_GFX_OPENGLES
-	return "opengles";
-#else
-	return "opengl";
-#endif
-}
-
-const bx::gfx_features_t& bx::gfx_get_features() noexcept
-{
-	bx_profile(bx);
-
-	static bx::gfx_features_t features{};
-	return features;
+	return g_info;
 }
 
 static void gl_set_debug_name(GLenum identifier, GLuint name, GLsizei length, cstring label) noexcept
@@ -826,23 +760,7 @@ static GLenum gl_get_stage(bx::gfx_shader_stage_t stage)
 		return 0;
 	}
 }
-
-static cstring gl_get_stage_macro(bx::gfx_shader_stage_t stage)
-{
-	bx_profile(bx);
-
-	switch (stage)
-	{
-	case bx::gfx_shader_stage_t::VERTEX:   return "#define VSH";
-	case bx::gfx_shader_stage_t::FRAGMENT: return "#define FSH";
-	case bx::gfx_shader_stage_t::GEOMETRY: return "#define GSH";
-	case bx::gfx_shader_stage_t::COMPUTE:  return "#define CSH";
-	default:
-		bx_debug(bx, "Unknown shader stage.");
-		return "";
-	}
-}
-
+#include <iostream>
 bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) noexcept
 {
 	bx_profile(bx);
@@ -854,10 +772,11 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) noexcept
 	std::string source_code;
 	if (!desc.source && desc.filepath)
 	{
-		std::ifstream file(desc.filepath);
+		bx::string filepath = file_get_path(desc.filepath);
+		std::ifstream file(filepath.c_str());
 		if (!file.is_open())
 		{
-			bx_error(bx, "Failed to open file {}", desc.filepath);
+			bx_error(bx, "Failed to open file {}", filepath.c_str());
 			return bx::invalid_handle;
 		}
 		source_code += std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -867,7 +786,8 @@ bx::handle_id bx::gfx_create_shader(const gfx_shader_desc_t& desc) noexcept
 		source_code += desc.source;
 	}
 
-	source_code = fmt::format("{}\n{}\n{}\n{}", g_glsl_version, gl_get_stage_macro(desc.stage), g_glsl_header, source_code);
+	source_code = bx::gfx_compile_glsl(source_code.c_str());
+	std::cout << source_code.c_str() << std::endl;
 	const char* src_ptr = source_code.c_str();
 	GLuint program = 0;
 
