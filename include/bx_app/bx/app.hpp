@@ -5,7 +5,6 @@
 #include <bx/type.hpp>
 #include <bx/array.hpp>
 #include <bx/string.hpp>
-
 #include <fmt/format.h>
 
 #define bx_register_category(T) \
@@ -13,17 +12,40 @@
 	template<> inline bx::category_t bx::category_mask<bx_category_##T##_t>() noexcept { static const auto c = bx::register_category(#T); return c; }
 
 #define bx_log_set_category_types(T, types) bx::log_set_category_types(bx::category_mask<bx_category_##T##_t>(), types)
+
+#if (BX_LOG_LEVEL > 0)
 #define _bx_log(T, lvl, fstr, ...) bx::logf(lvl, fstr, ##__VA_ARGS__)
 #define _bx_log_v(T, lvl, fstr, ...) bx::logf_v(lvl, bx::category_mask<bx_category_##T##_t>(), bx_func, bx_file, bx_line, fstr, ##__VA_ARGS__)
+#define bx_fatal(T, fstr, ...) _bx_log_v(T, bx::log_t::FATAL, fstr, ##__VA_ARGS__)
+#define bx_assert(expr, msg) do { if (!(expr)) { bx_fatal(bx, "Assertion failed '{}'", msg); } } while (0)
+#define bx_ensure(expr) bx_assert(expr, #expr)
+#else
+#define bx_fatal(T, fstr, ...)
+#define bx_assert(expr, msg)
+#define bx_ensure(expr)
+#endif
+
+#if (BX_LOG_LEVEL > 1)
 #define bx_info(T, fstr, ...) _bx_log_v(T, bx::log_t::INFO, fstr, ##__VA_ARGS__)
 #define bx_warn(T, fstr, ...) _bx_log_v(T, bx::log_t::WARN, fstr, ##__VA_ARGS__)
 #define bx_error(T, fstr, ...) _bx_log_v(T, bx::log_t::ERROR, fstr, ##__VA_ARGS__)
-#define bx_fatal(T, fstr, ...) _bx_log_v(T, bx::log_t::FATAL, fstr, ##__VA_ARGS__)
-#define bx_debug(T, fstr, ...) _bx_log_v(T, bx::log_t::DEBUG, fstr, ##__VA_ARGS__)
-#define bx_verbose(T, fstr, ...) _bx_log(T, bx::log_t::VERBOSE, fstr, ##__VA_ARGS__)
+#else
+#define bx_info(T, fstr, ...)
+#define bx_warn(T, fstr, ...)
+#define bx_error(T, fstr, ...)
+#endif
 
-#define bx_assert(expr, msg) do { if (!(expr)) { bx_fatal(bx, "Assertion failed '{}'", msg); } } while (0)
-#define bx_ensure(expr) bx_assert(expr, #expr)
+#if (BX_LOG_LEVEL > 2)
+#define bx_debug(T, fstr, ...) _bx_log_v(T, bx::log_t::DEBUG, fstr, ##__VA_ARGS__)
+#else
+#define bx_debug(T, fstr, ...)
+#endif
+
+#if (BX_LOG_LEVEL > 3)
+#define bx_verbose(T, fstr, ...) _bx_log(T, bx::log_t::VERBOSE, fstr, ##__VA_ARGS__)
+#else
+#define bx_verbose(T, fstr, ...)
+#endif
 
 #define bx_profile(T) bx::profile_t _bx_concat(_bx_profile_, bx_line){ bx::category_mask<bx_category_##T##_t>(), bx_func, bx_func, bx_file, bx_line }
 #define bx_profile_scope(T, label) bx::profile_t _bx_concat(_bx_profile_, bx_line){ bx::category_mask<bx_category_##T##_t>(), label, bx_func, bx_file, bx_line }

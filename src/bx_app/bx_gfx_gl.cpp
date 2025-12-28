@@ -409,6 +409,8 @@ static void gl_check_features()
 		|| GLAD_GL_EXT_direct_state_access;
 	
 	// Buffers and memory
+	// TODO: Take into account for GL_EXT_map_buffer_range
+
 	g_features.buffer_storage = GLAD_GL_VERSION_4_4
 		|| GLAD_GL_ARB_buffer_storage
 		|| GLAD_GL_EXT_buffer_storage;
@@ -1125,8 +1127,17 @@ u8* bx::gfx_map_buffer(const handle_id handle, const u64 offset, const u64 size)
 
 		glBindBuffer(glbuffer->target, glbuffer->bo);
 
-		vptr ptr = glMapBufferRangeX(
-			glbuffer->target, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), glbuffer->access);
+		vptr ptr = nullptr;
+		//if (g_features.has_map_buffer_range)
+		{
+			ptr = glMapBufferRangeX(
+				glbuffer->target, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), glbuffer->access);
+		}
+		//else
+		//{
+		//	ptr = glMapBuffer(glbuffer->target, GL_WRITE_ONLY);
+		//	if (ptr) ptr = static_cast<u8*>(ptr) + offset;
+		//}
 
 		glBindBuffer(glbuffer->target, 0);
 		return reinterpret_cast<u8*>(ptr);

@@ -10,7 +10,7 @@ int main(int argc, char** args)
 	if (bx::app_init(config) != bx::result_t::OK)
 		return EXIT_FAILURE;
 
-	bx::file_add_drive("[local]", "./");
+	bx::file_add_drive("[local]", BX_EXAMPLES_DIR);
 
 	bx::array<int> indices{ 1, 2, 3, 4, 5 };
 	bx::array_fixed<int, 5> indices_f{ 1, 2, 3, 4, 5 };
@@ -27,7 +27,7 @@ int main(int argc, char** args)
 		if (time >= 1.f)
 		{
 			const f32 fps = frames / time;
-			bx_verbose(bx, "fps: {}", fps);
+			bx_info(bx, "fps: {:.1f}", fps);
 			time = fmod(time, 1.f);
 			frames = 0;
 		}

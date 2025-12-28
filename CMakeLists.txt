@@ -16,8 +16,15 @@ option(BX_TESTS "Build bx tests" ON)
 option(BX_EXAMPLES "Build bx examples" ON)
 
 if (BX_CORE)
+    set(BX_CORE_LOG_LEVEL "3" CACHE STRING "Logging level (0=None, 1=Fatal, 2=Info/Warn/Error, 3=Debug, 4=Verbose)")
+    set_property(CACHE BX_CORE_LOG_LEVEL PROPERTY STRINGS "0" "1" "2" "3" "4")
+    if(BX_CORE_LOG_LEVEL GREATER 4)
+        message(FATAL_ERROR "BX_CORE_LOG_LEVEL must be between 0 and 4")
+    endif()
+    
     add_library(bx_core STATIC "src/bx_core/bx_core.cpp")
     target_include_directories(bx_core PUBLIC "include/bx_core")
+    target_compile_definitions(bx_core PUBLIC BX_LOG_LEVEL=${BX_CORE_LOG_LEVEL})
 endif()
 
 if (BX_STL)

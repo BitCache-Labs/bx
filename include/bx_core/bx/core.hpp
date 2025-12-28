@@ -20,6 +20,12 @@ using i16 = int16_t;
 using i32 = int32_t;
 using i64 = int64_t;
 
+#if defined(__arm__) || defined(__aarch64__)
+using f16 = _Float16;
+#else
+using f16 = float;
+#endif
+
 using f32 = float;
 using f64 = double;
 
