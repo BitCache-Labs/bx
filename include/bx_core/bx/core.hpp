@@ -83,6 +83,8 @@ using nstring = char[N];
 #define _bx_expand(x) _bx_expand_impl(x)
 #define _bx_concat_impl(x, y) x##y
 #define _bx_concat(x, y) _bx_concat_impl(x, y)
+#define _bx_str_impl(x) #x
+#define _bx_str(x) _bx_str_impl(x)
 
 namespace bx
 {
